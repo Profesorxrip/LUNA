@@ -19,16 +19,14 @@ import {
 } from "./rooms";
 import { createVoiceToken } from "./livekit";
 import {
-  conversationKey,
-  getOrCreateConversation,
-  addMessage,
+  openConversation,
+  previewConversation,
+  sendMessage,
+  setExpiryMs,
   markSeen,
   setOnline,
   removeOnlineBySocket,
   getSocketIdForUser,
-  newMessageId,
-  pruneExpired,
-  setExpiryMs,
   DMReply,
 } from "./dm";
 import {
@@ -45,12 +43,13 @@ import {
   listOutgoing,
   listBlocked,
 } from "./social";
+import { verifyAccessToken, clientForUser, isSupabaseConfigured } from "./supabase";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/health", (_req, res) => res.json({ ok: true }));
+app.get("/health", (_req, res) => res.json({ ok: true, supabase: isSupabaseConfigured() }));
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
@@ -67,45 +66,81 @@ function broadcastRoomsList() {
   io.emit("rooms:list", listPublicRooms());
 }
 
+/** Basit sabit-pencereli rate limit: ayni socket'in ayni event'i pencere
+ * basina belirli sayidan fazla gondermesini engeller (spam/abuse koruma -
+ * roadmap AŞAMA 10 Socket.io guvenlik checklist). */
+function makeRateLimiter() {
+  const hits = new Map<string, { count: number; resetAt: number }>();
+  return function allow(key: string, max: number, windowMs: number): boolean {
+    const now = Date.now();
+    const entry = hits.get(key);
+    if (!entry || now > entry.resetAt) {
+      hits.set(key, { count: 1, resetAt: now + windowMs });
+      return true;
+    }
+    if (entry.count >= max) return false;
+    entry.count += 1;
+    return true;
+  };
+}
+
 io.on("connection", (socket: Socket) => {
   let currentRoomCode: string | null = null;
   let myUserId: string | null = null;
   let myName = "Misafir";
+  let myDb: ReturnType<typeof clientForUser> | null = null;
+  const allow = makeRateLimiter();
 
   socket.on("rooms:list", (_data, ack) => {
     ack?.(listPublicRooms());
   });
 
-  // Ozelden mesajlasma (DM) icin: kullanici baglanir baglanmaz kendi kararli
-  // kimligini (userId) bildirir, boylece hangi socket'in kim oldugunu
-  // biliriz ve mesajlari dogru kisiye yonlendirebiliriz.
-  socket.on("user:identify", ({ userId, name }: { userId: string; name?: string }) => {
-    if (!userId) return;
-    myUserId = userId;
-    if (name) myName = name;
-    setOnline(userId, socket.id);
-    setUserName(userId, myName);
+  // Ozelden mesajlasma / arkadaslik icin: kullanici Supabase access token'ini
+  // gonderir, sunucu bunu DOGRULAR ve GERCEK kullanici id'sini kendisi
+  // belirler. Client'in "ben buyum" dedigi bir id ASLA kabul edilmez -
+  // aksi halde biri baskasinin id'sini bilerek onun DM'lerini/arkadaslik
+  // isteklerini yonetebilirdi (roadmap AŞAMA 4, IDOR).
+  socket.on("user:identify", async ({ accessToken }: { accessToken: string }, ack) => {
+    if (!accessToken) return ack?.({ ok: false, error: "accessToken gerekli." });
+    const user = await verifyAccessToken(accessToken);
+    if (!user) return ack?.({ ok: false, error: "Gecersiz oturum." });
+
+    myUserId = user.id;
+    myName = user.email ? user.email.split("@")[0] : "Kullanici";
+    myDb = clientForUser(accessToken);
+    setOnline(myUserId, socket.id);
+    await setUserName(myDb, myUserId, myName);
+    ack?.({ ok: true, userId: myUserId, name: myName });
   });
 
-  socket.on("friend:status", ({ withUserId }: { withUserId: string }, ack) => {
-    if (!myUserId || !withUserId) return ack?.({ ok: false });
-    ack?.({ ok: true, status: getFriendStatus(myUserId, withUserId) });
+  function requireAuth(ack?: (res: any) => void): boolean {
+    if (!myUserId || !myDb) {
+      ack?.({ ok: false, error: "Once giris yapmalisin." });
+      return false;
+    }
+    return true;
+  }
+
+  socket.on("friend:status", async ({ withUserId }: { withUserId: string }, ack) => {
+    if (!requireAuth(ack) || !withUserId) return;
+    ack?.({ ok: true, status: await getFriendStatus(myDb!, withUserId) });
   });
 
-  socket.on("friends:list", (_data, ack) => {
-    if (!myUserId) return ack?.({ ok: false });
+  socket.on("friends:list", async (_data, ack) => {
+    if (!requireAuth(ack)) return;
     ack?.({
       ok: true,
-      friends: listFriends(myUserId),
-      incoming: listIncoming(myUserId),
-      outgoing: listOutgoing(myUserId),
-      blocked: listBlocked(myUserId),
+      friends: await listFriends(myDb!, myUserId!),
+      incoming: await listIncoming(myDb!, myUserId!),
+      outgoing: await listOutgoing(myDb!, myUserId!),
+      blocked: await listBlocked(myDb!, myUserId!),
     });
   });
 
-  socket.on("friend:request", ({ toUserId }: { toUserId: string }, ack) => {
-    if (!myUserId || !toUserId) return ack?.({ ok: false });
-    const ok = sendRequest(myUserId, toUserId);
+  socket.on("friend:request", async ({ toUserId }: { toUserId: string }, ack) => {
+    if (!requireAuth(ack) || !toUserId) return;
+    if (!allow("friend:request", 20, 60_000)) return ack?.({ ok: false, error: "Cok fazla istek, biraz bekle." });
+    const ok = await sendRequest(myDb!, toUserId);
     ack?.({ ok });
     if (ok) {
       const peerSocketId = getSocketIdForUser(toUserId);
@@ -113,9 +148,9 @@ io.on("connection", (socket: Socket) => {
     }
   });
 
-  socket.on("friend:cancel", ({ toUserId }: { toUserId: string }, ack) => {
-    if (!myUserId || !toUserId) return ack?.({ ok: false });
-    cancelRequest(myUserId, toUserId);
+  socket.on("friend:cancel", async ({ toUserId }: { toUserId: string }, ack) => {
+    if (!requireAuth(ack) || !toUserId) return;
+    await cancelRequest(myDb!, toUserId);
     ack?.({ ok: true });
     const peerSocketId = getSocketIdForUser(toUserId);
     if (peerSocketId) io.to(peerSocketId).emit("friend:cancelled", { byUserId: myUserId });
@@ -123,9 +158,9 @@ io.on("connection", (socket: Socket) => {
 
   socket.on(
     "friend:respond",
-    ({ fromUserId, accept }: { fromUserId: string; accept: boolean }, ack) => {
-      if (!myUserId || !fromUserId) return ack?.({ ok: false });
-      respondRequest(fromUserId, myUserId, accept);
+    async ({ fromUserId, accept }: { fromUserId: string; accept: boolean }, ack) => {
+      if (!requireAuth(ack) || !fromUserId) return;
+      await respondRequest(myDb!, fromUserId, accept);
       ack?.({ ok: true });
       const peerSocketId = getSocketIdForUser(fromUserId);
       if (peerSocketId) {
@@ -137,77 +172,61 @@ io.on("connection", (socket: Socket) => {
     }
   );
 
-  socket.on("friend:remove", ({ userId }: { userId: string }, ack) => {
-    if (!myUserId || !userId) return ack?.({ ok: false });
-    removeFriend(myUserId, userId);
+  socket.on("friend:remove", async ({ userId }: { userId: string }, ack) => {
+    if (!requireAuth(ack) || !userId) return;
+    await removeFriend(myDb!, userId);
     ack?.({ ok: true });
     const peerSocketId = getSocketIdForUser(userId);
     if (peerSocketId) io.to(peerSocketId).emit("friend:removed", { byUserId: myUserId });
   });
 
-  socket.on("friend:block", ({ userId }: { userId: string }, ack) => {
-    if (!myUserId || !userId) return ack?.({ ok: false });
-    blockUser(myUserId, userId);
+  socket.on("friend:block", async ({ userId }: { userId: string }, ack) => {
+    if (!requireAuth(ack) || !userId) return;
+    await blockUser(myDb!, userId);
     ack?.({ ok: true });
   });
 
-  socket.on("friend:unblock", ({ userId }: { userId: string }, ack) => {
-    if (!myUserId || !userId) return ack?.({ ok: false });
-    unblockUser(myUserId, userId);
+  socket.on("friend:unblock", async ({ userId }: { userId: string }, ack) => {
+    if (!requireAuth(ack) || !userId) return;
+    await unblockUser(myDb!, userId);
     ack?.({ ok: true });
   });
 
   // Arkadaslar listesinde son mesaj onizlemesi gostermek icin - dm:open'in
   // aksine "gorundu" isaretlemez, sadece son mesaji dondurur.
-  socket.on("dm:preview", ({ withUserId }: { withUserId: string }, ack) => {
-    if (!myUserId || !withUserId) return ack?.({ ok: false });
-    const key = conversationKey(myUserId, withUserId);
-    const convo = getOrCreateConversation(key);
-    pruneExpired(convo);
-    const lastMessage = convo.messages[convo.messages.length - 1] || null;
+  socket.on("dm:preview", async ({ withUserId }: { withUserId: string }, ack) => {
+    if (!requireAuth(ack) || !withUserId) return;
+    const lastMessage = await previewConversation(myDb!, myUserId!, withUserId);
     ack?.({ ok: true, lastMessage });
   });
 
-  socket.on("dm:open", ({ withUserId }: { withUserId: string }, ack) => {
-    if (!myUserId || !withUserId) return ack?.({ ok: false, error: "Once tanimlanmalisin." });
-    const key = conversationKey(myUserId, withUserId);
-    const convo = getOrCreateConversation(key);
-    pruneExpired(convo);
-    markSeen(convo, myUserId);
-    ack?.({ ok: true, messages: convo.messages, expiresAfterMs: convo.expiresAfterMs });
+  socket.on("dm:open", async ({ withUserId }: { withUserId: string }, ack) => {
+    if (!requireAuth(ack) || !withUserId) return;
+    const result = await openConversation(myDb!, withUserId);
+    if (!result) return ack?.({ ok: false, error: "Konusma acilamadi." });
+    ack?.({ ok: true, messages: result.messages, expiresAfterMs: result.expiresAfterMs });
     const peerSocketId = getSocketIdForUser(withUserId);
     if (peerSocketId) io.to(peerSocketId).emit("dm:seen", { byUserId: myUserId, at: Date.now() });
   });
 
   socket.on(
     "dm:send",
-    ({ toUserId, text, replyTo }: { toUserId: string; text: string; replyTo?: DMReply | null }, ack) => {
-      if (!myUserId || !toUserId || !text?.trim()) return ack?.({ ok: false });
-      const key = conversationKey(myUserId, toUserId);
-      const convo = getOrCreateConversation(key);
-      pruneExpired(convo);
-      const createdAt = Date.now();
-      const message = {
-        id: newMessageId(),
-        fromUserId: myUserId,
-        fromName: myName,
-        text: text.trim().slice(0, 1000),
-        replyTo: replyTo || null,
-        createdAt,
-        expiresAt: convo.expiresAfterMs ? createdAt + convo.expiresAfterMs : null,
-      };
-      addMessage(convo, message);
-      ack?.({ ok: true, message });
+    async ({ toUserId, text, replyTo }: { toUserId: string; text: string; replyTo?: DMReply | null }, ack) => {
+      if (!requireAuth(ack) || !toUserId || !text?.trim()) return;
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendMessage(myDb!, toUserId, text, replyTo || null);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
       const peerSocketId = getSocketIdForUser(toUserId);
-      if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message });
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
     }
   );
 
-  socket.on("dm:setExpiry", ({ withUserId, ms }: { withUserId: string; ms: number | null }, ack) => {
-    if (!myUserId || !withUserId) return ack?.({ ok: false });
-    const key = conversationKey(myUserId, withUserId);
-    const convo = getOrCreateConversation(key);
-    setExpiryMs(convo, ms);
+  socket.on("dm:setExpiry", async ({ withUserId, ms }: { withUserId: string; ms: number | null }, ack) => {
+    if (!requireAuth(ack) || !withUserId) return;
+    await setExpiryMs(myDb!, withUserId, ms);
     ack?.({ ok: true });
     const peerSocketId = getSocketIdForUser(withUserId);
     if (peerSocketId) io.to(peerSocketId).emit("dm:expiry", { byUserId: myUserId, ms });
@@ -219,9 +238,10 @@ io.on("connection", (socket: Socket) => {
       { name, isPublic, source }: { name: string; isPublic?: boolean; source: MediaSource },
       ack
     ) => {
+      if (!allow("room:create", 10, 60_000)) return ack?.({ ok: false, error: "Cok fazla oda acildi, biraz bekle." });
       // Oda, icerik secilmeden var olamaz - odanin/kartin ismi de secilen
       // icerigin ismi (source.label) oluyor, ayri bir oda basligi girilmiyor.
-      const room = createRoom(socket.id, name || "Host", { isPublic, source });
+      const room = createRoom(socket.id, name || myName || "Host", { isPublic, source });
       currentRoomCode = room.code;
       socket.join(room.code);
       ack?.({ ok: true, room: roomToPublicState(room) });
@@ -230,7 +250,8 @@ io.on("connection", (socket: Socket) => {
   );
 
   socket.on("room:join", ({ code, name }: { code: string; name: string }, ack) => {
-    const room = joinRoom(code, socket.id, name || "Misafir");
+    if (!allow("room:join", 20, 60_000)) return ack?.({ ok: false, error: "Cok fazla deneme, biraz bekle." });
+    const room = joinRoom(code, socket.id, name || myName || "Misafir");
     if (!room) {
       ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
       return;
@@ -310,7 +331,8 @@ io.on("connection", (socket: Socket) => {
   /** Video uzerinde ucusan emoji reaksiyonlari - sunucu hicbir state tutmaz,
    * sadece odadaki DIGER herkese anlik olarak iletir (kimin gonderdigi bilgisiyle). */
   socket.on("reaction:send", ({ emoji }: { emoji: string }) => {
-    if (!currentRoomCode || !emoji) return;
+    if (!currentRoomCode || !emoji || typeof emoji !== "string" || emoji.length > 8) return;
+    if (!allow("reaction:send", 40, 10_000)) return;
     const room = getRoom(currentRoomCode);
     const participant = room?.participants.get(socket.id);
     socket.to(currentRoomCode).emit("room:reaction", {
@@ -322,6 +344,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("chat:send", ({ text }: { text: string }) => {
     if (!currentRoomCode || !text?.trim()) return;
+    if (!allow("chat:send", 20, 10_000)) return;
     const room = getRoom(currentRoomCode);
     const participant = room?.participants.get(socket.id);
     io.to(currentRoomCode).emit("room:chat", {
@@ -370,4 +393,7 @@ io.on("connection", (socket: Socket) => {
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 server.listen(PORT, () => {
   console.log(`rave-clone server dinliyor: http://localhost:${PORT}`);
+  if (!isSupabaseConfigured()) {
+    console.warn("UYARI: SUPABASE_URL / SUPABASE_ANON_KEY tanimli degil - arkadaslik/DM ozellikleri calismayacak.");
+  }
 });

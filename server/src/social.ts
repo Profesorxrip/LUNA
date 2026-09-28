@@ -1,107 +1,103 @@
+import { SupabaseClient } from "@supabase/supabase-js";
+
 export type FriendStatus = "none" | "outgoing" | "incoming" | "friends" | "blocked";
 
-interface PendingRequest {
-  from: string;
-  to: string;
-  createdAt: number;
+export interface FriendUser {
+  userId: string;
+  name: string;
 }
 
-const userNames = new Map<string, string>(); // userId -> son bilinen goruntulenen isim
-const friendships = new Set<string>(); // "a::b" (sirali) - ikisi de arkadas
-const pendingRequests = new Map<string, PendingRequest>(); // "from->to"
-const blocks = new Map<string, Set<string>>(); // userId -> engelledigi userId'ler
-
-function pairKey(a: string, b: string): string {
-  return [a, b].sort().join("::");
+async function namesFor(db: SupabaseClient, ids: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ids.length === 0) return map;
+  const { data } = await db.from("profiles").select("id,name").in("id", ids);
+  for (const row of data || []) map.set(row.id, row.name || "Kullanici");
+  return map;
 }
 
-function requestKey(from: string, to: string): string {
-  return `${from}->${to}`;
+export async function getFriendStatus(db: SupabaseClient, otherUserId: string): Promise<FriendStatus> {
+  const { data, error } = await db.rpc("get_friend_status", { other_user: otherUserId });
+  if (error) return "none";
+  return (data as FriendStatus) || "none";
 }
 
-export function setUserName(userId: string, name: string) {
-  userNames.set(userId, name);
+export async function sendRequest(db: SupabaseClient, toUserId: string): Promise<boolean> {
+  const { data, error } = await db.rpc("send_friend_request", { target: toUserId });
+  return !error && Boolean(data);
 }
 
-export function getUserName(userId: string): string {
-  return userNames.get(userId) || "Kullanici";
+export async function cancelRequest(db: SupabaseClient, toUserId: string): Promise<void> {
+  await db.rpc("cancel_friend_request", { target: toUserId });
 }
 
-function isBlockedEither(a: string, b: string): boolean {
-  return !!blocks.get(a)?.has(b) || !!blocks.get(b)?.has(a);
+export async function respondRequest(db: SupabaseClient, fromUserId: string, accept: boolean): Promise<void> {
+  await db.rpc("respond_friend_request", { requester: fromUserId, accept });
 }
 
-export function getFriendStatus(a: string, b: string): FriendStatus {
-  if (isBlockedEither(a, b)) return "blocked";
-  if (friendships.has(pairKey(a, b))) return "friends";
-  if (pendingRequests.has(requestKey(a, b))) return "outgoing";
-  if (pendingRequests.has(requestKey(b, a))) return "incoming";
-  return "none";
+export async function removeFriend(db: SupabaseClient, userId: string): Promise<void> {
+  await db.rpc("remove_friend", { other_user: userId });
 }
 
-export function sendRequest(from: string, to: string): boolean {
-  if (from === to || isBlockedEither(from, to)) return false;
-  if (friendships.has(pairKey(from, to))) return false;
-  if (pendingRequests.has(requestKey(from, to)) || pendingRequests.has(requestKey(to, from))) return false;
-  pendingRequests.set(requestKey(from, to), { from, to, createdAt: Date.now() });
-  return true;
+export async function blockUser(db: SupabaseClient, userId: string): Promise<void> {
+  await db.rpc("block_user", { target: userId });
 }
 
-export function cancelRequest(from: string, to: string) {
-  pendingRequests.delete(requestKey(from, to));
+export async function unblockUser(db: SupabaseClient, userId: string): Promise<void> {
+  await db.rpc("unblock_user", { target: userId });
 }
 
-export function respondRequest(from: string, to: string, accept: boolean) {
-  const key = requestKey(from, to);
-  if (!pendingRequests.has(key)) return;
-  pendingRequests.delete(key);
-  if (accept) friendships.add(pairKey(from, to));
+export async function listFriends(db: SupabaseClient, myUserId: string): Promise<FriendUser[]> {
+  const { data: rows } = await db
+    .from("friendships")
+    .select("user_a,user_b")
+    .or(`user_a.eq.${myUserId},user_b.eq.${myUserId}`);
+  const otherIds = (rows || []).map((r) => (r.user_a === myUserId ? r.user_b : r.user_a));
+  const names = await namesFor(db, otherIds);
+  return otherIds.map((id) => ({ userId: id, name: names.get(id) || "Kullanici" }));
 }
 
-export function removeFriend(a: string, b: string) {
-  friendships.delete(pairKey(a, b));
+export async function listIncoming(
+  db: SupabaseClient,
+  myUserId: string
+): Promise<{ userId: string; name: string; createdAt: number }[]> {
+  const { data: rows } = await db
+    .from("friend_requests")
+    .select("from_user,created_at")
+    .eq("to_user", myUserId);
+  const ids = (rows || []).map((r) => r.from_user);
+  const names = await namesFor(db, ids);
+  return (rows || []).map((r) => ({
+    userId: r.from_user,
+    name: names.get(r.from_user) || "Kullanici",
+    createdAt: new Date(r.created_at).getTime(),
+  }));
 }
 
-export function blockUser(userId: string, targetId: string) {
-  if (!blocks.has(userId)) blocks.set(userId, new Set());
-  blocks.get(userId)!.add(targetId);
-  friendships.delete(pairKey(userId, targetId));
-  pendingRequests.delete(requestKey(userId, targetId));
-  pendingRequests.delete(requestKey(targetId, userId));
+export async function listOutgoing(
+  db: SupabaseClient,
+  myUserId: string
+): Promise<{ userId: string; name: string; createdAt: number }[]> {
+  const { data: rows } = await db
+    .from("friend_requests")
+    .select("to_user,created_at")
+    .eq("from_user", myUserId);
+  const ids = (rows || []).map((r) => r.to_user);
+  const names = await namesFor(db, ids);
+  return (rows || []).map((r) => ({
+    userId: r.to_user,
+    name: names.get(r.to_user) || "Kullanici",
+    createdAt: new Date(r.created_at).getTime(),
+  }));
 }
 
-export function unblockUser(userId: string, targetId: string) {
-  blocks.get(userId)?.delete(targetId);
+export async function listBlocked(db: SupabaseClient, myUserId: string): Promise<FriendUser[]> {
+  const { data: rows } = await db.from("blocks").select("blocked").eq("blocker", myUserId);
+  const ids = (rows || []).map((r) => r.blocked);
+  const names = await namesFor(db, ids);
+  return ids.map((id) => ({ userId: id, name: names.get(id) || "Kullanici" }));
 }
 
-export function listFriends(userId: string): { userId: string; name: string }[] {
-  const result: { userId: string; name: string }[] = [];
-  for (const key of friendships) {
-    const [a, b] = key.split("::");
-    if (a === userId) result.push({ userId: b, name: getUserName(b) });
-    else if (b === userId) result.push({ userId: a, name: getUserName(a) });
-  }
-  return result;
-}
-
-export function listIncoming(userId: string): { userId: string; name: string; createdAt: number }[] {
-  const result: { userId: string; name: string; createdAt: number }[] = [];
-  for (const req of pendingRequests.values()) {
-    if (req.to === userId) result.push({ userId: req.from, name: getUserName(req.from), createdAt: req.createdAt });
-  }
-  return result;
-}
-
-export function listOutgoing(userId: string): { userId: string; name: string; createdAt: number }[] {
-  const result: { userId: string; name: string; createdAt: number }[] = [];
-  for (const req of pendingRequests.values()) {
-    if (req.from === userId) result.push({ userId: req.to, name: getUserName(req.to), createdAt: req.createdAt });
-  }
-  return result;
-}
-
-export function listBlocked(userId: string): { userId: string; name: string }[] {
-  const ids = blocks.get(userId);
-  if (!ids) return [];
-  return [...ids].map((id) => ({ userId: id, name: getUserName(id) }));
+export async function setUserName(db: SupabaseClient, userId: string, name: string): Promise<void> {
+  // RLS: sadece kendi profilini guncelleyebilir (profiles_update_own policy).
+  await db.from("profiles").update({ name }).eq("id", userId);
 }

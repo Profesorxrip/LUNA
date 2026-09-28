@@ -11,11 +11,11 @@ import UserProfileScreen from "./src/screens/UserProfileScreen";
 import DMScreen, { DMPeer } from "./src/screens/DMScreen";
 import FriendsScreen from "./src/screens/FriendsScreen";
 import { RoomState, getSocket } from "./src/services/socket";
-import { getLocalUserId } from "./src/utils/identity";
 
 type Screen = "discover" | "profile" | "userProfile" | "dm" | "friends";
 
-const PREVIEW_SKIP_AUTH = true;
+// Roadmap AŞAMA 3: gercek authentication artik zorunlu.
+const PREVIEW_SKIP_AUTH = false;
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -52,17 +52,15 @@ export default function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // DM (ozelden mesajlasma) gibi kullanici-kimligi gereken ozellikler icin
-  // sunucuya kararli bir kimlik bildiriyoruz - bkz. mobile/src/utils/identity.ts.
+  // Sunucuya kim oldugumuzu kanitlamak icin gercek Supabase access token'ini
+  // gonderiyoruz - sunucu bunu dogrulayip GERCEK kullanici id'sini kendisi
+  // cikarir (bkz. server/src/index.ts user:identify). Client'in "ben buyum"
+  // demesine artik izin verilmiyor (roadmap AŞAMA 4, IDOR duzeltmesi).
   useEffect(() => {
-    (async () => {
-      const userId = await getLocalUserId();
-      let name = "Kullanici";
-      const { data } = await supabase.auth.getUser();
-      if (data.user?.email) name = data.user.email.split("@")[0];
-      getSocket().emit("user:identify", { userId, name });
-    })();
-  }, []);
+    if (session?.access_token) {
+      getSocket().emit("user:identify", { accessToken: session.access_token });
+    }
+  }, [session?.access_token]);
 
   if (checkingSession) {
     return (

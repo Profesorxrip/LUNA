@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getSocket, DMMessage, DMReply } from "../services/socket";
-import { getLocalUserId } from "../utils/identity";
+import { supabase } from "../services/supabase";
 import Icon from "../components/Icon";
 
 const EXPIRY_OPTIONS: { label: string; ms: number | null }[] = [
@@ -64,9 +64,9 @@ export default function DMScreen({ peer, onBack }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    getLocalUserId().then((id) => {
-      if (cancelled) return;
-      setMyUserId(id);
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled || !data.user) return;
+      setMyUserId(data.user.id);
       socket.emit("dm:open", { withUserId: peer.userId }, (res: any) => {
         if (res?.ok) {
           setMessages(res.messages);
