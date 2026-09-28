@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
-  headerLogo: { width: 38, height: 38 },
+  headerLogo: { width: 70, height: 32 },
   listContent: { padding: 8, flexGrow: 1 },
   emptyText: { color: theme.textMuted, textAlign: "center", marginTop: 60, fontSize: 15 },
   card: { backgroundColor: theme.surface, borderRadius: 12, margin: 8, overflow: "hidden", paddingBottom: 10, borderWidth: 1, borderColor: theme.border },

@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
-  headerLogo: { width: 38, height: 38 },
+  headerLogo: { width: 70, height: 32 },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",

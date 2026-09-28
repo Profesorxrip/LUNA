@@ -89,7 +89,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.bg, padding: 24, justifyContent: "center" },
-  logoMark: { width: 140, height: 140, alignSelf: "center", marginBottom: 12 },
+  logoMark: { width: 220, height: 103, alignSelf: "center", marginBottom: 12 },
   subtitle: { color: theme.textMuted, fontSize: 16, textAlign: "center", marginBottom: 32 },
   input: {
     backgroundColor: theme.surfaceAlt,
