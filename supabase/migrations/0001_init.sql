@@ -470,3 +470,103 @@ begin
   values (me, target_user, target_message_id, left(trim(reason), 500));
 end;
 $$;
+
+-- ---------------------------------------------------------------------
+-- room_events (roadmap AŞAMA 6 - oda/izleme gecmisi, analitik icin)
+-- ---------------------------------------------------------------------
+create table if not exists public.room_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  room_code text not null,
+  event_type text not null check (event_type in ('create', 'join', 'leave')),
+  media_label text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists room_events_user_idx on public.room_events (user_id, created_at);
+
+alter table public.room_events enable row level security;
+
+create policy "room_events_select_own" on public.room_events
+  for select using (user_id = auth.uid());
+
+create policy "room_events_insert_own" on public.room_events
+  for insert with check (user_id = auth.uid());
+
+-- ---------------------------------------------------------------------
+-- push_tokens (roadmap AŞAMA 9 - bildirim altyapisi)
+-- ---------------------------------------------------------------------
+create table if not exists public.push_tokens (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  token text not null,
+  platform text not null check (platform in ('ios', 'android', 'web')),
+  created_at timestamptz not null default now(),
+  primary key (user_id, token)
+);
+
+alter table public.push_tokens enable row level security;
+
+create policy "push_tokens_select_own" on public.push_tokens
+  for select using (user_id = auth.uid());
+
+create policy "push_tokens_insert_own" on public.push_tokens
+  for insert with check (user_id = auth.uid());
+
+create policy "push_tokens_delete_own" on public.push_tokens
+  for delete using (user_id = auth.uid());
+
+-- Bir kullanicinin push token'larini getirir - bildirim gonderirken
+-- kullanilir (alici cevrimdisiyse). RLS'i bypass eder (SECURITY DEFINER)
+-- ama KEYFI erisime izin vermez: cagiran ile hedef arasinda gercek bir
+-- iliski (arkadas / bekleyen istek / DM konusmasi) olmadan hicbir token
+-- donmez - aksi halde herhangi bir hesap, sadece baskasinin user id'sini
+-- bilerek onun push token'larini toplayabilirdi (IDOR).
+create or replace function public.get_push_tokens_for_user(target uuid)
+returns setof text
+language plpgsql
+security definer set search_path = public
+stable
+as $$
+declare
+  me uuid := auth.uid();
+  a uuid; b uuid;
+  related boolean;
+begin
+  if me is null or target is null then return; end if;
+  a := least(me, target); b := greatest(me, target);
+  related := exists(select 1 from public.friendships where user_a = a and user_b = b)
+    or exists(
+      select 1 from public.friend_requests
+      where (from_user = me and to_user = target) or (from_user = target and to_user = me)
+    )
+    or exists(select 1 from public.dm_conversations where user_a = a and user_b = b);
+  if not related then return; end if;
+  return query select token from public.push_tokens where user_id = target;
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- avatars storage bucket (roadmap AŞAMA 8 - medya yukleme altyapisi)
+-- ---------------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+create policy "avatar_public_read" on storage.objects
+  for select using (bucket_id = 'avatars');
+
+-- Herkes sadece KENDI klasorune (avatars/<user_id>/...) yukleyebilir/silebilir.
+create policy "avatar_owner_write" on storage.objects
+  for insert with check (
+    bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "avatar_owner_update" on storage.objects
+  for update using (
+    bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "avatar_owner_delete" on storage.objects
+  for delete using (
+    bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+  );

@@ -11,6 +11,7 @@ import UserProfileScreen from "./src/screens/UserProfileScreen";
 import DMScreen, { DMPeer } from "./src/screens/DMScreen";
 import FriendsScreen from "./src/screens/FriendsScreen";
 import { RoomState, getSocket } from "./src/services/socket";
+import { registerForPushNotifications } from "./src/services/notifications";
 
 type Screen = "discover" | "profile" | "userProfile" | "dm" | "friends";
 
@@ -59,6 +60,7 @@ export default function App() {
   useEffect(() => {
     if (session?.access_token) {
       getSocket().emit("user:identify", { accessToken: session.access_token });
+      registerForPushNotifications();
     }
   }, [session?.access_token]);
 

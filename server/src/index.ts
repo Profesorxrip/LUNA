@@ -45,6 +45,8 @@ import {
 } from "./social";
 import { verifyAccessToken, clientForUser, isSupabaseConfigured } from "./supabase";
 import { submitReport } from "./moderation";
+import { logRoomEvent } from "./analytics";
+import { registerPushToken, unregisterPushToken, notifyIfOffline, PushPlatform } from "./notifications";
 import { isNonEmptyString, isOptionalString, isBoolean, isFiniteNumber, isOneOf } from "./validate";
 
 const SOURCE_TYPES = ["youtube", "hls", "mp4", "external"] as const;
@@ -160,6 +162,7 @@ io.on("connection", (socket: Socket) => {
     if (ok) {
       const peerSocketId = getSocketIdForUser(toUserId);
       if (peerSocketId) io.to(peerSocketId).emit("friend:incoming", { fromUserId: myUserId, fromName: myName });
+      notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), "Yeni arkadaşlık isteği", `${myName} sana arkadaşlık isteği gönderdi`).catch(() => {});
     }
   });
 
@@ -242,6 +245,7 @@ io.on("connection", (socket: Socket) => {
       ack?.({ ok: true, message: result.message });
       const peerSocketId = getSocketIdForUser(toUserId);
       if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+      notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, text.trim().slice(0, 120)).catch(() => {});
     }
   );
 
@@ -271,6 +275,7 @@ io.on("connection", (socket: Socket) => {
       socket.join(room.code);
       ack?.({ ok: true, room: roomToPublicState(room) });
       broadcastRoomsList();
+      if (myDb && myUserId) logRoomEvent(myDb, myUserId, room.code, "create", source.label).catch(() => {});
     }
   );
 
@@ -293,6 +298,7 @@ io.on("connection", (socket: Socket) => {
       text: `${name || "Misafir"} odaya katildi.`,
       ts: Date.now(),
     });
+    if (myDb && myUserId) logRoomEvent(myDb, myUserId, room.code, "join", room.playback.source?.label).catch(() => {});
   });
 
   socket.on("room:leave", () => {
@@ -309,6 +315,7 @@ io.on("connection", (socket: Socket) => {
     const { room, newHostId, roomDeleted } = leaveRoom(currentRoomCode, socket.id);
     const code = currentRoomCode;
     currentRoomCode = null;
+    if (myDb && myUserId) logRoomEvent(myDb, myUserId, code, "leave").catch(() => {});
     if (roomDeleted || !room) return;
     if (newHostId) {
       io.to(code).emit("room:chat", {
@@ -420,6 +427,26 @@ io.on("connection", (socket: Socket) => {
       ack?.({ ok });
     }
   );
+
+  // Push bildirim token kaydi (roadmap AŞAMA 9). Gercek teslimat icin
+  // mobil tarafin expo-notifications ile gercek bir cihaz/token elde
+  // etmesi gerekir - bu sadece sunucu tarafi altyapisi.
+  socket.on(
+    "push:registerToken",
+    async ({ token, platform }: { token: string; platform: PushPlatform }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(token, 300) || !isOneOf(platform, ["ios", "android", "web"])) {
+        return ack?.({ ok: false });
+      }
+      await registerPushToken(myDb!, myUserId!, token, platform);
+      ack?.({ ok: true });
+    }
+  );
+
+  socket.on("push:unregisterToken", async ({ token }: { token: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(token, 300)) return ack?.({ ok: false });
+    await unregisterPushToken(myDb!, token);
+    ack?.({ ok: true });
+  });
 
   socket.on("voice:token", async (_data, ack) => {
     if (!currentRoomCode) return ack?.({ ok: false, error: "Once bir odaya katil." });
