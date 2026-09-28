@@ -1,9 +1,10 @@
 import { io, Socket } from "socket.io-client";
 
-// Telefonundan test ederken buraya bilgisayarinin/sunucunun LAN IP'sini
-// yaz (orn. "http://192.168.1.20:3000") - "localhost" telefonun KENDI
-// icini gosterir, bilgisayarindaki sunucuyu degil.
-export const SERVER_URL = "http://localhost:3000";
+// Gercek cihazdan test ederken mobile/.env dosyasina
+// EXPO_PUBLIC_SERVER_URL=http://<sunucu-cihazinin-LAN-IP'si>:3000 yaz -
+// "localhost" telefonun KENDI icini gosterir, sunucuyu calistiran
+// cihazi degil. .env yoksa/tanimli degilse localhost'a duser.
+export const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://localhost:3000";
 
 let socket: Socket | null = null;
 
