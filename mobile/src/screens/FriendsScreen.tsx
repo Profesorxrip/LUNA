@@ -151,7 +151,9 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
           <Icon name="settings" size={30} color={TEXT} />
         </TouchableOpacity>
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
-        <View style={styles.iconTouch} />
+        <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
+          <Icon name="close" size={26} color={TEXT} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchBar}>

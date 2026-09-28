@@ -188,13 +188,16 @@ export default function UserProfileScreen({ onBack, own = true, onOpenDM }: Prop
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {!own && (
-          <View style={styles.header}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} hitSlop={10}>
+            <Icon name="chevronLeft" size={22} color={TEXT} />
+          </TouchableOpacity>
+          {!own && (
             <TouchableOpacity onPress={() => placeholder("Diger")} hitSlop={10}>
               <Icon name="moreHoriz" size={20} color={TEXT} />
             </TouchableOpacity>
-          </View>
-        )}
+          )}
+        </View>
 
         <TouchableOpacity
           style={styles.avatarWrap}
@@ -452,7 +455,7 @@ export default function UserProfileScreen({ onBack, own = true, onOpenDM }: Prop
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
   scrollContent: { paddingHorizontal: 24, paddingTop: 50, paddingBottom: 40 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", marginBottom: 26 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, marginBottom: 26 },
   avatarWrap: { alignItems: "center", marginBottom: 18 },
   ringOuter: {
     width: 128,

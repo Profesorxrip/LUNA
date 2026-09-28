@@ -193,6 +193,9 @@ export default function DMScreen({ peer, onBack }: Props) {
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={styles.header}>
+        <TouchableOpacity onPress={onBack} hitSlop={10}>
+          <Icon name="chevronLeft" size={22} color={TEXT} />
+        </TouchableOpacity>
         <View style={styles.headerAvatar}>
           <Text style={styles.headerAvatarInitial}>{peer.name.charAt(0).toUpperCase()}</Text>
         </View>
