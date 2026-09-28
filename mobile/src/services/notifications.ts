@@ -1,15 +1,21 @@
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
-import * as Device from "expo-device";
 import { getSocket } from "./socket";
 
 /** Push bildirim izni ister, bir Expo push token'i alir ve sunucuya
  * kaydeder (roadmap AŞAMA 9). Gercek bir cihaz + EAS projesi (app.json
- * icinde extra.eas.projectId) gerektirir - bu ayar henuz yapilmadigi ve
- * web/emulator ortaminda calismayacagi icin, HER adim hata verirse
- * sessizce vazgecer (bildirim opsiyonel bir ozellik, uygulamayi bozmamali). */
+ * icinde extra.eas.projectId) gerektirir. Expo Go SDK 53+ Android'de push
+ * bildirimlerini tamamen kaldirdi - expo-notifications'i STATIC import
+ * etmek bile Expo Go'da aninda crash'e yol aciyor, bu yuzden modul
+ * BURADA, bir try/catch'in icinde, calisma zamaninda require ediliyor -
+ * boylece Expo Go'da (veya baska herhangi bir nedenle) basarisiz olursa
+ * sessizce vazgecilir, uygulamanin geri kalani calismaya devam eder. */
 export async function registerForPushNotifications(): Promise<void> {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Notifications = require("expo-notifications");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Device = require("expo-device");
+
     if (!Device.isDevice) {
       console.log("Push bildirimleri sadece gercek cihazda calisir (emulator/web'de atlanir).");
       return;
@@ -44,6 +50,6 @@ export async function registerForPushNotifications(): Promise<void> {
       if (!res?.ok) console.log("Push token sunucuya kaydedilemedi.");
     });
   } catch (err) {
-    console.log("Push bildirim kaydi atlandi:", (err as Error).message);
+    console.log("Push bildirim kaydi atlandi (Expo Go'da desteklenmiyor olabilir):", (err as Error).message);
   }
 }
