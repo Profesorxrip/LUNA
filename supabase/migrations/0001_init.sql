@@ -430,3 +430,43 @@ begin
   on conflict (conversation_id, user_id) do update set last_seen_at = now();
 end;
 $$;
+
+-- ---------------------------------------------------------------------
+-- reports (moderasyon - roadmap AŞAMA 11)
+-- ---------------------------------------------------------------------
+create table if not exists public.reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter uuid not null references auth.users(id) on delete cascade,
+  target_user uuid references auth.users(id) on delete set null,
+  target_message_id uuid,
+  reason text not null check (char_length(reason) between 1 and 500),
+  created_at timestamptz not null default now()
+);
+
+alter table public.reports enable row level security;
+
+create policy "reports_select_own" on public.reports
+  for select using (reporter = auth.uid());
+
+-- Not: admin/moderasyon paneli bu asamanin kapsami disinda - reports
+-- tablosu su an sadece kayit altina aliyor, gorunumu/yonetimi ayri bir
+-- admin arayuzu gerektirir (roadmap AŞAMA 11'in geri kalani).
+create or replace function public.submit_report(
+  target_user uuid default null,
+  target_message_id uuid default null,
+  reason text default ''
+)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+begin
+  if me is null or trim(reason) = '' then
+    raise exception 'invalid_request';
+  end if;
+  insert into public.reports (reporter, target_user, target_message_id, reason)
+  values (me, target_user, target_message_id, left(trim(reason), 500));
+end;
+$$;

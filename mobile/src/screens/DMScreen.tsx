@@ -58,6 +58,8 @@ export default function DMScreen({ peer, onBack }: Props) {
   const [expiryVisible, setExpiryVisible] = useState(false);
   const [expiresAfterMs, setExpiresAfterMs] = useState<number | null>(null);
   const [muted, setMuted] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportReason, setReportReason] = useState("");
   const [nowTick, setNowTick] = useState(Date.now());
   const listRef = useRef<FlatList<DMMessage>>(null);
   const muteStorageKey = `dm_muted_${peer.userId}`;
@@ -161,6 +163,17 @@ export default function DMScreen({ peer, onBack }: Props) {
     else await AsyncStorage.removeItem(muteStorageKey);
   }
 
+  function submitReport() {
+    const reason = reportReason.trim();
+    if (!reason) return;
+    socket.emit("report:submit", { targetUserId: peer.userId, reason }, (res: any) => {
+      if (res?.ok) Alert.alert("Rapor gonderildi", "Bildirimin icin tesekkurler, inceleyecegiz.");
+      else Alert.alert("Hata", "Rapor gonderilemedi, tekrar dene.");
+    });
+    setReportReason("");
+    setReportVisible(false);
+  }
+
   const notExpired = messages.filter((m) => !m.expiresAt || m.expiresAt > nowTick);
   const visibleMessages =
     searchVisible && searchQuery.trim()
@@ -174,6 +187,7 @@ export default function DMScreen({ peer, onBack }: Props) {
     { label: "Medya", onPress: () => setMediaVisible(true) },
     { label: "Süre sonu", onPress: () => setExpiryVisible(true) },
     { label: muted ? "Sesi Aç" : "Sessize Al", onPress: toggleMute },
+    { label: "Şikayet Et", onPress: () => setReportVisible(true) },
   ];
 
   return (
@@ -363,6 +377,32 @@ export default function DMScreen({ peer, onBack }: Props) {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)}>
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setReportVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+            <Text style={styles.sheetTitle}>{peer.name} kullanicisini sikayet et</Text>
+            <Text style={styles.sheetSubtitle}>Neden sikayet ettigini kisaca yaz.</Text>
+            <TextInput
+              style={styles.reportInput}
+              value={reportReason}
+              onChangeText={setReportReason}
+              placeholder="Sikayet nedeni..."
+              placeholderTextColor={MUTED}
+              multiline
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.reportSubmitBtn, !reportReason.trim() && styles.reportSubmitBtnDisabled]}
+              onPress={submitReport}
+              disabled={!reportReason.trim()}
+            >
+              <Text style={styles.reportSubmitBtnText}>Gonder</Text>
+            </TouchableOpacity>
+            <View style={styles.sheetHandle} />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -529,4 +569,24 @@ const styles = StyleSheet.create({
   mediaThumb: { width: 96, height: 96, borderRadius: 8, backgroundColor: "#1F3D24" },
   sheetCloseBtn: { marginTop: 20, alignItems: "center", paddingVertical: 12 },
   sheetCloseBtnText: { color: MUTED, fontSize: 14, fontWeight: "600" },
+  reportInput: {
+    width: "100%",
+    minHeight: 80,
+    backgroundColor: "#0E0C0A",
+    borderRadius: 10,
+    color: TEXT,
+    fontSize: 14,
+    padding: 12,
+    textAlignVertical: "top",
+  },
+  reportSubmitBtn: {
+    width: "100%",
+    backgroundColor: ACCENT,
+    borderRadius: 10,
+    paddingVertical: 13,
+    alignItems: "center",
+    marginTop: 14,
+  },
+  reportSubmitBtnDisabled: { opacity: 0.4 },
+  reportSubmitBtnText: { color: "#04140D", fontSize: 14, fontWeight: "700" },
 });

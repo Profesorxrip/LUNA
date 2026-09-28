@@ -44,6 +44,21 @@ import {
   listBlocked,
 } from "./social";
 import { verifyAccessToken, clientForUser, isSupabaseConfigured } from "./supabase";
+import { submitReport } from "./moderation";
+import { isNonEmptyString, isOptionalString, isBoolean, isFiniteNumber, isOneOf } from "./validate";
+
+const SOURCE_TYPES = ["youtube", "hls", "mp4", "external"] as const;
+
+function isValidMediaSource(value: unknown): value is MediaSource {
+  if (!value || typeof value !== "object") return false;
+  const s = value as Record<string, unknown>;
+  return (
+    isOneOf(s.type, SOURCE_TYPES) &&
+    isNonEmptyString(s.url, 2000) &&
+    isOptionalString(s.label, 200) &&
+    isOptionalString(s.coverUrl, 2000)
+  );
+}
 
 const app = express();
 app.use(cors());
@@ -122,7 +137,7 @@ io.on("connection", (socket: Socket) => {
   }
 
   socket.on("friend:status", async ({ withUserId }: { withUserId: string }, ack) => {
-    if (!requireAuth(ack) || !withUserId) return;
+    if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200)) return ack?.({ ok: false });
     ack?.({ ok: true, status: await getFriendStatus(myDb!, withUserId) });
   });
 
@@ -138,7 +153,7 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("friend:request", async ({ toUserId }: { toUserId: string }, ack) => {
-    if (!requireAuth(ack) || !toUserId) return;
+    if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200)) return ack?.({ ok: false });
     if (!allow("friend:request", 20, 60_000)) return ack?.({ ok: false, error: "Cok fazla istek, biraz bekle." });
     const ok = await sendRequest(myDb!, toUserId);
     ack?.({ ok });
@@ -149,7 +164,7 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("friend:cancel", async ({ toUserId }: { toUserId: string }, ack) => {
-    if (!requireAuth(ack) || !toUserId) return;
+    if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200)) return ack?.({ ok: false });
     await cancelRequest(myDb!, toUserId);
     ack?.({ ok: true });
     const peerSocketId = getSocketIdForUser(toUserId);
@@ -159,7 +174,7 @@ io.on("connection", (socket: Socket) => {
   socket.on(
     "friend:respond",
     async ({ fromUserId, accept }: { fromUserId: string; accept: boolean }, ack) => {
-      if (!requireAuth(ack) || !fromUserId) return;
+      if (!requireAuth(ack) || !isNonEmptyString(fromUserId, 200) || !isBoolean(accept)) return ack?.({ ok: false });
       await respondRequest(myDb!, fromUserId, accept);
       ack?.({ ok: true });
       const peerSocketId = getSocketIdForUser(fromUserId);
@@ -173,7 +188,7 @@ io.on("connection", (socket: Socket) => {
   );
 
   socket.on("friend:remove", async ({ userId }: { userId: string }, ack) => {
-    if (!requireAuth(ack) || !userId) return;
+    if (!requireAuth(ack) || !isNonEmptyString(userId, 200)) return ack?.({ ok: false });
     await removeFriend(myDb!, userId);
     ack?.({ ok: true });
     const peerSocketId = getSocketIdForUser(userId);
@@ -181,13 +196,13 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("friend:block", async ({ userId }: { userId: string }, ack) => {
-    if (!requireAuth(ack) || !userId) return;
+    if (!requireAuth(ack) || !isNonEmptyString(userId, 200)) return ack?.({ ok: false });
     await blockUser(myDb!, userId);
     ack?.({ ok: true });
   });
 
   socket.on("friend:unblock", async ({ userId }: { userId: string }, ack) => {
-    if (!requireAuth(ack) || !userId) return;
+    if (!requireAuth(ack) || !isNonEmptyString(userId, 200)) return ack?.({ ok: false });
     await unblockUser(myDb!, userId);
     ack?.({ ok: true });
   });
@@ -195,13 +210,13 @@ io.on("connection", (socket: Socket) => {
   // Arkadaslar listesinde son mesaj onizlemesi gostermek icin - dm:open'in
   // aksine "gorundu" isaretlemez, sadece son mesaji dondurur.
   socket.on("dm:preview", async ({ withUserId }: { withUserId: string }, ack) => {
-    if (!requireAuth(ack) || !withUserId) return;
+    if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200)) return ack?.({ ok: false });
     const lastMessage = await previewConversation(myDb!, myUserId!, withUserId);
     ack?.({ ok: true, lastMessage });
   });
 
   socket.on("dm:open", async ({ withUserId }: { withUserId: string }, ack) => {
-    if (!requireAuth(ack) || !withUserId) return;
+    if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200)) return ack?.({ ok: false });
     const result = await openConversation(myDb!, withUserId);
     if (!result) return ack?.({ ok: false, error: "Konusma acilamadi." });
     ack?.({ ok: true, messages: result.messages, expiresAfterMs: result.expiresAfterMs });
@@ -212,9 +227,15 @@ io.on("connection", (socket: Socket) => {
   socket.on(
     "dm:send",
     async ({ toUserId, text, replyTo }: { toUserId: string; text: string; replyTo?: DMReply | null }, ack) => {
-      if (!requireAuth(ack) || !toUserId || !text?.trim()) return;
+      if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isNonEmptyString(text, 1000)) {
+        return ack?.({ ok: false });
+      }
+      const validReplyTo =
+        replyTo && isNonEmptyString(replyTo.text, 1000) && isNonEmptyString(replyTo.fromName, 200)
+          ? replyTo
+          : null;
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
-      const result = await sendMessage(myDb!, toUserId, text, replyTo || null);
+      const result = await sendMessage(myDb!, toUserId, text, validReplyTo);
       if (!result.ok || !result.message) {
         return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
       }
@@ -225,7 +246,8 @@ io.on("connection", (socket: Socket) => {
   );
 
   socket.on("dm:setExpiry", async ({ withUserId, ms }: { withUserId: string; ms: number | null }, ack) => {
-    if (!requireAuth(ack) || !withUserId) return;
+    if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200)) return ack?.({ ok: false });
+    if (ms !== null && !isFiniteNumber(ms, 1000, 365 * 24 * 60 * 60 * 1000)) return ack?.({ ok: false });
     await setExpiryMs(myDb!, withUserId, ms);
     ack?.({ ok: true });
     const peerSocketId = getSocketIdForUser(withUserId);
@@ -238,6 +260,9 @@ io.on("connection", (socket: Socket) => {
       { name, isPublic, source }: { name: string; isPublic?: boolean; source: MediaSource },
       ack
     ) => {
+      if (!isValidMediaSource(source)) return ack?.({ ok: false, error: "Gecersiz medya kaynagi." });
+      if (!isOptionalString(name, 60)) return ack?.({ ok: false, error: "Gecersiz isim." });
+      if (isPublic !== undefined && !isBoolean(isPublic)) return ack?.({ ok: false, error: "Gecersiz istek." });
       if (!allow("room:create", 10, 60_000)) return ack?.({ ok: false, error: "Cok fazla oda acildi, biraz bekle." });
       // Oda, icerik secilmeden var olamaz - odanin/kartin ismi de secilen
       // icerigin ismi (source.label) oluyor, ayri bir oda basligi girilmiyor.
@@ -250,6 +275,8 @@ io.on("connection", (socket: Socket) => {
   );
 
   socket.on("room:join", ({ code, name }: { code: string; name: string }, ack) => {
+    if (!isNonEmptyString(code, 12)) return ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
+    if (!isOptionalString(name, 60)) return ack?.({ ok: false, error: "Gecersiz isim." });
     if (!allow("room:join", 20, 60_000)) return ack?.({ ok: false, error: "Cok fazla deneme, biraz bekle." });
     const room = joinRoom(code, socket.id, name || myName || "Misafir");
     if (!room) {
@@ -298,6 +325,9 @@ io.on("connection", (socket: Socket) => {
     "playback:update",
     (update: { source?: MediaSource | null; isPlaying?: boolean; positionSeconds?: number }) => {
       if (!currentRoomCode) return;
+      if (update.source && !isValidMediaSource(update.source)) return;
+      if (update.isPlaying !== undefined && !isBoolean(update.isPlaying)) return;
+      if (update.positionSeconds !== undefined && !isFiniteNumber(update.positionSeconds, 0, 10_000_000)) return;
       const room = getRoom(currentRoomCode);
       if (!room) return;
       const applied = updatePlayback(room, socket.id, update);
@@ -343,7 +373,7 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("chat:send", ({ text }: { text: string }) => {
-    if (!currentRoomCode || !text?.trim()) return;
+    if (!currentRoomCode || !isNonEmptyString(text, 1000)) return;
     if (!allow("chat:send", 20, 10_000)) return;
     const room = getRoom(currentRoomCode);
     const participant = room?.participants.get(socket.id);
@@ -356,7 +386,7 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("host:kick", ({ targetSocketId }: { targetSocketId: string }, ack) => {
-    if (!currentRoomCode) return ack?.({ ok: false });
+    if (!currentRoomCode || !isNonEmptyString(targetSocketId, 100)) return ack?.({ ok: false });
     const room = getRoom(currentRoomCode);
     if (!room) return ack?.({ ok: false });
     const ok = kickParticipant(room, socket.id, targetSocketId);
@@ -369,13 +399,27 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("host:transfer", ({ targetSocketId }: { targetSocketId: string }, ack) => {
-    if (!currentRoomCode) return ack?.({ ok: false });
+    if (!currentRoomCode || !isNonEmptyString(targetSocketId, 100)) return ack?.({ ok: false });
     const room = getRoom(currentRoomCode);
     if (!room) return ack?.({ ok: false });
     const ok = transferHost(room, socket.id, targetSocketId);
     if (ok) broadcastRoom(currentRoomCode);
     ack?.({ ok });
   });
+
+  // Kullanici raporlama (roadmap AŞAMA 11 - Moderasyon). Su an sadece kayit
+  // altina aliyor; goruntuleme/aksiyon almak icin ayri bir admin arayuzu
+  // gerekir (bu asamanin kapsami disinda).
+  socket.on(
+    "report:submit",
+    async ({ targetUserId, targetMessageId, reason }: { targetUserId?: string; targetMessageId?: string; reason: string }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(reason, 500)) return ack?.({ ok: false });
+      if (!isOptionalString(targetUserId, 200) || !isOptionalString(targetMessageId, 200)) return ack?.({ ok: false });
+      if (!allow("report:submit", 10, 60_000)) return ack?.({ ok: false, error: "Cok fazla rapor, biraz bekle." });
+      const ok = await submitReport(myDb!, targetUserId || null, targetMessageId || null, reason);
+      ack?.({ ok });
+    }
+  );
 
   socket.on("voice:token", async (_data, ack) => {
     if (!currentRoomCode) return ack?.({ ok: false, error: "Once bir odaya katil." });
