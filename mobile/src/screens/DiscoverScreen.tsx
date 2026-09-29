@@ -10,11 +10,15 @@ import {
   RefreshControl,
   PanResponder,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { getSocket, PublicRoomSummary, RoomState, MediaSource } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
 import MediaPickerSheet from "../components/MediaPickerSheet";
+import { PlatformKey } from "../components/PlatformLogo";
+import PlatformBadge from "../components/PlatformBadge";
+import { EXTERNAL_PLATFORMS } from "../utils/media";
 
 interface Props {
   onJoinRoom: (room: RoomState) => void;
@@ -36,6 +40,24 @@ function sourceIcon(type: string): string {
   if (type === "hls" || type === "mp4") return "🎬";
   if (type === "external") return "🔗";
   return "▶";
+}
+
+// "https://www.netflix.com" -> "netflix.com" - URL polyfiline bagli kalmadan
+// basit bir alan adi karsilastirmasi icin.
+function bareDomain(url: string): string {
+  return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+}
+
+// Kartin kapak resminde sag ust rozet icin - kaynagin hangi platforma ait
+// oldugunu bulur (harici platformlar url'e gore eslestirilir).
+function platformKeyForSource(source: MediaSource | null): PlatformKey | null {
+  if (!source) return null;
+  if (source.type === "youtube") return "youtube";
+  if (source.type === "external") {
+    const match = EXTERNAL_PLATFORMS.find((p) => bareDomain(source.url).includes(bareDomain(p.url)));
+    return match?.logo ?? null;
+  }
+  return null;
 }
 
 const AVATAR_COLORS = ["#3A2F22", "#1F3D24", "#2E4A2F", "#4A3B22"];
@@ -130,7 +152,9 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
         ListEmptyComponent={
           <Text style={styles.emptyText}>Su an acik oda yok. Ilk odayi sen ac!</Text>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const platformKey = platformKeyForSource(item.source);
+          return (
           <TouchableOpacity style={[styles.card, { flex: 1 / numColumns }]} onPress={() => joinByCode(item.code)}>
             {item.source?.coverUrl ? (
               <Image source={{ uri: item.source.coverUrl }} style={styles.thumbnail} />
@@ -144,27 +168,36 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
                 <Text style={styles.thumbnailPlaceholderText}>{item.source ? sourceIcon(item.source.type) : "▶"}</Text>
               </View>
             )}
-            <Text style={styles.cardTitle} numberOfLines={1}>
-              {item.title}
-            </Text>
-            <View style={styles.participantsRow}>
-              {item.participants.map((p, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.participantAvatar,
-                    { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : -8 },
-                  ]}
-                >
-                  <Text style={styles.participantAvatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
-                </View>
-              ))}
-              {item.participantCount > item.participants.length && (
-                <Text style={styles.participantExtra}>+{item.participantCount - item.participants.length}</Text>
-              )}
+            {platformKey && (
+              <View style={styles.platformBadge} pointerEvents="none">
+                <PlatformBadge platform={platformKey} size={18} />
+              </View>
+            )}
+            <LinearGradient colors={["transparent", "rgba(0,0,0,0.88)"]} style={styles.cardGradient} pointerEvents="none" />
+            <View style={styles.cardOverlay} pointerEvents="none">
+              <Text style={styles.cardTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+              <View style={styles.participantsRow}>
+                {item.participants.map((p, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.participantAvatar,
+                      { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : -8 },
+                    ]}
+                  >
+                    <Text style={styles.participantAvatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                ))}
+                {item.participantCount > item.participants.length && (
+                  <Text style={styles.participantExtra}>+{item.participantCount - item.participants.length}</Text>
+                )}
+              </View>
             </View>
           </TouchableOpacity>
-        )}
+          );
+        }}
       />
 
       <TouchableOpacity style={styles.fab} onPress={() => setPickerVisible(true)}>
@@ -194,12 +227,23 @@ const styles = StyleSheet.create({
   headerLogo: { width: 70, height: 32 },
   listContent: { padding: 8, flexGrow: 1 },
   emptyText: { color: theme.textMuted, textAlign: "center", marginTop: 60, fontSize: 15 },
-  card: { backgroundColor: theme.surface, borderRadius: 12, margin: 8, overflow: "hidden", paddingBottom: 10, borderWidth: 1, borderColor: theme.border },
-  thumbnail: { width: "100%", aspectRatio: 16 / 9, backgroundColor: theme.surfaceAlt },
+  card: { backgroundColor: theme.surface, borderRadius: 12, margin: 6, overflow: "hidden", borderWidth: 1, borderColor: theme.border },
+  thumbnail: { width: "100%", aspectRatio: 2.4 / 1, backgroundColor: theme.surfaceAlt },
   thumbnailPlaceholder: { justifyContent: "center", alignItems: "center" },
-  thumbnailPlaceholderText: { color: theme.textMuted, fontSize: 32 },
-  cardTitle: { color: theme.text, fontSize: 15, fontWeight: "600", marginTop: 8, marginHorizontal: 10 },
-  participantsRow: { flexDirection: "row", alignItems: "center", marginTop: 6, marginHorizontal: 10 },
+  thumbnailPlaceholderText: { color: theme.textMuted, fontSize: 26 },
+  platformBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  cardGradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: "75%" },
+  cardOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 10 },
+  cardTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  participantsRow: { flexDirection: "row", alignItems: "center", marginTop: 5 },
   participantAvatar: {
     width: 22,
     height: 22,
@@ -207,7 +251,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: theme.surface,
+    borderColor: "rgba(0,0,0,0.55)",
   },
   participantAvatarInitial: { color: theme.accent, fontSize: 10, fontWeight: "700" },
   participantExtra: { color: theme.textMuted, fontSize: 11, marginLeft: 6 },
