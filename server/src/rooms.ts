@@ -89,10 +89,10 @@ export function listPublicRooms() {
       title: r.title,
       participantCount: r.participants.size,
       source: r.playback.source,
-      // Discover kartinda katilimci avatar yiginini gostermek icin - ilk
-      // birkac kisinin ismi yeterli, hepsini gondermeye gerek yok.
+      // Discover kartinda katilimci avatar siramasi kaydirilarak
+      // gorulebiliyor - makul bir ust sinira kadar hepsini gonderiyoruz.
       participants: Array.from(r.participants.values())
-        .slice(0, 4)
+        .slice(0, 20)
         .map((p) => ({ name: p.name })),
     }));
 }

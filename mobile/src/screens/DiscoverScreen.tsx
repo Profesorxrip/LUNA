@@ -9,6 +9,7 @@ import {
   useWindowDimensions,
   RefreshControl,
   PanResponder,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { getSocket, PublicRoomSummary, RoomState, MediaSource } from "../services/socket";
@@ -174,28 +175,33 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
               </View>
             )}
             <LinearGradient colors={["transparent", "rgba(0,0,0,0.88)"]} style={styles.cardGradient} pointerEvents="none" />
-            <View style={styles.cardOverlay} pointerEvents="none">
+            <View style={styles.cardOverlay} pointerEvents="box-none">
               <Text style={styles.cardTitle} numberOfLines={1}>
                 {item.title}
               </Text>
-              <View style={styles.participantsRow}>
-                <View style={styles.participantAvatars}>
-                  {item.participants.map((p, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.participantAvatar,
-                        { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
-                      ]}
-                    >
-                      <Text style={styles.participantAvatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
-                    </View>
-                  ))}
-                </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.participantsRow}
+                contentContainerStyle={styles.participantsRowContent}
+              >
+                {item.participants.map((p, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.participantAvatar,
+                      { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
+                    ]}
+                  >
+                    <Text style={styles.participantAvatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                ))}
                 {item.participantCount > item.participants.length && (
-                  <Text style={styles.participantExtra}>+{item.participantCount - item.participants.length}</Text>
+                  <View style={[styles.participantAvatar, styles.participantExtraCircle, { marginLeft: 4 }]}>
+                    <Text style={styles.participantAvatarInitial}>+{item.participantCount - item.participants.length}</Text>
+                  </View>
                 )}
-              </View>
+              </ScrollView>
             </View>
           </TouchableOpacity>
           );
@@ -245,8 +251,8 @@ const styles = StyleSheet.create({
   cardGradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: "75%" },
   cardOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 10 },
   cardTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  participantsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 5 },
-  participantAvatars: { flexDirection: "row", alignItems: "center" },
+  participantsRow: { marginTop: 5 },
+  participantsRowContent: { flexDirection: "row", alignItems: "center", paddingRight: 4 },
   participantAvatar: {
     width: 36,
     height: 36,
@@ -256,8 +262,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.55)",
   },
+  participantExtraCircle: { backgroundColor: theme.surfaceAlt },
   participantAvatarInitial: { color: theme.accent, fontSize: 15, fontWeight: "700" },
-  participantExtra: { color: theme.textMuted, fontSize: 12, fontWeight: "600" },
   fab: {
     position: "absolute",
     right: 20,
