@@ -179,17 +179,19 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
                 {item.title}
               </Text>
               <View style={styles.participantsRow}>
-                {item.participants.map((p, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.participantAvatar,
-                      { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
-                    ]}
-                  >
-                    <Text style={styles.participantAvatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
-                  </View>
-                ))}
+                <View style={styles.participantAvatars}>
+                  {item.participants.map((p, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.participantAvatar,
+                        { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
+                      ]}
+                    >
+                      <Text style={styles.participantAvatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  ))}
+                </View>
                 {item.participantCount > item.participants.length && (
                   <Text style={styles.participantExtra}>+{item.participantCount - item.participants.length}</Text>
                 )}
@@ -243,18 +245,19 @@ const styles = StyleSheet.create({
   cardGradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: "75%" },
   cardOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 10 },
   cardTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  participantsRow: { flexDirection: "row", alignItems: "center", marginTop: 5 },
+  participantsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 5 },
+  participantAvatars: { flexDirection: "row", alignItems: "center" },
   participantAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.55)",
   },
-  participantAvatarInitial: { color: theme.accent, fontSize: 13, fontWeight: "700" },
-  participantExtra: { color: theme.textMuted, fontSize: 11, marginLeft: 6 },
+  participantAvatarInitial: { color: theme.accent, fontSize: 15, fontWeight: "700" },
+  participantExtra: { color: theme.textMuted, fontSize: 12, fontWeight: "600" },
   fab: {
     position: "absolute",
     right: 20,
