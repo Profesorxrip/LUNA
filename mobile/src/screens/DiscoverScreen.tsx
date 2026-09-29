@@ -271,8 +271,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  cardTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700", flex: 1, marginRight: 8 },
-  participantsRow: { flexGrow: 0, maxWidth: "50%" },
+  cardTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700", flexShrink: 1, marginRight: 10 },
+  participantsRow: { flexGrow: 0, flexShrink: 1 },
   participantsRowContent: { flexDirection: "row", alignItems: "center", paddingRight: 4 },
   participantAvatar: {
     width: 36,
