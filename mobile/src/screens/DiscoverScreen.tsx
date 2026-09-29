@@ -184,7 +184,7 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
                     key={i}
                     style={[
                       styles.participantAvatar,
-                      { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : -8 },
+                      { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
                     ]}
                   >
                     <Text style={styles.participantAvatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
@@ -245,15 +245,15 @@ const styles = StyleSheet.create({
   cardTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   participantsRow: { flexDirection: "row", alignItems: "center", marginTop: 5 },
   participantAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.55)",
   },
-  participantAvatarInitial: { color: theme.accent, fontSize: 10, fontWeight: "700" },
+  participantAvatarInitial: { color: theme.accent, fontSize: 13, fontWeight: "700" },
   participantExtra: { color: theme.textMuted, fontSize: 11, marginLeft: 6 },
   fab: {
     position: "absolute",
