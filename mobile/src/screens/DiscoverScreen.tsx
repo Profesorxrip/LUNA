@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   cardGradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: "75%" },
-  cardOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 10 },
+  cardOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 4 },
   cardTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   participantsRow: { marginTop: 5 },
   participantsRowContent: { flexDirection: "row", alignItems: "center", paddingRight: 4 },
