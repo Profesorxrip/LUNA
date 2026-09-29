@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { getSocket, PublicRoomSummary, RoomState, MediaSource } from "../services/socket";
+import { getSocket, PublicRoomSummary, RoomState, MediaSource, FriendUser } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
@@ -70,6 +70,7 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
   const [refreshing, setRefreshing] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [hostName, setHostName] = useState("Misafir");
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const widthRef = useRef(width);
   widthRef.current = width;
 
@@ -77,6 +78,14 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
     supabase.auth.getUser().then(({ data }) => {
       const email = data.user?.email;
       if (email) setHostName(email.split("@")[0]);
+    });
+  }, []);
+
+  // Kart uzerindeki katilimci avatarlarinda "bu arkadasin" rozetini
+  // gosterebilmek icin arkadas listesini bir kere cekiyoruz.
+  useEffect(() => {
+    getSocket().emit("friends:list", {}, (res: any) => {
+      if (res?.ok) setFriendIds(new Set(res.friends.map((f: FriendUser) => f.userId)));
     });
   }, []);
 
@@ -185,17 +194,21 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
                 style={styles.participantsRow}
                 contentContainerStyle={styles.participantsRowContent}
               >
-                {item.participants.map((p, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.participantAvatar,
-                      { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
-                    ]}
-                  >
-                    <Text style={styles.participantAvatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
-                  </View>
-                ))}
+                {item.participants.map((p, i) => {
+                  const isFriend = Boolean(p.userId && friendIds.has(p.userId));
+                  return (
+                    <View
+                      key={i}
+                      style={[
+                        styles.participantAvatar,
+                        { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
+                        isFriend && styles.participantAvatarFriend,
+                      ]}
+                    >
+                      <Text style={styles.participantAvatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  );
+                })}
                 {item.participantCount > item.participants.length && (
                   <View style={[styles.participantAvatar, styles.participantExtraCircle, { marginLeft: 4 }]}>
                     <Text style={styles.participantAvatarInitial}>+{item.participantCount - item.participants.length}</Text>
@@ -262,6 +275,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.55)",
   },
+  // Arkadas oldugu bilinen katilimcinin avatarini digerlerinden ayirt
+  // etmek icin parlak bir halka - Instagram hikaye halkasina benzer mantik.
+  participantAvatarFriend: { borderWidth: 2.5, borderColor: theme.accentBright },
   participantExtraCircle: { backgroundColor: theme.surfaceAlt },
   participantAvatarInitial: { color: theme.accent, fontSize: 15, fontWeight: "700" },
   fab: {

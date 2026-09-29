@@ -8,6 +8,9 @@ export interface Participant {
   name: string;
   isHost: boolean;
   muted: boolean;
+  // Sadece gercek girisi yapmis (Supabase) kullanicilarda dolu - Discover
+  // kartinda "bu arkadasin" rozetini gosterebilmek icin.
+  userId?: string | null;
 }
 
 /** Oynatilan medyanin turu:
@@ -49,7 +52,8 @@ const rooms = new Map<string, Room>();
 export function createRoom(
   hostSocketId: string,
   hostName: string,
-  options: { isPublic?: boolean; source: MediaSource }
+  options: { isPublic?: boolean; source: MediaSource },
+  hostUserId?: string | null
 ): Room {
   let code = generateRoomCode();
   while (rooms.has(code)) code = generateRoomCode(); // cakisma ihtimaline karsi
@@ -62,7 +66,7 @@ export function createRoom(
     isPublic: options.isPublic ?? true,
     hostSocketId,
     participants: new Map([
-      [hostSocketId, { socketId: hostSocketId, name: hostName, isHost: true, muted: false }],
+      [hostSocketId, { socketId: hostSocketId, name: hostName, isHost: true, muted: false, userId: hostUserId ?? null }],
     ]),
     playback: {
       source: options.source,
@@ -93,7 +97,7 @@ export function listPublicRooms() {
       // gorulebiliyor - makul bir ust sinira kadar hepsini gonderiyoruz.
       participants: Array.from(r.participants.values())
         .slice(0, 20)
-        .map((p) => ({ name: p.name })),
+        .map((p) => ({ name: p.name, userId: p.userId ?? null })),
     }));
 }
 
@@ -101,10 +105,10 @@ export function getRoom(code: string): Room | undefined {
   return rooms.get(code.toUpperCase());
 }
 
-export function joinRoom(code: string, socketId: string, name: string): Room | null {
+export function joinRoom(code: string, socketId: string, name: string, userId?: string | null): Room | null {
   const room = getRoom(code);
   if (!room) return null;
-  room.participants.set(socketId, { socketId, name, isHost: false, muted: false });
+  room.participants.set(socketId, { socketId, name, isHost: false, muted: false, userId: userId ?? null });
   return room;
 }
 

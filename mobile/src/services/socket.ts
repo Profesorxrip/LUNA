@@ -76,7 +76,7 @@ export interface PublicRoomSummary {
   title: string;
   participantCount: number;
   source: MediaSource | null;
-  participants: { name: string }[];
+  participants: { name: string; userId: string | null }[];
 }
 
 export type FriendStatus = "none" | "outgoing" | "incoming" | "friends" | "blocked";

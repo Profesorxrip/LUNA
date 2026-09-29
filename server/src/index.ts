@@ -270,7 +270,7 @@ io.on("connection", (socket: Socket) => {
       if (!allow("room:create", 10, 60_000)) return ack?.({ ok: false, error: "Cok fazla oda acildi, biraz bekle." });
       // Oda, icerik secilmeden var olamaz - odanin/kartin ismi de secilen
       // icerigin ismi (source.label) oluyor, ayri bir oda basligi girilmiyor.
-      const room = createRoom(socket.id, name || myName || "Host", { isPublic, source });
+      const room = createRoom(socket.id, name || myName || "Host", { isPublic, source }, myUserId);
       currentRoomCode = room.code;
       socket.join(room.code);
       ack?.({ ok: true, room: roomToPublicState(room) });
@@ -283,7 +283,7 @@ io.on("connection", (socket: Socket) => {
     if (!isNonEmptyString(code, 12)) return ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
     if (!isOptionalString(name, 60)) return ack?.({ ok: false, error: "Gecersiz isim." });
     if (!allow("room:join", 20, 60_000)) return ack?.({ ok: false, error: "Cok fazla deneme, biraz bekle." });
-    const room = joinRoom(code, socket.id, name || myName || "Misafir");
+    const room = joinRoom(code, socket.id, name || myName || "Misafir", myUserId);
     if (!room) {
       ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
       return;
