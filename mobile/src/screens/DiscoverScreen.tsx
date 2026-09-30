@@ -4,6 +4,7 @@ import {
   Text,
   FlatList,
   Image,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
@@ -71,8 +72,11 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
   const [pickerVisible, setPickerVisible] = useState(false);
   const [hostName, setHostName] = useState("Misafir");
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
   const widthRef = useRef(width);
   widthRef.current = width;
+
+  const visibleRooms = rooms.filter((r) => r.title.toLowerCase().includes(search.trim().toLowerCase()));
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -152,15 +156,33 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
         </TouchableOpacity>
       </View>
 
+      <LinearGradient
+        colors={["#2a2a35", "#1c1c24", "#101014"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.searchBar}
+      >
+        <Icon name="search" size={18} color="rgba(255,255,255,0.85)" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Oda ara"
+          placeholderTextColor="rgba(255,255,255,0.5)"
+          value={search}
+          onChangeText={setSearch}
+        />
+      </LinearGradient>
+
       <FlatList
         key={numColumns} // sutun sayisi degisince FlatList'i yeniden olustur (RN kurali)
-        data={rooms}
+        data={visibleRooms}
         numColumns={numColumns}
         keyExtractor={(item) => item.code}
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchRooms(); }} tintColor="#fff" />}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>Su an acik oda yok. Ilk odayi sen ac!</Text>
+          <Text style={styles.emptyText}>
+            {search.trim() ? "Aramanla eslesen oda yok." : "Su an acik oda yok. Ilk odayi sen ac!"}
+          </Text>
         }
         renderItem={({ item }) => {
           const platformKey = platformKeyForSource(item.source);
@@ -246,6 +268,19 @@ const styles = StyleSheet.create({
   },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   headerLogo: { width: 70, height: 32 },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 15, outlineWidth: 0, outlineStyle: "none" } as any,
   listContent: { padding: 8, flexGrow: 1 },
   emptyText: { color: theme.textMuted, textAlign: "center", marginTop: 60, fontSize: 15 },
   card: { backgroundColor: theme.surface, borderRadius: 12, margin: 6, overflow: "hidden", borderWidth: 1, borderColor: theme.border },
