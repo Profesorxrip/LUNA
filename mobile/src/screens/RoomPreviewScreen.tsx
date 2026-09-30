@@ -79,68 +79,66 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
 
   return (
     <View style={styles.screen}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBack} hitSlop={10}>
+          <Icon name="chevronLeft" size={22} color={theme.text} />
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity style={styles.coverWrap} activeOpacity={0.9} onPress={onJoin}>
+        {room.source?.coverUrl ? (
+          <Image source={{ uri: room.source.coverUrl }} style={styles.cover} />
+        ) : room.source?.type === "youtube" ? (
+          <Image source={{ uri: `https://img.youtube.com/vi/${room.source.url}/hqdefault.jpg` }} style={styles.cover} />
+        ) : (
+          <View style={[styles.cover, styles.coverPlaceholder]} />
+        )}
+        <View style={styles.playBadge}>
+          <Icon name="play" size={26} color="#FFFFFF" />
+        </View>
+        {platform && (
+          <View style={styles.platformBadge}>
+            <PlatformBadge platform={platform.key} size={30} />
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <Text style={styles.title} numberOfLines={2}>
+        {room.title}
+      </Text>
+      {platform && <Text style={styles.platformLabel}>{platform.label}</Text>}
+
+      <View style={styles.statusRow}>
+        <View style={styles.statusLeft}>
+          <Text style={styles.statusText}>{statusText}</Text>
+          {hasDuration && (
+            <>
+              <Text style={styles.statusDot}>•</Text>
+              <Text style={styles.statusText}>
+                {formatTime(position)}/{formatTime(room.durationSeconds!)}
+              </Text>
+            </>
+          )}
+          {room.isPublic && (
+            <>
+              <Text style={styles.statusDot}>•</Text>
+              <Text style={styles.statusText}>Açık</Text>
+              <Icon name="globe" size={16} color={theme.textMuted} />
+            </>
+          )}
+        </View>
+        {isExternal && (
+          <TouchableOpacity style={styles.warningBadge} onPress={showSyncNotice} hitSlop={8}>
+            <Icon name="warning" size={18} color={theme.info} />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <FlatList
         data={participants}
         keyExtractor={(item, i) => item.userId || `guest-${i}`}
+        style={styles.participantList}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <>
-            <View style={styles.header}>
-              <TouchableOpacity onPress={onBack} hitSlop={10}>
-                <Icon name="chevronLeft" size={22} color={theme.text} />
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={styles.coverWrap} activeOpacity={0.9} onPress={onJoin}>
-              {room.source?.coverUrl ? (
-                <Image source={{ uri: room.source.coverUrl }} style={styles.cover} />
-              ) : room.source?.type === "youtube" ? (
-                <Image source={{ uri: `https://img.youtube.com/vi/${room.source.url}/hqdefault.jpg` }} style={styles.cover} />
-              ) : (
-                <View style={[styles.cover, styles.coverPlaceholder]} />
-              )}
-              <View style={styles.playBadge}>
-                <Icon name="play" size={26} color="#FFFFFF" />
-              </View>
-              {platform && (
-                <View style={styles.platformBadge}>
-                  <PlatformBadge platform={platform.key} size={30} />
-                </View>
-              )}
-            </TouchableOpacity>
-
-            <Text style={styles.title} numberOfLines={2}>
-              {room.title}
-            </Text>
-            {platform && <Text style={styles.platformLabel}>{platform.label}</Text>}
-
-            <View style={styles.statusRow}>
-              <View style={styles.statusLeft}>
-                <Text style={styles.statusText}>{statusText}</Text>
-                {hasDuration && (
-                  <>
-                    <Text style={styles.statusDot}>•</Text>
-                    <Text style={styles.statusText}>
-                      {formatTime(position)}/{formatTime(room.durationSeconds!)}
-                    </Text>
-                  </>
-                )}
-                {room.isPublic && (
-                  <>
-                    <Text style={styles.statusDot}>•</Text>
-                    <Text style={styles.statusText}>Açık</Text>
-                    <Icon name="globe" size={16} color={theme.textMuted} />
-                  </>
-                )}
-              </View>
-              {isExternal && (
-                <TouchableOpacity style={styles.warningBadge} onPress={showSyncNotice} hitSlop={8}>
-                  <Icon name="warning" size={18} color={theme.info} />
-                </TouchableOpacity>
-              )}
-            </View>
-          </>
-        }
         renderItem={({ item, index }) => (
           <TouchableOpacity
             style={styles.participantRow}
@@ -171,6 +169,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
+  participantList: { flex: 1 },
   listContent: { paddingBottom: 24 },
   header: { paddingHorizontal: 16, paddingTop: 50, paddingBottom: 12 },
   coverWrap: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden" },
