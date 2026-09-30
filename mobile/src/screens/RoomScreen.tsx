@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: "rgba(0,0,0,0.45)",
     alignItems: "center",
-    paddingTop: 130,
+    justifyContent: "center",
   },
   leaveCard: {
     backgroundColor: "#141416",
