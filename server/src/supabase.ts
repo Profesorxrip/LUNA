@@ -34,3 +34,12 @@ export function clientForUser(accessToken: string): SupabaseClient {
 export function isSupabaseConfigured(): boolean {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
+
+/** Girisi olmayan/dogrulanmamis istekler icin de calisan, sadece herkese
+ * acik (RLS: "using (true)") satirlari okuyabilen paylasilan client - orn.
+ * oda onizlemesinde katilimcilarin herkese acik profil bilgilerini (isim,
+ * handle, avatar, ulke) okumak icin. Yazma/DM/arkadaslik gibi ozel islemler
+ * icin KULLANILMAZ - onlar hala clientForUser (kullanicinin kendi JWT'si) ile. */
+export function publicReadClient(): SupabaseClient | null {
+  return authClient;
+}

@@ -42,8 +42,12 @@ import {
   listIncoming,
   listOutgoing,
   listBlocked,
+  getPublicProfile,
+  profilesFor,
+  ensureCountry,
 } from "./social";
-import { verifyAccessToken, clientForUser, isSupabaseConfigured } from "./supabase";
+import { verifyAccessToken, clientForUser, isSupabaseConfigured, publicReadClient } from "./supabase";
+import { lookupCountry, clientIpFromHandshake } from "./geoip";
 import { submitReport } from "./moderation";
 import { logRoomEvent } from "./analytics";
 import { registerPushToken, unregisterPushToken, notifyIfOffline, PushPlatform } from "./notifications";
@@ -128,6 +132,10 @@ io.on("connection", (socket: Socket) => {
     setOnline(myUserId, socket.id);
     await setUserName(myDb, myUserId, myName);
     ack?.({ ok: true, userId: myUserId, name: myName });
+
+    // Ulke bilgisi kritik degil - basarisiz olursa/gecikirse akisi bloklamaz.
+    const ip = clientIpFromHandshake(socket.handshake);
+    ensureCountry(myDb, myUserId, ip, lookupCountry).catch(() => {});
   });
 
   function requireAuth(ack?: (res: any) => void): boolean {
@@ -141,6 +149,17 @@ io.on("connection", (socket: Socket) => {
   socket.on("friend:status", async ({ withUserId }: { withUserId: string }, ack) => {
     if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200)) return ack?.({ ok: false });
     ack?.({ ok: true, status: await getFriendStatus(myDb!, withUserId) });
+  });
+
+  // Bir katilimcinin avatarina basildiginda profilini acmak icin - isim,
+  // handle, avatar, bio ve ulke herkese acik bilgiler (profiles_select_all).
+  socket.on("user:profile", async ({ userId }: { userId: string }, ack) => {
+    if (!isNonEmptyString(userId, 200)) return ack?.({ ok: false, error: "Gecersiz kullanici." });
+    const db = myDb || publicReadClient();
+    if (!db) return ack?.({ ok: false, error: "Sunucu yapilandirilmamis." });
+    const profile = await getPublicProfile(db, userId);
+    if (!profile) return ack?.({ ok: false, error: "Kullanici bulunamadi." });
+    ack?.({ ok: true, profile });
   });
 
   socket.on("friends:list", async (_data, ack) => {
@@ -278,6 +297,36 @@ io.on("connection", (socket: Socket) => {
       if (myDb && myUserId) logRoomEvent(myDb, myUserId, room.code, "create", source.label).catch(() => {});
     }
   );
+
+  // Karta uzun basinca acilan oda onizleme ekrani icin - odaya KATILMADAN
+  // (socket.join yok, oda katilimci sayisini etkilemez) mevcut katilimcilarin
+  // gercek isim/handle/avatar/ulke bilgilerini tek sorguda getirir.
+  socket.on("room:participants", async ({ code }: { code: string }, ack) => {
+    if (!isNonEmptyString(code, 12)) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    const room = getRoom(code);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+
+    const participants = Array.from(room.participants.values());
+    const userIds = participants.map((p) => p.userId).filter((id): id is string => Boolean(id));
+    const db = myDb || publicReadClient();
+    const profiles = db ? await profilesFor(db, userIds) : new Map();
+
+    ack?.({
+      ok: true,
+      participantCount: participants.length,
+      participants: participants.map((p) => {
+        const profile = p.userId ? profiles.get(p.userId) : undefined;
+        return {
+          userId: p.userId ?? null,
+          name: profile?.name || p.name,
+          handle: profile?.handle ?? null,
+          avatarUrl: profile?.avatarUrl ?? null,
+          country: profile?.country ?? null,
+          isHost: p.isHost,
+        };
+      }),
+    });
+  });
 
   socket.on("room:join", ({ code, name }: { code: string; name: string }, ack) => {
     if (!isNonEmptyString(code, 12)) return ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });

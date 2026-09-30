@@ -101,3 +101,62 @@ export async function setUserName(db: SupabaseClient, userId: string, name: stri
   // RLS: sadece kendi profilini guncelleyebilir (profiles_update_own policy).
   await db.from("profiles").update({ name }).eq("id", userId);
 }
+
+export interface PublicProfile {
+  userId: string;
+  name: string;
+  handle: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  country: string | null;
+}
+
+// profiles_select_all RLS politikasi herkesin herkesin profilini okumasina
+// izin veriyor (isim/handle/avatar/bio/ulke zaten herkese acik bilgiler) -
+// bu yuzden burada ekstra bir yetki kontrolune gerek yok.
+export async function getPublicProfile(db: SupabaseClient, userId: string): Promise<PublicProfile | null> {
+  const { data } = await db
+    .from("profiles")
+    .select("id,name,handle,avatar_url,bio,country")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    userId: data.id,
+    name: data.name || "Kullanici",
+    handle: data.handle,
+    avatarUrl: data.avatar_url,
+    bio: data.bio,
+    country: data.country,
+  };
+}
+
+// Oda onizleme ekraninda katilimci listesini (gercek isim/handle/avatar/ulke
+// ile) tek sorguda doldurmak icin - namesFor'un genisletilmis hali.
+export async function profilesFor(db: SupabaseClient, ids: string[]): Promise<Map<string, PublicProfile>> {
+  const map = new Map<string, PublicProfile>();
+  if (ids.length === 0) return map;
+  const { data } = await db.from("profiles").select("id,name,handle,avatar_url,bio,country").in("id", ids);
+  for (const row of data || []) {
+    map.set(row.id, {
+      userId: row.id,
+      name: row.name || "Kullanici",
+      handle: row.handle,
+      avatarUrl: row.avatar_url,
+      bio: row.bio,
+      country: row.country,
+    });
+  }
+  return map;
+}
+
+// Kullanicinin ulkesi henuz bilinmiyorsa IP'den best-effort doldurur -
+// zaten biliniyorsa tekrar sorgu atmadan onu döndürür (gereksiz dis servis
+// cagrisi yapmamak icin).
+export async function ensureCountry(db: SupabaseClient, userId: string, ip: string, lookup: (ip: string) => Promise<string | null>): Promise<string | null> {
+  const { data } = await db.from("profiles").select("country").eq("id", userId).maybeSingle();
+  if (data?.country) return data.country;
+  const country = await lookup(ip);
+  if (country) await db.from("profiles").update({ country }).eq("id", userId);
+  return country;
+}

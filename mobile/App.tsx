@@ -10,10 +10,11 @@ import ProfileScreen from "./src/screens/ProfileScreen";
 import UserProfileScreen from "./src/screens/UserProfileScreen";
 import DMScreen, { DMPeer } from "./src/screens/DMScreen";
 import FriendsScreen from "./src/screens/FriendsScreen";
-import { RoomState, getSocket } from "./src/services/socket";
+import RoomPreviewScreen from "./src/screens/RoomPreviewScreen";
+import { RoomState, PublicRoomSummary, getSocket } from "./src/services/socket";
 import { registerForPushNotifications } from "./src/services/notifications";
 
-type Screen = "discover" | "profile" | "userProfile" | "dm" | "friends";
+type Screen = "discover" | "profile" | "userProfile" | "dm" | "friends" | "peerProfile" | "roomPreview";
 
 // Roadmap AŞAMA 3: gercek authentication artik zorunlu.
 const PREVIEW_SKIP_AUTH = false;
@@ -26,6 +27,8 @@ export default function App() {
   const [dmPeer, setDmPeer] = useState<DMPeer | null>(null);
   const [dmReturnTo, setDmReturnTo] = useState<Screen>("userProfile");
   const [friendsReturnTo, setFriendsReturnTo] = useState<Screen>("discover");
+  const [peerProfile, setPeerProfile] = useState<{ userId: string; name: string; handle?: string } | null>(null);
+  const [previewRoom, setPreviewRoom] = useState<PublicRoomSummary | null>(null);
 
   function openDM(peer: DMPeer, returnTo: Screen) {
     setDmPeer(peer);
@@ -36,6 +39,22 @@ export default function App() {
   function openFriends(returnTo: Screen) {
     setFriendsReturnTo(returnTo);
     setScreen("friends");
+  }
+
+  function openParticipant(peer: { userId: string; name: string; handle?: string }) {
+    setPeerProfile(peer);
+    setScreen("peerProfile");
+  }
+
+  function openRoomPreview(r: PublicRoomSummary) {
+    setPreviewRoom(r);
+    setScreen("roomPreview");
+  }
+
+  function joinRoomFromPreview(code: string) {
+    getSocket().emit("room:join", { code, name: "Misafir" }, (res: any) => {
+      if (res.ok) handleEnterRoom(res.room);
+    });
   }
 
   useEffect(() => {
@@ -100,6 +119,20 @@ export default function App() {
         />
       ) : screen === "userProfile" ? (
         <UserProfileScreen onBack={() => setScreen("profile")} own onOpenDM={(peer) => openDM(peer, "userProfile")} />
+      ) : screen === "peerProfile" && peerProfile ? (
+        <UserProfileScreen
+          onBack={() => setScreen("discover")}
+          own={false}
+          peer={peerProfile}
+          onOpenDM={(peer) => openDM(peer, "peerProfile")}
+        />
+      ) : screen === "roomPreview" && previewRoom ? (
+        <RoomPreviewScreen
+          room={previewRoom}
+          onBack={() => setScreen("discover")}
+          onJoin={() => joinRoomFromPreview(previewRoom.code)}
+          onOpenParticipant={openParticipant}
+        />
       ) : screen === "profile" ? (
         <ProfileScreen
           onBack={() => setScreen("discover")}
@@ -111,6 +144,8 @@ export default function App() {
           onJoinRoom={handleEnterRoom}
           onOpenProfile={() => setScreen("profile")}
           onOpenFriends={() => openFriends("discover")}
+          onOpenParticipant={openParticipant}
+          onOpenRoomPreview={openRoomPreview}
         />
       )}
       <StatusBar style="light" />

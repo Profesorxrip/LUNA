@@ -14,10 +14,12 @@ import {
 import { supabase } from "../services/supabase";
 import { getSocket } from "../services/socket";
 import Icon, { IconName } from "../components/Icon";
+import CountryFlag from "../components/CountryFlag";
 
 interface Props {
   onBack: () => void;
   own?: boolean;
+  peer?: { userId: string; name: string; handle?: string };
   onOpenDM?: (peer: { userId: string; name: string; handle?: string }) => void;
 }
 
@@ -90,11 +92,13 @@ const VIDEOS: Record<VideoTabKey, { title: string; duration: string; meta: strin
 /** "Vinil Kayıt" konsepti - kartelanın (bkz. tasarım oturumu) ilk seçeneği,
  * kullanıcının kendi profili (own) ve başkasının profili (!own) icin
  * ortak bir govde uzerinde farkli baslik/aksiyon satiri gosterir. */
-export default function UserProfileScreen({ onBack, own = true, onOpenDM }: Props) {
-  const [name, setName] = useState("Kullanici");
-  const [handle, setHandle] = useState("kullanici");
-  const [bio, setBio] = useState("Gece geç saat film ve dizi maratonları.");
+export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }: Props) {
+  const peerUserId = peer?.userId || DEMO_PEER_USER_ID;
+  const [name, setName] = useState(peer?.name || "Kullanici");
+  const [handle, setHandle] = useState(peer?.handle || "kullanici");
+  const [bio, setBio] = useState(own ? "Gece geç saat film ve dizi maratonları." : "");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [country, setCountry] = useState<string | null>(null);
   const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
   const [editingField, setEditingField] = useState<"name" | "handle" | "bio" | null>(null);
   const [activeTab, setActiveTab] = useState<VideoTabKey>("best");
@@ -127,14 +131,26 @@ export default function UserProfileScreen({ onBack, own = true, onOpenDM }: Prop
   useEffect(() => {
     if (own) return;
     const socket = getSocket();
-    socket.emit("friend:status", { withUserId: DEMO_PEER_USER_ID }, (res: any) => {
+    // Gercek katilimcinin isim/handle/avatar/bio/ulke bilgisini getirir -
+    // avatar taplandiginda elimizde sadece isim/userId oluyor, geri kalani
+    // (handle, bio, ulke bayragi) burada tamamlaniyor.
+    socket.emit("user:profile", { userId: peerUserId }, (res: any) => {
+      if (res?.ok && res.profile) {
+        setName(res.profile.name || name);
+        if (res.profile.handle) setHandle(res.profile.handle);
+        if (res.profile.bio) setBio(res.profile.bio);
+        if (res.profile.avatarUrl) setAvatarUrl(res.profile.avatarUrl);
+        setCountry(res.profile.country || null);
+      }
+    });
+    socket.emit("friend:status", { withUserId: peerUserId }, (res: any) => {
       if (res?.ok) setFriendStatus(res.status === "outgoing" ? "pending" : res.status === "friends" ? "friends" : "none");
     });
     function handleAccepted({ byUserId }: { byUserId: string }) {
-      if (byUserId === DEMO_PEER_USER_ID) setFriendStatus("friends");
+      if (byUserId === peerUserId) setFriendStatus("friends");
     }
     function handleDeclinedOrCancelled({ byUserId }: { byUserId: string }) {
-      if (byUserId === DEMO_PEER_USER_ID) setFriendStatus("none");
+      if (byUserId === peerUserId) setFriendStatus("none");
     }
     socket.on("friend:accepted", handleAccepted);
     socket.on("friend:declined", handleDeclinedOrCancelled);
@@ -142,20 +158,21 @@ export default function UserProfileScreen({ onBack, own = true, onOpenDM }: Prop
       socket.off("friend:accepted", handleAccepted);
       socket.off("friend:declined", handleDeclinedOrCancelled);
     };
-  }, [own]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [own, peerUserId]);
 
   function placeholder(label: string) {
     Alert.alert(label, "Bu ozellik yakinda eklenecek.");
   }
 
   function sendFriendRequest() {
-    getSocket().emit("friend:request", { toUserId: DEMO_PEER_USER_ID }, (res: any) => {
+    getSocket().emit("friend:request", { toUserId: peerUserId }, (res: any) => {
       if (res?.ok) setFriendStatus("pending");
     });
   }
 
   function cancelFriendRequest() {
-    getSocket().emit("friend:cancel", { toUserId: DEMO_PEER_USER_ID }, () => setFriendStatus("none"));
+    getSocket().emit("friend:cancel", { toUserId: peerUserId }, () => setFriendStatus("none"));
   }
 
   function toggleFieldEdit(field: "name" | "handle" | "bio") {
@@ -253,7 +270,10 @@ export default function UserProfileScreen({ onBack, own = true, onOpenDM }: Prop
             </View>
           ) : (
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("handle")}>
-              <Text style={styles.handle}>@{handle}</Text>
+              <View style={styles.handleRow}>
+                <Text style={styles.handle}>@{handle}</Text>
+                {!own && <CountryFlag country={country} size={13} />}
+              </View>
             </TouchableOpacity>
           )}
         </View>
@@ -281,7 +301,7 @@ export default function UserProfileScreen({ onBack, own = true, onOpenDM }: Prop
                 style={styles.primaryButton}
                 onPress={() =>
                   onOpenDM
-                    ? onOpenDM({ userId: DEMO_PEER_USER_ID, name, handle })
+                    ? onOpenDM({ userId: peerUserId, name, handle })
                     : placeholder("Mesaj")
                 }
               >
@@ -507,7 +527,8 @@ const styles = StyleSheet.create({
     minWidth: 140,
     textAlign: "center",
   },
-  handle: { color: MUTED, fontSize: 12, marginTop: 2 },
+  handleRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  handle: { color: MUTED, fontSize: 12 },
   handleEditRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   handleAt: { color: MUTED, fontSize: 13 },
   handleInput: {

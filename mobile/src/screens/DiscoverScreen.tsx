@@ -26,6 +26,8 @@ interface Props {
   onJoinRoom: (room: RoomState) => void;
   onOpenProfile: () => void;
   onOpenFriends: () => void;
+  onOpenParticipant: (peer: { userId: string; name: string }) => void;
+  onOpenRoomPreview: (room: PublicRoomSummary) => void;
 }
 
 // Sol kenardan (ekranin ilk 24px'i) saga dogru kaydirinca profil/ayarlar,
@@ -64,7 +66,13 @@ function platformKeyForSource(source: MediaSource | null): PlatformKey | null {
 
 const AVATAR_COLORS = ["#3A2F22", "#1F3D24", "#2E4A2F", "#4A3B22"];
 
-export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriends }: Props) {
+export default function DiscoverScreen({
+  onJoinRoom,
+  onOpenProfile,
+  onOpenFriends,
+  onOpenParticipant,
+  onOpenRoomPreview,
+}: Props) {
   const { width } = useWindowDimensions();
   const numColumns = width >= WIDE_BREAKPOINT ? 2 : 1;
   const [rooms, setRooms] = useState<PublicRoomSummary[]>([]);
@@ -187,7 +195,12 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
         renderItem={({ item }) => {
           const platformKey = platformKeyForSource(item.source);
           return (
-          <TouchableOpacity style={[styles.card, { flex: 1 / numColumns }]} onPress={() => joinByCode(item.code)}>
+          <TouchableOpacity
+            style={[styles.card, { flex: 1 / numColumns }]}
+            onPress={() => joinByCode(item.code)}
+            onLongPress={() => onOpenRoomPreview(item)}
+            delayLongPress={350}
+          >
             {item.source?.coverUrl ? (
               <Image source={{ uri: item.source.coverUrl }} style={styles.thumbnail} />
             ) : item.source?.type === "youtube" ? (
@@ -219,8 +232,10 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
                 {item.participants.map((p, i) => {
                   const isFriend = Boolean(p.userId && friendIds.has(p.userId));
                   return (
-                    <View
+                    <TouchableOpacity
                       key={i}
+                      disabled={!p.userId}
+                      onPress={() => p.userId && onOpenParticipant({ userId: p.userId, name: p.name })}
                       style={[
                         styles.participantAvatar,
                         { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
@@ -228,7 +243,7 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
                       ]}
                     >
                       <Text style={styles.participantAvatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
                 {item.participantCount > item.participants.length && (

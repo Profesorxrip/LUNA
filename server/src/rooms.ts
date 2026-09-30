@@ -93,6 +93,7 @@ export function listPublicRooms() {
       title: r.title,
       participantCount: r.participants.size,
       source: r.playback.source,
+      isPlaying: r.playback.isPlaying,
       // Discover kartinda katilimci avatar siramasi kaydirilarak
       // gorulebiliyor - makul bir ust sinira kadar hepsini gonderiyoruz.
       participants: Array.from(r.participants.values())

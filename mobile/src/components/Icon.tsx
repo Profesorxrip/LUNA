@@ -27,7 +27,8 @@ export type IconName =
   | "hourglass"
   | "bell"
   | "bellOff"
-  | "personBlock";
+  | "personBlock"
+  | "warning";
 
 interface Props {
   name: IconName;
@@ -300,6 +301,21 @@ function renderShape(name: IconName, color: string) {
           />
           <Circle cx={18} cy={17.2} r={4.8} fill="#FFFFFF" />
           <Line x1={15} y1={17.2} x2={21} y2={17.2} stroke="#04140D" strokeWidth={2.2} strokeLinecap="round" />
+        </G>
+      );
+    case "warning":
+      return (
+        <G>
+          <Path
+            d="M12 3.2 L21.5 20 L2.5 20 Z"
+            fill="none"
+            stroke={color}
+            strokeWidth={2.2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <Line x1={12} y1={9.3} x2={12} y2={14.3} stroke={color} strokeWidth={2.2} strokeLinecap="round" />
+          <Circle cx={12} cy={17.1} r={1.25} fill={color} />
         </G>
       );
     default:

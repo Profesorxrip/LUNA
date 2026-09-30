@@ -76,7 +76,17 @@ export interface PublicRoomSummary {
   title: string;
   participantCount: number;
   source: MediaSource | null;
+  isPlaying: boolean;
   participants: { name: string; userId: string | null }[];
+}
+
+export interface RoomParticipantDetail {
+  userId: string | null;
+  name: string;
+  handle: string | null;
+  avatarUrl: string | null;
+  country: string | null;
+  isHost: boolean;
 }
 
 export type FriendStatus = "none" | "outgoing" | "incoming" | "friends" | "blocked";
