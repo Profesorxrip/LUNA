@@ -17,9 +17,10 @@ interface Props {
   url: string | null;
   onStateChange?: (isPlaying: boolean, currentTime: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
+  onDuration?: (seconds: number) => void;
 }
 
-const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBuffering }, ref) => {
+const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBuffering, onDuration }, ref) => {
   const player = useVideoPlayer(url, (p) => {
     p.loop = false;
     p.timeUpdateEventInterval = 1;
@@ -38,6 +39,7 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
     const statusSub = player.addListener("statusChange", (e) => {
       // "loading" durumu = tamponlaniyor (buffering).
       onBuffering?.(e.status === "loading");
+      if (e.status === "readyToPlay" && player.duration > 0) onDuration?.(player.duration);
     });
     return () => {
       playingSub.remove();

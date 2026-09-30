@@ -41,6 +41,7 @@ export interface PlaybackState {
   isPlaying: boolean;
   positionSeconds: number;
   updatedAtMs: number;
+  durationSeconds?: number | null;
 }
 
 export interface BufferingState {
@@ -77,6 +78,8 @@ export interface PublicRoomSummary {
   participantCount: number;
   source: MediaSource | null;
   isPlaying: boolean;
+  positionSeconds: number;
+  durationSeconds: number | null;
   participants: { name: string; userId: string | null }[];
 }
 

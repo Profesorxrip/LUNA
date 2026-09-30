@@ -127,6 +127,16 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     socket.emit("playback:buffering", { isBuffering });
   }, []);
 
+  const lastDurationRef = useRef<number | null>(null);
+  const handleDuration = useCallback(
+    (seconds: number) => {
+      if (!isHost || Math.round(seconds) === lastDurationRef.current) return;
+      lastDurationRef.current = Math.round(seconds);
+      socket.emit("playback:update", { durationSeconds: seconds });
+    },
+    [isHost]
+  );
+
   function selectSource(source: MediaSource) {
     socket.emit("playback:update", { source, isPlaying: source.type !== "external", positionSeconds: 0 });
     if (source.type !== "external") playerRef.current?.loadVideo(source.url, 0);
@@ -229,7 +239,13 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       {/* Medya alani - ust barin hemen altinda, ustune binmeden */}
       <View style={styles.mediaSection}>
         <ReactionsOverlay ref={reactionsRef}>
-          <MediaPlayer ref={playerRef} source={room.playback.source} onStateChange={handleHostPlayerChange} onBuffering={handleBuffering} />
+          <MediaPlayer
+            ref={playerRef}
+            source={room.playback.source}
+            onStateChange={handleHostPlayerChange}
+            onBuffering={handleBuffering}
+            onDuration={handleDuration}
+          />
         </ReactionsOverlay>
 
         <LinearGradient colors={["transparent", theme.bg]} style={styles.bottomFade} pointerEvents="none" />

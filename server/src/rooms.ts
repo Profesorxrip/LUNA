@@ -34,6 +34,9 @@ export interface PlaybackState {
   isPlaying: boolean;
   positionSeconds: number; // en son bilinen konum
   updatedAtMs: number; // positionSeconds'in okundugu an (Date.now())
+  // Video oynaticidan (YouTube/HLS) ogrenilir - external (DRM'li) kaynaklarda
+  // hep null kalir, cunku o platformlarin gercek suresi bizde bilinmez.
+  durationSeconds?: number | null;
 }
 
 export interface Room {
@@ -94,6 +97,8 @@ export function listPublicRooms() {
       participantCount: r.participants.size,
       source: r.playback.source,
       isPlaying: r.playback.isPlaying,
+      positionSeconds: currentPlaybackPosition(r.playback),
+      durationSeconds: r.playback.durationSeconds ?? null,
       // Discover kartinda katilimci avatar siramasi kaydirilarak
       // gorulebiliyor - makul bir ust sinira kadar hepsini gonderiyoruz.
       participants: Array.from(r.participants.values())
@@ -178,7 +183,7 @@ export function bufferingState(room: Room) {
 export function updatePlayback(
   room: Room,
   requesterId: string,
-  update: Partial<Pick<PlaybackState, "source" | "isPlaying" | "positionSeconds">>
+  update: Partial<Pick<PlaybackState, "source" | "isPlaying" | "positionSeconds" | "durationSeconds">>
 ): boolean {
   if (!isHost(room, requesterId)) return false;
   room.playback = { ...room.playback, ...update, updatedAtMs: Date.now() };

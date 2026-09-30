@@ -31,9 +31,20 @@ function platformInfo(source: MediaSource | null): { key: PlatformKey; label: st
 
 const AVATAR_COLORS = ["#3A2F22", "#1F3D24", "#2E4A2F", "#4A3B22"];
 
+function formatTime(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
+  const ss = String(sec).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
 export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticipant }: Props) {
   const [participants, setParticipants] = useState<RoomParticipantDetail[]>([]);
   const [participantCount, setParticipantCount] = useState(room.participantCount);
+  const [position, setPosition] = useState(room.positionSeconds);
 
   useEffect(() => {
     getSocket().emit("room:participants", { code: room.code }, (res: any) => {
@@ -44,8 +55,17 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
     });
   }, [room.code]);
 
+  // Oynatiliyorsa konumu ekranda canli sekilde ilerletiyoruz - tipki
+  // referans ss'deki "2:15/3:36" gibi surekli akan bir sayac.
+  useEffect(() => {
+    if (!room.isPlaying) return;
+    const timer = setInterval(() => setPosition((p) => p + 1), 1000);
+    return () => clearInterval(timer);
+  }, [room.isPlaying]);
+
   const platform = platformInfo(room.source);
   const isExternal = room.source?.type === "external";
+  const hasDuration = room.durationSeconds != null && room.durationSeconds > 0;
 
   function showSyncNotice() {
     Alert.alert(
@@ -68,7 +88,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
               </TouchableOpacity>
             </View>
 
-            <View style={styles.coverWrap}>
+            <TouchableOpacity style={styles.coverWrap} activeOpacity={0.9} onPress={onJoin}>
               {room.source?.coverUrl ? (
                 <Image source={{ uri: room.source.coverUrl }} style={styles.cover} />
               ) : room.source?.type === "youtube" ? (
@@ -84,7 +104,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
                   <PlatformBadge platform={platform.key} size={30} />
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
 
             <Text style={styles.title} numberOfLines={2}>
               {room.title}
@@ -94,6 +114,14 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
             <View style={styles.statusRow}>
               <View style={styles.statusLeft}>
                 <Text style={styles.statusText}>{room.isPlaying ? "Oynatılıyor" : "Duraklatıldı"}</Text>
+                {hasDuration && (
+                  <>
+                    <Text style={styles.statusDot}>•</Text>
+                    <Text style={styles.statusText}>
+                      {formatTime(position)}/{formatTime(room.durationSeconds!)}
+                    </Text>
+                  </>
+                )}
                 <Text style={styles.statusDot}>•</Text>
                 <Text style={styles.statusText}>Açık</Text>
                 <Icon name="globe" size={16} color={theme.textMuted} />

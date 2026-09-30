@@ -379,11 +379,12 @@ io.on("connection", (socket: Socket) => {
 
   socket.on(
     "playback:update",
-    (update: { source?: MediaSource | null; isPlaying?: boolean; positionSeconds?: number }) => {
+    (update: { source?: MediaSource | null; isPlaying?: boolean; positionSeconds?: number; durationSeconds?: number }) => {
       if (!currentRoomCode) return;
       if (update.source && !isValidMediaSource(update.source)) return;
       if (update.isPlaying !== undefined && !isBoolean(update.isPlaying)) return;
       if (update.positionSeconds !== undefined && !isFiniteNumber(update.positionSeconds, 0, 10_000_000)) return;
+      if (update.durationSeconds !== undefined && !isFiniteNumber(update.durationSeconds, 0, 10_000_000)) return;
       const room = getRoom(currentRoomCode);
       if (!room) return;
       const applied = updatePlayback(room, socket.id, update);

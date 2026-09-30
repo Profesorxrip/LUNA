@@ -14,6 +14,7 @@ interface Props {
   videoId: string | null;
   onStateChange?: (isPlaying: boolean, currentTime: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
+  onDuration?: (seconds: number) => void;
 }
 
 // YouTube IFrame API'sini yukleyip play/pause/seekTo komutlarini
@@ -35,6 +36,9 @@ const PLAYER_HTML = `
         width: '100%',
         playerVars: { playsinline: 1, controls: 1 },
         events: {
+          onReady: function () {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'duration', seconds: player.getDuration() }));
+          },
           onStateChange: function (e) {
             if (e.data === YT.PlayerState.BUFFERING) {
               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'buffering', isBuffering: true }));
@@ -45,6 +49,7 @@ const PLAYER_HTML = `
               window.ReactNativeWebView.postMessage(JSON.stringify({
                 type: 'stateChange', isPlaying: e.data === YT.PlayerState.PLAYING, currentTime: player.getCurrentTime(),
               }));
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'duration', seconds: player.getDuration() }));
             }
           },
         },
@@ -70,7 +75,7 @@ const PLAYER_HTML = `
 </html>
 `;
 
-const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onStateChange, onBuffering }, ref) => {
+const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onStateChange, onBuffering, onDuration }, ref) => {
   const webviewRef = useRef<WebView>(null);
   const pendingRequests = useRef(new Map<string, (time: number) => void>());
 
@@ -119,6 +124,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onState
               resolver(data.currentTime);
               pendingRequests.current.delete(data.requestId);
             }
+          } else if (data.type === "duration") {
+            if (data.seconds > 0) onDuration?.(data.seconds);
           }
         } catch {
           // yoksay - beklenmeyen mesaj formati
