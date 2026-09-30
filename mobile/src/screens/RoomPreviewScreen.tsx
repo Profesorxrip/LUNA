@@ -195,8 +195,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 10,
     paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderColor: theme.border,
   },
   statusLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
   statusText: { color: theme.textMuted, fontSize: 13 },
