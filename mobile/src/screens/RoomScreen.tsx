@@ -153,11 +153,33 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   function selectSource(source: MediaSource) {
     if (room.playbackMode === "vote") {
       socket.emit("room:proposeSource", { source }, () => {});
+      setPickerVisible(false);
       return;
     }
     socket.emit("playback:update", { source, isPlaying: source.type !== "external", positionSeconds: 0 });
     if (source.type !== "external") playerRef.current?.loadVideo(source.url, 0);
   }
+
+  // Video dogal olarak bitince (sadece "vote" modunda, sadece host tetikler) -
+  // sunucu 10 saniyelik bir oylama penceresi acar, bu da asagidaki poll
+  // useEffect'inin herkeste secim ekranini otomatik acmasini tetikler.
+  const handleEnded = useCallback(() => {
+    if (!isHost || room.playbackMode !== "vote") return;
+    socket.emit("playback:ended");
+  }, [isHost, room.playbackMode]);
+
+  // Oylama yeni basladiginda (null -> dolu) HERKESTE secim ekranini otomatik
+  // ac; oylama sonuclanip kapandiginda (dolu -> null) hala aciksa kapat.
+  const hadPollRef = useRef(false);
+  useEffect(() => {
+    const hasPoll = Boolean(room.poll);
+    if (hasPoll && !hadPollRef.current) {
+      setPickerVisible(true);
+    } else if (!hasPoll && hadPollRef.current) {
+      setPickerVisible(false);
+    }
+    hadPollRef.current = hasPoll;
+  }, [room.poll]);
 
   function openMediaPicker() {
     if (!isHost && room.playbackMode !== "vote") {
@@ -288,6 +310,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
             onStateChange={handleHostPlayerChange}
             onBuffering={handleBuffering}
             onDuration={handleDuration}
+            onEnded={handleEnded}
           />
         </ReactionsOverlay>
 
@@ -320,7 +343,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
             );
           })}
           <TouchableOpacity onPress={openMediaPicker}>
-            <Text style={styles.pollAddLink}>+ Baska bir sey oner</Text>
+            <Text style={styles.pollAddLink}>Secimini degistir</Text>
           </TouchableOpacity>
         </View>
       )}

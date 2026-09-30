@@ -13,6 +13,7 @@ import {
   updatePlayback,
   updateRoomSettings,
   proposeSource,
+  startVideoEndedPoll,
   castVote,
   resolvePoll,
   roomToPublicState,
@@ -23,6 +24,7 @@ import {
   MediaSource,
   PrivacyLevel,
   PlaybackMode,
+  POLL_DURATION_MS,
 } from "./rooms";
 import { createVoiceToken } from "./livekit";
 import {
@@ -518,8 +520,9 @@ io.on("connection", (socket: Socket) => {
     }
   );
 
-  // "Haydi Oylayalım" modunda bir video/platform onerir - aktif oylama
-  // yoksa 20sn'lik yenisini baslatir, varsa aday listesine ekler.
+  // "Haydi Oylayalım" modunda normal medya secme ekranindan bir video/
+  // platform SECER - bu secim o kisinin OYUDUR (bkz. rooms.ts proposeSource
+  // aciklamasi). Aktif oylama yoksa 10sn'lik yenisini baslatir.
   socket.on("room:proposeSource", ({ source }: { source: MediaSource }, ack) => {
     if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
     if (!isValidMediaSource(source)) return ack?.({ ok: false, error: "Gecersiz medya kaynagi." });
@@ -528,11 +531,30 @@ io.on("connection", (socket: Socket) => {
     if (room.playbackMode !== "vote") return ack?.({ ok: false, error: "Oylama modu acik degil." });
     const wasActive = Boolean(room.poll);
     const proposerName = room.participants.get(socket.id)?.name || myName;
-    proposeSource(room, source, proposerName);
+    proposeSource(room, source, proposerName, socket.id);
     if (!wasActive) {
-      pollTimers.set(currentRoomCode, setTimeout(() => resolvePollAndBroadcast(currentRoomCode!), 20_000));
+      pollTimers.set(currentRoomCode, setTimeout(() => resolvePollAndBroadcast(currentRoomCode!), POLL_DURATION_MS));
     }
     ack?.({ ok: true });
+    // Odadaki HERKES zaten secim/oy kullandiysa suresi dolmasini beklemeden
+    // hemen sonuclandir (room:vote handler'indaki ayni mantik).
+    if (room.poll && room.poll.votes.size >= room.participants.size) {
+      resolvePollAndBroadcast(currentRoomCode);
+    } else {
+      broadcastRoom(currentRoomCode);
+    }
+  });
+
+  // Video dogal olarak bittiginde (sadece host'un oynaticisindan gelir)
+  // "Haydi Oylayalim" modundaysak otomatik olarak yeni bir "sirada ne
+  // olsun" penceresi aciyoruz - herkesin ekraninda medya secme ekrani
+  // otomatik acilacak (bkz. RoomScreen.tsx room.poll useEffect'i).
+  socket.on("playback:ended", () => {
+    if (!currentRoomCode) return;
+    const room = getRoom(currentRoomCode);
+    if (!room || !isHost(room, socket.id) || room.playbackMode !== "vote") return;
+    startVideoEndedPoll(room);
+    pollTimers.set(currentRoomCode, setTimeout(() => resolvePollAndBroadcast(currentRoomCode!), POLL_DURATION_MS));
     broadcastRoom(currentRoomCode);
   });
 

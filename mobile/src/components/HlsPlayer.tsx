@@ -18,9 +18,10 @@ interface Props {
   onStateChange?: (isPlaying: boolean, currentTime: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
   onDuration?: (seconds: number) => void;
+  onEnded?: () => void;
 }
 
-const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBuffering, onDuration }, ref) => {
+const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBuffering, onDuration, onEnded }, ref) => {
   const player = useVideoPlayer(url, (p) => {
     p.loop = false;
     p.timeUpdateEventInterval = 1;
@@ -41,9 +42,14 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
       onBuffering?.(e.status === "loading");
       if (e.status === "readyToPlay" && player.duration > 0) onDuration?.(player.duration);
     });
+    // Video dogal olarak sonuna geldiginde (loop=false) tetiklenir.
+    const endSub = player.addListener("playToEnd", () => {
+      onEnded?.();
+    });
     return () => {
       playingSub.remove();
       statusSub.remove();
+      endSub.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player]);

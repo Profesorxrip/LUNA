@@ -15,6 +15,7 @@ interface Props {
   onStateChange?: (isPlaying: boolean, currentTime: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
   onDuration?: (seconds: number) => void;
+  onEnded?: () => void;
 }
 
 // YouTube IFrame API'sini yukleyip play/pause/seekTo komutlarini
@@ -51,6 +52,9 @@ const PLAYER_HTML = `
               }));
               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'duration', seconds: player.getDuration() }));
             }
+            if (e.data === YT.PlayerState.ENDED) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ended' }));
+            }
           },
         },
       });
@@ -75,7 +79,7 @@ const PLAYER_HTML = `
 </html>
 `;
 
-const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onStateChange, onBuffering, onDuration }, ref) => {
+const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onStateChange, onBuffering, onDuration, onEnded }, ref) => {
   const webviewRef = useRef<WebView>(null);
   const pendingRequests = useRef(new Map<string, (time: number) => void>());
 
@@ -126,6 +130,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onState
             }
           } else if (data.type === "duration") {
             if (data.seconds > 0) onDuration?.(data.seconds);
+          } else if (data.type === "ended") {
+            onEnded?.();
           }
         } catch {
           // yoksay - beklenmeyen mesaj formati

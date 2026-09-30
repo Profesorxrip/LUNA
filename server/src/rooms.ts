@@ -317,17 +317,40 @@ export function updateRoomSettings(
   return true;
 }
 
-const POLL_DURATION_MS = 20_000;
+// Rave'deki gibi: video dogal olarak bitince herkese 10 saniyelik bir
+// "sirada ne olsun" penceresi aciliyor.
+export const POLL_DURATION_MS = 10_000;
 
-/** "Haydi Oylayalım" modunda birisi bir kaynak onerdiginde cagrilir - aktif
- * oylama yoksa yenisini baslatir, varsa aday listesine ekler. */
-export function proposeSource(room: Room, source: MediaSource, proposedByName: string): Poll {
-  const proposal: PollProposal = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, source, proposedByName };
+function sourcesMatch(a: MediaSource, b: MediaSource): boolean {
+  return a.type === b.type && a.url === b.url;
+}
+
+/** "Haydi Oylayalım" modunda normal medya secme ekranindan (YouTube'da
+ * alakali/onerilen videolar dahil, ya da herhangi bir platform) birisi bir
+ * kaynak SECTIGINDE cagrilir - bu secimin KENDISI o kisinin OYUDUR. Ayni
+ * kaynagi (ayni url) baskasi da secmisse yeni bir aday ACILMAZ, mevcut
+ * adaya oy eklenir - "ayni videoya kim daha cok oy verirse o kazanir"
+ * mantigi boyle calisiyor. Aktif oylama yoksa yenisini baslatir (elle
+ * "+ oner" ile, video sonu disinda da baslatilabilir). */
+export function proposeSource(room: Room, source: MediaSource, proposedByName: string, voterSocketId: string): Poll {
   if (!room.poll) {
-    room.poll = { proposals: [proposal], votes: new Map(), deadlineMs: Date.now() + POLL_DURATION_MS };
-  } else {
+    room.poll = { proposals: [], votes: new Map(), deadlineMs: Date.now() + POLL_DURATION_MS };
+  }
+  let proposal = room.poll.proposals.find((p) => sourcesMatch(p.source, source));
+  if (!proposal) {
+    proposal = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, source, proposedByName };
     room.poll.proposals.push(proposal);
   }
+  room.poll.votes.set(voterSocketId, proposal.id);
+  return room.poll;
+}
+
+/** Video dogal olarak bitince (bkz. index.ts "playback:ended") "Haydi
+ * Oylayalim" modunda otomatik olarak yeni (bos) bir oylama penceresi acar -
+ * herkesin ekraninda medya secme ekrani otomatik acilir, secilen ilk video
+ * aday olur, ayni videoyu secenler ona oy vermis sayilir. */
+export function startVideoEndedPoll(room: Room): Poll {
+  room.poll = { proposals: [], votes: new Map(), deadlineMs: Date.now() + POLL_DURATION_MS };
   return room.poll;
 }
 

@@ -22,9 +22,10 @@ interface Props {
   onStateChange?: (isPlaying: boolean, currentTime: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
   onDuration?: (seconds: number) => void;
+  onEnded?: () => void;
 }
 
-const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChange, onBuffering, onDuration }, ref) => {
+const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChange, onBuffering, onDuration, onEnded }, ref) => {
   const youtubeRef = useRef<YouTubePlayerHandle>(null);
   const hlsRef = useRef<HlsPlayerHandle>(null);
 
@@ -66,12 +67,21 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChang
 
   if (source.type === "youtube") {
     return (
-      <YouTubePlayer ref={youtubeRef} videoId={source.url} onStateChange={onStateChange} onBuffering={onBuffering} onDuration={onDuration} />
+      <YouTubePlayer
+        ref={youtubeRef}
+        videoId={source.url}
+        onStateChange={onStateChange}
+        onBuffering={onBuffering}
+        onDuration={onDuration}
+        onEnded={onEnded}
+      />
     );
   }
 
   // hls / mp4
-  return <HlsPlayer ref={hlsRef} url={source.url} onStateChange={onStateChange} onBuffering={onBuffering} onDuration={onDuration} />;
+  return (
+    <HlsPlayer ref={hlsRef} url={source.url} onStateChange={onStateChange} onBuffering={onBuffering} onDuration={onDuration} onEnded={onEnded} />
+  );
 });
 
 const styles = StyleSheet.create({
