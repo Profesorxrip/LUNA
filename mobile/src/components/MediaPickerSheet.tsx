@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { LinearGradient } from "expo-linear-gradient";
 import type { MediaSource } from "../services/socket";
@@ -15,7 +15,7 @@ interface Props {
   onSelect: (source: MediaSource) => void;
 }
 
-type Mode = "grid" | "youtube" | "weburl" | "name";
+type Mode = "grid" | "youtube" | "weburl";
 
 const externalItems = EXTERNAL_PLATFORMS.map((p) => ({ key: p.key, label: p.label, logo: p.logo }));
 const ALL_ITEMS = [
@@ -32,15 +32,14 @@ const ALL_ITEMS = [
  * videonun basligi otomatik cekilip odanin/kartin ismi olur. Netflix/Prime/
  * Disney+/HBO Max/Twitch gibi DRM'li platformlarda video secimini
  * uygulama icinden GOREMEDIGIMIZ icin (bkz. MediaPlayer.tsx aciklamasi) host
- * ismi kendi yazar - bunlarda SENKRON da KURULMAZ, sadece "external" kaynak
- * olarak isaretlenip harici acilir. */
+ * ismi kendi yazamaz - platforma dokununca oda dogrudan platformun adiyla
+ * acilir, ayrica bir "ne izliyorsun" isim/kapak sorma adimi YOK - bunlarda
+ * SENKRON da KURULMAZ, sadece "external" kaynak olarak isaretlenip harici
+ * acilir. */
 export default function MediaPickerSheet({ visible, onClose, onSelect }: Props) {
   const [mode, setMode] = useState<Mode>("grid");
   const [search, setSearch] = useState("");
   const [webUrlInput, setWebUrlInput] = useState("");
-  const [nameInput, setNameInput] = useState("");
-  const [coverUrlInput, setCoverUrlInput] = useState("");
-  const [pendingSource, setPendingSource] = useState<MediaSource | null>(null);
   const [loadingTitle, setLoadingTitle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const detectedVideoRef = useRef<string | null>(null);
@@ -54,9 +53,6 @@ export default function MediaPickerSheet({ visible, onClose, onSelect }: Props) 
     setMode("grid");
     setSearch("");
     setWebUrlInput("");
-    setNameInput("");
-    setCoverUrlInput("");
-    setPendingSource(null);
     setLoadingTitle(false);
     setError(null);
     detectedVideoRef.current = null;
@@ -89,6 +85,9 @@ export default function MediaPickerSheet({ visible, onClose, onSelect }: Props) 
     handleClose();
   }
 
+  // Platforma dokununca isim/kapak sormadan dogrudan oda aciliyor - oda/kart
+  // adi platformun kendi adi oluyor (YouTube disindaki DRM'li platformlarda
+  // uygulama icinden gercek video basligini goremedigimiz icin).
   function selectItem(key: string) {
     if (key === "youtube") {
       setMode("youtube");
@@ -100,8 +99,8 @@ export default function MediaPickerSheet({ visible, onClose, onSelect }: Props) 
     }
     const platform = EXTERNAL_PLATFORMS.find((p) => p.key === key);
     if (!platform) return;
-    setPendingSource({ type: "external", url: platform.url, label: platform.label });
-    setMode("name");
+    onSelect({ type: "external", url: platform.url, label: platform.label });
+    handleClose();
   }
 
   function handleWebUrlSubmit() {
@@ -111,17 +110,8 @@ export default function MediaPickerSheet({ visible, onClose, onSelect }: Props) 
       return;
     }
     const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-    setError(null);
-    setPendingSource({ type: "external", url: normalized, label: "Web" });
-    setMode("name");
-  }
-
-  function handleNameSubmit() {
-    if (!nameInput.trim() || !pendingSource) {
-      setError("Ne izledigini yaz (orn. dizi/film adi).");
-      return;
-    }
-    onSelect({ ...pendingSource, label: nameInput.trim(), coverUrl: coverUrlInput.trim() || undefined });
+    const label = normalized.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0];
+    onSelect({ type: "external", url: normalized, label });
     handleClose();
   }
 
@@ -179,7 +169,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect }: Props) 
               </View>
             )}
           </View>
-        ) : mode === "weburl" ? (
+        ) : (
           <View style={styles.formBox}>
             <Text style={styles.title}>Web sitesi linki</Text>
             <TextInput
@@ -194,42 +184,6 @@ export default function MediaPickerSheet({ visible, onClose, onSelect }: Props) 
             {error && <Text style={styles.error}>{error}</Text>}
             <TouchableOpacity style={styles.primaryButton} onPress={handleWebUrlSubmit}>
               <Text style={styles.primaryButtonText}>Devam</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.formBox}>
-            <Text style={styles.title}>Ne izliyorsun?</Text>
-            <Text style={styles.hint}>
-              {pendingSource?.label} icin ne izledigini yaz - bu isim odanin/kartin adi olarak gorunecek.
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Orn. Stranger Things, sezon 4"
-              placeholderTextColor={theme.textMuted}
-              value={nameInput}
-              onChangeText={setNameInput}
-              autoFocus
-            />
-            <View style={styles.coverRow}>
-              {coverUrlInput.trim() ? (
-                <Image source={{ uri: coverUrlInput.trim() }} style={styles.coverPreview} />
-              ) : (
-                <View style={[styles.coverPreview, styles.coverPreviewEmpty]}>
-                  <Text style={styles.coverPreviewEmptyText}>🖼️</Text>
-                </View>
-              )}
-              <TextInput
-                style={[styles.input, styles.coverInput]}
-                placeholder="Kapak gorseli linki (opsiyonel)"
-                placeholderTextColor={theme.textMuted}
-                value={coverUrlInput}
-                onChangeText={setCoverUrlInput}
-                autoCapitalize="none"
-              />
-            </View>
-            {error && <Text style={styles.error}>{error}</Text>}
-            <TouchableOpacity style={styles.primaryButton} onPress={handleNameSubmit}>
-              <Text style={styles.primaryButtonText}>Ac</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -258,7 +212,6 @@ const styles = StyleSheet.create({
   listItem: { width: "50%", paddingVertical: 14, alignItems: "center" },
   listItemLogo: { height: 76, justifyContent: "center" },
   title: { color: theme.text, fontSize: 22, fontWeight: "700" },
-  hint: { color: theme.textMuted, fontSize: 13, lineHeight: 19 },
   formBox: { backgroundColor: theme.bg, borderRadius: 16, padding: 20, gap: 16, marginTop: 20 },
   input: {
     backgroundColor: theme.surfaceAlt,
@@ -268,11 +221,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
   },
-  coverRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  coverInput: { flex: 1 },
-  coverPreview: { width: 46, height: 46, borderRadius: 8, backgroundColor: theme.surfaceAlt },
-  coverPreviewEmpty: { justifyContent: "center", alignItems: "center" },
-  coverPreviewEmptyText: { fontSize: 20 },
   youtubeContainer: { flex: 1, marginHorizontal: -20, marginBottom: -20 },
   webview: { flex: 1 },
   youtubeLoadingOverlay: {
