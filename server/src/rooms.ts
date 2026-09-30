@@ -13,6 +13,40 @@ export interface Participant {
   userId?: string | null;
 }
 
+// Ayarlar ekranindaki "GIZLILIK" secenekleri:
+// - open: herkese acik, Discover'da herkese gorunur (mevcut varsayilan).
+// - nearby: sadece host ile AYNI ULKEDEKI kullanicilara gorunur/katilabilir -
+//   gercek GPS/konum entegrasyonumuz olmadigi icin IP tabanli ulke bilgisini
+//   (bkz. geoip.ts) kaba bir "yakinlik" olcusu olarak kullaniyoruz.
+// - friends: sadece host'un GERCEK arkadaslarina (friendships tablosu)
+//   gorunur/katilabilir.
+// - invite: Discover'da HIC gorunmez, sadece oda kodu/davet linkiyle
+//   katilinabilir (kod zaten dogal davet mekanizmasi).
+export type PrivacyLevel = "open" | "nearby" | "friends" | "invite";
+
+// Ayarlar ekranindaki "PLAYBACK" secenekleri:
+// - leader: sadece host video secebilir VE oynat/duraklat/sarabilir (varsayilan).
+// - playOnly: video secimi hala sadece host'ta, ama HERKES oynat/duraklat/
+//   sarabilir (transport kontrolu serbest).
+// - autoplay: playOnly ile ayni transport serbestligi - ayrica bir video
+//   kuyrugu/otomatik-sonraki-video sistemimiz olmadigi icin su an pratikte
+//   playOnly'den farki yok (ileride kuyruk eklenince gercek anlam kazanacak).
+// - vote: video secimi lider'e ozel degil - HERKES aday onerebilir, oda oy
+//   verir, en cok oyu alan (esitlikte ilk onerilen) otomatik uygulanir.
+export type PlaybackMode = "leader" | "playOnly" | "autoplay" | "vote";
+
+export interface PollProposal {
+  id: string;
+  source: MediaSource;
+  proposedByName: string;
+}
+
+export interface Poll {
+  proposals: PollProposal[];
+  votes: Map<string, string>; // voterSocketId -> proposalId
+  deadlineMs: number;
+}
+
 /** Oynatilan medyanin turu:
  * - youtube: url alaninda YouTube video ID'si tutulur, senkron tam calisir.
  * - hls/mp4: url alaninda dogrudan stream linki tutulur, senkron tam calisir.
@@ -43,6 +77,14 @@ export interface Room {
   code: string;
   title: string;
   isPublic: boolean;
+  privacy: PrivacyLevel;
+  playbackMode: PlaybackMode;
+  // "nearby" gizliligini kontrol edebilmek icin host'un (giris yapiliminda
+  // IP'den tespit edilen) ulkesinin bir kopyasi - profiles tablosuna her
+  // kontrolde gitmemek icin.
+  hostCountry: string | null;
+  autoTranslateChat: boolean;
+  poll: Poll | null;
   hostSocketId: string;
   participants: Map<string, Participant>;
   playback: PlaybackState;
@@ -56,7 +98,8 @@ export function createRoom(
   hostSocketId: string,
   hostName: string,
   options: { isPublic?: boolean; source: MediaSource },
-  hostUserId?: string | null
+  hostUserId?: string | null,
+  hostCountry?: string | null
 ): Room {
   let code = generateRoomCode();
   while (rooms.has(code)) code = generateRoomCode(); // cakisma ihtimaline karsi
@@ -67,6 +110,11 @@ export function createRoom(
     code,
     title: options.source.label || `${hostName}'in odasi`,
     isPublic: options.isPublic ?? true,
+    privacy: "open",
+    playbackMode: "leader",
+    hostCountry: hostCountry ?? null,
+    autoTranslateChat: false,
+    poll: null,
     hostSocketId,
     participants: new Map([
       [hostSocketId, { socketId: hostSocketId, name: hostName, isHost: true, muted: false, userId: hostUserId ?? null }],
@@ -84,22 +132,49 @@ export function createRoom(
   return room;
 }
 
-/** Kesif/ana ekranda listelenecek acik (public) odalarin ozet listesi -
- * en yeni olusturulan en basta olacak sekilde siralanir (Rave'deki
- * "Acik" bolumune benzer). */
-export function listPublicRooms() {
+export function hostUserIdOf(room: Room): string | null {
+  return room.participants.get(room.hostSocketId)?.userId ?? null;
+}
+
+export interface DiscoverViewer {
+  userId: string | null;
+  country: string | null;
+  friendIds: Set<string>;
+}
+
+function visibleToViewer(room: Room, viewer: DiscoverViewer): boolean {
+  const hostId = hostUserIdOf(room);
+  if (viewer.userId && hostId === viewer.userId) return true; // kendi odan hep gorunur
+  switch (room.privacy) {
+    case "open":
+      return true;
+    case "invite":
+      return false;
+    case "nearby":
+      return Boolean(viewer.country && room.hostCountry && viewer.country === room.hostCountry);
+    case "friends":
+      return Boolean(hostId && viewer.friendIds.has(hostId));
+    default:
+      return false;
+  }
+}
+
+/** Kesif/ana ekranda listelenecek odalarin ozet listesi - GIZLILIK ayarina
+ * gore her istemciye FARKLI (kisisellestirilmis) bir liste donebilir:
+ * "open" herkese, "nearby" ayni ulkedeki (bkz. hostCountry aciklamasi)
+ * kullanicilara, "friends" host'un gercek arkadaslarina, "invite" ise hic
+ * kimseye (sadece kod/link ile) gorunur. En yeni olusturulan en basta. */
+export function listPublicRooms(viewer: DiscoverViewer) {
   return Array.from(rooms.values())
-    .filter((r) => r.isPublic)
+    .filter((r) => visibleToViewer(r, viewer))
     .sort((a, b) => b.createdAtMs - a.createdAtMs)
     .map((r) => ({
       code: r.code,
       title: r.title,
       participantCount: r.participants.size,
       source: r.playback.source,
-      // Su an listPublicRooms sadece isPublic=true odalari getiriyor, yani
-      // bu deger burada hep true - ileride "yakindakiler/arkadaslar/davetliler"
-      // gibi gizlilik seviyeleri eklenince gercek anlam kazanacak.
-      isPublic: r.isPublic,
+      isPublic: r.privacy === "open",
+      privacy: r.privacy,
       isPlaying: r.playback.isPlaying,
       positionSeconds: currentPlaybackPosition(r.playback),
       durationSeconds: r.playback.durationSeconds ?? null,
@@ -184,18 +259,119 @@ export function bufferingState(room: Room) {
   return { anyoneBuffering: room.bufferingSocketIds.size > 0, names };
 }
 
+/** PLAYBACK ayarina gore video secme yetkisi hep host'ta kalir (vote modu
+ * haric - orada secim room:proposeSource/room:vote akisindan gecer).
+ * Oynat/duraklat/sarma yetkisi ise playOnly/autoplay modlarinda HERKESE
+ * aciliyor. */
+export function canSelectSource(room: Room, socketId: string): boolean {
+  // "vote" modunda dogrudan kaynak degisimi KAPALI - host dahil herkes
+  // room:proposeSource/room:vote akisindan gecmek zorunda.
+  if (room.playbackMode === "vote") return false;
+  return isHost(room, socketId);
+}
+
+export function canControlTransport(room: Room, socketId: string): boolean {
+  if (isHost(room, socketId)) return true;
+  return room.playbackMode === "playOnly" || room.playbackMode === "autoplay";
+}
+
+// Host kontrolu YAPMADAN dogrudan uygular - sadece bu dosya icindeki, zaten
+// yetkiyi kendisi kontrol eden cagiranlar (oy sonucu uygulama gibi) icin.
+function applyPlayback(room: Room, update: Partial<PlaybackState>) {
+  room.playback = { ...room.playback, ...update, updatedAtMs: Date.now() };
+  if (update.source?.label) room.title = update.source.label;
+}
+
 export function updatePlayback(
   room: Room,
   requesterId: string,
   update: Partial<Pick<PlaybackState, "source" | "isPlaying" | "positionSeconds" | "durationSeconds">>
 ): boolean {
-  if (!isHost(room, requesterId)) return false;
-  room.playback = { ...room.playback, ...update, updatedAtMs: Date.now() };
-  // Oda ayri bir isme sahip degil - hangi icerik aciliyorsa odanin/kartin
-  // ismi de o oluyor (orn. YouTube video basligi, ya da Netflix'te izlenen
-  // dizinin/filmin host tarafindan girilen adi).
-  if (update.source?.label) room.title = update.source.label;
+  if (update.source !== undefined) {
+    if (!canSelectSource(room, requesterId)) return false;
+  } else if (!canControlTransport(room, requesterId)) {
+    return false;
+  }
+  applyPlayback(room, update);
   return true;
+}
+
+export function updateRoomSettings(
+  room: Room,
+  requesterId: string,
+  updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean },
+  hostCountry?: string | null
+): boolean {
+  if (!isHost(room, requesterId)) return false;
+  if (updates.privacy) {
+    room.privacy = updates.privacy;
+    room.isPublic = updates.privacy === "open";
+    if (updates.privacy === "nearby" && hostCountry !== undefined) room.hostCountry = hostCountry;
+  }
+  if (updates.playbackMode) {
+    room.playbackMode = updates.playbackMode;
+    // Playback modu degisince yarim kalmis bir oylama varsa anlamsizlasir.
+    if (updates.playbackMode !== "vote") room.poll = null;
+  }
+  if (updates.autoTranslateChat !== undefined) room.autoTranslateChat = updates.autoTranslateChat;
+  return true;
+}
+
+const POLL_DURATION_MS = 20_000;
+
+/** "Haydi Oylayalım" modunda birisi bir kaynak onerdiginde cagrilir - aktif
+ * oylama yoksa yenisini baslatir, varsa aday listesine ekler. */
+export function proposeSource(room: Room, source: MediaSource, proposedByName: string): Poll {
+  const proposal: PollProposal = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, source, proposedByName };
+  if (!room.poll) {
+    room.poll = { proposals: [proposal], votes: new Map(), deadlineMs: Date.now() + POLL_DURATION_MS };
+  } else {
+    room.poll.proposals.push(proposal);
+  }
+  return room.poll;
+}
+
+export function castVote(room: Room, voterSocketId: string, proposalId: string): boolean {
+  if (!room.poll) return false;
+  if (!room.poll.proposals.some((p) => p.id === proposalId)) return false;
+  room.poll.votes.set(voterSocketId, proposalId);
+  return true;
+}
+
+/** Suresi dolan ya da herkesin oy kullandigi bir oylamayi sonuclandirir -
+ * en cok oyu alan aday (esitlikte ilk onerilen) uygulanir. Oy hic
+ * kullanilmadiysa ilk oneri kazanir. Aktif oylama yoksa null doner. */
+export function resolvePoll(room: Room): MediaSource | null {
+  const poll = room.poll;
+  if (!poll || poll.proposals.length === 0) {
+    room.poll = null;
+    return null;
+  }
+  const counts = new Map<string, number>();
+  for (const proposalId of poll.votes.values()) counts.set(proposalId, (counts.get(proposalId) ?? 0) + 1);
+  let winner = poll.proposals[0];
+  let winnerVotes = counts.get(winner.id) ?? 0;
+  for (const p of poll.proposals.slice(1)) {
+    const votes = counts.get(p.id) ?? 0;
+    if (votes > winnerVotes) {
+      winner = p;
+      winnerVotes = votes;
+    }
+  }
+  room.poll = null;
+  applyPlayback(room, { source: winner.source, isPlaying: winner.source.type !== "external", positionSeconds: 0, durationSeconds: null });
+  return winner.source;
+}
+
+function serializePoll(room: Room) {
+  if (!room.poll) return null;
+  return {
+    proposals: room.poll.proposals,
+    // voterSocketId -> proposalId - istemci kendi socket id'siyle karsilastirip
+    // "benim oyum" ve toplam sayaclari kendisi hesaplar.
+    votes: Object.fromEntries(room.poll.votes),
+    deadlineMs: room.poll.deadlineMs,
+  };
 }
 
 /** isPlaying ise, updatedAtMs'ten beri gecen sureyi ekleyerek "su an" olmasi
@@ -212,6 +388,10 @@ export function roomToPublicState(room: Room) {
     code: room.code,
     title: room.title,
     isPublic: room.isPublic,
+    privacy: room.privacy,
+    playbackMode: room.playbackMode,
+    autoTranslateChat: room.autoTranslateChat,
+    poll: serializePoll(room),
     hostSocketId: room.hostSocketId,
     participants: Array.from(room.participants.values()),
     playback: { ...room.playback, positionSeconds: currentPlaybackPosition(room.playback) },

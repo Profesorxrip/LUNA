@@ -19,8 +19,10 @@ import MediaPlayer, { MediaPlayerHandle } from "../components/MediaPlayer";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import ReactionsOverlay, { ReactionsOverlayHandle } from "../components/ReactionsOverlay";
 import ParticipantsModal from "../components/ParticipantsModal";
+import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
+import type { PrivacyLevel, PlaybackMode } from "../services/socket";
 import { useVoiceChat } from "../hooks/useVoiceChat";
 import { theme } from "../theme";
 
@@ -45,6 +47,8 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [participantsVisible, setParticipantsVisible] = useState(false);
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [volume, setVolume] = useState(1);
 
   const playerRef = useRef<MediaPlayerHandle>(null);
   const reactionsRef = useRef<ReactionsOverlayHandle>(null);
@@ -52,6 +56,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 
   const me = room.participants.find((p) => p.socketId === socket.id);
   const isHost = me?.isHost ?? false;
+  // PLAYBACK ayari "Sadece Oynat"/"Otomatik Oynat" ise herkes oynat/duraklat/
+  // sarabiliyor - video SECME yetkisi (openMediaPicker/selectSource'ta ayrica
+  // kontrol edilir) "vote" haric hep host'ta kalir.
+  const canControlTransport = isHost || room.playbackMode === "playOnly" || room.playbackMode === "autoplay";
   const syncable =
     room.playback.source?.type === "youtube" || room.playback.source?.type === "hls" || room.playback.source?.type === "mp4";
 
@@ -107,21 +115,25 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   }, [isHost, syncable]);
 
   // Misafirlerde: sunucudan gelen yeni durumu yerel oynaticiya uygular.
+  // "leader" modunda host bundan MUAF (kendi oynaticisi zaten otorite) -
+  // ama playOnly/autoplay/vote modlarinda HERKES (host dahil) baskasinin
+  // yaptigi oynat/duraklat/sec islemini uygulamak zorunda, aksi halde
+  // host'un oynaticisi baskasinin durdurmasini hic gormez.
   useEffect(() => {
-    if (isHost || !syncable) return;
+    if ((isHost && room.playbackMode === "leader") || !syncable) return;
     const { source, isPlaying, positionSeconds } = room.playback;
     if (!source) return;
     playerRef.current?.loadVideo(source.url, positionSeconds);
     if (isPlaying && !room.buffering.anyoneBuffering) playerRef.current?.play();
     else playerRef.current?.pause();
-  }, [room.playback.source?.url, room.playback.isPlaying, room.buffering.anyoneBuffering]);
+  }, [room.playback.source?.url, room.playback.isPlaying, room.buffering.anyoneBuffering, room.playbackMode, isHost]);
 
   const handleHostPlayerChange = useCallback(
     (playing: boolean, currentTime: number) => {
-      if (!isHost) return;
+      if (!canControlTransport) return;
       socket.emit("playback:update", { isPlaying: playing, positionSeconds: currentTime });
     },
-    [isHost]
+    [canControlTransport]
   );
 
   const handleBuffering = useCallback((isBuffering: boolean) => {
@@ -139,12 +151,16 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   );
 
   function selectSource(source: MediaSource) {
+    if (room.playbackMode === "vote") {
+      socket.emit("room:proposeSource", { source }, () => {});
+      return;
+    }
     socket.emit("playback:update", { source, isPlaying: source.type !== "external", positionSeconds: 0 });
     if (source.type !== "external") playerRef.current?.loadVideo(source.url, 0);
   }
 
   function openMediaPicker() {
-    if (!isHost) {
+    if (!isHost && room.playbackMode !== "vote") {
       Alert.alert("Sadece lider secebilir", "Medyayi sadece oda lideri degistirebilir.");
       return;
     }
@@ -155,9 +171,35 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     Share.share({ message: `LUNA'da "${room.title}" odama katil! Kod: ${room.code}` }).catch(() => {});
   }
 
-  function showRoomInfo() {
-    Alert.alert(room.title, `Oda kodu: ${room.code}\n${room.isPublic ? "Herkese acik" : "Sadece kodla katilinir"}`);
+  function changePrivacy(privacy: PrivacyLevel) {
+    socket.emit("room:settings", { privacy }, () => {});
   }
+
+  function changePlaybackMode(playbackMode: PlaybackMode) {
+    socket.emit("room:settings", { playbackMode }, () => {});
+  }
+
+  function toggleAutoTranslate(autoTranslateChat: boolean) {
+    socket.emit("room:settings", { autoTranslateChat }, () => {});
+  }
+
+  function handleVolumeChange(v: number) {
+    setVolume(v);
+    voice.setRemoteVolume(v);
+  }
+
+  function castVote(proposalId: string) {
+    socket.emit("room:vote", { proposalId }, () => {});
+  }
+
+  // Oylama aktifken geri sayimi canli gostermek icin saniyede bir yeniden
+  // render tetikler - baska bir amaci yok.
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    if (!room.poll) return;
+    const timer = setInterval(() => forceTick((n) => n + 1), 1000);
+    return () => clearInterval(timer);
+  }, [room.poll]);
 
   function insertMention() {
     setChatInput((prev) => (prev.endsWith("@") || prev.length === 0 ? prev + "@" : prev + " @"));
@@ -222,7 +264,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         <TouchableOpacity style={styles.iconTouch} onPress={() => setLeaveConfirmVisible(true)} hitSlop={8}>
           <Icon name="close" size={30} color={theme.text} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconTouch} onPress={showRoomInfo} hitSlop={8}>
+        <TouchableOpacity style={styles.iconTouch} onPress={() => setSettingsVisible(true)} hitSlop={8}>
           <Icon name="settings" size={30} color={theme.text} />
         </TouchableOpacity>
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logo} resizeMode="contain" />
@@ -255,6 +297,31 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       {room.buffering.anyoneBuffering && (
         <View style={styles.bufferingBanner}>
           <Text style={styles.bufferingText}>⏳ {room.buffering.names.join(", ")} icin bekleniyor (tamponlaniyor)...</Text>
+        </View>
+      )}
+
+      {room.poll && (
+        <View style={styles.pollBanner}>
+          <View style={styles.pollHeaderRow}>
+            <Text style={styles.pollTitle}>🗳️ Oylama - ne izleyelim?</Text>
+            <Text style={styles.pollTimer}>{Math.max(0, Math.ceil((room.poll.deadlineMs - Date.now()) / 1000))}sn</Text>
+          </View>
+          {room.poll.proposals.map((p) => {
+            const voteCount = Object.values(room.poll!.votes).filter((id) => id === p.id).length;
+            const myVote = socket.id ? room.poll!.votes[socket.id] : undefined;
+            const isMine = myVote === p.id;
+            return (
+              <TouchableOpacity key={p.id} style={[styles.pollOption, isMine && styles.pollOptionActive]} onPress={() => castVote(p.id)}>
+                <Text style={styles.pollOptionText} numberOfLines={1}>
+                  {p.source.label || p.source.type} · {p.proposedByName}
+                </Text>
+                <Text style={styles.pollOptionVotes}>{voteCount} oy</Text>
+              </TouchableOpacity>
+            );
+          })}
+          <TouchableOpacity onPress={openMediaPicker}>
+            <Text style={styles.pollAddLink}>+ Baska bir sey oner</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -351,6 +418,23 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onKick={kick}
         onMakeLeader={makeLeader}
       />
+      <RoomSettingsSheet
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+        isHost={isHost}
+        privacy={room.privacy}
+        playbackMode={room.playbackMode}
+        autoTranslateChat={room.autoTranslateChat}
+        onChangePrivacy={changePrivacy}
+        onChangePlaybackMode={changePlaybackMode}
+        onToggleAutoTranslate={toggleAutoTranslate}
+        micConnected={voice.connected}
+        micMuted={voice.muted}
+        onMicPress={handleMicPress}
+        onLeaveVoice={voice.leave}
+        volume={volume}
+        onVolumeChange={handleVolumeChange}
+      />
 
       {leaveConfirmVisible && (
         <View style={styles.leaveOverlay}>
@@ -413,6 +497,34 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   bufferingText: { color: theme.accentBright, fontSize: 12 },
+  pollBanner: {
+    marginHorizontal: 12,
+    marginTop: 6,
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+  },
+  pollHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  pollTitle: { color: theme.text, fontSize: 13, fontWeight: "700" },
+  pollTimer: { color: theme.accentBright, fontSize: 13, fontWeight: "700" },
+  pollOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: theme.surfaceAlt,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  pollOptionActive: { borderColor: theme.accent },
+  pollOptionText: { color: theme.text, fontSize: 12, flex: 1, marginRight: 8 },
+  pollOptionVotes: { color: theme.textMuted, fontSize: 12, fontWeight: "700" },
+  pollAddLink: { color: theme.info, fontSize: 12, fontWeight: "600", textAlign: "center", marginTop: 2 },
   chatList: { flex: 1 },
   chatContent: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8, gap: 6 },
   messageRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },

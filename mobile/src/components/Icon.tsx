@@ -29,7 +29,11 @@ export type IconName =
   | "bellOff"
   | "personBlock"
   | "warning"
-  | "check";
+  | "check"
+  | "pin"
+  | "crown"
+  | "fastForward"
+  | "phone";
 
 interface Props {
   name: IconName;
@@ -328,6 +332,38 @@ function renderShape(name: IconName, color: string) {
           strokeWidth={2.8}
           strokeLinecap="round"
           strokeLinejoin="round"
+        />
+      );
+    case "pin":
+      return (
+        <G>
+          <Path
+            d="M12 2.5c-4.1 0-7.4 3.3-7.4 7.4 0 5.6 7.4 11.6 7.4 11.6s7.4-6 7.4-11.6c0-4.1-3.3-7.4-7.4-7.4z"
+            fill={color}
+          />
+          <Circle cx={12} cy={9.8} r={2.9} fill="#04140D" />
+        </G>
+      );
+    case "crown":
+      return (
+        <Path
+          d="M2.5 8.5 L7 12 L12 4.5 L17 12 L21.5 8.5 L19.5 18.5 L4.5 18.5 Z"
+          fill={color}
+          strokeLinejoin="round"
+        />
+      );
+    case "fastForward":
+      return (
+        <G>
+          <Path d="M2.5 5v14l9-7z" fill={color} />
+          <Path d="M12.5 5v14l9-7z" fill={color} />
+        </G>
+      );
+    case "phone":
+      return (
+        <Path
+          d="M6.6 2.5c.9 0 1.7.6 2 1.4l1 2.7c.3.8.1 1.7-.5 2.3l-1.4 1.4c.9 2 2.5 3.6 4.5 4.5l1.4-1.4c.6-.6 1.5-.8 2.3-.5l2.7 1c.8.3 1.4 1.1 1.4 2v2.3c0 1.3-1.2 2.3-2.5 2-8-1.7-14-7.7-15.7-15.7-.3-1.3.7-2.5 2-2.5z"
+          fill={color}
         />
       );
     default:

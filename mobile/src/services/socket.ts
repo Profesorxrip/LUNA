@@ -49,10 +49,31 @@ export interface BufferingState {
   names: string[];
 }
 
+// Ayarlar ekranindaki GIZLILIK/PLAYBACK secenekleri - bkz. server/src/rooms.ts
+// ayni isimli tiplerin aciklamalari (ayni anlama geliyorlar).
+export type PrivacyLevel = "open" | "nearby" | "friends" | "invite";
+export type PlaybackMode = "leader" | "playOnly" | "autoplay" | "vote";
+
+export interface PollProposal {
+  id: string;
+  source: MediaSource;
+  proposedByName: string;
+}
+
+export interface Poll {
+  proposals: PollProposal[];
+  votes: Record<string, string>; // voterSocketId -> proposalId
+  deadlineMs: number;
+}
+
 export interface RoomState {
   code: string;
   title: string;
   isPublic: boolean;
+  privacy: PrivacyLevel;
+  playbackMode: PlaybackMode;
+  autoTranslateChat: boolean;
+  poll: Poll | null;
   hostSocketId: string;
   participants: Participant[];
   playback: PlaybackState;
@@ -78,6 +99,7 @@ export interface PublicRoomSummary {
   participantCount: number;
   source: MediaSource | null;
   isPublic: boolean;
+  privacy: PrivacyLevel;
   isPlaying: boolean;
   positionSeconds: number;
   durationSeconds: number | null;

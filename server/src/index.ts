@@ -11,11 +11,18 @@ import {
   kickParticipant,
   transferHost,
   updatePlayback,
+  updateRoomSettings,
+  proposeSource,
+  castVote,
+  resolvePoll,
   roomToPublicState,
   listPublicRooms,
+  hostUserIdOf,
   setBuffering,
   isHost,
   MediaSource,
+  PrivacyLevel,
+  PlaybackMode,
 } from "./rooms";
 import { createVoiceToken } from "./livekit";
 import {
@@ -75,16 +82,62 @@ app.get("/health", (_req, res) => res.json({ ok: true, supabase: isSupabaseConfi
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
+// "yakindakiler"/"arkadaslar" gizlilik seviyeleri her istemciye FARKLI bir
+// Discover listesi gerektirir (bkz. rooms.ts listPublicRooms) - bu yuzden
+// her socket'in kimligini burada da (kendi baglanti kapsaminin disinda,
+// TUM istemcilere kisisellestirilmis yayin yapabilmek icin) tutuyoruz.
+interface ConnMeta {
+  userId: string | null;
+  country: string | null;
+  db: ReturnType<typeof clientForUser> | null;
+}
+const connectionMeta = new Map<string, ConnMeta>();
+
+// Her oda kodu icin en fazla bir aktif oylama sayacı (setTimeout) - oda
+// silinince veya playback modu degisince temizlenir.
+const pollTimers = new Map<string, NodeJS.Timeout>();
+
 function broadcastRoom(code: string) {
   const room = getRoom(code);
   if (room) io.to(code).emit("room:state", roomToPublicState(room));
 }
 
-/** Kesif/ana ekrandaki acik oda listesini TUM baglı istemcilere yayinlar -
- * bir oda acildiginda/kapandiginda/katilimci sayisi ya da video degistiginde
- * cagrilir, boylece Discover ekrani canli guncellenir. */
-function broadcastRoomsList() {
-  io.emit("rooms:list", listPublicRooms());
+/** Kesif/ana ekrandaki oda listesini TUM baglı istemcilere yayinlar - ama
+ * gizlilik seviyeleri (yakindakiler/arkadaslar) yuzunden HERKESE AYNI liste
+ * gonderilemez, bu yuzden her socket icin ayri ayri kisisellestirilmis bir
+ * liste hesaplanip SADECE o socket'e gonderilir. Bir oda acildiginda/
+ * kapandiginda/katilimci sayisi ya da video degistiginde cagrilir. */
+async function broadcastRoomsList() {
+  for (const [socketId, meta] of connectionMeta) {
+    const friendIds = meta.userId && meta.db ? new Set((await listFriends(meta.db, meta.userId)).map((f) => f.userId)) : new Set<string>();
+    io.to(socketId).emit("rooms:list", listPublicRooms({ userId: meta.userId, country: meta.country, friendIds }));
+  }
+}
+
+function clearPollTimer(code: string) {
+  const t = pollTimers.get(code);
+  if (t) {
+    clearTimeout(t);
+    pollTimers.delete(code);
+  }
+}
+
+/** "Haydi Oylayalım" suresi dolunca (ya da herkes oy kullaninca) cagrilir -
+ * en cok oyu alan aday uygulanir ve oda/Discover'a yayinlanir. */
+function resolvePollAndBroadcast(code: string) {
+  clearPollTimer(code);
+  const room = getRoom(code);
+  if (!room || !room.poll) return;
+  const winner = resolvePoll(room);
+  broadcastRoom(code);
+  broadcastRoomsList();
+  if (winner) {
+    io.to(code).emit("room:chat", {
+      system: true,
+      text: `Oylama bitti: simdi ${winner.label || winner.type} oynatiliyor`,
+      ts: Date.now(),
+    });
+  }
 }
 
 /** Basit sabit-pencereli rate limit: ayni socket'in ayni event'i pencere
@@ -110,10 +163,16 @@ io.on("connection", (socket: Socket) => {
   let myUserId: string | null = null;
   let myName = "Misafir";
   let myDb: ReturnType<typeof clientForUser> | null = null;
+  let myCountry: string | null = null;
   const allow = makeRateLimiter();
 
-  socket.on("rooms:list", (_data, ack) => {
-    ack?.(listPublicRooms());
+  // Giris yapmamis (anonim) bir istemci de Discover'da "acik" odalari
+  // gorebilmeli - bu yuzden HERKES (identify olsun olmasin) buraya kaydedilir.
+  connectionMeta.set(socket.id, { userId: null, country: null, db: null });
+
+  socket.on("rooms:list", async (_data, ack) => {
+    const friendIds = myUserId && myDb ? new Set((await listFriends(myDb, myUserId)).map((f) => f.userId)) : new Set<string>();
+    ack?.(listPublicRooms({ userId: myUserId, country: myCountry, friendIds }));
   });
 
   // Ozelden mesajlasma / arkadaslik icin: kullanici Supabase access token'ini
@@ -129,13 +188,20 @@ io.on("connection", (socket: Socket) => {
     myUserId = user.id;
     myName = user.email ? user.email.split("@")[0] : "Kullanici";
     myDb = clientForUser(accessToken);
+    connectionMeta.set(socket.id, { userId: myUserId, country: myCountry, db: myDb });
     setOnline(myUserId, socket.id);
     await setUserName(myDb, myUserId, myName);
     ack?.({ ok: true, userId: myUserId, name: myName });
 
     // Ulke bilgisi kritik degil - basarisiz olursa/gecikirse akisi bloklamaz.
     const ip = clientIpFromHandshake(socket.handshake);
-    ensureCountry(myDb, myUserId, ip, lookupCountry).catch(() => {});
+    ensureCountry(myDb, myUserId, ip, lookupCountry)
+      .then((country) => {
+        myCountry = country;
+        const meta = connectionMeta.get(socket.id);
+        if (meta) meta.country = country;
+      })
+      .catch(() => {});
   });
 
   function requireAuth(ack?: (res: any) => void): boolean {
@@ -289,7 +355,7 @@ io.on("connection", (socket: Socket) => {
       if (!allow("room:create", 10, 60_000)) return ack?.({ ok: false, error: "Cok fazla oda acildi, biraz bekle." });
       // Oda, icerik secilmeden var olamaz - odanin/kartin ismi de secilen
       // icerigin ismi (source.label) oluyor, ayri bir oda basligi girilmiyor.
-      const room = createRoom(socket.id, name || myName || "Host", { isPublic, source }, myUserId);
+      const room = createRoom(socket.id, name || myName || "Host", { isPublic, source }, myUserId, myCountry);
       currentRoomCode = room.code;
       socket.join(room.code);
       ack?.({ ok: true, room: roomToPublicState(room) });
@@ -328,10 +394,32 @@ io.on("connection", (socket: Socket) => {
     });
   });
 
-  socket.on("room:join", ({ code, name }: { code: string; name: string }, ack) => {
+  socket.on("room:join", async ({ code, name }: { code: string; name: string }, ack) => {
     if (!isNonEmptyString(code, 12)) return ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
     if (!isOptionalString(name, 60)) return ack?.({ ok: false, error: "Gecersiz isim." });
     if (!allow("room:join", 20, 60_000)) return ack?.({ ok: false, error: "Cok fazla deneme, biraz bekle." });
+
+    const target = getRoom(code);
+    if (!target) return ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
+
+    // GIZLILIK kontrolu: "invite" haric hepsi kod bilinse bile burada
+    // engellenebilir - "invite" zaten Discover'da hic gorunmedigi icin
+    // koda ulasmak basli basina davet sayilir.
+    const hostId = hostUserIdOf(target);
+    // DIKKAT: myUserId/hostId ikisi de null olabilir (giris yapmamis host'un
+    // kendi odasi) - "host === ben" kontrolu SADECE gercek (dolu) bir id
+    // eslesmesiyle gecerli olmali, iki null'u birbirine esit SAYMAMALI.
+    const isHostIdentity = Boolean(myUserId) && myUserId === hostId;
+    if (target.privacy === "friends" && !isHostIdentity) {
+      if (!myUserId || !myDb) return ack?.({ ok: false, error: "Bu odaya katilmak icin giris yapmalisin." });
+      const status = await getFriendStatus(myDb, hostId || "");
+      if (status !== "friends") return ack?.({ ok: false, error: "Bu oda sadece host'un arkadaslarina acik." });
+    } else if (target.privacy === "nearby" && !isHostIdentity) {
+      if (!myCountry || !target.hostCountry || myCountry !== target.hostCountry) {
+        return ack?.({ ok: false, error: "Bu oda sadece yakinindaki kullanicilara acik." });
+      }
+    }
+
     const room = joinRoom(code, socket.id, name || myName || "Misafir", myUserId);
     if (!room) {
       ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
@@ -357,6 +445,7 @@ io.on("connection", (socket: Socket) => {
   socket.on("disconnect", () => {
     handleLeave();
     removeOnlineBySocket(socket.id);
+    connectionMeta.delete(socket.id);
   });
 
   function handleLeave() {
@@ -365,7 +454,10 @@ io.on("connection", (socket: Socket) => {
     const code = currentRoomCode;
     currentRoomCode = null;
     if (myDb && myUserId) logRoomEvent(myDb, myUserId, code, "leave").catch(() => {});
-    if (roomDeleted || !room) return;
+    if (roomDeleted || !room) {
+      clearPollTimer(code);
+      return;
+    }
     if (newHostId) {
       io.to(code).emit("room:chat", {
         system: true,
@@ -403,6 +495,62 @@ io.on("connection", (socket: Socket) => {
       }
     }
   );
+
+  // Ayarlar ekrani: GIZLILIK / PLAYBACK / sohbet otomatik ceviri - sadece host.
+  socket.on(
+    "room:settings",
+    async (updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean }, ack) => {
+      if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+      if (updates.privacy && !isOneOf(updates.privacy, ["open", "nearby", "friends", "invite"] as const))
+        return ack?.({ ok: false, error: "Gecersiz gizlilik degeri." });
+      if (updates.playbackMode && !isOneOf(updates.playbackMode, ["leader", "playOnly", "autoplay", "vote"] as const))
+        return ack?.({ ok: false, error: "Gecersiz playback degeri." });
+      if (updates.autoTranslateChat !== undefined && !isBoolean(updates.autoTranslateChat))
+        return ack?.({ ok: false, error: "Gecersiz istek." });
+      const room = getRoom(currentRoomCode);
+      if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+      const applied = updateRoomSettings(room, socket.id, updates, myCountry);
+      if (!applied) return ack?.({ ok: false, error: "Sadece lider ayarlari degistirebilir." });
+      if (updates.playbackMode && updates.playbackMode !== "vote") clearPollTimer(currentRoomCode);
+      ack?.({ ok: true });
+      broadcastRoom(currentRoomCode);
+      broadcastRoomsList();
+    }
+  );
+
+  // "Haydi Oylayalım" modunda bir video/platform onerir - aktif oylama
+  // yoksa 20sn'lik yenisini baslatir, varsa aday listesine ekler.
+  socket.on("room:proposeSource", ({ source }: { source: MediaSource }, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    if (!isValidMediaSource(source)) return ack?.({ ok: false, error: "Gecersiz medya kaynagi." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    if (room.playbackMode !== "vote") return ack?.({ ok: false, error: "Oylama modu acik degil." });
+    const wasActive = Boolean(room.poll);
+    const proposerName = room.participants.get(socket.id)?.name || myName;
+    proposeSource(room, source, proposerName);
+    if (!wasActive) {
+      pollTimers.set(currentRoomCode, setTimeout(() => resolvePollAndBroadcast(currentRoomCode!), 20_000));
+    }
+    ack?.({ ok: true });
+    broadcastRoom(currentRoomCode);
+  });
+
+  socket.on("room:vote", ({ proposalId }: { proposalId: string }, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    if (!isNonEmptyString(proposalId, 100)) return ack?.({ ok: false, error: "Gecersiz oy." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    const applied = castVote(room, socket.id, proposalId);
+    if (!applied) return ack?.({ ok: false, error: "Aktif bir oylama yok." });
+    ack?.({ ok: true });
+    // Odadaki HERKES oy kullandiysa suresi dolmasini beklemeden hemen sonuclandir.
+    if (room.poll && room.poll.votes.size >= room.participants.size) {
+      resolvePollAndBroadcast(currentRoomCode);
+    } else {
+      broadcastRoom(currentRoomCode);
+    }
+  });
 
   /** Bir kullanicinin videosu yukleniyorsa (yavas internet), diger herkese
    * haber verilir - istemciler bunu goruce kendi videosunu GECICI olarak

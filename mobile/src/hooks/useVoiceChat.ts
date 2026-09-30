@@ -77,5 +77,17 @@ export function useVoiceChat() {
     setMuted(next);
   }, [muted]);
 
-  return { connected, muted, error, nativeModuleMissing, join, leave, toggleMute };
+  // Diger katilimcilarin sesini (kendi mikrofonunu degil) kisar/acar - LiveKit
+  // her uzak ses parcasinda (RemoteAudioTrack) bir setVolume(0..1) sunuyor.
+  const setRemoteVolume = useCallback((volume: number) => {
+    const room = roomRef.current;
+    if (!room) return;
+    room.remoteParticipants.forEach((participant: any) => {
+      participant.audioTrackPublications?.forEach((pub: any) => {
+        pub.track?.setVolume?.(volume);
+      });
+    });
+  }, []);
+
+  return { connected, muted, error, nativeModuleMissing, join, leave, toggleMute, setRemoteVolume };
 }

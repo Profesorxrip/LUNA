@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, Alert } from "react-native";
-import { getSocket, PublicRoomSummary, RoomParticipantDetail, MediaSource } from "../services/socket";
+import { getSocket, PublicRoomSummary, RoomParticipantDetail, MediaSource, PrivacyLevel } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
 import PlatformBadge from "../components/PlatformBadge";
@@ -30,6 +30,13 @@ function platformInfo(source: MediaSource | null): { key: PlatformKey; label: st
 }
 
 const AVATAR_COLORS = ["#3A2F22", "#1F3D24", "#2E4A2F", "#4A3B22"];
+
+const PRIVACY_LABEL: Record<PrivacyLevel, string> = {
+  open: "Açık",
+  nearby: "Yakındakiler",
+  friends: "Sadece Arkadaşlar",
+  invite: "Sadece Davet İle",
+};
 
 function formatTime(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -119,13 +126,9 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
               </Text>
             </>
           )}
-          {room.isPublic && (
-            <>
-              <Text style={styles.statusDot}>•</Text>
-              <Text style={styles.statusText}>Açık</Text>
-              <Icon name="globe" size={16} color={theme.textMuted} />
-            </>
-          )}
+          <Text style={styles.statusDot}>•</Text>
+          <Text style={styles.statusText}>{PRIVACY_LABEL[room.privacy]}</Text>
+          <Icon name={room.privacy === "friends" ? "people" : room.privacy === "invite" ? "invite" : room.privacy === "nearby" ? "pin" : "globe"} size={16} color={theme.textMuted} />
         </View>
         {isExternal && (
           <TouchableOpacity style={styles.warningBadge} onPress={showSyncNotice} hitSlop={8}>
