@@ -215,7 +215,7 @@ export default function DiscoverScreen({
             )}
             {platformKey && (
               <View style={styles.platformBadge} pointerEvents="none">
-                <PlatformBadge platform={platformKey} size={34} />
+                <PlatformBadge platform={platformKey} size={26} />
               </View>
             )}
             <LinearGradient colors={["transparent", "rgba(0,0,0,0.88)"]} style={styles.cardGradient} pointerEvents="none" />
