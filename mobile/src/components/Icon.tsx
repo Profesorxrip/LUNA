@@ -28,7 +28,8 @@ export type IconName =
   | "bell"
   | "bellOff"
   | "personBlock"
-  | "warning";
+  | "warning"
+  | "check";
 
 interface Props {
   name: IconName;
@@ -317,6 +318,17 @@ function renderShape(name: IconName, color: string) {
           <Line x1={12} y1={9.3} x2={12} y2={14.3} stroke={color} strokeWidth={2.2} strokeLinecap="round" />
           <Circle cx={12} cy={17.1} r={1.25} fill={color} />
         </G>
+      );
+    case "check":
+      return (
+        <Path
+          d="M4.5 12.8 L9.5 17.8 L19.5 6.8"
+          fill="none"
+          stroke={color}
+          strokeWidth={2.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       );
     default:
       return null;

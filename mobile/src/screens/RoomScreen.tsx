@@ -44,6 +44,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [chatFocused, setChatFocused] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [participantsVisible, setParticipantsVisible] = useState(false);
+  const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
 
   const playerRef = useRef<MediaPlayerHandle>(null);
   const reactionsRef = useRef<ReactionsOverlayHandle>(null);
@@ -218,7 +219,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       {/* Ust bar (Rave'deki X / ayarlar / logo / ara / katilimci duzeni) - medya
           alaninin uzerine binmez, kendi satirinda durur, video tam altinda baslar */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconTouch} onPress={leave} hitSlop={8}>
+        <TouchableOpacity style={styles.iconTouch} onPress={() => setLeaveConfirmVisible(true)} hitSlop={8}>
           <Icon name="close" size={30} color={theme.text} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconTouch} onPress={showRoomInfo} hitSlop={8}>
@@ -350,6 +351,22 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onKick={kick}
         onMakeLeader={makeLeader}
       />
+
+      {leaveConfirmVisible && (
+        <View style={styles.leaveOverlay}>
+          <View style={styles.leaveCard}>
+            <Text style={styles.leaveCardText}>Çıkıyor musun?</Text>
+            <View style={styles.leaveCardButtons}>
+              <TouchableOpacity style={styles.leaveCardButton} onPress={() => setLeaveConfirmVisible(false)}>
+                <Icon name="close" size={20} color={theme.text} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.leaveCardButton} onPress={leave}>
+                <Icon name="check" size={20} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -446,4 +463,33 @@ const styles = StyleSheet.create({
     outlineStyle: "none",
   } as any,
   errorText: { color: theme.danger, fontSize: 12, textAlign: "center", paddingBottom: 6 },
+  leaveOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    paddingTop: 130,
+  },
+  leaveCard: {
+    backgroundColor: "#141416",
+    borderRadius: 18,
+    paddingVertical: 22,
+    paddingHorizontal: 26,
+    alignItems: "center",
+    gap: 16,
+  },
+  leaveCardText: { color: theme.text, fontSize: 18, fontWeight: "700" },
+  leaveCardButtons: { flexDirection: "row", gap: 14 },
+  leaveCardButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
