@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 
@@ -27,31 +27,41 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
     p.timeUpdateEventInterval = 1;
   });
 
-  // Oynatici olusturulduktan sonra url degisirse (kullanici baska bir link
-  // yuklediginde) kaynagi degistir - player instance'i sabit kalir.
-  useEffect(() => {
-    if (url) player.replaceAsync(url).catch(() => {});
-  }, [url, player]);
+  // NOT: "url" prop'u degistiginde kaynagi burada AYRICA replaceAsync ile
+  // degistirmiyoruz - bunu yapan iki cagiran da (RoomScreen'deki senkron
+  // efekti ve selectSource) zaten asagidaki imperative loadVideo() metodunu
+  // dogrudan cagiriyor. Burada AYRICA bir useEffect ile url'i izleyip
+  // replaceAsync cagirmak, imperative loadVideo() ile AYNI ANDA calisan
+  // ikinci bir replaceAsync/play() zinciri yaratip birbirini yariyordu
+  // ("play() interrupted by pause()", video kalici pause'da kalirdi).
+
+  // player instance'i sabit kaldigi icin listener'lari SADECE bir kez
+  // kuruyoruz - callback'lerin GUNCEL halini her zaman gorebilmek icin ref
+  // uzerinden cagiriyoruz, aksi halde (ornegin onEnded icindeki
+  // room.playbackMode kontrolu gibi) mount anindaki ESKI kapali degerlerle
+  // sonsuza kadar calisirlardi (oda "vote" moduna sonradan gecse bile
+  // handleEnded hep ilk render'daki "leader" degerini gorurdu).
+  const callbacksRef = useRef({ onStateChange, onBuffering, onDuration, onEnded });
+  callbacksRef.current = { onStateChange, onBuffering, onDuration, onEnded };
 
   useEffect(() => {
     const playingSub = player.addListener("playingChange", (e) => {
-      onStateChange?.(e.isPlaying, player.currentTime);
+      callbacksRef.current.onStateChange?.(e.isPlaying, player.currentTime);
     });
     const statusSub = player.addListener("statusChange", (e) => {
       // "loading" durumu = tamponlaniyor (buffering).
-      onBuffering?.(e.status === "loading");
-      if (e.status === "readyToPlay" && player.duration > 0) onDuration?.(player.duration);
+      callbacksRef.current.onBuffering?.(e.status === "loading");
+      if (e.status === "readyToPlay" && player.duration > 0) callbacksRef.current.onDuration?.(player.duration);
     });
     // Video dogal olarak sonuna geldiginde (loop=false) tetiklenir.
     const endSub = player.addListener("playToEnd", () => {
-      onEnded?.();
+      callbacksRef.current.onEnded?.();
     });
     return () => {
       playingSub.remove();
       statusSub.remove();
       endSub.remove();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player]);
 
   useImperativeHandle(ref, () => ({
@@ -74,7 +84,7 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
 
   return (
     <View style={styles.container}>
-      <VideoView style={styles.video} player={player} nativeControls={false} contentFit="contain" />
+      <VideoView style={styles.video} player={player} nativeControls contentFit="contain" />
     </View>
   );
 });

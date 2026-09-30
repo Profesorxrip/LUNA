@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,6 +13,14 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onSelect: (source: MediaSource) => void;
+  /** Video dogal olarak bitip oylama acildiginda platform secme ekranini
+   * (Netflix/Disney+ logo listesi) hic GOSTERMEDEN dogrudan "yakin/alakali
+   * videolar" gorunumune (gercek YouTube'un kendi ilgili video onerileri)
+   * gecmek icin - Rave'deki gibi. Bittigi anda gosterilecek videonun
+   * YouTube id'si biliniyorsa oradan devam edilir, bilinmiyorsa (harici bir
+   * platformdaysak) genel YouTube ana sayfasindan basliyoruz. Kullanici
+   * yine de "‹ Geri" ile normal platform listesine donebilir. */
+  relatedVideosFor?: string | null;
 }
 
 type Mode = "grid" | "youtube" | "weburl";
@@ -36,13 +44,24 @@ const ALL_ITEMS = [
  * acilir, ayrica bir "ne izliyorsun" isim/kapak sorma adimi YOK - bunlarda
  * SENKRON da KURULMAZ, sadece "external" kaynak olarak isaretlenip harici
  * acilir. */
-export default function MediaPickerSheet({ visible, onClose, onSelect }: Props) {
+export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVideosFor }: Props) {
   const [mode, setMode] = useState<Mode>("grid");
   const [search, setSearch] = useState("");
   const [webUrlInput, setWebUrlInput] = useState("");
   const [loadingTitle, setLoadingTitle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const detectedVideoRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (visible && relatedVideosFor !== undefined) {
+      setMode("youtube");
+      // WebView ilk acilista biten videonun izleme sayfasina gidiyor - bu
+      // ilk navigasyonu "secim" sanip hemen ayni videoyu tekrar
+      // oylamasin diye zaten "gorulmus" sayiyoruz, sadece GERCEKTEN
+      // BASKA bir ilgili videoya dokunulursa secim sayilacak.
+      detectedVideoRef.current = relatedVideosFor;
+    }
+  }, [visible, relatedVideosFor]);
 
   const visibleItems = useMemo(
     () => ALL_ITEMS.filter((i) => i.label.toLowerCase().includes(search.trim().toLowerCase())),
@@ -111,7 +130,16 @@ export default function MediaPickerSheet({ visible, onClose, onSelect }: Props) 
     }
     const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
     const label = normalized.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0];
-    onSelect({ type: "external", url: normalized, label });
+    // Dogrudan bir video dosyasi linkiyse (.mp4/.m3u8) DRM'li bir platform
+    // degil, kendi oynaticimizda (HlsPlayer) gercek senkronla oynatilabilir.
+    const pathname = normalized.replace(/[?#].*$/, "");
+    if (/\.m3u8$/i.test(pathname)) {
+      onSelect({ type: "hls", url: normalized, label });
+    } else if (/\.mp4$/i.test(pathname)) {
+      onSelect({ type: "mp4", url: normalized, label });
+    } else {
+      onSelect({ type: "external", url: normalized, label });
+    }
     handleClose();
   }
 
@@ -156,7 +184,9 @@ export default function MediaPickerSheet({ visible, onClose, onSelect }: Props) 
         ) : mode === "youtube" ? (
           <View style={styles.youtubeContainer}>
             <WebView
-              source={{ uri: "https://m.youtube.com" }}
+              source={{
+                uri: relatedVideosFor ? `https://m.youtube.com/watch?v=${relatedVideosFor}` : "https://m.youtube.com",
+              }}
               style={styles.webview}
               onNavigationStateChange={(navState) => handleYouTubeNavigation(navState.url)}
               javaScriptEnabled

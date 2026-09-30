@@ -552,7 +552,7 @@ io.on("connection", (socket: Socket) => {
   socket.on("playback:ended", () => {
     if (!currentRoomCode) return;
     const room = getRoom(currentRoomCode);
-    if (!room || !isHost(room, socket.id) || room.playbackMode !== "vote") return;
+    if (!room || !isHost(room, socket.id) || room.playbackMode !== "vote" || room.poll) return;
     startVideoEndedPoll(room);
     pollTimers.set(currentRoomCode, setTimeout(() => resolvePollAndBroadcast(currentRoomCode!), POLL_DURATION_MS));
     broadcastRoom(currentRoomCode);

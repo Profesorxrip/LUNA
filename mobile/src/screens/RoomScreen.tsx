@@ -118,15 +118,40 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // "leader" modunda host bundan MUAF (kendi oynaticisi zaten otorite) -
   // ama playOnly/autoplay/vote modlarinda HERKES (host dahil) baskasinin
   // yaptigi oynat/duraklat/sec islemini uygulamak zorunda, aksi halde
-  // host'un oynaticisi baskasinin durdurmasini hic gormez.
+  // host'un oynaticisi baskasinin durdurmasini hic gormez. Aktif bir oylama
+  // varken (video bitmis, sirada ne olsun bekleniyor) eski videoyu tekrar
+  // yuklemeye/oynatmaya calismiyoruz - biten videonun "isPlaying" durumu
+  // dalgalanip host'un kendi oynaticisini sifirdan tekrar yukleyip onu
+  // aninda tekrar "bitirmesine" (sonsuz playback:ended dongusune) yol acardi.
+  const appliedSourceUrlRef = useRef<string | null>(null);
   useEffect(() => {
-    if ((isHost && room.playbackMode === "leader") || !syncable) return;
-    const { source, isPlaying, positionSeconds } = room.playback;
-    if (!source) return;
-    playerRef.current?.loadVideo(source.url, positionSeconds);
-    if (isPlaying && !room.buffering.anyoneBuffering) playerRef.current?.play();
+    const url = room.playback.source?.url ?? null;
+    // Host "leader" modundayken kendi oynaticisi zaten otorite (selectSource
+    // kendisi loadVideo cagiriyor) - burada sadece ref'i o url'e esitleyip
+    // cikiyoruz, aksi halde daha sonra baska bir moda gecince (ornegin
+    // "vote") ref hala eski/bos oldugu icin zaten oynayan videoyu gereksiz
+    // yere yeniden yukleyip kendi play() cagrisiyla yarisa girip
+    // durduruyordu (goo.gl/LdLk22 hatasi, video kalici olarak pause'da kalirdi).
+    if ((isHost && room.playbackMode === "leader") || !syncable || room.poll) {
+      appliedSourceUrlRef.current = url;
+      return;
+    }
+    if (!url) return;
+    if (appliedSourceUrlRef.current !== url) {
+      // loadVideo() yeni kaynagi yukleyip KENDISI play() cagiriyor (asenkron
+      // replaceAsync zinciri icinde) - hemen altindaki play()/pause() burada
+      // AYRICA cagrilirsa, henuz tamamlanmamis replaceAsync ile yarisip
+      // "play() interrupted by pause()" hatasiyla videoyu kalici pause'da
+      // biraktigi icin, yeni yukleme durumunda o ikinci cagriyi atliyoruz -
+      // sadece sunucu "durmus baslasin" derse (isPlaying false) devreye giriyoruz.
+      appliedSourceUrlRef.current = url;
+      playerRef.current?.loadVideo(url, room.playback.positionSeconds);
+      if (!room.playback.isPlaying) playerRef.current?.pause();
+      return;
+    }
+    if (room.playback.isPlaying && !room.buffering.anyoneBuffering) playerRef.current?.play();
     else playerRef.current?.pause();
-  }, [room.playback.source?.url, room.playback.isPlaying, room.buffering.anyoneBuffering, room.playbackMode, isHost]);
+  }, [room.playback.source?.url, room.playback.isPlaying, room.buffering.anyoneBuffering, room.playbackMode, isHost, room.poll, syncable]);
 
   const handleHostPlayerChange = useCallback(
     (playing: boolean, currentTime: number) => {
@@ -164,19 +189,26 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // sunucu 10 saniyelik bir oylama penceresi acar, bu da asagidaki poll
   // useEffect'inin herkeste secim ekranini otomatik acmasini tetikler.
   const handleEnded = useCallback(() => {
-    if (!isHost || room.playbackMode !== "vote") return;
+    if (!isHost || room.playbackMode !== "vote" || room.poll) return;
     socket.emit("playback:ended");
-  }, [isHost, room.playbackMode]);
+  }, [isHost, room.playbackMode, room.poll]);
 
   // Oylama yeni basladiginda (null -> dolu) HERKESTE secim ekranini otomatik
   // ac; oylama sonuclanip kapandiginda (dolu -> null) hala aciksa kapat.
+  // Platform secme ekrani (Netflix/Disney+ logolari) DEGIL, dogrudan
+  // Rave'deki gibi biten videonun "ilgili/alakali videolar" gorunumu acilsin
+  // diye biten videonun YouTube id'sini de tasiyoruz.
+  const [pollRelatedVideoId, setPollRelatedVideoId] = useState<string | null | undefined>(undefined);
   const hadPollRef = useRef(false);
   useEffect(() => {
     const hasPoll = Boolean(room.poll);
     if (hasPoll && !hadPollRef.current) {
+      const endedSource = room.playback.source;
+      setPollRelatedVideoId(endedSource?.type === "youtube" ? endedSource.url : null);
       setPickerVisible(true);
     } else if (!hasPoll && hadPollRef.current) {
       setPickerVisible(false);
+      setPollRelatedVideoId(undefined);
     }
     hadPollRef.current = hasPoll;
   }, [room.poll]);
@@ -431,7 +463,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       </View>
       {voice.error && <Text style={styles.errorText}>{voice.error}</Text>}
 
-      <MediaPickerSheet visible={pickerVisible} onClose={() => setPickerVisible(false)} onSelect={selectSource} />
+      <MediaPickerSheet
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onSelect={selectSource}
+        relatedVideosFor={pollRelatedVideoId}
+      />
       <ParticipantsModal
         visible={participantsVisible}
         onClose={() => setParticipantsVisible(false)}
