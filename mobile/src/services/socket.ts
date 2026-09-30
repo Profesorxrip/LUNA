@@ -77,6 +77,7 @@ export interface PublicRoomSummary {
   title: string;
   participantCount: number;
   source: MediaSource | null;
+  isPublic: boolean;
   isPlaying: boolean;
   positionSeconds: number;
   durationSeconds: number | null;

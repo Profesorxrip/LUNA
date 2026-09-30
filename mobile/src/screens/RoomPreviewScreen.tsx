@@ -43,29 +43,32 @@ function formatTime(totalSeconds: number): string {
 
 export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticipant }: Props) {
   const [participants, setParticipants] = useState<RoomParticipantDetail[]>([]);
-  const [participantCount, setParticipantCount] = useState(room.participantCount);
   const [position, setPosition] = useState(room.positionSeconds);
 
   useEffect(() => {
     getSocket().emit("room:participants", { code: room.code }, (res: any) => {
-      if (res?.ok) {
-        setParticipants(res.participants);
-        setParticipantCount(res.participantCount);
-      }
+      if (res?.ok) setParticipants(res.participants);
     });
   }, [room.code]);
 
+  const hasDuration = room.durationSeconds != null && room.durationSeconds > 0;
+  const hasEnded = hasDuration && position >= room.durationSeconds!;
+
   // Oynatiliyorsa konumu ekranda canli sekilde ilerletiyoruz - tipki
-  // referans ss'deki "2:15/3:36" gibi surekli akan bir sayac.
+  // referans ss'deki "2:15/3:36" gibi surekli akan bir sayac. Video suresine
+  // ulasinca ("bitti") sayaci orada durduruyoruz, suresiz ilerlemesin.
   useEffect(() => {
-    if (!room.isPlaying) return;
-    const timer = setInterval(() => setPosition((p) => p + 1), 1000);
+    if (!room.isPlaying || hasEnded) return;
+    const timer = setInterval(
+      () => setPosition((p) => (hasDuration ? Math.min(p + 1, room.durationSeconds!) : p + 1)),
+      1000
+    );
     return () => clearInterval(timer);
-  }, [room.isPlaying]);
+  }, [room.isPlaying, hasEnded, hasDuration]);
 
   const platform = platformInfo(room.source);
   const isExternal = room.source?.type === "external";
-  const hasDuration = room.durationSeconds != null && room.durationSeconds > 0;
+  const statusText = hasEnded ? "Bitti" : room.isPlaying ? "Oynatılıyor" : "Duraklatıldı";
 
   function showSyncNotice() {
     Alert.alert(
@@ -113,7 +116,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
 
             <View style={styles.statusRow}>
               <View style={styles.statusLeft}>
-                <Text style={styles.statusText}>{room.isPlaying ? "Oynatılıyor" : "Duraklatıldı"}</Text>
+                <Text style={styles.statusText}>{statusText}</Text>
                 {hasDuration && (
                   <>
                     <Text style={styles.statusDot}>•</Text>
@@ -122,9 +125,13 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
                     </Text>
                   </>
                 )}
-                <Text style={styles.statusDot}>•</Text>
-                <Text style={styles.statusText}>Açık</Text>
-                <Icon name="globe" size={16} color={theme.textMuted} />
+                {room.isPublic && (
+                  <>
+                    <Text style={styles.statusDot}>•</Text>
+                    <Text style={styles.statusText}>Açık</Text>
+                    <Icon name="globe" size={16} color={theme.textMuted} />
+                  </>
+                )}
               </View>
               {isExternal && (
                 <TouchableOpacity style={styles.warningBadge} onPress={showSyncNotice} hitSlop={8}>
@@ -158,17 +165,13 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
           </TouchableOpacity>
         )}
       />
-
-      <TouchableOpacity style={styles.joinButton} onPress={onJoin}>
-        <Text style={styles.joinButtonText}>Odaya Katıl ({participantCount})</Text>
-      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  listContent: { paddingBottom: 100 },
+  listContent: { paddingBottom: 24 },
   header: { paddingHorizontal: 16, paddingTop: 50, paddingBottom: 12 },
   coverWrap: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden" },
   cover: { width: "100%", aspectRatio: 16 / 10 },
@@ -212,15 +215,4 @@ const styles = StyleSheet.create({
   participantInfo: { flex: 1 },
   participantName: { color: theme.text, fontSize: 15, fontWeight: "600" },
   participantHandle: { color: theme.textMuted, fontSize: 13, marginTop: 1 },
-  joinButton: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 24,
-    backgroundColor: theme.accent,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  joinButtonText: { color: "#04140D", fontSize: 16, fontWeight: "700" },
 });

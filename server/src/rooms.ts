@@ -96,6 +96,10 @@ export function listPublicRooms() {
       title: r.title,
       participantCount: r.participants.size,
       source: r.playback.source,
+      // Su an listPublicRooms sadece isPublic=true odalari getiriyor, yani
+      // bu deger burada hep true - ileride "yakindakiler/arkadaslar/davetliler"
+      // gibi gizlilik seviyeleri eklenince gercek anlam kazanacak.
+      isPublic: r.isPublic,
       isPlaying: r.playback.isPlaying,
       positionSeconds: currentPlaybackPosition(r.playback),
       durationSeconds: r.playback.durationSeconds ?? null,
