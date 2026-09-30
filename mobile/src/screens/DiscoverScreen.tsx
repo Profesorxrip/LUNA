@@ -202,7 +202,7 @@ export default function DiscoverScreen({ onJoinRoom, onOpenProfile, onOpenFriend
             )}
             {platformKey && (
               <View style={styles.platformBadge} pointerEvents="none">
-                <PlatformBadge platform={platformKey} size={18} />
+                <PlatformBadge platform={platformKey} size={26} />
               </View>
             )}
             <LinearGradient colors={["transparent", "rgba(0,0,0,0.88)"]} style={styles.cardGradient} pointerEvents="none" />
