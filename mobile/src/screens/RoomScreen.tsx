@@ -387,20 +387,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         data={messages}
         keyExtractor={(_, i) => String(i)}
         renderItem={({ item }) =>
-          item.system ? (
-            item.text.startsWith("Simdi ") ? (
-              <View style={styles.nowPlayingRow}>
-                <Text style={styles.nowPlayingText} numberOfLines={1}>
-                  {item.text}
-                </Text>
-                <TouchableOpacity onPress={() => sendReaction("❤️")} hitSlop={8}>
-                  <Text style={styles.nowPlayingHeart}>♡</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <Text style={styles.systemMsg}>{item.text}</Text>
-            )
-          ) : (
+          !item.system ? (
             <View style={styles.messageRow}>
               <Avatar name={item.from || "?"} size={26} />
               <Text style={styles.chatMsg}>
@@ -408,6 +395,32 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 {item.text}
               </Text>
             </View>
+          ) : item.kind === "nowPlaying" ? (
+            <View style={styles.nowPlayingRow}>
+              <Text style={styles.nowPlayingText} numberOfLines={1}>
+                Şimdi <Text style={styles.nowPlayingTitle}>{item.title}</Text> oynatılıyor
+              </Text>
+              <TouchableOpacity onPress={() => sendReaction("❤️")} hitSlop={8}>
+                <Text style={styles.nowPlayingHeart}>♡</Text>
+              </TouchableOpacity>
+            </View>
+          ) : item.kind === "kicked" ? (
+            <View style={styles.eventRow}>
+              <Icon name="kicked" size={16} color={theme.textMuted} />
+              <Text style={styles.eventText} numberOfLines={1}>
+                <Text style={styles.eventBold}>{item.targetName}</Text>, <Text style={styles.eventBold}>{item.byName}</Text>{" "}
+                tarafından atıldı
+              </Text>
+            </View>
+          ) : item.kind === "settings" ? (
+            <View style={styles.eventRow}>
+              <Icon name="settings" size={14} color={theme.textMuted} />
+              <Text style={styles.eventText} numberOfLines={1}>
+                <Text style={styles.eventBold}>{item.byName}</Text> {item.settingLabel}: {item.settingValue}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.systemMsg}>{item.text}</Text>
           )
         }
       />
@@ -599,7 +612,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   nowPlayingText: { color: theme.textMuted, fontSize: 12, fontWeight: "600", flexShrink: 1 },
+  nowPlayingTitle: { color: theme.text, fontWeight: "700" },
   nowPlayingHeart: { color: theme.danger, fontSize: 16 },
+  eventRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 4 },
+  eventText: { color: theme.textMuted, fontSize: 12, flexShrink: 1 },
+  eventBold: { color: theme.text, fontWeight: "700" },
   bottomBar: {
     flexDirection: "row",
     alignItems: "center",

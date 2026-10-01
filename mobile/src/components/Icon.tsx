@@ -33,7 +33,8 @@ export type IconName =
   | "pin"
   | "crown"
   | "fastForward"
-  | "phone";
+  | "phone"
+  | "kicked";
 
 interface Props {
   name: IconName;
@@ -357,6 +358,23 @@ function renderShape(name: IconName, color: string) {
         <G>
           <Path d="M2.5 5v14l9-7z" fill={color} />
           <Path d="M12.5 5v14l9-7z" fill={color} />
+        </G>
+      );
+    case "kicked":
+      // Odadan atilma sistem mesaji icin: bir kapi cercevesi + disari
+      // cikan ok - "disari atildi" anlamini sade bir sekilde veriyor.
+      return (
+        <G>
+          <Path
+            d="M9.5 3.5h-4a1.5 1.5 0 00-1.5 1.5v14a1.5 1.5 0 001.5 1.5h4"
+            fill="none"
+            stroke={color}
+            strokeWidth={2.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Line x1={8.5} y1={12} x2={20} y2={12} stroke={color} strokeWidth={2.2} strokeLinecap="round" />
+          <Path d="M15.5 7.5l5 4.5-5 4.5" fill="none" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
         </G>
       );
     case "phone":

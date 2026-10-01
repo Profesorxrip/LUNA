@@ -64,6 +64,21 @@ import { isNonEmptyString, isOptionalString, isBoolean, isFiniteNumber, isOneOf 
 
 const SOURCE_TYPES = ["youtube", "hls", "mp4", "external"] as const;
 
+// Sohbet akisindaki "ayar degisti" sistem mesajlarinda gosterilen Turkce
+// etiketler - RoomSettingsSheet.tsx'teki secenek isimleriyle tutarli.
+const PRIVACY_LABEL: Record<PrivacyLevel, string> = {
+  open: "Açık",
+  nearby: "Yakındakiler",
+  friends: "Sadece Arkadaşlar",
+  invite: "Sadece Davet ile",
+};
+const PLAYBACK_MODE_LABEL: Record<PlaybackMode, string> = {
+  leader: "Liderin Seçimi",
+  playOnly: "Sadece Oynat",
+  autoplay: "Otomatik Oynat",
+  vote: "Haydi Oylayalım",
+};
+
 function isValidMediaSource(value: unknown): value is MediaSource {
   if (!value || typeof value !== "object") return false;
   const s = value as Record<string, unknown>;
@@ -134,9 +149,12 @@ function resolvePollAndBroadcast(code: string) {
   broadcastRoom(code);
   broadcastRoomsList();
   if (winner) {
+    const title = winner.label || winner.type;
     io.to(code).emit("room:chat", {
       system: true,
-      text: `Oylama bitti: simdi ${winner.label || winner.type} oynatiliyor`,
+      kind: "nowPlaying",
+      title,
+      text: `Oylama bitti: simdi ${title} oynatiliyor`,
       ts: Date.now(),
     });
   }
@@ -486,11 +504,15 @@ io.on("connection", (socket: Socket) => {
         broadcastRoom(currentRoomCode);
         if (update.source !== undefined) broadcastRoomsList();
         // Rave'deki gibi: yeni bir medya secildiginde sohbet akisina
-        // "Simdi X oynatiliyor" seklinde bir sistem mesaji dusuyor.
+        // "Simdi X oynatiliyor" seklinde zengin (kalin basliklı) bir sistem
+        // mesaji dusuyor - istemci "kind: nowPlaying" ile kalp butonu da ekliyor.
         if (update.source) {
+          const title = update.source.label || update.source.type;
           io.to(currentRoomCode).emit("room:chat", {
             system: true,
-            text: `Simdi ${update.source.label || update.source.type} oynatiliyor`,
+            kind: "nowPlaying",
+            title,
+            text: `Simdi ${title} oynatiliyor`,
             ts: Date.now(),
           });
         }
@@ -517,6 +539,45 @@ io.on("connection", (socket: Socket) => {
       ack?.({ ok: true });
       broadcastRoom(currentRoomCode);
       broadcastRoomsList();
+      // Rave'deki gibi: bir ayar degistiginde sohbet akisina ozel ikonlu
+      // (disli) bir sistem mesaji dusuyor (bkz. RoomScreen.tsx "settings" render dali).
+      const byName = room.participants.get(socket.id)?.name || myName;
+      if (updates.privacy) {
+        const value = PRIVACY_LABEL[updates.privacy];
+        io.to(currentRoomCode).emit("room:chat", {
+          system: true,
+          kind: "settings",
+          byName,
+          settingLabel: "Gizlilik",
+          settingValue: value,
+          text: `${byName} gizliligi "${value}" yapti.`,
+          ts: Date.now(),
+        });
+      }
+      if (updates.playbackMode) {
+        const value = PLAYBACK_MODE_LABEL[updates.playbackMode];
+        io.to(currentRoomCode).emit("room:chat", {
+          system: true,
+          kind: "settings",
+          byName,
+          settingLabel: "Oynatma modu",
+          settingValue: value,
+          text: `${byName} oynatma modunu "${value}" yapti.`,
+          ts: Date.now(),
+        });
+      }
+      if (updates.autoTranslateChat !== undefined) {
+        const value = updates.autoTranslateChat ? "Açık" : "Kapalı";
+        io.to(currentRoomCode).emit("room:chat", {
+          system: true,
+          kind: "settings",
+          byName,
+          settingLabel: "Sohbet çevirisi",
+          settingValue: value,
+          text: `${byName} sohbet cevirisini "${value}" yapti.`,
+          ts: Date.now(),
+        });
+      }
     }
   );
 
@@ -616,11 +677,25 @@ io.on("connection", (socket: Socket) => {
     if (!currentRoomCode || !isNonEmptyString(targetSocketId, 100)) return ack?.({ ok: false });
     const room = getRoom(currentRoomCode);
     if (!room) return ack?.({ ok: false });
+    // Katilimci kickParticipant() ile odadan silinmeden ONCE isimlerini al -
+    // silindikten sonra room.participants'ta artik bulunamaz.
+    const targetName = room.participants.get(targetSocketId)?.name || "Misafir";
+    const byName = room.participants.get(socket.id)?.name || myName;
     const ok = kickParticipant(room, socket.id, targetSocketId);
     if (ok) {
       io.sockets.sockets.get(targetSocketId)?.leave(currentRoomCode);
       io.to(targetSocketId).emit("room:kicked");
       broadcastRoom(currentRoomCode);
+      // Rave'deki gibi: odadan atma sohbet akisinda ozel ikonlu bir sistem
+      // mesaji olarak gorunur (bkz. RoomScreen.tsx "kicked" render dali).
+      io.to(currentRoomCode).emit("room:chat", {
+        system: true,
+        kind: "kicked",
+        targetName,
+        byName,
+        text: `${targetName}, ${byName} tarafindan atildi.`,
+        ts: Date.now(),
+      });
     }
     ack?.({ ok });
   });

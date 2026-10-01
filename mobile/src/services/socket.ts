@@ -85,6 +85,15 @@ export interface ChatMessage {
   from?: string;
   text: string;
   ts: number;
+  /** "text" her zaman duz bir yedek ozet tasir (bildirim/erisilebilirlik icin) -
+   * "kind" verilmisse istemci asagidaki alanlarla Rave'deki gibi zengin
+   * (ikonlu, kalin isimli) bir sistem mesaji ciziyor. */
+  kind?: "nowPlaying" | "kicked" | "settings";
+  title?: string; // nowPlaying
+  targetName?: string; // kicked
+  byName?: string; // kicked, settings
+  settingLabel?: string; // settings - orn. "Gizlilik"
+  settingValue?: string; // settings - orn. "Açık"
 }
 
 export interface ReactionEvent {
