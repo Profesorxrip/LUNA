@@ -45,9 +45,14 @@ interface Props {
 // LUNA el yapimi SVG seti yerine Expo'nun resmi ikon paketi (Ionicons /
 // MaterialCommunityIcons) kullaniliyor - binlerce tutarli, bakimi hazir
 // ikon iceriyor, Android/iOS/Web'de ayni sekilde calisiyor.
+// Hepsi AYNI aileden (suffix'siz - dolu, yuvarlak kose) seciliyor -
+// "-outline" (ince) ve "-sharp" (kose) varyantlarini karistirmak ayni
+// satirda bazi ikonlari ince/bos, bazilarini kalin/dolu gosterip optik
+// dengeyi bozuyordu (ozellikle alt bardaki paylas/etiket/galeri/davet/
+// harita sirasinda fark ediliyordu).
 const IONICONS_MAP: Partial<Record<IconName, keyof typeof Ionicons.glyphMap>> = {
   close: "close",
-  settings: "settings-sharp",
+  settings: "settings",
   search: "search",
   people: "people",
   mic: "mic",
@@ -55,10 +60,10 @@ const IONICONS_MAP: Partial<Record<IconName, keyof typeof Ionicons.glyphMap>> = 
   send: "send",
   plus: "add",
   mention: "at",
-  image: "image-outline",
+  image: "image",
   invite: "person-add",
-  share: "share-social-outline",
-  globe: "globe-outline",
+  share: "share",
+  globe: "globe",
   edit: "pencil",
   chevronRight: "chevron-forward",
   chevronLeft: "chevron-back",
@@ -66,18 +71,18 @@ const IONICONS_MAP: Partial<Record<IconName, keyof typeof Ionicons.glyphMap>> = 
   play: "play",
   eye: "eye",
   eyeOff: "eye-off",
-  calendar: "calendar-outline",
-  clock: "time-outline",
-  hourglass: "hourglass-outline",
+  calendar: "calendar",
+  clock: "time",
+  hourglass: "hourglass",
   bell: "notifications",
   bellOff: "notifications-off",
   personBlock: "person-remove",
   warning: "warning",
   check: "checkmark",
-  pin: "location-sharp",
+  pin: "location",
   fastForward: "play-forward",
   phone: "call",
-  kicked: "exit-outline",
+  kicked: "exit",
 };
 
 // Ionicons'ta tac (crown) glyph'i yok - MaterialCommunityIcons'tan aliniyor.
