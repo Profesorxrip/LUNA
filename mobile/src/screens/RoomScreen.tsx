@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   actionGroup: { flexDirection: "row", alignItems: "center" },
   iconTouchSm: { width: 30, height: 38, justifyContent: "center", alignItems: "center", flexShrink: 0 },
   topIconDim: { opacity: 0.35 },
-  logo: { width: 62, height: 28 },
+  logo: { width: 74, height: 34, marginTop: -4 },
   participantsBadge: { position: "relative", width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   countBubble: {
     position: "absolute",
