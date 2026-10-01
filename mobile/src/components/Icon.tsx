@@ -1,4 +1,5 @@
 import React from "react";
+import { View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 export type IconName =
@@ -90,10 +91,50 @@ const MATERIAL_COMMUNITY_MAP: Partial<Record<IconName, keyof typeof MaterialComm
   crown: "crown",
 };
 
+// Font tabanli ikonlarda ayni "size" verilse bile her glyph kendi 24x24
+// kutusunu FARKLI oranda dolduruyor (ornegin "check" ince bir tik cizgisi,
+// "image" ise kutuyu tam dolduran bir kare) - bu da yan yana durunca bazi
+// ikonlarin digerlerine gore kucuk/ince, bazilarinin buyuk/kalin gorunmesine
+// yol aciyordu. Her ikon icin gozle kalibre edilmis bir buyutme carpani
+// tanimlayip optik olarak ayni agirlikta gorunmelerini sagliyoruz. Disaridan
+// verilen "size" HER ZAMAN gosterilen kutunun boyutu olarak kaliyor (layout
+// bozulmaz), sadece icerideki glyph o kutu icinde buyutulup/kucultulup
+// ortalaniyor.
+const SCALE: Partial<Record<IconName, number>> = {
+  close: 1.08,
+  mic: 1.12,
+  micOff: 1.12,
+  send: 1.05,
+  plus: 1.15,
+  image: 0.92,
+  share: 1.05,
+  edit: 1.1,
+  chevronRight: 1.35,
+  chevronLeft: 1.35,
+  moreHoriz: 1.3,
+  play: 1.1,
+  eye: 1.1,
+  eyeOff: 1.1,
+  hourglass: 1.08,
+  check: 1.3,
+  pin: 1.05,
+  phone: 1.1,
+  people: 0.94,
+  settings: 0.95,
+};
+
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
+  const scale = SCALE[name] ?? 1;
+  const inner = size * scale;
   const ionName = IONICONS_MAP[name];
-  if (ionName) return <Ionicons name={ionName} size={size} color={color} />;
-  const mcName = MATERIAL_COMMUNITY_MAP[name];
-  if (mcName) return <MaterialCommunityIcons name={mcName} size={size} color={color} />;
-  return null;
+  const glyph = ionName ? (
+    <Ionicons name={ionName} size={inner} color={color} />
+  ) : MATERIAL_COMMUNITY_MAP[name] ? (
+    <MaterialCommunityIcons name={MATERIAL_COMMUNITY_MAP[name]!} size={inner} color={color} />
+  ) : null;
+  if (!glyph) return null;
+  if (scale === 1) return glyph;
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>{glyph}</View>
+  );
 }
