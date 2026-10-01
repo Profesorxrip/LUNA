@@ -152,7 +152,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
         </TouchableOpacity>
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
         <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
-          <Icon name="close" size={26} color={TEXT} />
+          <Icon name="close" size={30} color={TEXT} />
         </TouchableOpacity>
       </View>
 
@@ -266,7 +266,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
             <Text style={[styles.tabLabel, tab === "friends" && styles.tabLabelActive]}>Arkadaşlar</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tabItem} onPress={() => setTab("recent")}>
-            <Icon name="clock" size={18} color={tab === "recent" ? TEXT : MUTED} />
+            <Icon name="clock" size={20} color={tab === "recent" ? TEXT : MUTED} />
             <Text style={[styles.tabLabel, tab === "recent" && styles.tabLabelActive]}>Son Zamanlarda</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tabItem} onPress={() => setTab("blocked")}>
