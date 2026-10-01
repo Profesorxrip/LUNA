@@ -211,7 +211,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
           </TouchableOpacity>
           {!own && (
             <TouchableOpacity onPress={() => placeholder("Diger")} hitSlop={10}>
-              <Icon name="moreHoriz" size={20} color={TEXT} />
+              <Icon name="moreHoriz" size={22} color={TEXT} />
             </TouchableOpacity>
           )}
         </View>

@@ -207,7 +207,7 @@ export default function DMScreen({ peer, onBack }: Props) {
           {!!peer.handle && <Text style={styles.headerHandle}>@{peer.handle}</Text>}
         </View>
         <TouchableOpacity onPress={() => setMenuVisible(true)} hitSlop={10}>
-          <Icon name="moreHoriz" size={20} color={TEXT} />
+          <Icon name="moreHoriz" size={22} color={TEXT} />
         </TouchableOpacity>
       </View>
 
