@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
-  headerLogo: { width: 70, height: 32 },
+  headerLogo: { width: 74, height: 34, marginTop: -4 },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",

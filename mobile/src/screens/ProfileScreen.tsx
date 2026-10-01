@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 10,
   },
-  headerLogo: { width: 74, height: 34 },
+  headerLogo: { width: 74, height: 34, marginTop: -4 },
   friendsButton: { position: "relative" },
   friendsBadge: {
     position: "absolute",
