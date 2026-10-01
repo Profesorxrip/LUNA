@@ -434,7 +434,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         >
           <Icon
             name={voice.connected && voice.muted ? "micOff" : "mic"}
-            size={36}
+            size={28}
             color={voice.connected && !voice.muted ? theme.accent : "#04140D"}
           />
         </TouchableOpacity>
@@ -622,20 +622,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 4,
     borderTopWidth: 1,
     borderTopColor: theme.border,
   },
   micButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    marginVertical: -12, // alt bar'in yuksekligini artirmasin diye disariya tasiriyoruz
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginVertical: -8, // alt bar'in yuksekligini artirmasin diye disariya tasiriyoruz
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
-    transform: [{ translateX: -6 }, { translateY: -6 }], // hafif sola/yukari - yuvarlak sekil bozulmadan (kliplenmeden) kaydiriliyor
+    transform: [{ translateX: -4 }, { translateY: -4 }], // hafif sola/yukari - yuvarlak sekil bozulmadan (kliplenmeden) kaydiriliyor
   },
   micButtonMuted: { backgroundColor: theme.danger },
   chatInput: {
