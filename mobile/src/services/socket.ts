@@ -89,9 +89,9 @@ export interface ChatMessage {
   /** "text" her zaman duz bir yedek ozet tasir (bildirim/erisilebilirlik icin) -
    * "kind" verilmisse istemci asagidaki alanlarla Rave'deki gibi zengin
    * (ikonlu, kalin isimli) bir sistem mesaji ciziyor. */
-  kind?: "nowPlaying" | "kicked" | "settings";
+  kind?: "nowPlaying" | "kicked" | "settings" | "joined";
   title?: string; // nowPlaying
-  targetName?: string; // kicked
+  targetName?: string; // kicked, joined
   byName?: string; // kicked, settings
   settingLabel?: string; // settings - orn. "Gizlilik"
   settingValue?: string; // settings - orn. "Açık"

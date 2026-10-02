@@ -452,6 +452,8 @@ io.on("connection", (socket: Socket) => {
     broadcastRoomsList();
     io.to(room.code).emit("room:chat", {
       system: true,
+      kind: "joined",
+      targetName: name || "Misafir",
       text: `${name || "Misafir"} odaya katildi.`,
       ts: Date.now(),
     });

@@ -404,6 +404,14 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 </View>
               </View>
             )
+          ) : item.kind === "joined" ? (
+            <View style={styles.messageRow}>
+              <Avatar name={item.targetName || "?"} size={26} />
+              <View style={styles.bubble}>
+                <Text style={styles.chatFrom}>{item.targetName}</Text>
+                <Text style={styles.chatMsg}>odaya katıldı</Text>
+              </View>
+            </View>
           ) : item.kind === "nowPlaying" ? (
             <View style={styles.nowPlayingRow}>
               <Text style={styles.nowPlayingText} numberOfLines={1}>
@@ -613,10 +621,16 @@ const styles = StyleSheet.create({
   // edilirdi (bu da metnin flex:1 ile tum satiri kaplayip "bozuk" durmasina
   // yol aciyordu) - alignSelf ile sadece icerigi kadar yer kaplamasi
   // saglaniyor, boylece hem solda hem sagda duzgun bir "balon" gibi duruyor.
-  messageRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, alignSelf: "flex-start", maxWidth: "85%" },
-  // Kendi mesajlarimiz (fromSocketId === bizim socket id'miz) saga, avatar
-  // balonun sagina gelecek sekilde ters cevriliyor.
-  messageRowOwn: { alignSelf: "flex-end", flexDirection: "row-reverse" },
+  // alignItems: "center" avatar'i balonun TAMAMINA gore dikey ortalar -
+  // "flex-end" kullanilsaydi iki satirli (isim+metin) gelen mesajlarda
+  // avatar alta yapisip kendi mesajlarimizdaki tek satirli balondan
+  // farkli hizalanir, simetriyi bozardi.
+  messageRow: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "flex-start", maxWidth: "85%" },
+  // Kendi mesajlarimiz (fromSocketId === bizim socket id'miz) saga hizalanir.
+  // DOM sirasi [balon, avatar] oldugu icin normal "row" yonu avatar'i zaten
+  // balonun SAGINA (disariya) yerlestirir - "row-reverse" avatar'i balonun
+  // SOLUNA, ustune binecek sekilde koyuyordu, bu yuzden kaldirildi.
+  messageRowOwn: { alignSelf: "flex-end" },
   bubble: { backgroundColor: theme.surfaceAlt, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, flexShrink: 1 },
   bubbleOwn: { backgroundColor: "rgba(16,185,129,0.18)", borderWidth: 1, borderColor: "rgba(16,185,129,0.4)" },
   chatMsg: { color: theme.text, fontSize: 14 },
