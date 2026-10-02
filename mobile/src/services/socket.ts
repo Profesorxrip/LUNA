@@ -88,6 +88,7 @@ export interface ChatMessage {
   fromAvatarUrl?: string | null;
   text: string;
   ts: number;
+  replyTo?: DMReply | null;
   /** "text" her zaman duz bir yedek ozet tasir (bildirim/erisilebilirlik icin) -
    * "kind" verilmisse istemci asagidaki alanlarla Rave'deki gibi zengin
    * (ikonlu, kalin isimli) bir sistem mesaji ciziyor. */

@@ -665,9 +665,11 @@ io.on("connection", (socket: Socket) => {
     });
   });
 
-  socket.on("chat:send", ({ text }: { text: string }) => {
+  socket.on("chat:send", ({ text, replyTo }: { text: string; replyTo?: DMReply | null }) => {
     if (!currentRoomCode || !isNonEmptyString(text, 1000)) return;
     if (!allow("chat:send", 20, 10_000)) return;
+    const validReplyTo =
+      replyTo && isNonEmptyString(replyTo.text, 1000) && isNonEmptyString(replyTo.fromName, 200) ? replyTo : null;
     const room = getRoom(currentRoomCode);
     const participant = room?.participants.get(socket.id);
     io.to(currentRoomCode).emit("room:chat", {
@@ -676,6 +678,7 @@ io.on("connection", (socket: Socket) => {
       fromSocketId: socket.id,
       fromAvatarUrl: participant?.avatarUrl ?? null,
       text: text.trim().slice(0, 1000),
+      replyTo: validReplyTo,
       ts: Date.now(),
     });
   });

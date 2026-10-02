@@ -11,10 +11,12 @@ import {
   Alert,
   Share,
   Image,
+  Animated,
+  PanResponder,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
-import type { MediaSource } from "../services/socket";
+import type { MediaSource, DMReply } from "../services/socket";
 import MediaPlayer, { MediaPlayerHandle } from "../components/MediaPlayer";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import ReactionsOverlay, { ReactionsOverlayHandle } from "../components/ReactionsOverlay";
@@ -34,6 +36,104 @@ interface Props {
 const DRIFT_TOLERANCE_SECONDS = 2;
 const GUEST_RESYNC_INTERVAL_MS = 8000;
 const HOST_HEARTBEAT_INTERVAL_MS = 5000;
+const REPLY_SWIPE_TRIGGER = 48;
+const REPLY_SWIPE_MAX = 64;
+
+interface ChatBubbleRowProps {
+  item: ChatMessage;
+  isOwn: boolean;
+  groupedWithPrev: boolean;
+  onReply: () => void;
+}
+
+/** Sohbet mesaji satiri - kendi mesajimizi SAGDAN SOLA, baskasinin mesajini
+ * SOLDAN SAGA kaydirinca yanitlama (reply) tetikleniyor (Rave'deki gibi).
+ * Tek satirlik mesajlarda avatar TAM ORTADAN baslasin diye satir varsayilan
+ * olarak dikey ortalanir ("center"); metin ikinci satira tasarsa
+ * (onTextLayout) "flex-start"a geciyor, boylece coklu satirlik mesajlar
+ * eskisi gibi en ustten baslamaya devam ediyor. */
+function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply }: ChatBubbleRowProps) {
+  const [isMultiline, setIsMultiline] = useState(false);
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  const pan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, g) => Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderMove: (_evt, g) => {
+        const raw = isOwn ? Math.min(0, g.dx) : Math.max(0, g.dx);
+        translateX.setValue(Math.max(-REPLY_SWIPE_MAX, Math.min(REPLY_SWIPE_MAX, raw)));
+      },
+      onPanResponderRelease: (_evt, g) => {
+        const raw = isOwn ? Math.min(0, g.dx) : Math.max(0, g.dx);
+        if (Math.abs(raw) >= REPLY_SWIPE_TRIGGER) onReply();
+        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+      },
+    })
+  ).current;
+
+  const replyHintOpacity = translateX.interpolate({
+    inputRange: isOwn ? [-REPLY_SWIPE_TRIGGER, 0] : [0, REPLY_SWIPE_TRIGGER],
+    outputRange: isOwn ? [1, 0] : [0, 1],
+    extrapolate: "clamp",
+  });
+
+  function handleTextLayout(e: { nativeEvent: { lines: unknown[] } }) {
+    const multiline = e.nativeEvent.lines.length > 1;
+    setIsMultiline((prev) => (prev === multiline ? prev : multiline));
+  }
+
+  const rowStyle = isOwn ? styles.messageRowOwn : styles.messageRow;
+  const replyQuote = item.replyTo && (
+    <View style={[styles.replyQuote, isOwn && styles.replyQuoteOwn]}>
+      <Text style={styles.replyQuoteText} numberOfLines={1}>
+        {item.replyTo.fromName}: {item.replyTo.text}
+      </Text>
+    </View>
+  );
+
+  return (
+    <Animated.View
+      style={[rowStyle, { alignItems: isMultiline ? "flex-start" : "center" }, { transform: [{ translateX }] }]}
+      {...pan.panHandlers}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.replyHint, isOwn ? { right: -26 } : { left: -26 }, { opacity: replyHintOpacity }]}
+      >
+        <Icon name="reply" size={16} color={theme.textMuted} />
+      </Animated.View>
+      {isOwn ? (
+        <>
+          <View style={styles.messageTextCol}>
+            {replyQuote}
+            <Text style={styles.chatMsgOwn} onTextLayout={handleTextLayout} selectable={false}>
+              {item.text}
+            </Text>
+          </View>
+          {!groupedWithPrev && <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} />}
+        </>
+      ) : (
+        <>
+          {!groupedWithPrev ? (
+            <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} />
+          ) : (
+            <View style={styles.avatarSpacer} />
+          )}
+          <View style={styles.messageTextCol}>
+            {replyQuote}
+            <Text style={styles.chatMsg} onTextLayout={handleTextLayout} selectable={false}>
+              {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
+              {item.text}
+            </Text>
+          </View>
+        </>
+      )}
+    </Animated.View>
+  );
+}
 
 export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const socket = getSocket();
@@ -44,6 +144,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatFocused, setChatFocused] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<DMReply | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [participantsVisible, setParticipantsVisible] = useState(false);
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
@@ -275,8 +376,13 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 
   function sendChat() {
     if (!chatInput.trim()) return;
-    socket.emit("chat:send", { text: chatInput });
+    socket.emit("chat:send", { text: chatInput, replyTo: replyingTo });
     setChatInput("");
+    setReplyingTo(null);
+  }
+
+  function startReply(item: ChatMessage) {
+    setReplyingTo({ text: item.text, fromName: item.fromSocketId === socket.id ? "Sen" : item.from || "?" });
   }
 
   function sendReaction(emoji: string) {
@@ -393,24 +499,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           const prev = messages[index - 1];
           const groupedWithPrev = !!prev && !prev.system && !item.system && prev.fromSocketId === item.fromSocketId;
           return !item.system ? (
-            item.fromSocketId === socket.id ? (
-              <View style={styles.messageRowOwn}>
-                <Text style={styles.chatMsgOwn}>{item.text}</Text>
-                {!groupedWithPrev && <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} />}
-              </View>
-            ) : (
-              <View style={styles.messageRow}>
-                {!groupedWithPrev ? (
-                  <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} />
-                ) : (
-                  <View style={styles.avatarSpacer} />
-                )}
-                <Text style={styles.chatMsg}>
-                  {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
-                  {item.text}
-                </Text>
-              </View>
-            )
+            <ChatBubbleRow
+              item={item}
+              isOwn={item.fromSocketId === socket.id}
+              groupedWithPrev={groupedWithPrev}
+              onReply={() => startReply(item)}
+            />
           ) : item.kind === "joined" ? (
             <View style={styles.messageRow}>
               <Avatar name={item.targetName || "?"} avatarUrl={item.targetAvatarUrl} size={32} />
@@ -447,6 +541,21 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           );
         }}
       />
+
+      {replyingTo && (
+        <View style={styles.replyBar}>
+          <Icon name="reply" size={16} color={theme.accent} />
+          <View style={styles.replyBarText}>
+            <Text style={styles.replyBarFrom}>{replyingTo.fromName}</Text>
+            <Text style={styles.replyBarBody} numberOfLines={1}>
+              {replyingTo.text}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8}>
+            <Icon name="close" size={16} color={theme.textMuted} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Alt bar - mikrofon / mesaj kutusu / etiket / galeri / davet / paylas / gonder (Rave'deki alt bar duzeni) */}
       <View style={styles.bottomBar}>
@@ -625,24 +734,60 @@ const styles = StyleSheet.create({
   chatContent: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8, gap: 6 },
   // Rave'deki gibi balonsuz, duz metin sohbet: gelen mesajlarda avatar solda,
   // isim+metin tek satirda ic ice ("Isim: metin"); kendi mesajlarimizda
-  // isim gosterilmez, metin saga yaslanir, avatar sagda.
-  messageRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, alignSelf: "flex-start", maxWidth: "88%" },
+  // isim gosterilmez, metin saga yaslanir, avatar sagda. alignItems
+  // varsayilan "center" - tek satirlik mesaj avatarin TAM ORTASINDAN baslar;
+  // ChatBubbleRow metin 2+ satira tasinca bunu "flex-start"a ceviriyor.
+  // position:"relative" kaydirinca beliren reply ikonuna (replyHint) referans
+  // nokta saglamak icin.
+  messageRow: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "flex-start", maxWidth: "88%", position: "relative" },
   messageRowOwn: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 8,
     alignSelf: "flex-end",
     maxWidth: "88%",
     justifyContent: "flex-end",
+    position: "relative",
   },
   // Ayni gondericiden arka arkaya gelen mesajlarda avatar sadece grubun
   // ilkinde gosterilir - devam eden satirlar avatarin genisligi kadar
   // bosluk birakip metnin hizasini korur (Rave'deki gruplama davranisi).
   avatarSpacer: { width: 32 },
-  chatMsg: { color: theme.text, fontSize: 14, flexShrink: 1, paddingTop: 2 },
-  chatMsgOwn: { color: theme.text, fontSize: 14, textAlign: "right", flexShrink: 1, paddingTop: 2 },
+  // Metin + (varsa) alinti kutusunu dikey olarak ust uste dizen sutun.
+  messageTextCol: { flexShrink: 1 },
+  chatMsg: { color: theme.text, fontSize: 14 },
+  chatMsgOwn: { color: theme.text, fontSize: 14, textAlign: "right" },
   chatFrom: { color: theme.text, fontSize: 14, fontWeight: "700" },
   systemMsg: { color: theme.textMuted, fontSize: 12, fontStyle: "italic", textAlign: "center" },
+  // Mesaji kaydirirken (reply) beliren kucuk ok ikonu - satirin disina,
+  // acilan bosluga yerlesiyor (bkz. ChatBubbleRow).
+  replyHint: { position: "absolute", top: 0, bottom: 0, width: 20, alignItems: "center", justifyContent: "center" },
+  // Yanitlanan mesajin alintisi - gonderilen mesajin hemen ustunde kucuk bir
+  // etiket gibi duruyor (Rave'deki yanit onizlemesi).
+  replyQuote: {
+    backgroundColor: theme.surfaceAlt,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginBottom: 2,
+    alignSelf: "flex-start",
+  },
+  replyQuoteOwn: { alignSelf: "flex-end" },
+  replyQuoteText: { color: theme.textMuted, fontSize: 11, fontStyle: "italic" },
+  // Mesaj kutusunun hemen ustunde: "su mesaja yanit yaziyorsun" cubugu.
+  replyBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: theme.surfaceAlt,
+    borderTopWidth: 1,
+    borderColor: theme.border,
+  },
+  replyBarText: { flex: 1 },
+  replyBarFrom: { color: theme.accent, fontSize: 12, fontWeight: "700" },
+  replyBarBody: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
   nowPlayingRow: {
     flexDirection: "row",
     alignItems: "center",
