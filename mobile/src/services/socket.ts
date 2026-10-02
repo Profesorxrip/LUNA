@@ -83,6 +83,7 @@ export interface RoomState {
 export interface ChatMessage {
   system: boolean;
   from?: string;
+  fromSocketId?: string;
   text: string;
   ts: number;
   /** "text" her zaman duz bir yedek ozet tasir (bildirim/erisilebilirlik icin) -

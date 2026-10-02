@@ -388,13 +388,22 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         keyExtractor={(_, i) => String(i)}
         renderItem={({ item }) =>
           !item.system ? (
-            <View style={styles.messageRow}>
-              <Avatar name={item.from || "?"} size={26} />
-              <Text style={styles.chatMsg}>
-                <Text style={styles.chatFrom}>{item.from}: </Text>
-                {item.text}
-              </Text>
-            </View>
+            item.fromSocketId === socket.id ? (
+              <View style={[styles.messageRow, styles.messageRowOwn]}>
+                <View style={[styles.bubble, styles.bubbleOwn]}>
+                  <Text style={styles.chatMsgOwn}>{item.text}</Text>
+                </View>
+                <Avatar name={item.from || "?"} size={26} />
+              </View>
+            ) : (
+              <View style={styles.messageRow}>
+                <Avatar name={item.from || "?"} size={26} />
+                <View style={styles.bubble}>
+                  <Text style={styles.chatFrom}>{item.from}</Text>
+                  <Text style={styles.chatMsg}>{item.text}</Text>
+                </View>
+              </View>
+            )
           ) : item.kind === "nowPlaying" ? (
             <View style={styles.nowPlayingRow}>
               <Text style={styles.nowPlayingText} numberOfLines={1}>
@@ -600,9 +609,19 @@ const styles = StyleSheet.create({
   pollAddLink: { color: theme.info, fontSize: 12, fontWeight: "600", textAlign: "center", marginTop: 2 },
   chatList: { flex: 1 },
   chatContent: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8, gap: 6 },
-  messageRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  chatMsg: { color: theme.text, fontSize: 14, flex: 1, flexShrink: 1 },
-  chatFrom: { fontWeight: "700" },
+  // Mesaj satiri varsayilan olarak FlatList'in tam genisligine "stretch"
+  // edilirdi (bu da metnin flex:1 ile tum satiri kaplayip "bozuk" durmasina
+  // yol aciyordu) - alignSelf ile sadece icerigi kadar yer kaplamasi
+  // saglaniyor, boylece hem solda hem sagda duzgun bir "balon" gibi duruyor.
+  messageRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, alignSelf: "flex-start", maxWidth: "85%" },
+  // Kendi mesajlarimiz (fromSocketId === bizim socket id'miz) saga, avatar
+  // balonun sagina gelecek sekilde ters cevriliyor.
+  messageRowOwn: { alignSelf: "flex-end", flexDirection: "row-reverse" },
+  bubble: { backgroundColor: theme.surfaceAlt, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, flexShrink: 1 },
+  bubbleOwn: { backgroundColor: "rgba(16,185,129,0.18)", borderWidth: 1, borderColor: "rgba(16,185,129,0.4)" },
+  chatMsg: { color: theme.text, fontSize: 14 },
+  chatMsgOwn: { color: theme.text, fontSize: 14 },
+  chatFrom: { color: theme.textMuted, fontSize: 11, fontWeight: "700", marginBottom: 2 },
   systemMsg: { color: theme.textMuted, fontSize: 12, fontStyle: "italic", textAlign: "center" },
   nowPlayingRow: {
     flexDirection: "row",

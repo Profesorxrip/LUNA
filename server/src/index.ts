@@ -668,6 +668,7 @@ io.on("connection", (socket: Socket) => {
     io.to(currentRoomCode).emit("room:chat", {
       system: false,
       from: participant?.name || "?",
+      fromSocketId: socket.id,
       text: text.trim().slice(0, 1000),
       ts: Date.now(),
     });
