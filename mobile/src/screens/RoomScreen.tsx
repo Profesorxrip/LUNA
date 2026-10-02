@@ -48,12 +48,15 @@ interface ChatBubbleRowProps {
 
 /** Sohbet mesaji satiri - kendi mesajimizi SAGDAN SOLA, baskasinin mesajini
  * SOLDAN SAGA kaydirinca yanitlama (reply) tetikleniyor (Rave'deki gibi).
- * Tek satirlik mesajlarda avatar TAM ORTADAN baslasin diye satir varsayilan
- * olarak dikey ortalanir ("center"); metin ikinci satira tasarsa
- * (onTextLayout) "flex-start"a geciyor, boylece coklu satirlik mesajlar
- * eskisi gibi en ustten baslamaya devam ediyor. */
+ * Satir HER ZAMAN "flex-start" (en ustten hizali) - tek/coklu satir ayrimi
+ * JS/onTextLayout ILE DEGIL, saf CSS ile cozuluyor: metin sutununun
+ * (messageTextCol) minHeight'i avatar boyuyla ayni ve justifyContent:"center"
+ * tasiyor - tek satirlik kisa metin bu kutunun icinde avatarin TAM ORTASINA
+ * denk gelecek sekilde ortalanirken, iki+ satirlik metin kutuyu zaten
+ * doldurup tasdigi icin ustten baslamaya devam ediyor. Bu sayede react-
+ * native-web'de desteklenmeyen onTextLayout'a bagli kalinmiyor ve native'de
+ * de ilk render'da dogru pozisyonla cikiyor - sonradan "ziplama" olmuyor. */
 function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply }: ChatBubbleRowProps) {
-  const [isMultiline, setIsMultiline] = useState(false);
   const translateX = useRef(new Animated.Value(0)).current;
 
   const pan = useRef(
@@ -80,11 +83,6 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply }: ChatBubbleRowP
     extrapolate: "clamp",
   });
 
-  function handleTextLayout(e: { nativeEvent: { lines: unknown[] } }) {
-    const multiline = e.nativeEvent.lines.length > 1;
-    setIsMultiline((prev) => (prev === multiline ? prev : multiline));
-  }
-
   const rowStyle = isOwn ? styles.messageRowOwn : styles.messageRow;
   const replyQuote = item.replyTo && (
     <View style={[styles.replyQuote, isOwn && styles.replyQuoteOwn]}>
@@ -95,10 +93,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply }: ChatBubbleRowP
   );
 
   return (
-    <Animated.View
-      style={[rowStyle, { alignItems: isMultiline ? "flex-start" : "center" }, { transform: [{ translateX }] }]}
-      {...pan.panHandlers}
-    >
+    <Animated.View style={[rowStyle, { transform: [{ translateX }] }]} {...pan.panHandlers}>
       <Animated.View
         pointerEvents="none"
         style={[styles.replyHint, isOwn ? { right: -26 } : { left: -26 }, { opacity: replyHintOpacity }]}
@@ -109,7 +104,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply }: ChatBubbleRowP
         <>
           <View style={styles.messageTextCol}>
             {replyQuote}
-            <Text style={styles.chatMsgOwn} onTextLayout={handleTextLayout} selectable={false}>
+            <Text style={styles.chatMsgOwn} selectable={false}>
               {item.text}
             </Text>
           </View>
@@ -124,7 +119,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply }: ChatBubbleRowP
           )}
           <View style={styles.messageTextCol}>
             {replyQuote}
-            <Text style={styles.chatMsg} onTextLayout={handleTextLayout} selectable={false}>
+            <Text style={styles.chatMsg} selectable={false}>
               {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
               {item.text}
             </Text>
@@ -508,9 +503,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           ) : item.kind === "joined" ? (
             <View style={styles.messageRow}>
               <Avatar name={item.targetName || "?"} avatarUrl={item.targetAvatarUrl} size={32} />
-              <Text style={styles.chatMsg}>
-                <Text style={styles.chatFrom}>{item.targetName}</Text> odaya katıldı
-              </Text>
+              <View style={styles.messageTextCol}>
+                <Text style={styles.chatMsg}>
+                  <Text style={styles.chatFrom}>{item.targetName}</Text> odaya katıldı
+                </Text>
+              </View>
             </View>
           ) : item.kind === "nowPlaying" ? (
             <View style={styles.nowPlayingRow}>
@@ -734,15 +731,15 @@ const styles = StyleSheet.create({
   chatContent: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8, gap: 6 },
   // Rave'deki gibi balonsuz, duz metin sohbet: gelen mesajlarda avatar solda,
   // isim+metin tek satirda ic ice ("Isim: metin"); kendi mesajlarimizda
-  // isim gosterilmez, metin saga yaslanir, avatar sagda. alignItems
-  // varsayilan "center" - tek satirlik mesaj avatarin TAM ORTASINDAN baslar;
-  // ChatBubbleRow metin 2+ satira tasinca bunu "flex-start"a ceviriyor.
-  // position:"relative" kaydirinca beliren reply ikonuna (replyHint) referans
-  // nokta saglamak icin.
-  messageRow: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "flex-start", maxWidth: "88%", position: "relative" },
+  // isim gosterilmez, metin saga yaslanir, avatar sagda. Satir HER ZAMAN
+  // "flex-start" (en ustten hizali) - tek/coklu satir ayrimi messageTextCol'un
+  // minHeight+justifyContent kombinasyonuyla saf CSS ile cozuluyor (bkz. o
+  // stilin yorumu). position:"relative" kaydirinca beliren reply ikonuna
+  // (replyHint) referans nokta saglamak icin.
+  messageRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, alignSelf: "flex-start", maxWidth: "88%", position: "relative" },
   messageRowOwn: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 8,
     alignSelf: "flex-end",
     maxWidth: "88%",
@@ -754,7 +751,16 @@ const styles = StyleSheet.create({
   // bosluk birakip metnin hizasini korur (Rave'deki gruplama davranisi).
   avatarSpacer: { width: 32 },
   // Metin + (varsa) alinti kutusunu dikey olarak ust uste dizen sutun.
-  messageTextCol: { flexShrink: 1 },
+  // minHeight avatarin boyuyla (32) ayni, justifyContent:"center" ile:
+  // - Tek satirlik kisa metin bu 32'lik kutunun icinde dikey ortalanir ->
+  //   avatarla ayni yukseklikte oldugu icin TAM ORTASINDAN baslamis gorunur.
+  // - Iki+ satirlik metin kutuyu zaten doldurup tastigi icin (dogal
+  //   yuksekligi 32'den buyuk) justifyContent'in etkisi kalmaz, en ustten
+  //   baslamaya devam eder - flex-start satirla ayni hizada.
+  // Bu saf CSS cozumu onTextLayout'a (react-native-web'de desteklenmiyor,
+  // ayrica native'de de render sonrasi "ziplama" yaratiyordu) ihtiyac
+  // birakmiyor.
+  messageTextCol: { flexShrink: 1, minHeight: 32, justifyContent: "center" },
   chatMsg: { color: theme.text, fontSize: 14 },
   chatMsgOwn: { color: theme.text, fontSize: 14, textAlign: "right" },
   chatFrom: { color: theme.text, fontSize: 14, fontWeight: "700" },
