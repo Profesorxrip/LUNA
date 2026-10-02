@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 const COLORS = ["#F97316", "#10B981", "#3B82F6", "#EC4899", "#EAB308", "#8B5CF6", "#14B8A6"];
 
@@ -8,9 +8,12 @@ function colorForName(name: string): string {
   return COLORS[Math.abs(hash) % COLORS.length];
 }
 
-/** Profil fotografi olmadigi icin: isme gore sabit bir renk + bas harf
- * gosteren basit bir avatar - Rave'deki yuvarlak profil resimlerinin yerini tutar. */
-export default function Avatar({ name, size = 28 }: { name: string; size?: number }) {
+/** Gercek bir profil fotografi (avatarUrl) varsa onu gosterir - yoksa isme
+ * gore sabit bir renk + bas harf iceren eski yedek goruntuye duser. */
+export default function Avatar({ name, size = 28, avatarUrl }: { name: string; size?: number; avatarUrl?: string | null }) {
+  if (avatarUrl) {
+    return <Image source={{ uri: avatarUrl }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+  }
   const initial = name.trim().charAt(0).toUpperCase() || "?";
   return (
     <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2, backgroundColor: colorForName(name) }]}>

@@ -11,6 +11,10 @@ export interface Participant {
   // Sadece gercek girisi yapmis (Supabase) kullanicilarda dolu - Discover
   // kartinda "bu arkadasin" rozetini gosterebilmek icin.
   userId?: string | null;
+  // Katilim anindaki profil sorgusuyla DOLDURULUP burada ONBELLEKLENIR -
+  // oda durumu (room:state) her degistiginde tekrar DB'ye gitmeden senkron
+  // yayinlanabilsin diye (bkz. index.ts room:create / room:join).
+  avatarUrl?: string | null;
 }
 
 // Ayarlar ekranindaki "GIZLILIK" secenekleri:
@@ -99,7 +103,8 @@ export function createRoom(
   hostName: string,
   options: { isPublic?: boolean; source: MediaSource },
   hostUserId?: string | null,
-  hostCountry?: string | null
+  hostCountry?: string | null,
+  hostAvatarUrl?: string | null
 ): Room {
   let code = generateRoomCode();
   while (rooms.has(code)) code = generateRoomCode(); // cakisma ihtimaline karsi
@@ -117,7 +122,10 @@ export function createRoom(
     poll: null,
     hostSocketId,
     participants: new Map([
-      [hostSocketId, { socketId: hostSocketId, name: hostName, isHost: true, muted: false, userId: hostUserId ?? null }],
+      [
+        hostSocketId,
+        { socketId: hostSocketId, name: hostName, isHost: true, muted: false, userId: hostUserId ?? null, avatarUrl: hostAvatarUrl ?? null },
+      ],
     ]),
     playback: {
       source: options.source,
@@ -190,10 +198,16 @@ export function getRoom(code: string): Room | undefined {
   return rooms.get(code.toUpperCase());
 }
 
-export function joinRoom(code: string, socketId: string, name: string, userId?: string | null): Room | null {
+export function joinRoom(
+  code: string,
+  socketId: string,
+  name: string,
+  userId?: string | null,
+  avatarUrl?: string | null
+): Room | null {
   const room = getRoom(code);
   if (!room) return null;
-  room.participants.set(socketId, { socketId, name, isHost: false, muted: false, userId: userId ?? null });
+  room.participants.set(socketId, { socketId, name, isHost: false, muted: false, userId: userId ?? null, avatarUrl: avatarUrl ?? null });
   return room;
 }
 

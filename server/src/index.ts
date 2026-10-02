@@ -365,7 +365,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on(
     "room:create",
-    (
+    async (
       { name, isPublic, source }: { name: string; isPublic?: boolean; source: MediaSource },
       ack
     ) => {
@@ -373,9 +373,10 @@ io.on("connection", (socket: Socket) => {
       if (!isOptionalString(name, 60)) return ack?.({ ok: false, error: "Gecersiz isim." });
       if (isPublic !== undefined && !isBoolean(isPublic)) return ack?.({ ok: false, error: "Gecersiz istek." });
       if (!allow("room:create", 10, 60_000)) return ack?.({ ok: false, error: "Cok fazla oda acildi, biraz bekle." });
+      const hostAvatarUrl = myUserId && myDb ? (await getPublicProfile(myDb, myUserId))?.avatarUrl ?? null : null;
       // Oda, icerik secilmeden var olamaz - odanin/kartin ismi de secilen
       // icerigin ismi (source.label) oluyor, ayri bir oda basligi girilmiyor.
-      const room = createRoom(socket.id, name || myName || "Host", { isPublic, source }, myUserId, myCountry);
+      const room = createRoom(socket.id, name || myName || "Host", { isPublic, source }, myUserId, myCountry, hostAvatarUrl);
       currentRoomCode = room.code;
       socket.join(room.code);
       ack?.({ ok: true, room: roomToPublicState(room) });
@@ -440,7 +441,8 @@ io.on("connection", (socket: Socket) => {
       }
     }
 
-    const room = joinRoom(code, socket.id, name || myName || "Misafir", myUserId);
+    const joinAvatarUrl = myUserId && myDb ? (await getPublicProfile(myDb, myUserId))?.avatarUrl ?? null : null;
+    const room = joinRoom(code, socket.id, name || myName || "Misafir", myUserId, joinAvatarUrl);
     if (!room) {
       ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
       return;
@@ -454,6 +456,7 @@ io.on("connection", (socket: Socket) => {
       system: true,
       kind: "joined",
       targetName: name || "Misafir",
+      targetAvatarUrl: joinAvatarUrl,
       text: `${name || "Misafir"} odaya katildi.`,
       ts: Date.now(),
     });
@@ -671,6 +674,7 @@ io.on("connection", (socket: Socket) => {
       system: false,
       from: participant?.name || "?",
       fromSocketId: socket.id,
+      fromAvatarUrl: participant?.avatarUrl ?? null,
       text: text.trim().slice(0, 1000),
       ts: Date.now(),
     });

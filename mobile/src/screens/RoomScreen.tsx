@@ -396,11 +396,15 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
             item.fromSocketId === socket.id ? (
               <View style={styles.messageRowOwn}>
                 <Text style={styles.chatMsgOwn}>{item.text}</Text>
-                {!groupedWithPrev && <Avatar name={item.from || "?"} size={26} />}
+                {!groupedWithPrev && <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} />}
               </View>
             ) : (
               <View style={styles.messageRow}>
-                {!groupedWithPrev ? <Avatar name={item.from || "?"} size={26} /> : <View style={styles.avatarSpacer} />}
+                {!groupedWithPrev ? (
+                  <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} />
+                ) : (
+                  <View style={styles.avatarSpacer} />
+                )}
                 <Text style={styles.chatMsg}>
                   {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
                   {item.text}
@@ -409,7 +413,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
             )
           ) : item.kind === "joined" ? (
             <View style={styles.messageRow}>
-              <Avatar name={item.targetName || "?"} size={26} />
+              <Avatar name={item.targetName || "?"} avatarUrl={item.targetAvatarUrl} size={32} />
               <Text style={styles.chatMsg}>
                 <Text style={styles.chatFrom}>{item.targetName}</Text> odaya katıldı
               </Text>
@@ -634,7 +638,7 @@ const styles = StyleSheet.create({
   // Ayni gondericiden arka arkaya gelen mesajlarda avatar sadece grubun
   // ilkinde gosterilir - devam eden satirlar avatarin genisligi kadar
   // bosluk birakip metnin hizasini korur (Rave'deki gruplama davranisi).
-  avatarSpacer: { width: 26 },
+  avatarSpacer: { width: 32 },
   chatMsg: { color: theme.text, fontSize: 14, flexShrink: 1, paddingTop: 2 },
   chatMsgOwn: { color: theme.text, fontSize: 14, textAlign: "right", flexShrink: 1, paddingTop: 2 },
   chatFrom: { color: theme.text, fontSize: 14, fontWeight: "700" },

@@ -26,7 +26,7 @@ export default function ParticipantsModal({ visible, onClose, participants, mySo
             keyExtractor={(p) => p.socketId}
             renderItem={({ item }) => (
               <View style={styles.row}>
-                <Avatar name={item.name} size={32} />
+                <Avatar name={item.name} avatarUrl={item.avatarUrl} size={40} />
                 <Text style={styles.name} numberOfLines={1}>
                   {item.isHost ? "👑 " : ""}
                   {item.name}

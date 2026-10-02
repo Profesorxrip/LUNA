@@ -20,6 +20,7 @@ export interface Participant {
   name: string;
   isHost: boolean;
   muted: boolean;
+  avatarUrl?: string | null;
 }
 
 /** Oynatilan medyanin turu - bkz. sunucu tarafi rooms.ts:
@@ -84,6 +85,7 @@ export interface ChatMessage {
   system: boolean;
   from?: string;
   fromSocketId?: string;
+  fromAvatarUrl?: string | null;
   text: string;
   ts: number;
   /** "text" her zaman duz bir yedek ozet tasir (bildirim/erisilebilirlik icin) -
@@ -92,6 +94,7 @@ export interface ChatMessage {
   kind?: "nowPlaying" | "kicked" | "settings" | "joined";
   title?: string; // nowPlaying
   targetName?: string; // kicked, joined
+  targetAvatarUrl?: string | null; // joined
   byName?: string; // kicked, settings
   settingLabel?: string; // settings - orn. "Gizlilik"
   settingValue?: string; // settings - orn. "Açık"
