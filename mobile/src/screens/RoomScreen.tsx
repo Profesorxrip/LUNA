@@ -386,31 +386,33 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         contentContainerStyle={styles.chatContent}
         data={messages}
         keyExtractor={(_, i) => String(i)}
-        renderItem={({ item }) =>
-          !item.system ? (
+        renderItem={({ item, index }) => {
+          // Rave'de oldugu gibi: arka arkaya gelen mesajlarda ayni
+          // gondericinin avatari/ismi sadece grubun ilkinde gosteriliyor,
+          // devaminda sadece metin aliniyor.
+          const prev = messages[index - 1];
+          const groupedWithPrev = !!prev && !prev.system && !item.system && prev.fromSocketId === item.fromSocketId;
+          return !item.system ? (
             item.fromSocketId === socket.id ? (
-              <View style={[styles.messageRow, styles.messageRowOwn]}>
-                <View style={[styles.bubble, styles.bubbleOwn]}>
-                  <Text style={styles.chatMsgOwn}>{item.text}</Text>
-                </View>
-                <Avatar name={item.from || "?"} size={26} />
+              <View style={styles.messageRowOwn}>
+                <Text style={styles.chatMsgOwn}>{item.text}</Text>
+                {!groupedWithPrev && <Avatar name={item.from || "?"} size={26} />}
               </View>
             ) : (
               <View style={styles.messageRow}>
-                <Avatar name={item.from || "?"} size={26} />
-                <View style={styles.bubble}>
-                  <Text style={styles.chatFrom}>{item.from}</Text>
-                  <Text style={styles.chatMsg}>{item.text}</Text>
-                </View>
+                {!groupedWithPrev ? <Avatar name={item.from || "?"} size={26} /> : <View style={styles.avatarSpacer} />}
+                <Text style={styles.chatMsg}>
+                  {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
+                  {item.text}
+                </Text>
               </View>
             )
           ) : item.kind === "joined" ? (
             <View style={styles.messageRow}>
               <Avatar name={item.targetName || "?"} size={26} />
-              <View style={styles.bubble}>
-                <Text style={styles.chatFrom}>{item.targetName}</Text>
-                <Text style={styles.chatMsg}>odaya katıldı</Text>
-              </View>
+              <Text style={styles.chatMsg}>
+                <Text style={styles.chatFrom}>{item.targetName}</Text> odaya katıldı
+              </Text>
             </View>
           ) : item.kind === "nowPlaying" ? (
             <View style={styles.nowPlayingRow}>
@@ -438,8 +440,8 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
             </View>
           ) : (
             <Text style={styles.systemMsg}>{item.text}</Text>
-          )
-        }
+          );
+        }}
       />
 
       {/* Alt bar - mikrofon / mesaj kutusu / etiket / galeri / davet / paylas / gonder (Rave'deki alt bar duzeni) */}
@@ -617,25 +619,25 @@ const styles = StyleSheet.create({
   pollAddLink: { color: theme.info, fontSize: 12, fontWeight: "600", textAlign: "center", marginTop: 2 },
   chatList: { flex: 1 },
   chatContent: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8, gap: 6 },
-  // Mesaj satiri varsayilan olarak FlatList'in tam genisligine "stretch"
-  // edilirdi (bu da metnin flex:1 ile tum satiri kaplayip "bozuk" durmasina
-  // yol aciyordu) - alignSelf ile sadece icerigi kadar yer kaplamasi
-  // saglaniyor, boylece hem solda hem sagda duzgun bir "balon" gibi duruyor.
-  // alignItems: "center" avatar'i balonun TAMAMINA gore dikey ortalar -
-  // "flex-end" kullanilsaydi iki satirli (isim+metin) gelen mesajlarda
-  // avatar alta yapisip kendi mesajlarimizdaki tek satirli balondan
-  // farkli hizalanir, simetriyi bozardi.
-  messageRow: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "flex-start", maxWidth: "85%" },
-  // Kendi mesajlarimiz (fromSocketId === bizim socket id'miz) saga hizalanir.
-  // DOM sirasi [balon, avatar] oldugu icin normal "row" yonu avatar'i zaten
-  // balonun SAGINA (disariya) yerlestirir - "row-reverse" avatar'i balonun
-  // SOLUNA, ustune binecek sekilde koyuyordu, bu yuzden kaldirildi.
-  messageRowOwn: { alignSelf: "flex-end" },
-  bubble: { backgroundColor: theme.surfaceAlt, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, flexShrink: 1 },
-  bubbleOwn: { backgroundColor: "rgba(16,185,129,0.18)", borderWidth: 1, borderColor: "rgba(16,185,129,0.4)" },
-  chatMsg: { color: theme.text, fontSize: 14 },
-  chatMsgOwn: { color: theme.text, fontSize: 14 },
-  chatFrom: { color: theme.textMuted, fontSize: 11, fontWeight: "700", marginBottom: 2 },
+  // Rave'deki gibi balonsuz, duz metin sohbet: gelen mesajlarda avatar solda,
+  // isim+metin tek satirda ic ice ("Isim: metin"); kendi mesajlarimizda
+  // isim gosterilmez, metin saga yaslanir, avatar sagda.
+  messageRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, alignSelf: "flex-start", maxWidth: "88%" },
+  messageRowOwn: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    alignSelf: "flex-end",
+    maxWidth: "88%",
+    justifyContent: "flex-end",
+  },
+  // Ayni gondericiden arka arkaya gelen mesajlarda avatar sadece grubun
+  // ilkinde gosterilir - devam eden satirlar avatarin genisligi kadar
+  // bosluk birakip metnin hizasini korur (Rave'deki gruplama davranisi).
+  avatarSpacer: { width: 26 },
+  chatMsg: { color: theme.text, fontSize: 14, flexShrink: 1, paddingTop: 2 },
+  chatMsgOwn: { color: theme.text, fontSize: 14, textAlign: "right", flexShrink: 1, paddingTop: 2 },
+  chatFrom: { color: theme.text, fontSize: 14, fontWeight: "700" },
   systemMsg: { color: theme.textMuted, fontSize: 12, fontStyle: "italic", textAlign: "center" },
   nowPlayingRow: {
     flexDirection: "row",
