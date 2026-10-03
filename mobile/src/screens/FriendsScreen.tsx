@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image } from "react-native";
 import { getSocket, FriendUser, DMMessage } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
+import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import { DMPeer } from "./DMScreen";
 
@@ -93,7 +94,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
   }
 
   function unblock(userId: string) {
-    Alert.alert("Engeli Kaldır", "Bu kişinin engelini kaldırmak istiyor musun?", [
+    showAlert("Engeli Kaldır", "Bu kişinin engelini kaldırmak istiyor musun?", [
       { text: "Vazgeç", style: "cancel" },
       { text: "Engeli Kaldır", onPress: () => socket.emit("friend:unblock", { userId }, () => refresh()) },
     ]);

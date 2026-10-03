@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { getSocket, PublicRoomSummary, RoomParticipantDetail, MediaSource, PrivacyLevel } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
+import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import PlatformBadge from "../components/PlatformBadge";
 import CountryFlag from "../components/CountryFlag";
@@ -81,7 +82,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
   const statusText = hasEnded ? "Bitti" : room.isPlaying ? "Oynatılıyor" : "Duraklatıldı";
 
   function showSyncNotice() {
-    Alert.alert(
+    showAlert(
       "Otomatik senkron yok",
       "Bu platform DRM korumali oldugu icin oynatma otomatik senkronize edilmiyor - sohbet ve sesli sohbet acik kalmaya devam eder."
     );

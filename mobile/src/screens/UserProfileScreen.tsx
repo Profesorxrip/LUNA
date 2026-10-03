@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   TextInput,
   Modal,
   ActivityIndicator,
@@ -15,6 +14,7 @@ import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../services/supabase";
 import { getSocket } from "../services/socket";
 import Icon, { IconName } from "../components/Icon";
+import { showAlert } from "../components/CustomAlert";
 import CountryFlag from "../components/CountryFlag";
 
 interface Props {
@@ -156,7 +156,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
   }, [own, peerUserId]);
 
   function placeholder(label: string) {
-    Alert.alert(label, "Bu ozellik yakinda eklenecek.");
+    showAlert(label, "Bu ozellik yakinda eklenecek.");
   }
 
   function sendFriendRequest() {
@@ -187,7 +187,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
     setAvatarSheetVisible(false);
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
+      showAlert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -225,7 +225,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
       if (updateError) throw updateError;
       setAvatarUrl(bustedUrl);
     } catch (err: any) {
-      Alert.alert("Yüklenemedi", err?.message || "Fotoğraf yüklenirken bir hata oluştu, tekrar dene.");
+      showAlert("Yüklenemedi", err?.message || "Fotoğraf yüklenirken bir hata oluştu, tekrar dene.");
     } finally {
       setUploadingAvatar(false);
     }

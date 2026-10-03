@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Image,
 } from "react-native";
 import { supabase } from "../services/supabase";
+import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
 
 export default function LoginScreen() {
@@ -22,7 +22,7 @@ export default function LoginScreen() {
 
   async function handleSubmit() {
     if (!email.trim() || !password) {
-      Alert.alert("Eksik bilgi", "E-posta ve sifre gerekli.");
+      showAlert("Eksik bilgi", "E-posta ve sifre gerekli.");
       return;
     }
     setLoading(true);
@@ -33,11 +33,11 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert("Hata", error.message);
+      showAlert("Hata", error.message);
       return;
     }
     if (mode === "signup") {
-      Alert.alert(
+      showAlert(
         "Kayit basarili",
         "E-postana dogrulama linki gonderildi (varsa) - onu onaylayip giris yapabilirsin."
       );

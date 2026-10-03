@@ -8,7 +8,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Share,
   Image,
   Animated,
@@ -25,6 +24,7 @@ import ParticipantsModal from "../components/ParticipantsModal";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
+import { showAlert } from "../components/CustomAlert";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
 import { useVoiceChat } from "../hooks/useVoiceChat";
 import { theme } from "../theme";
@@ -174,7 +174,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       setMessages((prev) => [...prev.slice(-199), msg]);
     }
     function handleKicked() {
-      Alert.alert("Odadan atildin", "Oda lideri seni odadan cikardi.");
+      showAlert("Odadan atildin", "Oda lideri seni odadan cikardi.");
       onLeave();
     }
     socket.on("room:state", handleRoomState);
@@ -318,7 +318,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 
   function openMediaPicker() {
     if (!isHost && room.playbackMode !== "vote") {
-      Alert.alert("Sadece lider secebilir", "Medyayi sadece oda lideri degistirebilir.");
+      showAlert("Sadece lider secebilir", "Medyayi sadece oda lideri degistirebilir.");
       return;
     }
     setPickerVisible(true);
@@ -363,14 +363,14 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   }
 
   function pickImage() {
-    Alert.alert("Yakinda", "Sohbete fotograf ekleme ozelligi yakinda geliyor.");
+    showAlert("Yakinda", "Sohbete fotograf ekleme ozelligi yakinda geliyor.");
   }
 
   function showMap() {
     // Gercek harita/konum ozelligi (react-native-maps) Expo Go'da calismiyor -
     // LiveKit'te oldugu gibi ozel bir "development build" gerektiriyor.
     // O adima gecince burasi gercek katilimci konumlarini gosterecek.
-    Alert.alert(
+    showAlert(
       "Harita yakinda",
       "Katilimcilarin konumunu gosteren harita ozelligi icin ozel bir kurulum gerekiyor - yakinda ekleyecegiz."
     );
@@ -412,7 +412,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 
   function handleMicLongPress() {
     if (!voice.connected) return;
-    Alert.alert("Sesli sohbetten cik", "Sesli sohbetten ayrilmak istedigine emin misin?", [
+    showAlert("Sesli sohbetten cik", "Sesli sohbetten ayrilmak istedigine emin misin?", [
       { text: "Vazgec", style: "cancel" },
       { text: "Cik", style: "destructive", onPress: voice.leave },
     ]);

@@ -6,6 +6,7 @@ import { Session } from "@supabase/supabase-js";
 import { supabase } from "./src/services/supabase";
 import LoginScreen from "./src/screens/LoginScreen";
 import RootNavigator from "./src/navigation/RootNavigator";
+import CustomAlertHost from "./src/components/CustomAlert";
 import { getSocket } from "./src/services/socket";
 import { registerForPushNotifications } from "./src/services/notifications";
 
@@ -46,6 +47,7 @@ export default function App() {
     return (
       <View style={{ flex: 1, backgroundColor: "#0A0A0C", justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator color="#10B981" size="large" />
+        <CustomAlertHost />
       </View>
     );
   }
@@ -54,6 +56,7 @@ export default function App() {
     return (
       <>
         <LoginScreen />
+        <CustomAlertHost />
         <StatusBar style="light" />
       </>
     );
@@ -62,6 +65,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <RootNavigator />
+      <CustomAlertHost />
       <StatusBar style="light" />
     </SafeAreaProvider>
   );

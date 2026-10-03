@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Alert, TextInput } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, TextInput } from "react-native";
 import { supabase } from "../services/supabase";
 import { getSocket } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
+import { showAlert } from "../components/CustomAlert";
 
 interface Props {
   onBack: () => void;
@@ -61,18 +62,18 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
   }, []);
 
   function placeholder(label: string) {
-    Alert.alert(label, "Bu ozellik yakinda eklenecek.");
+    showAlert(label, "Bu ozellik yakinda eklenecek.");
   }
 
   function handleSignOut() {
-    Alert.alert("Cikis yap", "Hesabindan cikmak istedigine emin misin?", [
+    showAlert("Cikis yap", "Hesabindan cikmak istedigine emin misin?", [
       { text: "Iptal", style: "cancel" },
       { text: "Cikis yap", style: "destructive", onPress: () => supabase.auth.signOut() },
     ]);
   }
 
   function handleDeleteAccount() {
-    Alert.alert("Hesabi Sil", "Bu islem geri alinamaz. Devam etmek istedigine emin misin?", [
+    showAlert("Hesabi Sil", "Bu islem geri alinamaz. Devam etmek istedigine emin misin?", [
       { text: "Iptal", style: "cancel" },
       { text: "Hesabi Sil", style: "destructive", onPress: () => placeholder("Hesabi Sil") },
     ]);

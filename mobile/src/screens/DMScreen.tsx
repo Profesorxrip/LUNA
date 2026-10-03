@@ -8,13 +8,13 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getSocket, DMMessage, DMReply } from "../services/socket";
 import { supabase } from "../services/supabase";
 import Icon from "../components/Icon";
+import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 
 const EXPIRY_OPTIONS: { label: string; ms: number | null }[] = [
@@ -121,7 +121,7 @@ export default function DMScreen({ peer, onBack }: Props) {
   }, []);
 
   function placeholder(label: string) {
-    Alert.alert(label, "Bu ozellik yakinda eklenecek.");
+    showAlert(label, "Bu ozellik yakinda eklenecek.");
   }
 
   function sendMessage() {
@@ -161,8 +161,8 @@ export default function DMScreen({ peer, onBack }: Props) {
     const reason = reportReason.trim();
     if (!reason) return;
     socket.emit("report:submit", { targetUserId: peer.userId, reason }, (res: any) => {
-      if (res?.ok) Alert.alert("Rapor gonderildi", "Bildirimin icin tesekkurler, inceleyecegiz.");
-      else Alert.alert("Hata", "Rapor gonderilemedi, tekrar dene.");
+      if (res?.ok) showAlert("Rapor gonderildi", "Bildirimin icin tesekkurler, inceleyecegiz.");
+      else showAlert("Hata", "Rapor gonderilemedi, tekrar dene.");
     });
     setReportReason("");
     setReportVisible(false);
