@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getSocket, DMMessage, DMReply } from "../services/socket";
 import { supabase } from "../services/supabase";
 import Icon from "../components/Icon";
+import LoadingView from "../components/LoadingView";
 
 const EXPIRY_OPTIONS: { label: string; ms: number | null }[] = [
   { label: "Kapalı", ms: null },
@@ -48,6 +49,7 @@ export default function DMScreen({ peer, onBack }: Props) {
   const socket = getSocket();
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DMMessage[]>([]);
+  const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
   const [replyingTo, setReplyingTo] = useState<DMReply | null>(null);
   const [seenUpTo, setSeenUpTo] = useState(0);
@@ -74,6 +76,7 @@ export default function DMScreen({ peer, onBack }: Props) {
           setMessages(res.messages);
           setExpiresAfterMs(res.expiresAfterMs ?? null);
         }
+        setLoading(false);
       });
     });
     AsyncStorage.getItem(muteStorageKey).then((v) => {
@@ -246,6 +249,9 @@ export default function DMScreen({ peer, onBack }: Props) {
         data={visibleMessages}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          loading ? <LoadingView /> : <Text style={styles.mediaEmpty}>Henüz mesaj yok, ilk mesajı sen gönder!</Text>
+        }
         renderItem={({ item }) => {
           const isMine = item.fromUserId === myUserId;
           const seen = isMine && item.createdAt <= seenUpTo;

@@ -15,6 +15,7 @@ import {
 import { getSocket, FriendUser, DMMessage } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
+import LoadingView from "../components/LoadingView";
 import { DMPeer } from "./DMScreen";
 
 interface Props {
@@ -65,6 +66,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
   const [outgoing, setOutgoing] = useState<FriendUser[]>([]);
   const [blocked, setBlocked] = useState<FriendUser[]>([]);
   const [previews, setPreviews] = useState<Record<string, DMMessage | null>>({});
+  const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(() => {
     socket.emit("friends:list", {}, (res: any) => {
@@ -73,6 +75,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
       setIncoming(res.incoming);
       setOutgoing(res.outgoing);
       setBlocked(res.blocked);
+      setLoading(false);
       res.friends.forEach((f: FriendUser) => {
         socket.emit("dm:preview", { withUserId: f.userId }, (r: any) => {
           if (r?.ok) setPreviews((prev) => ({ ...prev, [f.userId]: r.lastMessage }));
@@ -172,7 +175,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
           data={visibleFriends}
           keyExtractor={(f) => f.userId}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<Text style={styles.emptyText}>Henüz arkadaşın yok.</Text>}
+          ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>Henüz arkadaşın yok.</Text>}
           renderItem={({ item }) => {
             const preview = previews[item.userId];
             return (
@@ -204,7 +207,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
           data={[...visibleIncoming, ...visibleOutgoing]}
           keyExtractor={(f) => f.userId}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<Text style={styles.emptyText}>Bekleyen arkadaşlık isteği yok.</Text>}
+          ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>Bekleyen arkadaşlık isteği yok.</Text>}
           renderItem={({ item }) => {
             const isIncoming = visibleIncoming.some((f) => f.userId === item.userId);
             return (
@@ -241,7 +244,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
           data={visibleBlocked}
           keyExtractor={(f) => f.userId}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<Text style={styles.emptyText}>Engellenen kimse yok.</Text>}
+          ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>Engellenen kimse yok.</Text>}
           renderItem={({ item }) => (
             <View style={styles.row}>
               <View style={styles.avatar}>

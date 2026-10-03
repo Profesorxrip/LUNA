@@ -17,6 +17,7 @@ import { getSocket, PublicRoomSummary, RoomState, MediaSource, FriendUser } from
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
+import LoadingView from "../components/LoadingView";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import { PlatformKey } from "../components/PlatformLogo";
 import PlatformBadge from "../components/PlatformBadge";
@@ -76,6 +77,7 @@ export default function DiscoverScreen({
   const { width } = useWindowDimensions();
   const numColumns = width >= WIDE_BREAKPOINT ? 2 : 1;
   const [rooms, setRooms] = useState<PublicRoomSummary[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [hostName, setHostName] = useState("Misafir");
@@ -122,6 +124,7 @@ export default function DiscoverScreen({
   const fetchRooms = useCallback(() => {
     getSocket().emit("rooms:list", {}, (list: PublicRoomSummary[]) => {
       setRooms(list);
+      setLoading(false);
       setRefreshing(false);
     });
   }, []);
@@ -188,9 +191,13 @@ export default function DiscoverScreen({
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchRooms(); }} tintColor="#fff" />}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {search.trim() ? "Aramanla eslesen oda yok." : "Su an acik oda yok. Ilk odayi sen ac!"}
-          </Text>
+          loading ? (
+            <LoadingView />
+          ) : (
+            <Text style={styles.emptyText}>
+              {search.trim() ? "Aramanla eslesen oda yok." : "Su an acik oda yok. Ilk odayi sen ac!"}
+            </Text>
+          )
         }
         renderItem={({ item }) => {
           const platformKey = platformKeyForSource(item.source);

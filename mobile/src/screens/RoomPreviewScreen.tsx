@@ -3,6 +3,7 @@ import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, Alert } from
 import { getSocket, PublicRoomSummary, RoomParticipantDetail, MediaSource, PrivacyLevel } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
+import LoadingView from "../components/LoadingView";
 import PlatformBadge from "../components/PlatformBadge";
 import CountryFlag from "../components/CountryFlag";
 import { PlatformKey } from "../components/PlatformLogo";
@@ -50,11 +51,13 @@ function formatTime(totalSeconds: number): string {
 
 export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticipant }: Props) {
   const [participants, setParticipants] = useState<RoomParticipantDetail[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(true);
   const [position, setPosition] = useState(room.positionSeconds);
 
   useEffect(() => {
     getSocket().emit("room:participants", { code: room.code }, (res: any) => {
       if (res?.ok) setParticipants(res.participants);
+      setLoadingParticipants(false);
     });
   }, [room.code]);
 
@@ -142,6 +145,13 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
         keyExtractor={(item, i) => item.userId || `guest-${i}`}
         style={styles.participantList}
         contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          loadingParticipants ? (
+            <LoadingView />
+          ) : (
+            <Text style={styles.emptyText}>Katılımcı bilgisi alınamadı.</Text>
+          )
+        }
         renderItem={({ item, index }) => (
           <TouchableOpacity
             style={styles.participantRow}
@@ -173,6 +183,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   participantList: { flex: 1 },
+  emptyText: { color: theme.textMuted, fontSize: 13, textAlign: "center", marginTop: 40 },
   listContent: { paddingBottom: 24 },
   header: { paddingHorizontal: 16, paddingTop: 50, paddingBottom: 12 },
   coverWrap: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden" },
