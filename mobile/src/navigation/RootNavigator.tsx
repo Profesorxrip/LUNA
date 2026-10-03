@@ -67,7 +67,6 @@ function UserProfileRoute() {
   const { params } = useRoute<RouteProp<RootStackParamList, "UserProfile">>();
   return (
     <UserProfileScreen
-      onBack={() => navigation.goBack()}
       own={params.own}
       peer={params.peer}
       onOpenDM={(peer) => navigation.navigate("DM", { peer })}

@@ -21,7 +21,6 @@ import CountryFlag from "../components/CountryFlag";
 import RoomCard from "../components/RoomCard";
 
 interface Props {
-  onBack: () => void;
   own?: boolean;
   peer?: { userId: string; name: string; handle?: string };
   onOpenDM?: (peer: { userId: string; name: string; handle?: string }) => void;
@@ -112,7 +111,7 @@ function buildDailyActivity(daily: Record<string, number>): { date: string; hour
 /** "Vinil Kayıt" konsepti - kartelanın (bkz. tasarım oturumu) ilk seçeneği,
  * kullanıcının kendi profili (own) ve başkasının profili (!own) icin
  * ortak bir govde uzerinde farkli baslik/aksiyon satiri gosterir. */
-export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, onOpenRoomPreview }: Props) {
+export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRoomPreview }: Props) {
   const peerUserId = peer?.userId || DEMO_PEER_USER_ID;
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState(peer?.name || "Kullanici");
@@ -520,16 +519,13 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topBlock}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} hitSlop={10}>
-            <Icon name="chevronLeft" size={22} color={TEXT} />
-          </TouchableOpacity>
-          {!own && (
+        {!own && (
+          <View style={styles.header}>
             <TouchableOpacity onPress={() => placeholder("Diger")} hitSlop={10}>
-              <Icon name="moreHoriz" size={22} color={TEXT} />
+              <Icon name="moreHoriz" size={30} color={TEXT} />
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
 
         <TouchableOpacity
           style={[styles.avatarWrap, !showPresenceRing && styles.avatarWrapCompact]}
@@ -861,7 +857,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingTop: 50, paddingBottom: 40 },
   topBlock: { paddingHorizontal: 24 },
   bodyContent: { paddingHorizontal: 16 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, marginBottom: 26 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", paddingTop: 8, marginBottom: 26 },
   avatarWrap: { width: 128, height: 128, alignSelf: "center", marginBottom: 18 },
   // Halka gizliyken (showPresenceRing=false) gosterecek bir sey olmadigi
   // icin halkanin ekstra 20px'lik yer kaplamasina gerek yok - kutuyu
