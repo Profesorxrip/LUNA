@@ -503,7 +503,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
         </View>
 
         <TouchableOpacity
-          style={styles.avatarWrap}
+          style={[styles.avatarWrap, !showPresenceRing && styles.avatarWrapCompact]}
           activeOpacity={own ? 0.8 : 1}
           onPress={() => own && setAvatarSheetVisible(true)}
           disabled={!own}
@@ -816,6 +816,10 @@ const styles = StyleSheet.create({
   bodyContent: { paddingHorizontal: 16 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, marginBottom: 26 },
   avatarWrap: { width: 128, height: 128, alignSelf: "center", marginBottom: 18 },
+  // Halka gizliyken (showPresenceRing=false) gosterecek bir sey olmadigi
+  // icin halkanin ekstra 20px'lik yer kaplamasina gerek yok - kutuyu
+  // kuculterek ismi fotografa biraz daha yaklastiriyoruz.
+  avatarWrapCompact: { width: 108, height: 108 },
   // Disaridaki dekoratif halka - BASKA bir cember eklemek yerine ayni halka
   // su an acik/aktif ise (showPresenceRing) renklenip disa dogru dalgalanan
   // animasyona donusuyor, degilse eskisi gibi sabit koyu renginde kaliyor.
