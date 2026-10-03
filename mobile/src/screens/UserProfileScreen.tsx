@@ -40,6 +40,7 @@ const DEMO_PEER_USER_ID = "demo-peer-kullanici";
 // stat_visibility sutununun varsayilaniyla AYNI (gercek deger yuklenene
 // kadar kisa sureligine gosterilen baslangic durumu).
 const DEFAULT_STAT_VISIBILITY: Record<string, boolean> = {
+  onlineStatus: true,
   joinDate: true,
   totalHours: true,
   activityChart: true,
@@ -633,39 +634,48 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
         )}
 
         <Text style={styles.sectionHeader}>İSTATİSTİKLER</Text>
-        <View style={styles.statsSection}>
-          <View style={styles.statsGrid}>
-            {statRows.map((stat) => {
-              const visible = statVisibility[stat.key];
-              if (!own && !visible) return null;
-              return (
-                <View key={stat.key} style={styles.statCard}>
-                  {own && (
-                    <TouchableOpacity style={styles.statCardEye} onPress={() => toggleStat(stat.key)} hitSlop={8}>
-                      <Icon name={visible ? "eye" : "eyeOff"} size={14} color={visible ? ACCENT : MUTED} />
-                    </TouchableOpacity>
-                  )}
-                  <View style={styles.statCardIconWrap}>
-                    <Icon name={stat.icon} size={15} color={ACCENT} />
-                  </View>
-                  <Text style={styles.statCardValue} numberOfLines={1}>
-                    {stat.value}
-                  </Text>
-                  <Text style={styles.statCardLabel}>{stat.label}</Text>
-                </View>
-              );
-            })}
-          </View>
+        <View style={styles.statsBlock}>
+          {(own || statVisibility.onlineStatus) && (
+            <View style={styles.statRow}>
+              <View style={[styles.onlineDot, !isOnline && styles.offlineDot]} />
+              <Text style={styles.statRowLabel}>{isOnline ? "Çevrimiçi" : "Çevrimdışı"}</Text>
+              {own && (
+                <TouchableOpacity onPress={() => toggleStat("onlineStatus")} hitSlop={6}>
+                  <Icon
+                    name={statVisibility.onlineStatus ? "eye" : "eyeOff"}
+                    size={18}
+                    color={statVisibility.onlineStatus ? ACCENT : MUTED}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          {statRows.map((stat) => {
+            const visible = statVisibility[stat.key];
+            if (!own && !visible) return null;
+            return (
+              <View key={stat.key} style={styles.statRow}>
+                <Icon name={stat.icon} size={16} color={TEXT} />
+                <Text style={styles.statRowLabel}>{stat.label}</Text>
+                <Text style={styles.statRowValue}>{stat.value}</Text>
+                {own && (
+                  <TouchableOpacity onPress={() => toggleStat(stat.key)} hitSlop={6}>
+                    <Icon name={visible ? "eye" : "eyeOff"} size={18} color={visible ? ACCENT : MUTED} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })}
 
           {(own || statVisibility.activityChart) && (
-            <View style={styles.chartCard}>
-              <View style={styles.chartCardHeader}>
-                <Text style={styles.chartCardTitle}>Günlük Saatler</Text>
+            <View style={styles.chartBlock}>
+              <View style={styles.statRow}>
+                <Text style={styles.statRowLabel}>Günlük Saatler</Text>
                 {own && (
                   <TouchableOpacity onPress={() => toggleStat("activityChart")} hitSlop={6}>
                     <Icon
                       name={statVisibility.activityChart ? "eye" : "eyeOff"}
-                      size={16}
+                      size={18}
                       color={statVisibility.activityChart ? ACCENT : MUTED}
                     />
                   </TouchableOpacity>
@@ -804,7 +814,7 @@ const styles = StyleSheet.create({
     borderColor: BG,
   },
   nameBlock: { alignItems: "center", marginBottom: 6 },
-  name: { color: TEXT, fontSize: 24, fontWeight: "700", letterSpacing: 0.5 },
+  name: { color: TEXT, fontSize: 22, fontWeight: "800", letterSpacing: 0.3 },
   nameInput: {
     color: TEXT,
     fontSize: 24,
@@ -815,7 +825,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   handleRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
-  handle: { color: MUTED, fontSize: 12 },
+  handle: { color: MUTED, fontSize: 13, fontWeight: "500" },
   presenceRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
   presenceText: { color: MUTED, fontSize: 11, fontWeight: "600" },
   handleEditRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
@@ -828,7 +838,7 @@ const styles = StyleSheet.create({
     minWidth: 100,
     paddingVertical: 2,
   },
-  bio: { color: "#C9BFAE", fontSize: 12, textAlign: "center", marginBottom: 20 },
+  bio: { color: "#C9BFAE", fontSize: 13, lineHeight: 19, textAlign: "center", marginBottom: 20 },
   bioInput: {
     color: "#C9BFAE",
     fontSize: 12,
@@ -848,39 +858,19 @@ const styles = StyleSheet.create({
   galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
   galleryThumbImage: { width: "100%", height: "100%" },
   emptyHistoryText: { color: MUTED, fontSize: 12, marginBottom: 24 },
-  statsSection: { marginBottom: 24 },
-  statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 10 },
-  statCard: {
-    width: "48%",
-    backgroundColor: "#141210",
-    borderRadius: 14,
-    borderWidth: 1,
+  statsBlock: {
+    paddingVertical: 4,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
     borderColor: "#2A2422",
-    padding: 14,
+    marginBottom: 24,
   },
-  statCardEye: { position: "absolute", top: 10, right: 10 },
+  statRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
   onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: ACCENT },
   offlineDot: { backgroundColor: MUTED },
-  statCardIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "rgba(46,204,113,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  statCardValue: { color: TEXT, fontSize: 17, fontWeight: "700", marginBottom: 2 },
-  statCardLabel: { color: MUTED, fontSize: 11.5, fontWeight: "600" },
-  chartCard: {
-    backgroundColor: "#141210",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#2A2422",
-    padding: 14,
-  },
-  chartCardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
-  chartCardTitle: { color: TEXT, fontSize: 13, fontWeight: "700" },
+  statRowLabel: { flex: 1, color: MUTED, fontSize: 13.5, fontWeight: "500", letterSpacing: 0.1 },
+  statRowValue: { color: TEXT, fontSize: 14, fontWeight: "700" },
+  chartBlock: { paddingTop: 6, paddingBottom: 12 },
   chartBars: { flexDirection: "row", alignItems: "flex-end", gap: 6, height: 70, marginTop: 6, marginBottom: 10 },
   chartBarTouch: { flex: 1, alignItems: "center", justifyContent: "flex-end", height: "100%" },
   chartBar: { width: "100%", borderRadius: 2 },
@@ -897,7 +887,7 @@ const styles = StyleSheet.create({
     borderColor: "#3A332C",
   },
   secondaryButtonText: { color: TEXT, fontSize: 13, fontWeight: "700" },
-  sectionHeader: { color: MUTED, fontSize: 10, letterSpacing: 1.5, marginBottom: 10 },
+  sectionHeader: { color: MUTED, fontSize: 11, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 },
   sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   videoGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
   videoCard: { width: "31%", marginBottom: 18 },
