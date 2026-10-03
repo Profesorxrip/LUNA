@@ -40,9 +40,9 @@ const DEMO_PEER_USER_ID = "demo-peer-kullanici";
 // stat_visibility sutununun varsayilaniyla AYNI (gercek deger yuklenene
 // kadar kisa sureligine gosterilen baslangic durumu).
 const DEFAULT_STAT_VISIBILITY: Record<string, boolean> = {
-  joinDate: false,
+  joinDate: true,
   totalHours: true,
-  activityChart: false,
+  activityChart: true,
   friends: true,
   longestSession: true,
   biggestRoom: true,
@@ -529,6 +529,12 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
               </View>
             </TouchableOpacity>
           )}
+          {!own && (
+            <View style={styles.presenceRow}>
+              <View style={[styles.onlineDot, !isOnline && styles.offlineDot]} />
+              <Text style={styles.presenceText}>{isOnline ? "Çevrimiçi" : "Çevrimdışı"}</Text>
+            </View>
+          )}
         </View>
         {editingField === "bio" ? (
           <TextInput
@@ -627,37 +633,39 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
         )}
 
         <Text style={styles.sectionHeader}>İSTATİSTİKLER</Text>
-        <View style={styles.statsBlock}>
-          <View style={styles.statRow}>
-            <View style={[styles.onlineDot, !isOnline && styles.offlineDot]} />
-            <Text style={styles.statRowLabel}>{isOnline ? "Çevrimiçi" : "Çevrimdışı"}</Text>
+        <View style={styles.statsSection}>
+          <View style={styles.statsGrid}>
+            {statRows.map((stat) => {
+              const visible = statVisibility[stat.key];
+              if (!own && !visible) return null;
+              return (
+                <View key={stat.key} style={styles.statCard}>
+                  {own && (
+                    <TouchableOpacity style={styles.statCardEye} onPress={() => toggleStat(stat.key)} hitSlop={8}>
+                      <Icon name={visible ? "eye" : "eyeOff"} size={14} color={visible ? ACCENT : MUTED} />
+                    </TouchableOpacity>
+                  )}
+                  <View style={styles.statCardIconWrap}>
+                    <Icon name={stat.icon} size={15} color={ACCENT} />
+                  </View>
+                  <Text style={styles.statCardValue} numberOfLines={1}>
+                    {stat.value}
+                  </Text>
+                  <Text style={styles.statCardLabel}>{stat.label}</Text>
+                </View>
+              );
+            })}
           </View>
-          {statRows.map((stat) => {
-            const visible = statVisibility[stat.key];
-            if (!own && !visible) return null;
-            return (
-              <View key={stat.key} style={styles.statRow}>
-                <Icon name={stat.icon} size={16} color={TEXT} />
-                <Text style={styles.statRowLabel}>{stat.label}</Text>
-                <Text style={styles.statRowValue}>{stat.value}</Text>
-                {own && (
-                  <TouchableOpacity onPress={() => toggleStat(stat.key)} hitSlop={6}>
-                    <Icon name={visible ? "eye" : "eyeOff"} size={18} color={visible ? ACCENT : MUTED} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            );
-          })}
 
           {(own || statVisibility.activityChart) && (
-            <View style={styles.chartBlock}>
-              <View style={styles.statRow}>
-                <Text style={styles.statRowLabel}>Günlük Saatler</Text>
+            <View style={styles.chartCard}>
+              <View style={styles.chartCardHeader}>
+                <Text style={styles.chartCardTitle}>Günlük Saatler</Text>
                 {own && (
                   <TouchableOpacity onPress={() => toggleStat("activityChart")} hitSlop={6}>
                     <Icon
                       name={statVisibility.activityChart ? "eye" : "eyeOff"}
-                      size={18}
+                      size={16}
                       color={statVisibility.activityChart ? ACCENT : MUTED}
                     />
                   </TouchableOpacity>
@@ -808,6 +816,8 @@ const styles = StyleSheet.create({
   },
   handleRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
   handle: { color: MUTED, fontSize: 12 },
+  presenceRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
+  presenceText: { color: MUTED, fontSize: 11, fontWeight: "600" },
   handleEditRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   handleAt: { color: MUTED, fontSize: 13 },
   handleInput: {
@@ -838,19 +848,39 @@ const styles = StyleSheet.create({
   galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
   galleryThumbImage: { width: "100%", height: "100%" },
   emptyHistoryText: { color: MUTED, fontSize: 12, marginBottom: 24 },
-  statsBlock: {
-    paddingVertical: 4,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+  statsSection: { marginBottom: 24 },
+  statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 10 },
+  statCard: {
+    width: "48%",
+    backgroundColor: "#141210",
+    borderRadius: 14,
+    borderWidth: 1,
     borderColor: "#2A2422",
-    marginBottom: 24,
+    padding: 14,
   },
-  statRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
-  onlineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: ACCENT },
+  statCardEye: { position: "absolute", top: 10, right: 10 },
+  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: ACCENT },
   offlineDot: { backgroundColor: MUTED },
-  statRowLabel: { flex: 1, color: TEXT, fontSize: 13, fontWeight: "600" },
-  statRowValue: { color: MUTED, fontSize: 13 },
-  chartBlock: { paddingTop: 4, paddingBottom: 12 },
+  statCardIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(46,204,113,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  statCardValue: { color: TEXT, fontSize: 17, fontWeight: "700", marginBottom: 2 },
+  statCardLabel: { color: MUTED, fontSize: 11.5, fontWeight: "600" },
+  chartCard: {
+    backgroundColor: "#141210",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#2A2422",
+    padding: 14,
+  },
+  chartCardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  chartCardTitle: { color: TEXT, fontSize: 13, fontWeight: "700" },
   chartBars: { flexDirection: "row", alignItems: "flex-end", gap: 6, height: 70, marginTop: 6, marginBottom: 10 },
   chartBarTouch: { flex: 1, alignItems: "center", justifyContent: "flex-end", height: "100%" },
   chartBar: { width: "100%", borderRadius: 2 },
