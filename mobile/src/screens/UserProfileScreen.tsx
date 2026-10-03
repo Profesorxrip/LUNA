@@ -8,7 +8,6 @@ import {
   ScrollView,
   Alert,
   TextInput,
-  BackHandler,
   Modal,
 } from "react-native";
 import { supabase } from "../services/supabase";
@@ -119,14 +118,6 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
       }
     });
   }, [own]);
-
-  useEffect(() => {
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      onBack();
-      return true;
-    });
-    return () => sub.remove();
-  }, [onBack]);
 
   useEffect(() => {
     if (own) return;

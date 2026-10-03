@@ -1,17 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  FlatList,
-  Image,
-  Alert,
-  PanResponder,
-  BackHandler,
-  useWindowDimensions,
-} from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, Alert } from "react-native";
 import { getSocket, FriendUser, DMMessage } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
@@ -23,11 +11,6 @@ interface Props {
   onOpenSettings: () => void;
   onOpenDM: (peer: DMPeer) => void;
 }
-
-// Sag kenardan sola kaydirarak acilan bu ekran, sol kenardan saga kaydirinca
-// (Discover'daki gibi) kapanip Discover'a doner.
-const EDGE_ZONE = 24;
-const SWIPE_THRESHOLD = 60;
 
 type Tab = "friends" | "recent" | "blocked";
 
@@ -56,9 +39,6 @@ function relativeTime(ts: number): string {
  * Zamanlarda / Engellendi) bir liste - LUNA'nin siyah/yesil temasiyla. */
 export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Props) {
   const socket = getSocket();
-  const { width } = useWindowDimensions();
-  const widthRef = useRef(width);
-  widthRef.current = width;
   const [tab, setTab] = useState<Tab>("friends");
   const [search, setSearch] = useState("");
   const [friends, setFriends] = useState<FriendUser[]>([]);
@@ -70,12 +50,12 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
 
   const refresh = useCallback(() => {
     socket.emit("friends:list", {}, (res: any) => {
+      setLoading(false);
       if (!res?.ok) return;
       setFriends(res.friends);
       setIncoming(res.incoming);
       setOutgoing(res.outgoing);
       setBlocked(res.blocked);
-      setLoading(false);
       res.friends.forEach((f: FriendUser) => {
         socket.emit("dm:preview", { withUserId: f.userId }, (r: any) => {
           if (r?.ok) setPreviews((prev) => ({ ...prev, [f.userId]: r.lastMessage }));
@@ -99,25 +79,6 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
       socket.off("friend:removed", refresh);
     };
   }, [refresh]);
-
-  useEffect(() => {
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      onBack();
-      return true;
-    });
-    return () => sub.remove();
-  }, [onBack]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (evt) => evt.nativeEvent.pageX <= EDGE_ZONE,
-      onMoveShouldSetPanResponder: (evt, gesture) =>
-        evt.nativeEvent.pageX - gesture.dx <= EDGE_ZONE && gesture.dx > 10 && Math.abs(gesture.dy) < 40,
-      onPanResponderRelease: (_evt, gesture) => {
-        if (gesture.dx > SWIPE_THRESHOLD) onBack();
-      },
-    })
-  ).current;
 
   function accept(fromUserId: string) {
     socket.emit("friend:respond", { fromUserId, accept: true }, () => refresh());
@@ -148,7 +109,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
   const visibleBlocked = filterList(blocked);
 
   return (
-    <View style={styles.screen} {...panResponder.panHandlers}>
+    <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconTouch} onPress={onOpenSettings} hitSlop={8}>
           <Icon name="settings" size={30} color={TEXT} />

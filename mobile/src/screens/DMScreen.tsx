@@ -10,7 +10,6 @@ import {
   Platform,
   Alert,
   Modal,
-  BackHandler,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getSocket, DMMessage, DMReply } from "../services/socket";
@@ -113,14 +112,6 @@ export default function DMScreen({ peer, onBack }: Props) {
   useEffect(() => {
     if (messages.length) listRef.current?.scrollToEnd({ animated: true });
   }, [messages.length]);
-
-  useEffect(() => {
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      onBack();
-      return true;
-    });
-    return () => sub.remove();
-  }, [onBack]);
 
   // Suresi dolan mesajlar ("Sure sonu" ayari) ekranda da zamanla kaybolsun
   // diye periyodik olarak "simdi"yi tazeliyoruz - filtreleme render sirasinda yapiliyor.
