@@ -40,7 +40,6 @@ const DEMO_PEER_USER_ID = "demo-peer-kullanici";
 // stat_visibility sutununun varsayilaniyla AYNI (gercek deger yuklenene
 // kadar kisa sureligine gosterilen baslangic durumu).
 const DEFAULT_STAT_VISIBILITY: Record<string, boolean> = {
-  onlineStatus: true,
   joinDate: true,
   totalHours: true,
   activityChart: true,
@@ -457,6 +456,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.topBlock}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} hitSlop={10}>
             <Icon name="chevronLeft" size={22} color={TEXT} />
@@ -491,6 +491,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
                 <Icon name="edit" size={13} color={BG} />
               </View>
             )}
+            {!own && <View style={[styles.presenceBadge, !isOnline && styles.presenceBadgeOffline]} />}
           </View>
         </TouchableOpacity>
 
@@ -530,13 +531,9 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
               </View>
             </TouchableOpacity>
           )}
-          {!own && (
-            <View style={styles.presenceRow}>
-              <View style={[styles.onlineDot, !isOnline && styles.offlineDot]} />
-              <Text style={styles.presenceText}>{isOnline ? "Çevrimiçi" : "Çevrimdışı"}</Text>
-            </View>
-          )}
         </View>
+        </View>
+        <View style={styles.bodyContent}>
         {editingField === "bio" ? (
           <TextInput
             style={styles.bioInput}
@@ -633,23 +630,10 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
           </>
         )}
 
+        <View style={styles.fullDivider} />
         <Text style={styles.sectionHeader}>İSTATİSTİKLER</Text>
+        <View style={styles.fullDivider} />
         <View style={styles.statsBlock}>
-          {(own || statVisibility.onlineStatus) && (
-            <View style={styles.statRow}>
-              <View style={[styles.onlineDot, !isOnline && styles.offlineDot]} />
-              <Text style={styles.statRowLabel}>{isOnline ? "Çevrimiçi" : "Çevrimdışı"}</Text>
-              {own && (
-                <TouchableOpacity onPress={() => toggleStat("onlineStatus")} hitSlop={6}>
-                  <Icon
-                    name={statVisibility.onlineStatus ? "eye" : "eyeOff"}
-                    size={18}
-                    color={statVisibility.onlineStatus ? ACCENT : MUTED}
-                  />
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
           {statRows.map((stat) => {
             const visible = statVisibility[stat.key];
             if (!own && !visible) return null;
@@ -738,6 +722,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
             )}
           </>
         )}
+        </View>
       </ScrollView>
 
       <Modal
@@ -771,14 +756,16 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
-  scrollContent: { paddingHorizontal: 24, paddingTop: 50, paddingBottom: 40 },
+  scrollContent: { paddingTop: 50, paddingBottom: 40 },
+  topBlock: { paddingHorizontal: 24 },
+  bodyContent: { paddingHorizontal: 16 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, marginBottom: 26 },
   avatarWrap: { alignItems: "center", marginBottom: 18 },
   ringOuter: {
     width: 128,
     height: 128,
     borderRadius: 64,
-    backgroundColor: "#2A2422",
+    backgroundColor: "#1C1C1C",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -786,7 +773,7 @@ const styles = StyleSheet.create({
     width: 108,
     height: 108,
     borderRadius: 54,
-    backgroundColor: "#17130F",
+    backgroundColor: "#0D0D0D",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -794,7 +781,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: "#3A2F22",
+    backgroundColor: "#1F1F1F",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -826,8 +813,6 @@ const styles = StyleSheet.create({
   },
   handleRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
   handle: { color: MUTED, fontSize: 13, fontWeight: "500" },
-  presenceRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
-  presenceText: { color: MUTED, fontSize: 11, fontWeight: "600" },
   handleEditRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   handleAt: { color: MUTED, fontSize: 13 },
   handleInput: {
@@ -845,7 +830,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#3A332C",
+    borderColor: "#262626",
     borderRadius: 8,
     padding: 10,
     minHeight: 50,
@@ -858,16 +843,26 @@ const styles = StyleSheet.create({
   galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
   galleryThumbImage: { width: "100%", height: "100%" },
   emptyHistoryText: { color: MUTED, fontSize: 12, marginBottom: 24 },
+  fullDivider: { height: 1, backgroundColor: "#1C1C1C", marginHorizontal: -16 },
   statsBlock: {
     paddingVertical: 4,
-    borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#2A2422",
+    borderColor: "#1C1C1C",
     marginBottom: 24,
   },
   statRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
-  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: ACCENT },
-  offlineDot: { backgroundColor: MUTED },
+  presenceBadge: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: ACCENT,
+    borderWidth: 3,
+    borderColor: BG,
+  },
+  presenceBadgeOffline: { backgroundColor: MUTED },
   statRowLabel: { flex: 1, color: MUTED, fontSize: 13.5, fontWeight: "500", letterSpacing: 0.1 },
   statRowValue: { color: TEXT, fontSize: 14, fontWeight: "700" },
   chartBlock: { paddingTop: 6, paddingBottom: 12 },
@@ -884,7 +879,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#3A332C",
+    borderColor: "#262626",
   },
   secondaryButtonText: { color: TEXT, fontSize: 13, fontWeight: "700" },
   sectionHeader: { color: MUTED, fontSize: 11, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 },
@@ -895,9 +890,9 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 16 / 9,
     borderRadius: 8,
-    backgroundColor: "#17130F",
+    backgroundColor: "#0D0D0D",
     borderWidth: 1,
-    borderColor: "#2A2422",
+    borderColor: "#1C1C1C",
     marginBottom: 6,
     overflow: "hidden",
     alignItems: "center",
@@ -916,15 +911,15 @@ const styles = StyleSheet.create({
   videoMeta: { color: MUTED, fontSize: 10, fontWeight: "700", marginTop: 2 },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   sheetCard: {
-    backgroundColor: "#141210",
+    backgroundColor: "#121212",
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     paddingTop: 8,
     paddingBottom: 30,
     alignItems: "center",
   },
-  sheetRow: { width: "100%", paddingVertical: 18, alignItems: "center", borderBottomWidth: 1, borderColor: "#2A2422" },
+  sheetRow: { width: "100%", paddingVertical: 18, alignItems: "center", borderBottomWidth: 1, borderColor: "#1C1C1C" },
   sheetRowText: { color: TEXT, fontSize: 16, fontWeight: "700" },
   sheetCancelText: { color: MUTED },
-  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#3A332C", marginTop: 14 },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#262626", marginTop: 14 },
 });
