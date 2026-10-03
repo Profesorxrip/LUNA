@@ -71,6 +71,7 @@ function UserProfileRoute() {
       own={params.own}
       peer={params.peer}
       onOpenDM={(peer) => navigation.navigate("DM", { peer })}
+      onOpenRoomPreview={(room) => navigation.navigate("RoomPreview", { room })}
     />
   );
 }

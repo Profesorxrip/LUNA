@@ -18,6 +18,7 @@ import {
   resolvePoll,
   roomToPublicState,
   listPublicRooms,
+  findActiveRoomForUser,
   hostUserIdOf,
   setBuffering,
   isHost,
@@ -304,6 +305,17 @@ io.on("connection", (socket: Socket) => {
         createdAt: new Date(row.created_at).getTime(),
       })),
     });
+  });
+
+  // Profildeki "su an acik odasi" karti - hedef kullanici gercekten acik
+  // bir odada mi, VE o oda bu BAKAN icin Kesif'teki ile AYNI gizlilik
+  // kuralina gore gorunur mu (bkz. rooms.ts findActiveRoomForUser). Boylece
+  // "sadece arkadaslarim gorsun" diyen biri gizlilige uygun kalir.
+  socket.on("user:activeRoom", async ({ userId }: { userId: string }, ack) => {
+    if (!isNonEmptyString(userId, 200)) return ack?.({ ok: false, error: "Gecersiz kullanici." });
+    const friendIds = myUserId && myDb ? new Set((await listFriends(myDb, myUserId)).map((f) => f.userId)) : new Set<string>();
+    const room = findActiveRoomForUser(userId, { userId: myUserId, country: myCountry, friendIds });
+    ack?.({ ok: true, room });
   });
 
   socket.on("friends:list", async (_data, ack) => {

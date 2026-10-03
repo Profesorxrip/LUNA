@@ -198,6 +198,33 @@ export function getRoom(code: string): Room | undefined {
   return rooms.get(code.toUpperCase());
 }
 
+/** Profil ekraninda "su an acik odasi" karti icin: hedef kullanici (targetUserId)
+ * su an katilimcisi oldugu bir oda var mi, ve varsa o oda bu BAKAN (viewer)
+ * icin Kesif'teki ile AYNI gizlilik kuralina gore gorunur mu? Gorunmuyorsa
+ * (ya da hic oda yoksa) null doner - kart hic gosterilmez. Donus sekli
+ * listPublicRooms'un her ogesiyle AYNI (Discover karti bileseni dogrudan
+ * yeniden kullanilabilsin diye). */
+export function findActiveRoomForUser(targetUserId: string, viewer: DiscoverViewer) {
+  const room = Array.from(rooms.values()).find((r) =>
+    Array.from(r.participants.values()).some((p) => p.userId === targetUserId)
+  );
+  if (!room || !visibleToViewer(room, viewer)) return null;
+  return {
+    code: room.code,
+    title: room.title,
+    participantCount: room.participants.size,
+    source: room.playback.source,
+    isPublic: room.privacy === "open",
+    privacy: room.privacy,
+    isPlaying: room.playback.isPlaying,
+    positionSeconds: currentPlaybackPosition(room.playback),
+    durationSeconds: room.playback.durationSeconds ?? null,
+    participants: Array.from(room.participants.values())
+      .slice(0, 20)
+      .map((p) => ({ name: p.name, userId: p.userId ?? null })),
+  };
+}
+
 export function joinRoom(
   code: string,
   socketId: string,

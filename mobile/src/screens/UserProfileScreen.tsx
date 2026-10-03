@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../services/supabase";
-import { getSocket } from "../services/socket";
+import { getSocket, PublicRoomSummary } from "../services/socket";
 import Icon, { IconName } from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import CountryFlag from "../components/CountryFlag";
@@ -22,6 +22,7 @@ interface Props {
   own?: boolean;
   peer?: { userId: string; name: string; handle?: string };
   onOpenDM?: (peer: { userId: string; name: string; handle?: string }) => void;
+  onOpenRoomPreview?: (room: PublicRoomSummary) => void;
 }
 
 const ACCENT = "#2ECC71";
@@ -58,6 +59,12 @@ interface HistoryItem {
   mediaLabel: string;
   mediaCoverUrl: string | null;
   mediaType: string | null;
+  createdAt: number;
+}
+
+interface GalleryPhoto {
+  id: string;
+  url: string;
   createdAt: number;
 }
 
@@ -98,7 +105,7 @@ function buildDailyActivity(daily: Record<string, number>): { date: string; hour
 /** "Vinil Kayıt" konsepti - kartelanın (bkz. tasarım oturumu) ilk seçeneği,
  * kullanıcının kendi profili (own) ve başkasının profili (!own) icin
  * ortak bir govde uzerinde farkli baslik/aksiyon satiri gosterir. */
-export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }: Props) {
+export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, onOpenRoomPreview }: Props) {
   const peerUserId = peer?.userId || DEMO_PEER_USER_ID;
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState(peer?.name || "Kullanici");
@@ -119,6 +126,9 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
   const [friendCount, setFriendCount] = useState(0);
   const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [activeRoom, setActiveRoom] = useState<PublicRoomSummary | null>(null);
+  const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
+  const [uploadingGalleryPhoto, setUploadingGalleryPhoto] = useState(false);
 
   const effectiveUserId = own ? myUserId : peerUserId;
 
@@ -207,6 +217,34 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
     });
   }, [effectiveUserId]);
 
+  // "Su an acik odasi" karti - Kesif'teki ile AYNI gizlilik kuraliyla
+  // sunucu tarafinda hesaplanir (bkz. rooms.ts findActiveRoomForUser) -
+  // bu yuzden burada ekstra bir gizlilik kontrolu YAPMIYORUZ, sunucu zaten
+  // bu BAKAN (viewer) icin gorunmuyorsa room: null donuyor.
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    const socket = getSocket();
+    socket.emit("user:activeRoom", { userId: effectiveUserId }, (res: any) => {
+      if (res?.ok) setActiveRoom(res.room);
+    });
+  }, [effectiveUserId]);
+
+  // Galeri - gercek yuklenen fotograflar (supabase/migrations/0004_gallery_
+  // photos.sql). RLS zaten "sadece kendi fotograflarim VEYA gallery_visible
+  // acik olan birinin fotograflari" diye filtreliyor - burada ekstra kontrole
+  // gerek yok, dogrudan sorgulayabiliriz (avatar_url'de oldugu gibi).
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    supabase
+      .from("gallery_photos")
+      .select("id,url,created_at")
+      .eq("user_id", effectiveUserId)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setGalleryPhotos((data || []).map((row: any) => ({ id: row.id, url: row.url, createdAt: new Date(row.created_at).getTime() })));
+      });
+  }, [effectiveUserId]);
+
   function placeholder(label: string) {
     showAlert(label, "Bu ozellik yakinda eklenecek.");
   }
@@ -293,6 +331,69 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
     } finally {
       setUploadingAvatar(false);
     }
+  }
+
+  // Galeriye GERCEK fotograf yukleme - avatarin tek dosyalik "upsert" deseninin
+  // aksine, her secim YENI bir satir/dosya olusturur (bkz. 0004_gallery_
+  // photos.sql) cunku bir kullanicinin birden fazla galeri fotografi olabilir.
+  async function pickGalleryPhotos() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    setUploadingGalleryPhoto(true);
+    try {
+      for (const asset of result.assets) {
+        await uploadGalleryPhoto(asset.uri);
+      }
+    } finally {
+      setUploadingGalleryPhoto(false);
+    }
+  }
+
+  async function uploadGalleryPhoto(uri: string) {
+    if (!myUserId) return;
+    try {
+      const arrayBuffer = await fetch(uri).then((res) => res.arrayBuffer());
+      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
+      const contentType = ext === "png" ? "image/png" : "image/jpeg";
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const path = `${myUserId}/${fileName}`;
+      const { error: uploadError } = await supabase.storage.from("gallery").upload(path, arrayBuffer, { contentType });
+      if (uploadError) throw uploadError;
+      const { data: publicUrlData } = supabase.storage.from("gallery").getPublicUrl(path);
+      const { data: row, error: insertError } = await supabase
+        .from("gallery_photos")
+        .insert({ user_id: myUserId, url: publicUrlData.publicUrl })
+        .select("id,url,created_at")
+        .single();
+      if (insertError) throw insertError;
+      setGalleryPhotos((prev) => [{ id: row.id, url: row.url, createdAt: new Date(row.created_at).getTime() }, ...prev]);
+    } catch (err: any) {
+      showAlert("Yüklenemedi", err?.message || "Fotoğraf yüklenirken bir hata oluştu, tekrar dene.");
+    }
+  }
+
+  function confirmDeleteGalleryPhoto(photo: GalleryPhoto) {
+    if (!own) return;
+    showAlert("Fotoğrafı sil", "Bu fotoğrafı galeriden kaldırmak istediğine emin misin?", [
+      { text: "Vazgeç", style: "cancel" },
+      { text: "Sil", style: "destructive", onPress: () => deleteGalleryPhoto(photo) },
+    ]);
+  }
+
+  async function deleteGalleryPhoto(photo: GalleryPhoto) {
+    setGalleryPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+    await supabase.from("gallery_photos").delete().eq("id", photo.id);
+    const path = photo.url.split("/gallery/")[1]?.split("?")[0];
+    if (path) await supabase.storage.from("gallery").remove([path]);
   }
 
   // "goz" ikonlari eskiden SADECE yerel state'ti - uygulamadan cikinca
@@ -470,18 +571,54 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
           </View>
         )}
 
-        {(own || galleryVisible) && (own || history.length > 0) && (
+        {activeRoom && (
+          <TouchableOpacity
+            style={styles.activeRoomCard}
+            activeOpacity={0.85}
+            onPress={() => onOpenRoomPreview?.(activeRoom)}
+          >
+            {activeRoom.source?.coverUrl ? (
+              <Image source={{ uri: activeRoom.source.coverUrl }} style={styles.activeRoomThumb} />
+            ) : (
+              <View style={[styles.activeRoomThumb, styles.activeRoomThumbPlaceholder]}>
+                <Icon name="play" size={18} color={TEXT} />
+              </View>
+            )}
+            <View style={styles.activeRoomInfo}>
+              <View style={styles.activeRoomLiveRow}>
+                <View style={styles.liveDot} />
+                <Text style={styles.activeRoomLiveText}>ŞU AN AÇIK</Text>
+              </View>
+              <Text style={styles.activeRoomTitle} numberOfLines={1}>
+                {activeRoom.title}
+              </Text>
+              <Text style={styles.activeRoomMeta}>{activeRoom.participantCount} kişi izliyor</Text>
+            </View>
+            <Icon name="chevronRight" size={18} color={MUTED} />
+          </TouchableOpacity>
+        )}
+
+        {(own || galleryVisible) && (own || galleryPhotos.length > 0) && (
           <>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionHeader, { marginBottom: 0 }]}>GALERİ</Text>
               {own && (
-                <TouchableOpacity onPress={toggleGalleryVisible} hitSlop={6}>
-                  <Icon name={galleryVisible ? "eye" : "eyeOff"} size={16} color={galleryVisible ? ACCENT : MUTED} />
-                </TouchableOpacity>
+                <View style={styles.sectionHeaderActions}>
+                  <TouchableOpacity onPress={pickGalleryPhotos} hitSlop={6} disabled={uploadingGalleryPhoto}>
+                    {uploadingGalleryPhoto ? (
+                      <ActivityIndicator color={ACCENT} size="small" />
+                    ) : (
+                      <Icon name="plus" size={16} color={ACCENT} />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={toggleGalleryVisible} hitSlop={6}>
+                    <Icon name={galleryVisible ? "eye" : "eyeOff"} size={16} color={galleryVisible ? ACCENT : MUTED} />
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
-            {history.length === 0 ? (
-              <Text style={styles.emptyHistoryText}>Henüz izlediğin bir oda yok.</Text>
+            {galleryPhotos.length === 0 ? (
+              <Text style={styles.emptyHistoryText}>Henüz galeriye fotoğraf eklemedin.</Text>
             ) : (
               <ScrollView
                 horizontal
@@ -489,16 +626,15 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
                 style={styles.galleryScroll}
                 contentContainerStyle={styles.galleryRow}
               >
-                {history.map((item) => (
-                  <View key={`g-${item.roomCode}-${item.createdAt}`} style={styles.galleryThumb}>
-                    {item.mediaCoverUrl ? (
-                      <Image source={{ uri: item.mediaCoverUrl }} style={styles.galleryThumbImage} />
-                    ) : (
-                      <View style={styles.galleryThumbFallback}>
-                        <Text style={styles.galleryThumbInitial}>{item.mediaLabel.charAt(0).toUpperCase()}</Text>
-                      </View>
-                    )}
-                  </View>
+                {galleryPhotos.map((photo) => (
+                  <TouchableOpacity
+                    key={photo.id}
+                    style={styles.galleryThumb}
+                    activeOpacity={own ? 0.7 : 1}
+                    onLongPress={own ? () => confirmDeleteGalleryPhoto(photo) : undefined}
+                  >
+                    <Image source={{ uri: photo.url }} style={styles.galleryThumbImage} />
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
             )}
@@ -710,12 +846,30 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
+  activeRoomCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#141210",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#2A2422",
+    padding: 10,
+    marginBottom: 24,
+  },
+  activeRoomThumb: { width: 50, height: 50, borderRadius: 8 },
+  activeRoomThumbPlaceholder: { backgroundColor: "#2E4A2F", alignItems: "center", justifyContent: "center" },
+  activeRoomInfo: { flex: 1 },
+  activeRoomLiveRow: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 2 },
+  liveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: ACCENT },
+  activeRoomLiveText: { color: ACCENT, fontSize: 10, fontWeight: "700", letterSpacing: 1 },
+  activeRoomTitle: { color: TEXT, fontSize: 14, fontWeight: "700" },
+  activeRoomMeta: { color: MUTED, fontSize: 11, marginTop: 1 },
+  sectionHeaderActions: { flexDirection: "row", alignItems: "center", gap: 14 },
   galleryScroll: { marginBottom: 24 },
   galleryRow: { gap: 10 },
   galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
   galleryThumbImage: { width: "100%", height: "100%" },
-  galleryThumbFallback: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#2E4A2F" },
-  galleryThumbInitial: { color: TEXT, fontSize: 28, fontWeight: "700" },
   emptyHistoryText: { color: MUTED, fontSize: 12, marginBottom: 24 },
   statsBlock: {
     paddingVertical: 4,
