@@ -31,7 +31,9 @@ import {
   ArrowRightOnRectangleIcon,
   ForwardIcon,
   ArrowUturnLeftIcon,
+  HeartIcon,
 } from "react-native-heroicons/solid";
+import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
 import { MicOff, Hourglass, Crown } from "lucide-react-native";
 
 export type IconName =
@@ -68,7 +70,9 @@ export type IconName =
   | "fastForward"
   | "phone"
   | "kicked"
-  | "reply";
+  | "reply"
+  | "heart"
+  | "heartOutline";
 
 interface Props {
   name: IconName;
@@ -113,6 +117,8 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   phone: PhoneIcon,
   kicked: ArrowRightOnRectangleIcon,
   reply: ArrowUturnLeftIcon,
+  heart: HeartIcon,
+  heartOutline: HeartOutlineIcon,
 };
 
 const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>>> = {

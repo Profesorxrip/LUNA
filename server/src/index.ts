@@ -298,10 +298,34 @@ io.on("connection", (socket: Socket) => {
     ack?.({
       ok: true,
       history: (data || []).map((row: any) => ({
+        eventId: row.event_id,
         roomCode: row.room_code,
         mediaLabel: row.media_label,
         mediaCoverUrl: row.media_cover_url,
         mediaType: row.media_type,
+        participantCount: row.participant_count || 0,
+        createdAt: new Date(row.created_at).getTime(),
+      })),
+    });
+  });
+
+  // "Begenilenler" sekmesi - kullanicinin KENDI gecmisinden kalp ikonuyla
+  // isaretledigi altkume (bkz. 0008_video_likes_and_best.sql).
+  socket.on("user:likedHistory", async ({ userId }: { userId: string }, ack) => {
+    if (!isNonEmptyString(userId, 200)) return ack?.({ ok: false, error: "Gecersiz kullanici." });
+    const db = myDb || publicReadClient();
+    if (!db) return ack?.({ ok: false, error: "Sunucu yapilandirilmamis." });
+    const { data, error } = await db.rpc("get_user_liked_history", { target: userId, max_rows: 12 });
+    if (error) return ack?.({ ok: false, error: "Begenilenler alinamadi." });
+    ack?.({
+      ok: true,
+      history: (data || []).map((row: any) => ({
+        eventId: row.event_id,
+        roomCode: row.room_code,
+        mediaLabel: row.media_label,
+        mediaCoverUrl: row.media_cover_url,
+        mediaType: row.media_type,
+        participantCount: row.participant_count || 0,
         createdAt: new Date(row.created_at).getTime(),
       })),
     });
