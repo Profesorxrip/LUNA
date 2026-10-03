@@ -109,26 +109,36 @@ export interface PublicProfile {
   avatarUrl: string | null;
   bio: string | null;
   country: string | null;
+  createdAt: number;
+  statVisibility: Record<string, boolean>;
+  galleryVisible: boolean;
+  videosVisible: boolean;
+}
+
+const PUBLIC_PROFILE_COLUMNS = "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible";
+
+function rowToPublicProfile(row: any): PublicProfile {
+  return {
+    userId: row.id,
+    name: row.name || "Kullanici",
+    handle: row.handle,
+    avatarUrl: row.avatar_url,
+    bio: row.bio,
+    country: row.country,
+    createdAt: new Date(row.created_at).getTime(),
+    statVisibility: row.stat_visibility || {},
+    galleryVisible: row.gallery_visible !== false,
+    videosVisible: row.videos_visible !== false,
+  };
 }
 
 // profiles_select_all RLS politikasi herkesin herkesin profilini okumasina
 // izin veriyor (isim/handle/avatar/bio/ulke zaten herkese acik bilgiler) -
 // bu yuzden burada ekstra bir yetki kontrolune gerek yok.
 export async function getPublicProfile(db: SupabaseClient, userId: string): Promise<PublicProfile | null> {
-  const { data } = await db
-    .from("profiles")
-    .select("id,name,handle,avatar_url,bio,country")
-    .eq("id", userId)
-    .maybeSingle();
+  const { data } = await db.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", userId).maybeSingle();
   if (!data) return null;
-  return {
-    userId: data.id,
-    name: data.name || "Kullanici",
-    handle: data.handle,
-    avatarUrl: data.avatar_url,
-    bio: data.bio,
-    country: data.country,
-  };
+  return rowToPublicProfile(data);
 }
 
 // Oda onizleme ekraninda katilimci listesini (gercek isim/handle/avatar/ulke
@@ -136,16 +146,9 @@ export async function getPublicProfile(db: SupabaseClient, userId: string): Prom
 export async function profilesFor(db: SupabaseClient, ids: string[]): Promise<Map<string, PublicProfile>> {
   const map = new Map<string, PublicProfile>();
   if (ids.length === 0) return map;
-  const { data } = await db.from("profiles").select("id,name,handle,avatar_url,bio,country").in("id", ids);
+  const { data } = await db.from("profiles").select(PUBLIC_PROFILE_COLUMNS).in("id", ids);
   for (const row of data || []) {
-    map.set(row.id, {
-      userId: row.id,
-      name: row.name || "Kullanici",
-      handle: row.handle,
-      avatarUrl: row.avatar_url,
-      bio: row.bio,
-      country: row.country,
-    });
+    map.set(row.id, rowToPublicProfile(row));
   }
   return map;
 }

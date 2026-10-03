@@ -33,16 +33,10 @@ const MUTED = "#9A8F80";
 // profilini (own=false) test etmek icin sabit bir demo kimlik kullaniyoruz.
 const DEMO_PEER_USER_ID = "demo-peer-kullanici";
 
-const GALLERY_COLORS = ["#2E4A2F", "#3A2F22", "#1F3D24", "#4A3B22", "#274A2A", "#33291D"];
-
-const STAT_DEFS: { key: string; icon: IconName; label: string; value: string }[] = [
-  { key: "joinDate", icon: "calendar", label: "Katılım Tarihi", value: "Aralık 16 2025" },
-  { key: "totalHours", icon: "clock", label: "LUNA Süresi", value: "758 saat" },
-  { key: "friends", icon: "people", label: "Arkadaşlar", value: "18" },
-  { key: "longestSession", icon: "hourglass", label: "En Uzun Oturum", value: "53 saat" },
-  { key: "biggestRoom", icon: "people", label: "En Büyük Odanız", value: "14 kişi" },
-];
-
+// "goz" ikonuyla acilip kapatilan istatistik gorunurlugu - supabase/
+// migrations/0003_profile_stats_and_history.sql'deki profiles.
+// stat_visibility sutununun varsayilaniyla AYNI (gercek deger yuklenene
+// kadar kisa sureligine gosterilen baslangic durumu).
 const DEFAULT_STAT_VISIBILITY: Record<string, boolean> = {
   joinDate: false,
   totalHours: true,
@@ -52,89 +46,129 @@ const DEFAULT_STAT_VISIBILITY: Record<string, boolean> = {
   biggestRoom: true,
 };
 
-const ACTIVITY = [
-  { date: "1 Eyl", hours: 3 },
-  { date: "3 Eyl", hours: 6 },
-  { date: "5 Eyl", hours: 1 },
-  { date: "6 Eyl", hours: 8 },
-  { date: "7 Eyl", hours: 2 },
-  { date: "8 Eyl", hours: 0 },
-  { date: "9 Eyl", hours: 5 },
-  { date: "10 Eyl", hours: 9 },
-  { date: "11 Eyl", hours: 15.1 },
-];
-const ACTIVITY_MAX = Math.max(...ACTIVITY.map((d) => d.hours));
+interface ActivityStats {
+  totalHours: number;
+  longestSessionHours: number;
+  biggestRoom: number;
+  daily: Record<string, number>;
+}
 
-type VideoTabKey = "best" | "history" | "likes";
+interface HistoryItem {
+  roomCode: string;
+  mediaLabel: string;
+  mediaCoverUrl: string | null;
+  mediaType: string | null;
+  createdAt: number;
+}
 
-const VIDEO_TABS: { key: VideoTabKey; label: string }[] = [
-  { key: "best", label: "En İyiler" },
-  { key: "history", label: "Geçmiş" },
-  { key: "likes", label: "Beğenilenler" },
-];
+const TR_MONTHS = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
 
-const VIDEOS: Record<VideoTabKey, { title: string; duration: string; meta: string }[]> = {
-  best: [
-    { title: "Stranger Things", duration: "5:11", meta: "340 görüntüleme" },
-    { title: "Müzik Gecesi", duration: "6:04", meta: "210 görüntüleme" },
-    { title: "Gece Sohbeti", duration: "4:35", meta: "180 görüntüleme" },
-  ],
-  history: [
-    { title: "Deneme Videosu", duration: "3:02", meta: "42 görüntüleme" },
-    { title: "Netflix Gecesi", duration: "2:47", meta: "30 görüntüleme" },
-    { title: "Stranger Things", duration: "5:11", meta: "340 görüntüleme" },
-  ],
-  likes: [
-    { title: "Müzik Klibi", duration: "3:39", meta: "128 görüntüleme" },
-    { title: "Konser Kaydı", duration: "6:20", meta: "96 görüntüleme" },
-  ],
-};
+function formatDate(ms: number): string {
+  const d = new Date(ms);
+  return `${d.getDate()} ${TR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function formatHours(hours: number): string {
+  if (hours < 1) return `${Math.round(hours * 60)} dk`;
+  return `${hours.toFixed(hours < 10 ? 1 : 0)} saat`;
+}
+
+function timeAgo(ms: number): string {
+  const diffDays = Math.floor((Date.now() - ms) / (24 * 60 * 60 * 1000));
+  if (diffDays <= 0) return "Bugün";
+  if (diffDays === 1) return "Dün";
+  if (diffDays < 30) return `${diffDays} gün önce`;
+  return formatDate(ms);
+}
+
+// get_user_activity_stats RPC'sinin "daily" jsonb'si {"YYYY-MM-DD": saat}
+// seklinde - grafigin ihtiyac duydugu son 9 gunluk siraya ceviriyor,
+// veri olmayan gunler 0 saat olarak gosteriliyor.
+function buildDailyActivity(daily: Record<string, number>): { date: string; hours: number }[] {
+  const days: { date: string; hours: number }[] = [];
+  for (let i = 8; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const iso = d.toISOString().slice(0, 10);
+    days.push({ date: `${d.getDate()} ${TR_MONTHS[d.getMonth()]}`, hours: daily[iso] || 0 });
+  }
+  return days;
+}
 
 /** "Vinil Kayıt" konsepti - kartelanın (bkz. tasarım oturumu) ilk seçeneği,
  * kullanıcının kendi profili (own) ve başkasının profili (!own) icin
  * ortak bir govde uzerinde farkli baslik/aksiyon satiri gosterir. */
 export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }: Props) {
   const peerUserId = peer?.userId || DEMO_PEER_USER_ID;
+  const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState(peer?.name || "Kullanici");
   const [handle, setHandle] = useState(peer?.handle || "kullanici");
-  const [bio, setBio] = useState(own ? "Gece geç saat film ve dizi maratonları." : "");
+  const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [country, setCountry] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(own); // kendi profilin her zaman cevrimici
+  const [joinDateMs, setJoinDateMs] = useState<number | null>(null);
   const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editingField, setEditingField] = useState<"name" | "handle" | "bio" | null>(null);
-  const [activeTab, setActiveTab] = useState<VideoTabKey>("best");
-  const [galleryVisible, setGalleryVisible] = useState<boolean[]>(GALLERY_COLORS.map(() => true));
+  const [galleryVisible, setGalleryVisible] = useState(true);
   const [statVisibility, setStatVisibility] = useState(DEFAULT_STAT_VISIBILITY);
-  const [selectedDay, setSelectedDay] = useState(ACTIVITY.length - 1);
+  const [selectedDay, setSelectedDay] = useState(8);
   const [videosVisible, setVideosVisible] = useState(true);
   const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "friends">("none");
+  const [friendCount, setFriendCount] = useState(0);
+  const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
 
+  const effectiveUserId = own ? myUserId : peerUserId;
+
+  // Kendi profilin: gercek profiles satirini (isim/handle/bio/avatar/
+  // katilim tarihi/gorunurluk tercihleri) dogrudan supabase'den yukle -
+  // eskiden SADECE e-posta on ekinden uydurma bir isim gosteriliyordu,
+  // kaydedilmis GERCEK deger (varsa) hic okunmuyordu.
   useEffect(() => {
     if (!own) return;
     supabase.auth.getUser().then(({ data }) => {
-      const email = data.user?.email;
-      if (email) {
-        const prefix = email.split("@")[0];
-        setName(prefix);
-        setHandle(prefix.toLowerCase());
-      }
+      const userId = data.user?.id;
+      if (!userId) return;
+      setMyUserId(userId);
+      supabase
+        .from("profiles")
+        .select("name,handle,bio,avatar_url,created_at,stat_visibility,gallery_visible,videos_visible")
+        .eq("id", userId)
+        .maybeSingle()
+        .then(({ data: profile }) => {
+          if (!profile) return;
+          if (profile.name) setName(profile.name);
+          if (profile.handle) setHandle(profile.handle);
+          setBio(profile.bio || "");
+          if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
+          if (profile.created_at) setJoinDateMs(new Date(profile.created_at).getTime());
+          if (profile.stat_visibility) setStatVisibility(profile.stat_visibility);
+          if (profile.gallery_visible !== undefined) setGalleryVisible(profile.gallery_visible !== false);
+          if (profile.videos_visible !== undefined) setVideosVisible(profile.videos_visible !== false);
+        });
     });
   }, [own]);
 
   useEffect(() => {
     if (own) return;
     const socket = getSocket();
-    // Gercek katilimcinin isim/handle/avatar/bio/ulke bilgisini getirir -
-    // avatar taplandiginda elimizde sadece isim/userId oluyor, geri kalani
-    // (handle, bio, ulke bayragi) burada tamamlaniyor.
+    // Gercek katilimcinin isim/handle/avatar/bio/ulke/cevrimici/katilim
+    // tarihi/gorunurluk bilgisini getirir - avatar taplandiginda elimizde
+    // sadece isim/userId oluyor, geri kalani burada tamamlaniyor.
     socket.emit("user:profile", { userId: peerUserId }, (res: any) => {
       if (res?.ok && res.profile) {
         setName(res.profile.name || name);
         if (res.profile.handle) setHandle(res.profile.handle);
-        if (res.profile.bio) setBio(res.profile.bio);
+        setBio(res.profile.bio || "");
         if (res.profile.avatarUrl) setAvatarUrl(res.profile.avatarUrl);
         setCountry(res.profile.country || null);
+        setIsOnline(Boolean(res.profile.isOnline));
+        if (res.profile.createdAt) setJoinDateMs(res.profile.createdAt);
+        if (res.profile.statVisibility) setStatVisibility(res.profile.statVisibility);
+        setGalleryVisible(res.profile.galleryVisible !== false);
+        setVideosVisible(res.profile.videosVisible !== false);
       }
     });
     socket.emit("friend:status", { withUserId: peerUserId }, (res: any) => {
@@ -155,6 +189,24 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [own, peerUserId]);
 
+  // Gercek istatistikler/arkadas sayisi/gecmis - "Katilim Tarihi" disindaki
+  // hicbir sey artik uydurma degil (bkz. supabase/migrations/0003_profile_
+  // stats_and_history.sql). Kendi profil icin myUserId cozulur cozulmez,
+  // baskasi icin peerUserId zaten hazir oldugu icin hemen calisir.
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    const socket = getSocket();
+    socket.emit("user:activityStats", { userId: effectiveUserId }, (res: any) => {
+      if (res?.ok) setActivityStats(res.stats);
+    });
+    socket.emit("user:friendCount", { userId: effectiveUserId }, (res: any) => {
+      if (res?.ok) setFriendCount(res.count);
+    });
+    socket.emit("user:roomHistory", { userId: effectiveUserId }, (res: any) => {
+      if (res?.ok) setHistory(res.history);
+    });
+  }, [effectiveUserId]);
+
   function placeholder(label: string) {
     showAlert(label, "Bu ozellik yakinda eklenecek.");
   }
@@ -169,9 +221,21 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
     getSocket().emit("friend:cancel", { toUserId: peerUserId }, () => setFriendStatus("none"));
   }
 
+  // Isim/kullanici adi/biyografi duzenlemeleri eskiden SADECE yerel state'ti -
+  // yazip kapatinca hicbir yere kaydedilmiyordu, sayfa yenilenince kayboluyordu.
+  async function persistField(field: "name" | "handle" | "bio", value: string) {
+    if (!own || !myUserId) return;
+    await supabase.from("profiles").update({ [field]: value }).eq("id", myUserId);
+  }
+
   function toggleFieldEdit(field: "name" | "handle" | "bio") {
     if (!own) return;
-    setEditingField((v) => (v === field ? null : field));
+    setEditingField(field);
+  }
+
+  function closeFieldEdit(field: "name" | "handle" | "bio", value: string) {
+    setEditingField(null);
+    persistField(field, value);
   }
 
   async function removeAvatar() {
@@ -231,17 +295,61 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
     }
   }
 
-  function toggleGalleryItem(i: number) {
-    if (!own) return;
-    setGalleryVisible((v) => v.map((x, idx) => (idx === i ? !x : x)));
+  // "goz" ikonlari eskiden SADECE yerel state'ti - uygulamadan cikinca
+  // sifirlaniyordu, baskasinin HER SEYI gormesine izin veriyordu. Artik
+  // profiles.stat_visibility/gallery_visible/videos_visible'a kaydediliyor.
+  function toggleStat(key: string) {
+    if (!own || !myUserId) return;
+    setStatVisibility((v) => {
+      const next = { ...v, [key]: !v[key] };
+      supabase.from("profiles").update({ stat_visibility: next }).eq("id", myUserId);
+      return next;
+    });
   }
 
-  function toggleStat(key: string) {
-    if (!own) return;
-    setStatVisibility((v) => ({ ...v, [key]: !v[key] }));
+  function toggleGalleryVisible() {
+    if (!own || !myUserId) return;
+    setGalleryVisible((v) => {
+      const next = !v;
+      supabase.from("profiles").update({ gallery_visible: next }).eq("id", myUserId);
+      return next;
+    });
+  }
+
+  function toggleVideosVisible() {
+    if (!own || !myUserId) return;
+    setVideosVisible((v) => {
+      const next = !v;
+      supabase.from("profiles").update({ videos_visible: next }).eq("id", myUserId);
+      return next;
+    });
   }
 
   const initial = name.charAt(0).toUpperCase();
+  const dailyActivity = activityStats ? buildDailyActivity(activityStats.daily) : buildDailyActivity({});
+  const dailyMax = Math.max(1, ...dailyActivity.map((d) => d.hours));
+  const statRows: { key: string; icon: IconName; label: string; value: string }[] = [
+    { key: "joinDate", icon: "calendar", label: "Katılım Tarihi", value: joinDateMs ? formatDate(joinDateMs) : "—" },
+    {
+      key: "totalHours",
+      icon: "clock",
+      label: "LUNA Süresi",
+      value: activityStats ? formatHours(activityStats.totalHours) : "—",
+    },
+    { key: "friends", icon: "people", label: "Arkadaşlar", value: String(friendCount) },
+    {
+      key: "longestSession",
+      icon: "hourglass",
+      label: "En Uzun Oturum",
+      value: activityStats ? formatHours(activityStats.longestSessionHours) : "—",
+    },
+    {
+      key: "biggestRoom",
+      icon: "people",
+      label: "En Büyük Odanız",
+      value: activityStats && activityStats.biggestRoom > 0 ? `${activityStats.biggestRoom} kişi` : "—",
+    },
+  ];
 
   return (
     <View style={styles.screen}>
@@ -290,8 +398,8 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
               value={name}
               onChangeText={setName}
               autoFocus
-              onSubmitEditing={() => setEditingField(null)}
-              onBlur={() => setEditingField(null)}
+              onSubmitEditing={() => closeFieldEdit("name", name)}
+              onBlur={() => closeFieldEdit("name", name)}
             />
           ) : (
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")}>
@@ -306,8 +414,8 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
                 value={handle}
                 onChangeText={(v) => setHandle(v.toLowerCase())}
                 autoFocus
-                onSubmitEditing={() => setEditingField(null)}
-                onBlur={() => setEditingField(null)}
+                onSubmitEditing={() => closeFieldEdit("handle", handle)}
+                onBlur={() => closeFieldEdit("handle", handle)}
                 autoCapitalize="none"
               />
             </View>
@@ -327,7 +435,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
             onChangeText={setBio}
             multiline
             autoFocus
-            onBlur={() => setEditingField(null)}
+            onBlur={() => closeFieldEdit("bio", bio)}
             placeholder="Biyografi"
             placeholderTextColor={MUTED}
           />
@@ -362,40 +470,48 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
           </View>
         )}
 
-        <Text style={styles.sectionHeader}>GALERİ</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.galleryScroll}
-          contentContainerStyle={styles.galleryRow}
-        >
-          {own && (
-            <TouchableOpacity style={styles.galleryAddBtn} onPress={() => placeholder("Fotoğraf Ekle")}>
-              <Icon name="plus" size={22} color={BG} />
-            </TouchableOpacity>
-          )}
-          {GALLERY_COLORS.map((c, i) => {
-            const visible = galleryVisible[i];
-            if (!own && !visible) return null;
-            return (
-              <View key={i} style={[styles.galleryThumb, { backgroundColor: c }]}>
-                {own && (
-                  <TouchableOpacity style={styles.galleryEyeBadge} onPress={() => toggleGalleryItem(i)} hitSlop={6}>
-                    <Icon name={visible ? "eye" : "eyeOff"} size={12} color={visible ? ACCENT : MUTED} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            );
-          })}
-        </ScrollView>
+        {(own || galleryVisible) && (own || history.length > 0) && (
+          <>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionHeader, { marginBottom: 0 }]}>GALERİ</Text>
+              {own && (
+                <TouchableOpacity onPress={toggleGalleryVisible} hitSlop={6}>
+                  <Icon name={galleryVisible ? "eye" : "eyeOff"} size={16} color={galleryVisible ? ACCENT : MUTED} />
+                </TouchableOpacity>
+              )}
+            </View>
+            {history.length === 0 ? (
+              <Text style={styles.emptyHistoryText}>Henüz izlediğin bir oda yok.</Text>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.galleryScroll}
+                contentContainerStyle={styles.galleryRow}
+              >
+                {history.map((item) => (
+                  <View key={`g-${item.roomCode}-${item.createdAt}`} style={styles.galleryThumb}>
+                    {item.mediaCoverUrl ? (
+                      <Image source={{ uri: item.mediaCoverUrl }} style={styles.galleryThumbImage} />
+                    ) : (
+                      <View style={styles.galleryThumbFallback}>
+                        <Text style={styles.galleryThumbInitial}>{item.mediaLabel.charAt(0).toUpperCase()}</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </>
+        )}
 
         <Text style={styles.sectionHeader}>İSTATİSTİKLER</Text>
         <View style={styles.statsBlock}>
           <View style={styles.statRow}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.statRowLabel}>Çevrimiçi</Text>
+            <View style={[styles.onlineDot, !isOnline && styles.offlineDot]} />
+            <Text style={styles.statRowLabel}>{isOnline ? "Çevrimiçi" : "Çevrimdışı"}</Text>
           </View>
-          {STAT_DEFS.map((stat) => {
+          {statRows.map((stat) => {
             const visible = statVisibility[stat.key];
             if (!own && !visible) return null;
             return (
@@ -427,13 +543,13 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
                 )}
               </View>
               <View style={styles.chartBars}>
-                {ACTIVITY.map((d, i) => (
-                  <TouchableOpacity key={d.date} style={styles.chartBarTouch} onPress={() => setSelectedDay(i)}>
+                {dailyActivity.map((d, i) => (
+                  <TouchableOpacity key={d.date + i} style={styles.chartBarTouch} onPress={() => setSelectedDay(i)}>
                     <View
                       style={[
                         styles.chartBar,
                         {
-                          height: Math.max(4, (d.hours / ACTIVITY_MAX) * 70),
+                          height: Math.max(4, (d.hours / dailyMax) * 70),
                           backgroundColor: i === selectedDay ? ACCENT : "#2A4A32",
                         },
                       ]}
@@ -442,46 +558,45 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
                 ))}
               </View>
               <Text style={styles.chartSelected}>
-                {ACTIVITY[selectedDay].date} · {ACTIVITY[selectedDay].hours} saat
+                {dailyActivity[selectedDay].date} · {formatHours(dailyActivity[selectedDay].hours)}
               </Text>
             </View>
           )}
         </View>
 
-        {(own || videosVisible) && (
+        {(own || videosVisible) && (own || history.length > 0) && (
           <>
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionHeader, { marginBottom: 0 }]}>VİDEOLAR</Text>
+              <Text style={[styles.sectionHeader, { marginBottom: 0 }]}>GEÇMİŞ</Text>
               {own && (
-                <TouchableOpacity onPress={() => setVideosVisible((v) => !v)} hitSlop={6}>
+                <TouchableOpacity onPress={toggleVideosVisible} hitSlop={6}>
                   <Icon name={videosVisible ? "eye" : "eyeOff"} size={16} color={videosVisible ? ACCENT : MUTED} />
                 </TouchableOpacity>
               )}
             </View>
-            <View style={styles.tabsRow}>
-              {VIDEO_TABS.map((tab) => (
-                <TouchableOpacity key={tab.key} style={styles.tabItem} onPress={() => setActiveTab(tab.key)}>
-                  <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
-                  {activeTab === tab.key && <View style={styles.tabUnderline} />}
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={styles.videoGrid}>
-              {VIDEOS[activeTab].map((video, i) => (
-                <View key={video.title + i} style={styles.videoCard}>
-                  <View style={styles.videoThumb}>
-                    <View style={styles.videoPlayBadge}>
-                      <Icon name="play" size={11} color={TEXT} />
+            {history.length === 0 ? (
+              <Text style={styles.emptyHistoryText}>Henüz bir odaya katılmadın.</Text>
+            ) : (
+              <View style={styles.videoGrid}>
+                {history.map((item) => (
+                  <View key={`v-${item.roomCode}-${item.createdAt}`} style={styles.videoCard}>
+                    <View style={styles.videoThumb}>
+                      {item.mediaCoverUrl ? (
+                        <Image source={{ uri: item.mediaCoverUrl }} style={styles.videoThumbImage} />
+                      ) : (
+                        <View style={styles.videoPlayBadge}>
+                          <Icon name="play" size={11} color={TEXT} />
+                        </View>
+                      )}
                     </View>
-                    <Text style={styles.videoDurationBadge}>{video.duration}</Text>
+                    <Text style={styles.videoTitle} numberOfLines={2}>
+                      {item.mediaLabel}
+                    </Text>
+                    <Text style={styles.videoMeta}>{timeAgo(item.createdAt)}</Text>
                   </View>
-                  <Text style={styles.videoTitle} numberOfLines={2}>
-                    {video.title}
-                  </Text>
-                  <Text style={styles.videoMeta}>{video.meta}</Text>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -597,26 +712,11 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   galleryScroll: { marginBottom: 24 },
   galleryRow: { gap: 10 },
-  galleryAddBtn: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: TEXT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  galleryThumb: { width: 84, height: 84, borderRadius: 10, position: "relative" },
-  galleryEyeBadge: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
+  galleryThumbImage: { width: "100%", height: "100%" },
+  galleryThumbFallback: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#2E4A2F" },
+  galleryThumbInitial: { color: TEXT, fontSize: 28, fontWeight: "700" },
+  emptyHistoryText: { color: MUTED, fontSize: 12, marginBottom: 24 },
   statsBlock: {
     paddingVertical: 4,
     borderTopWidth: 1,
@@ -626,6 +726,7 @@ const styles = StyleSheet.create({
   },
   statRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
   onlineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: ACCENT },
+  offlineDot: { backgroundColor: MUTED },
   statRowLabel: { flex: 1, color: TEXT, fontSize: 13, fontWeight: "600" },
   statRowValue: { color: MUTED, fontSize: 13 },
   chartBlock: { paddingTop: 4, paddingBottom: 12 },
@@ -647,11 +748,6 @@ const styles = StyleSheet.create({
   secondaryButtonText: { color: TEXT, fontSize: 13, fontWeight: "700" },
   sectionHeader: { color: MUTED, fontSize: 10, letterSpacing: 1.5, marginBottom: 10 },
   sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  tabsRow: { flexDirection: "row", gap: 16, marginBottom: 16 },
-  tabItem: { alignItems: "center" },
-  tabText: { color: MUTED, fontSize: 12, fontWeight: "600" },
-  tabTextActive: { color: TEXT },
-  tabUnderline: { height: 2, width: "100%", backgroundColor: ACCENT, borderRadius: 1, marginTop: 6 },
   videoGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
   videoCard: { width: "31%", marginBottom: 18 },
   videoThumb: {
@@ -662,30 +758,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#2A2422",
     marginBottom: 6,
-    position: "relative",
-  },
-  videoPlayBadge: {
-    position: "absolute",
-    top: 5,
-    left: 5,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
-  videoDurationBadge: {
-    position: "absolute",
-    bottom: 5,
-    right: 5,
-    color: TEXT,
-    fontSize: 9,
-    fontWeight: "700",
-    backgroundColor: "rgba(0,0,0,0.7)",
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 4,
+  videoThumbImage: { width: "100%", height: "100%" },
+  videoPlayBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   videoTitle: { color: TEXT, fontSize: 11, fontWeight: "600" },
   videoMeta: { color: MUTED, fontSize: 10, fontWeight: "700", marginTop: 2 },

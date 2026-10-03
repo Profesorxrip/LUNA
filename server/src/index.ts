@@ -245,7 +245,65 @@ io.on("connection", (socket: Socket) => {
     if (!db) return ack?.({ ok: false, error: "Sunucu yapilandirilmamis." });
     const profile = await getPublicProfile(db, userId);
     if (!profile) return ack?.({ ok: false, error: "Kullanici bulunamadi." });
-    ack?.({ ok: true, profile });
+    // Gercek cevrimici durumu - getSocketIdForUser dolu donerse o kullanici
+    // su an bagli bir socket'e sahip demektir (bkz. dm.ts online Map'i).
+    ack?.({ ok: true, profile: { ...profile, isOnline: Boolean(getSocketIdForUser(userId)) } });
+  });
+
+  // Profildeki GERCEK "LUNA Suresi / En Uzun Oturum / En Buyuk Odaniz /
+  // Gunluk Saatler" - supabase/migrations/0003_profile_stats_and_history.sql
+  // icindeki get_user_activity_stats RPC'si room_events'i hesaplayarak
+  // bu dort degeri dondurur (herkese acik - profil sayfasinda gosteriliyor).
+  socket.on("user:activityStats", async ({ userId }: { userId: string }, ack) => {
+    if (!isNonEmptyString(userId, 200)) return ack?.({ ok: false, error: "Gecersiz kullanici." });
+    const db = myDb || publicReadClient();
+    if (!db) return ack?.({ ok: false, error: "Sunucu yapilandirilmamis." });
+    const { data, error } = await db.rpc("get_user_activity_stats", { target: userId, days: 9 });
+    if (error || !data || !data[0]) return ack?.({ ok: false, error: "Istatistikler alinamadi." });
+    const row = data[0];
+    ack?.({
+      ok: true,
+      stats: {
+        totalHours: Number(row.total_hours) || 0,
+        longestSessionHours: Number(row.longest_session_hours) || 0,
+        biggestRoom: Number(row.biggest_room) || 0,
+        daily: row.daily || {},
+      },
+    });
+  });
+
+  // Gercek arkadas SAYISI - get_friend_count RPC'si RLS'i (friendships_
+  // select_involved sadece kendi iliskini gormene izin verir) guvenli bir
+  // sekilde bypass eder, sadece SAYI doner, listeyi degil.
+  socket.on("user:friendCount", async ({ userId }: { userId: string }, ack) => {
+    if (!isNonEmptyString(userId, 200)) return ack?.({ ok: false, error: "Gecersiz kullanici." });
+    const db = myDb || publicReadClient();
+    if (!db) return ack?.({ ok: false, error: "Sunucu yapilandirilmamis." });
+    const { data, error } = await db.rpc("get_friend_count", { target: userId });
+    if (error) return ack?.({ ok: false, error: "Sayi alinamadi." });
+    ack?.({ ok: true, count: Number(data) || 0 });
+  });
+
+  // Profildeki GERCEK "Galeri"/"Videolar" - get_user_room_history RPC'si
+  // target KENDISI degilse, SADECE target'in profilinde galeri/video
+  // gorunurlugu aciksa veri dondurur (gizlilik "goz" ikonuyla gercekten
+  // kontrol edilebiliyor artik).
+  socket.on("user:roomHistory", async ({ userId }: { userId: string }, ack) => {
+    if (!isNonEmptyString(userId, 200)) return ack?.({ ok: false, error: "Gecersiz kullanici." });
+    const db = myDb || publicReadClient();
+    if (!db) return ack?.({ ok: false, error: "Sunucu yapilandirilmamis." });
+    const { data, error } = await db.rpc("get_user_room_history", { target: userId, max_rows: 12 });
+    if (error) return ack?.({ ok: false, error: "Gecmis alinamadi." });
+    ack?.({
+      ok: true,
+      history: (data || []).map((row: any) => ({
+        roomCode: row.room_code,
+        mediaLabel: row.media_label,
+        mediaCoverUrl: row.media_cover_url,
+        mediaType: row.media_type,
+        createdAt: new Date(row.created_at).getTime(),
+      })),
+    });
   });
 
   socket.on("friends:list", async (_data, ack) => {
@@ -381,7 +439,13 @@ io.on("connection", (socket: Socket) => {
       socket.join(room.code);
       ack?.({ ok: true, room: roomToPublicState(room) });
       broadcastRoomsList();
-      if (myDb && myUserId) logRoomEvent(myDb, myUserId, room.code, "create", source.label).catch(() => {});
+      if (myDb && myUserId)
+        logRoomEvent(myDb, myUserId, room.code, "create", source.label, {
+          participantCount: room.participants.size,
+          coverUrl: source.coverUrl,
+          type: source.type,
+          url: source.url,
+        }).catch(() => {});
     }
   );
 
@@ -460,7 +524,13 @@ io.on("connection", (socket: Socket) => {
       text: `${name || "Misafir"} odaya katildi.`,
       ts: Date.now(),
     });
-    if (myDb && myUserId) logRoomEvent(myDb, myUserId, room.code, "join", room.playback.source?.label).catch(() => {});
+    if (myDb && myUserId)
+      logRoomEvent(myDb, myUserId, room.code, "join", room.playback.source?.label, {
+        participantCount: room.participants.size,
+        coverUrl: room.playback.source?.coverUrl,
+        type: room.playback.source?.type,
+        url: room.playback.source?.url,
+      }).catch(() => {});
   });
 
   socket.on("room:leave", () => {
