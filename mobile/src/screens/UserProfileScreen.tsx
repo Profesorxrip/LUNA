@@ -9,7 +9,9 @@ import {
   Alert,
   TextInput,
   Modal,
+  ActivityIndicator,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../services/supabase";
 import { getSocket } from "../services/socket";
 import Icon, { IconName } from "../components/Icon";
@@ -99,6 +101,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
   const [avatarUrl, setAvatarUrl] = useState("");
   const [country, setCountry] = useState<string | null>(null);
   const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editingField, setEditingField] = useState<"name" | "handle" | "bio" | null>(null);
   const [activeTab, setActiveTab] = useState<VideoTabKey>("best");
   const [galleryVisible, setGalleryVisible] = useState<boolean[]>(GALLERY_COLORS.map(() => true));
@@ -171,14 +174,61 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
     setEditingField((v) => (v === field ? null : field));
   }
 
-  function removeAvatar() {
-    setAvatarUrl("");
+  async function removeAvatar() {
     setAvatarSheetVisible(false);
+    setAvatarUrl("");
+    const { data } = await supabase.auth.getUser();
+    const userId = data.user?.id;
+    if (!userId) return;
+    await supabase.from("profiles").update({ avatar_url: null }).eq("id", userId);
   }
 
-  function pickFromGallery() {
+  async function pickFromGallery() {
     setAvatarSheetVisible(false);
-    placeholder("Fotoğraf Seç");
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    await uploadAvatar(result.assets[0].uri);
+  }
+
+  // avatars storage bucket (supabase/migrations/0001_init.sql) zaten hazirdi -
+  // sadece client tarafindaki yukleme hic yazilmamisti. "avatars/<userId>/..."
+  // yoluna sadece kendi klasorune yazma izni var (avatar_owner_write policy).
+  async function uploadAvatar(uri: string) {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) return;
+    setUploadingAvatar(true);
+    try {
+      const arrayBuffer = await fetch(uri).then((res) => res.arrayBuffer());
+      const ext = uri.split(".").pop()?.toLowerCase() || "jpg";
+      const contentType = ext === "png" ? "image/png" : "image/jpeg";
+      const path = `${userId}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, arrayBuffer, { contentType, upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      // "upsert" ayni path'e yazdigi icin URL degismiyor - tarayici/CDN
+      // onbellegi eski resmi gosterebilir, sona bir "cache-bust" ekliyoruz.
+      const bustedUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+      const { error: updateError } = await supabase.from("profiles").update({ avatar_url: bustedUrl }).eq("id", userId);
+      if (updateError) throw updateError;
+      setAvatarUrl(bustedUrl);
+    } catch (err: any) {
+      Alert.alert("Yüklenemedi", err?.message || "Fotoğraf yüklenirken bir hata oluştu, tekrar dene.");
+    } finally {
+      setUploadingAvatar(false);
+    }
   }
 
   function toggleGalleryItem(i: number) {
@@ -216,7 +266,9 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM }
           <View style={styles.ringOuter}>
             <View style={styles.ringMiddle}>
               <View style={styles.avatarCore}>
-                {avatarUrl ? (
+                {uploadingAvatar ? (
+                  <ActivityIndicator color={ACCENT} />
+                ) : avatarUrl ? (
                   <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
                 ) : (
                   <Text style={styles.avatarInitial}>{initial}</Text>
