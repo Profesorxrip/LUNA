@@ -578,7 +578,9 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
 
         {activeRoom && (
           <>
+            <View style={styles.fullDivider} />
             <Text style={styles.sectionHeader}>AKTİF ODA</Text>
+            <View style={styles.fullDivider} />
             <RoomCard
               room={activeRoom}
               onPress={() => onOpenRoomPreview?.(activeRoom)}
@@ -589,8 +591,9 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
 
         {(own || galleryVisible) && (own || galleryPhotos.length > 0) && (
           <>
+            <View style={styles.fullDivider} />
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionHeader, { marginBottom: 0 }]}>GALERİ</Text>
+              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>GALERİ</Text>
               {own && (
                 <View style={styles.sectionHeaderActions}>
                   <TouchableOpacity onPress={pickGalleryPhotos} hitSlop={6} disabled={uploadingGalleryPhoto}>
@@ -606,8 +609,9 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
                 </View>
               )}
             </View>
+            <View style={styles.fullDivider} />
             {galleryPhotos.length === 0 ? (
-              <Text style={styles.emptyHistoryText}>Henüz galeriye fotoğraf eklemedin.</Text>
+              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>Henüz galeriye fotoğraf eklemedin.</Text>
             ) : (
               <ScrollView
                 horizontal
@@ -689,16 +693,18 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
 
         {(own || videosVisible) && (own || history.length > 0) && (
           <>
+            <View style={styles.fullDivider} />
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionHeader, { marginBottom: 0 }]}>GEÇMİŞ</Text>
+              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>GEÇMİŞ</Text>
               {own && (
                 <TouchableOpacity onPress={toggleVideosVisible} hitSlop={6}>
                   <Icon name={videosVisible ? "eye" : "eyeOff"} size={16} color={videosVisible ? ACCENT : MUTED} />
                 </TouchableOpacity>
               )}
             </View>
+            <View style={styles.fullDivider} />
             {history.length === 0 ? (
-              <Text style={styles.emptyHistoryText}>Henüz bir odaya katılmadın.</Text>
+              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>Henüz bir odaya katılmadın.</Text>
             ) : (
               <View style={styles.videoGrid}>
                 {history.map((item) => (
@@ -836,9 +842,9 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
-  activeRoomCard: { margin: 0, marginBottom: 24 },
+  activeRoomCard: { margin: 0, marginTop: 14, marginBottom: 24 },
   sectionHeaderActions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  galleryScroll: { marginBottom: 24 },
+  galleryScroll: { marginTop: 14, marginBottom: 24 },
   galleryRow: { gap: 10 },
   galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
   galleryThumbImage: { width: "100%", height: "100%" },
@@ -846,8 +852,7 @@ const styles = StyleSheet.create({
   fullDivider: { height: 1, backgroundColor: "#1C1C1C", marginHorizontal: -16 },
   statsBlock: {
     paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderColor: "#1C1C1C",
+    marginTop: 4,
     marginBottom: 24,
   },
   statRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
@@ -882,9 +887,9 @@ const styles = StyleSheet.create({
     borderColor: "#262626",
   },
   secondaryButtonText: { color: TEXT, fontSize: 13, fontWeight: "700" },
-  sectionHeader: { color: MUTED, fontSize: 11, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 },
-  sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  videoGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  sectionHeader: { color: MUTED, fontSize: 11, fontWeight: "700", letterSpacing: 1.2, paddingVertical: 12 },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12 },
+  videoGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 14 },
   videoCard: { width: "31%", marginBottom: 18 },
   videoThumb: {
     width: "100%",
