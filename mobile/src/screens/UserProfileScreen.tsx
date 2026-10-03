@@ -129,6 +129,8 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
   const [statVisibility, setStatVisibility] = useState(DEFAULT_STAT_VISIBILITY);
   const [selectedDay, setSelectedDay] = useState(8);
   const [videosVisible, setVideosVisible] = useState(true);
+  const [bioVisible, setBioVisible] = useState(true);
+  const [statsVisible, setStatsVisible] = useState(true);
   const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "friends">("none");
   const [friendCount, setFriendCount] = useState(0);
   const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
@@ -179,7 +181,9 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
       setMyUserId(userId);
       supabase
         .from("profiles")
-        .select("name,handle,bio,avatar_url,created_at,stat_visibility,gallery_visible,videos_visible")
+        .select(
+          "name,handle,bio,avatar_url,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible"
+        )
         .eq("id", userId)
         .maybeSingle()
         .then(({ data: profile }) => {
@@ -192,6 +196,8 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
           if (profile.stat_visibility) setStatVisibility(profile.stat_visibility);
           if (profile.gallery_visible !== undefined) setGalleryVisible(profile.gallery_visible !== false);
           if (profile.videos_visible !== undefined) setVideosVisible(profile.videos_visible !== false);
+          if (profile.bio_visible !== undefined) setBioVisible(profile.bio_visible !== false);
+          if (profile.stats_visible !== undefined) setStatsVisible(profile.stats_visible !== false);
         });
     });
   }, [own]);
@@ -214,6 +220,8 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
         if (res.profile.statVisibility) setStatVisibility(res.profile.statVisibility);
         setGalleryVisible(res.profile.galleryVisible !== false);
         setVideosVisible(res.profile.videosVisible !== false);
+        setBioVisible(res.profile.bioVisible !== false);
+        setStatsVisible(res.profile.statsVisible !== false);
       }
     });
     socket.emit("friend:status", { withUserId: peerUserId }, (res: any) => {
@@ -461,18 +469,32 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
     });
   }
 
+  function toggleBioVisible() {
+    if (!own || !myUserId) return;
+    setBioVisible((v) => {
+      const next = !v;
+      supabase.from("profiles").update({ bio_visible: next }).eq("id", myUserId);
+      return next;
+    });
+  }
+
+  function toggleStatsVisible() {
+    if (!own || !myUserId) return;
+    setStatsVisible((v) => {
+      const next = !v;
+      supabase.from("profiles").update({ stats_visible: next }).eq("id", myUserId);
+      return next;
+    });
+  }
+
   const initial = name.charAt(0).toUpperCase();
   const dailyActivity = activityStats ? buildDailyActivity(activityStats.daily) : buildDailyActivity({});
   const dailyMax = Math.max(1, ...dailyActivity.map((d) => d.hours));
+  // Siralama: Cevrimici (ayri render ediliyor, en basta) -> Katilim Tarihi
+  // -> En Uzun Oturum -> En Buyuk Oda -> LUNA Suresi -> Arkadaslar ->
+  // Gunluk Saatler (grafik, en sonda render ediliyor).
   const statRows: { key: string; icon: IconName; label: string; value: string }[] = [
     { key: "joinDate", icon: "calendar", label: "Katılım Tarihi", value: joinDateMs ? formatDate(joinDateMs) : "—" },
-    {
-      key: "totalHours",
-      icon: "clock",
-      label: "LUNA Süresi",
-      value: activityStats ? formatHours(activityStats.totalHours) : "—",
-    },
-    { key: "friends", icon: "people", label: "Arkadaşlar", value: String(friendCount) },
     {
       key: "longestSession",
       icon: "hourglass",
@@ -482,9 +504,16 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
     {
       key: "biggestRoom",
       icon: "people",
-      label: "En Büyük Odanız",
+      label: "En Büyük Oda",
       value: activityStats && activityStats.biggestRoom > 0 ? `${activityStats.biggestRoom} kişi` : "—",
     },
+    {
+      key: "totalHours",
+      icon: "clock",
+      label: "LUNA Süresi",
+      value: activityStats ? formatHours(activityStats.totalHours) : "—",
+    },
+    { key: "friends", icon: "people", label: "Arkadaşlar", value: String(friendCount) },
   ];
 
   return (
@@ -574,10 +603,17 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
         </View>
         </View>
         <View style={styles.bodyContent}>
-        {(own || bio.trim().length > 0) && (
+        {(own || (bioVisible && bio.trim().length > 0)) && (
           <>
             <View style={styles.fullDivider} />
-            <Text style={styles.sectionHeader}>BİYOGRAFİ</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>BİYOGRAFİ</Text>
+              {own && (
+                <TouchableOpacity onPress={toggleBioVisible} hitSlop={6}>
+                  <Icon name={bioVisible ? "eye" : "eyeOff"} size={16} color={bioVisible ? ACCENT : MUTED} />
+                </TouchableOpacity>
+              )}
+            </View>
             <View style={styles.fullDivider} />
             {editingField === "bio" ? (
               <TextInput
@@ -683,8 +719,17 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
           </>
         )}
 
+        {(own || statsVisible) && (
+          <>
         <View style={styles.fullDivider} />
-        <Text style={styles.sectionHeader}>İSTATİSTİKLER</Text>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>İSTATİSTİKLER</Text>
+          {own && (
+            <TouchableOpacity onPress={toggleStatsVisible} hitSlop={6}>
+              <Icon name={statsVisible ? "eye" : "eyeOff"} size={16} color={statsVisible ? ACCENT : MUTED} />
+            </TouchableOpacity>
+          )}
+        </View>
         <View style={styles.fullDivider} />
         <View style={styles.statsBlock}>
           {statRows.map((stat) => {
@@ -725,7 +770,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
                       style={[
                         styles.chartBar,
                         {
-                          height: Math.max(4, (d.hours / dailyMax) * 70),
+                          height: Math.max(4, (d.hours / dailyMax) * 100),
                           backgroundColor: i === selectedDay ? ACCENT : "#163449",
                         },
                       ]}
@@ -739,6 +784,8 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
             </View>
           )}
         </View>
+          </>
+        )}
 
         {(own || videosVisible) && (own || history.length > 0) && (
           <>
@@ -913,7 +960,7 @@ const styles = StyleSheet.create({
   statRowLabel: { flex: 1, color: MUTED, fontSize: 13.5, fontWeight: "500", letterSpacing: 0.1 },
   statRowValue: { color: TEXT, fontSize: 14, fontWeight: "700" },
   chartBlock: { paddingTop: 6, paddingBottom: 12 },
-  chartBars: { flexDirection: "row", alignItems: "flex-end", gap: 6, height: 70, marginTop: 6, marginBottom: 10 },
+  chartBars: { flexDirection: "row", alignItems: "flex-end", gap: 6, height: 100, marginTop: 6, marginBottom: 10 },
   chartBarTouch: { flex: 1, alignItems: "center", justifyContent: "flex-end", height: "100%" },
   chartBar: { width: "100%", borderRadius: 2 },
   chartSelected: { color: MUTED, fontSize: 11, textAlign: "center" },

@@ -113,9 +113,12 @@ export interface PublicProfile {
   statVisibility: Record<string, boolean>;
   galleryVisible: boolean;
   videosVisible: boolean;
+  bioVisible: boolean;
+  statsVisible: boolean;
 }
 
-const PUBLIC_PROFILE_COLUMNS = "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible";
+const PUBLIC_PROFILE_COLUMNS =
+  "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible";
 
 function rowToPublicProfile(row: any): PublicProfile {
   return {
@@ -129,6 +132,8 @@ function rowToPublicProfile(row: any): PublicProfile {
     statVisibility: row.stat_visibility || {},
     galleryVisible: row.gallery_visible !== false,
     videosVisible: row.videos_visible !== false,
+    bioVisible: row.bio_visible !== false,
+    statsVisible: row.stats_visible !== false,
   };
 }
 
