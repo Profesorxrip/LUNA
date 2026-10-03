@@ -13,6 +13,7 @@ import {
   Image,
   Animated,
   PanResponder,
+  useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
@@ -38,6 +39,10 @@ const GUEST_RESYNC_INTERVAL_MS = 8000;
 const HOST_HEARTBEAT_INTERVAL_MS = 5000;
 const REPLY_SWIPE_TRIGGER = 48;
 const REPLY_SWIPE_MAX = 64;
+// Bu genislikten (px) itibaren PC/masaustu duzenine geciliyor: video solda
+// buyuk, sohbet saginda sabit genislikte DAIMA ACIK bir panel olarak duruyor
+// (telefon genisliginde tek sutun, eskisi gibi).
+const DESKTOP_BREAKPOINT = 860;
 
 interface ChatBubbleRowProps {
   item: ChatMessage;
@@ -132,6 +137,8 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply }: ChatBubbleRowP
 
 export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const socket = getSocket();
+  const { width: windowWidth } = useWindowDimensions();
+  const isDesktop = windowWidth >= DESKTOP_BREAKPOINT;
   const [room, setRoom] = useState<RoomState>(initialRoom);
   const roomRef = useRef(room);
   roomRef.current = room;
@@ -415,7 +422,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {/* Ust bar (Rave'deki X / ayarlar / logo / ara / katilimci duzeni) - medya
           alaninin uzerine binmez, kendi satirinda durur, video tam altinda baslar */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, isDesktop && styles.topBarDesktop]}>
         <TouchableOpacity style={styles.iconTouch} onPress={() => setLeaveConfirmVisible(true)} hitSlop={8}>
           <Icon name="close" size={30} color={theme.text} />
         </TouchableOpacity>
@@ -434,53 +441,66 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         </TouchableOpacity>
       </View>
 
-      {/* Medya alani - ust barin hemen altinda, ustune binmeden */}
-      <View style={styles.mediaSection}>
-        <ReactionsOverlay ref={reactionsRef}>
-          <MediaPlayer
-            ref={playerRef}
-            source={room.playback.source}
-            onStateChange={handleHostPlayerChange}
-            onBuffering={handleBuffering}
-            onDuration={handleDuration}
-            onEnded={handleEnded}
-          />
-        </ReactionsOverlay>
+      {/* PC'de (DESKTOP_BREAKPOINT ustu genislik) video solda buyuk, sohbet
+          saginda sabit genislikte DAIMA ACIK bir panel olarak yan yana durur -
+          telefon genisliginde ayni JSX tek sutun halinde ustte video, altinda
+          sohbet olarak akar (roomBody/videoCol/chatCol sadece DESKTOP'ta
+          ekstra stil alir, mobilde gorunum ESKISI GIBI kalir). */}
+      <View style={[styles.roomBody, isDesktop && styles.roomBodyDesktop]}>
+        <View style={isDesktop && styles.videoColDesktop}>
+          {/* Medya alani - ust barin hemen altinda, ustune binmeden */}
+          <View style={styles.mediaSection}>
+            <ReactionsOverlay ref={reactionsRef}>
+              <MediaPlayer
+                ref={playerRef}
+                source={room.playback.source}
+                onStateChange={handleHostPlayerChange}
+                onBuffering={handleBuffering}
+                onDuration={handleDuration}
+                onEnded={handleEnded}
+              />
+            </ReactionsOverlay>
 
-        <LinearGradient colors={["transparent", theme.bg]} style={styles.bottomFade} pointerEvents="none" />
-      </View>
-
-      {room.buffering.anyoneBuffering && (
-        <View style={styles.bufferingBanner}>
-          <Text style={styles.bufferingText}>⏳ {room.buffering.names.join(", ")} icin bekleniyor (tamponlaniyor)...</Text>
-        </View>
-      )}
-
-      {room.poll && (
-        <View style={styles.pollBanner}>
-          <View style={styles.pollHeaderRow}>
-            <Text style={styles.pollTitle}>🗳️ Oylama - ne izleyelim?</Text>
-            <Text style={styles.pollTimer}>{Math.max(0, Math.ceil((room.poll.deadlineMs - Date.now()) / 1000))}sn</Text>
+            <LinearGradient colors={["transparent", theme.bg]} style={styles.bottomFade} pointerEvents="none" />
           </View>
-          {room.poll.proposals.map((p) => {
-            const voteCount = Object.values(room.poll!.votes).filter((id) => id === p.id).length;
-            const myVote = socket.id ? room.poll!.votes[socket.id] : undefined;
-            const isMine = myVote === p.id;
-            return (
-              <TouchableOpacity key={p.id} style={[styles.pollOption, isMine && styles.pollOptionActive]} onPress={() => castVote(p.id)}>
-                <Text style={styles.pollOptionText} numberOfLines={1}>
-                  {p.source.label || p.source.type} · {p.proposedByName}
-                </Text>
-                <Text style={styles.pollOptionVotes}>{voteCount} oy</Text>
-              </TouchableOpacity>
-            );
-          })}
-          <TouchableOpacity onPress={openMediaPicker}>
-            <Text style={styles.pollAddLink}>Secimini degistir</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
+          {room.buffering.anyoneBuffering && (
+            <View style={styles.bufferingBanner}>
+              <Text style={styles.bufferingText}>⏳ {room.buffering.names.join(", ")} icin bekleniyor (tamponlaniyor)...</Text>
+            </View>
+          )}
+
+          {room.poll && (
+            <View style={styles.pollBanner}>
+              <View style={styles.pollHeaderRow}>
+                <Text style={styles.pollTitle}>🗳️ Oylama - ne izleyelim?</Text>
+                <Text style={styles.pollTimer}>{Math.max(0, Math.ceil((room.poll.deadlineMs - Date.now()) / 1000))}sn</Text>
+              </View>
+              {room.poll.proposals.map((p) => {
+                const voteCount = Object.values(room.poll!.votes).filter((id) => id === p.id).length;
+                const myVote = socket.id ? room.poll!.votes[socket.id] : undefined;
+                const isMine = myVote === p.id;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.pollOption, isMine && styles.pollOptionActive]}
+                    onPress={() => castVote(p.id)}
+                  >
+                    <Text style={styles.pollOptionText} numberOfLines={1}>
+                      {p.source.label || p.source.type} · {p.proposedByName}
+                    </Text>
+                    <Text style={styles.pollOptionVotes}>{voteCount} oy</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity onPress={openMediaPicker}>
+                <Text style={styles.pollAddLink}>Secimini degistir</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        <View style={[styles.chatCol, isDesktop && styles.chatColDesktop]}>
       {/* Sohbet - medyanin hemen altinda, gradyanla ona "batmis" gibi baslar */}
       <FlatList
         style={styles.chatList}
@@ -604,6 +624,8 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         )}
       </View>
       {voice.error && <Text style={styles.errorText}>{voice.error}</Text>}
+        </View>
+      </View>
 
       <MediaPickerSheet
         visible={pickerVisible}
@@ -669,6 +691,36 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 10,
     backgroundColor: theme.bg,
+  },
+  // PC'de telefonun ust cenitk/durum cubugu boslugu olan paddingTop:50
+  // gereksiz - masaustunde makul bir ust bosluk yeterli.
+  topBarDesktop: { paddingTop: 18, paddingHorizontal: 24 },
+  // Telefon genisliginde (varsayilan): tek sutun, video ustte, sohbet altta -
+  // eskisiyle BIREBIR ayni gorunum (roomBody/videoCol'un ekstra stili yok).
+  // PC genisliginde (roomBodyDesktop): video solda buyuk, sohbet saginda
+  // sabit genislikte bir panel - ayni JSX, sadece duzen yonu degisiyor.
+  roomBody: { flex: 1 },
+  roomBodyDesktop: { flexDirection: "row" },
+  videoColDesktop: { flex: 1, paddingHorizontal: 24, paddingTop: 16 },
+  // chatCol mobilde FlatList'in flex:1 ile kalan yuksekligi doldurabilmesi
+  // icin kendisi de flex:1 olmali (eskiden FlatList dogrudan ana flex:1
+  // konteynerin cocuguydu, simdi bir katman daha icerde oldugu icin bu
+  // flex:1 zincirinin kopmamasi gerekiyor).
+  chatCol: { flex: 1 },
+  chatColDesktop: {
+    // DIKKAT: "flex: 0" yerine ayri ayri flexGrow/flexShrink/flexBasis
+    // yaziliyor - "flex:0" RN-web'de flexBasis'i "0%" yapiyor, bu da
+    // kardes elemanla genislik paylasirken "width:380"i TAMAMEN gecersiz
+    // kiliyor (flex-basis tanimliyken width yoksayilir) ve panel 0
+    // genislige cokup icerigi disari tasiriyordu. flexBasis'i dogrudan
+    // 380 vermek bu sorunu kesin cozuyor.
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 380,
+    width: 380,
+    borderLeftWidth: 1,
+    borderColor: theme.border,
+    paddingTop: 8,
   },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   actionGroup: { flexDirection: "row", alignItems: "center" },
