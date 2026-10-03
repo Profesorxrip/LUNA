@@ -507,9 +507,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
               styles.ringOuter,
               showPresenceRing
                 ? {
-                    backgroundColor: "transparent",
-                    borderWidth: 3,
-                    borderColor: isOnline ? ACCENT : MUTED,
+                    backgroundColor: isOnline ? ACCENT : MUTED,
                     opacity: pulseOpacity,
                     transform: [{ scale: pulseScale }],
                   }
