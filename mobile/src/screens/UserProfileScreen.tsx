@@ -138,7 +138,10 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
   const [uploadingGalleryPhoto, setUploadingGalleryPhoto] = useState(false);
 
   const effectiveUserId = own ? myUserId : peerUserId;
-  const showPresenceRing = !own && statVisibility.onlineStatus !== false;
+  // Kendi profilinde HER ZAMAN cevrimicisindir (uygulamayi kullaniyorsun) -
+  // baskasinin profilinde ise sahibinin gizleme tercihine (statVisibility.
+  // onlineStatus) bagli.
+  const showPresenceRing = own || statVisibility.onlineStatus !== false;
 
   // Baskasinin profilinde avatarin etrafinda disa dogru dalgalanan (sonar
   // gibi buyuyup sonup kaybolan) bir halka - cevrimiciyse mavi, degilse gri.
@@ -514,15 +517,11 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
                     opacity: pulseOpacity,
                     transform: [{ scale: pulseScale }],
                   }
-                : !own && styles.ringHidden,
+                : styles.ringHidden,
             ]}
           />
           <View style={styles.avatarInnerCenter} pointerEvents="box-none">
-            {/* Baskasinin profilinde (gizli de olsa, acik da olsa) halka/renkli
-                nokta ile asil fotograf arasinda HER ZAMAN arkaplanla ayni siyah
-                bir bosluk birakiyoruz - renkli halka varsa onunla kontrast,
-                yoksa (gizliyken) hicbir sey gorunmemesi icin. */}
-            <View style={[styles.ringMiddle, !own && styles.ringHidden]}>
+            <View style={styles.ringMiddle}>
               <View style={styles.avatarCore}>
                 {uploadingAvatar ? (
                   <ActivityIndicator color={ACCENT} />
@@ -834,11 +833,14 @@ const styles = StyleSheet.create({
   // gibi olmuyoruz, sanki hic yokmus gibi arkaplana karisiyor.
   ringHidden: { backgroundColor: BG },
   avatarInnerCenter: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
+  // Disaridaki (renkli/animasyonlu olabilen) halka ile fotografin arasinda
+  // HER ZAMAN arkaplanla ayni siyah bosluk - renkli halka varsa kontrast
+  // icin, gizliyken hicbir sey gorunmemesi icin.
   ringMiddle: {
     width: 108,
     height: 108,
     borderRadius: 54,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: BG,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -864,12 +866,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   handleRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
-  handle: { color: MUTED, fontSize: 13, fontWeight: "500" },
+  handle: { color: MUTED, fontSize: 14, fontWeight: "600", letterSpacing: 0.2 },
   handleEditRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
-  handleAt: { color: MUTED, fontSize: 13 },
+  handleAt: { color: MUTED, fontSize: 14, fontWeight: "600" },
   handleInput: {
     color: TEXT,
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: "600",
     borderBottomWidth: 1,
     borderBottomColor: MUTED,
     minWidth: 100,
