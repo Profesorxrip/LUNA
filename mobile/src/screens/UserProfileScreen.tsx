@@ -32,6 +32,9 @@ const ACCENT = "#0EA5E9";
 const BG = "#000000";
 const TEXT = "#F5F0E6";
 const MUTED = "#9A8F80";
+// Cevrimdisi halka rengi - MUTED'dan (etiket/metin gri tonu) daha acik,
+// avatarin koyu arka planinda daha net secilsin diye.
+const OFFLINE_GRAY = "#C2C2C2";
 
 // Su an gercek bir "kullanicilar arasi gezinme" ekrani yok - baskasinin
 // profilini (own=false) test etmek icin sabit bir demo kimlik kullaniyoruz.
@@ -158,7 +161,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
       pulseAnim.setValue(0);
     };
   }, [showPresenceRing]);
-  const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] });
+  const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
   const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] });
 
   // Kendi profilin: gercek profiles satirini (isim/handle/bio/avatar/
@@ -507,7 +510,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
               styles.ringOuter,
               showPresenceRing
                 ? {
-                    backgroundColor: isOnline ? ACCENT : MUTED,
+                    backgroundColor: isOnline ? ACCENT : OFFLINE_GRAY,
                     opacity: pulseOpacity,
                     transform: [{ scale: pulseScale }],
                   }
@@ -515,7 +518,11 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
             ]}
           />
           <View style={styles.avatarInnerCenter} pointerEvents="box-none">
-            <View style={styles.ringMiddle}>
+            {/* Baskasinin profilinde (gizli de olsa, acik da olsa) halka/renkli
+                nokta ile asil fotograf arasinda HER ZAMAN arkaplanla ayni siyah
+                bir bosluk birakiyoruz - renkli halka varsa onunla kontrast,
+                yoksa (gizliyken) hicbir sey gorunmemesi icin. */}
+            <View style={[styles.ringMiddle, !own && styles.ringHidden]}>
               <View style={styles.avatarCore}>
                 {uploadingAvatar ? (
                   <ActivityIndicator color={ACCENT} />
