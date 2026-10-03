@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  Animated,
+  Easing,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../services/supabase";
@@ -40,6 +42,7 @@ const DEMO_PEER_USER_ID = "demo-peer-kullanici";
 // stat_visibility sutununun varsayilaniyla AYNI (gercek deger yuklenene
 // kadar kisa sureligine gosterilen baslangic durumu).
 const DEFAULT_STAT_VISIBILITY: Record<string, boolean> = {
+  onlineStatus: true,
   joinDate: true,
   totalHours: true,
   activityChart: true,
@@ -132,6 +135,31 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
   const [uploadingGalleryPhoto, setUploadingGalleryPhoto] = useState(false);
 
   const effectiveUserId = own ? myUserId : peerUserId;
+  const showPresenceRing = !own && statVisibility.onlineStatus !== false;
+
+  // Baskasinin profilinde avatarin etrafinda disa dogru dalgalanan (sonar
+  // gibi buyuyup sonup kaybolan) bir halka - cevrimiciyse mavi, degilse gri.
+  // Sahibi "cevrimici durumunu" gizlerse (statVisibility.onlineStatus=false)
+  // bu efekt HIC calismaz (bkz. showPresenceRing / avatar render'i).
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!showPresenceRing) return;
+    const loop = Animated.loop(
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 1800,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      })
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      pulseAnim.setValue(0);
+    };
+  }, [showPresenceRing]);
+  const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] });
+  const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] });
 
   // Kendi profilin: gercek profiles satirini (isim/handle/bio/avatar/
   // katilim tarihi/gorunurluk tercihleri) dogrudan supabase'den yukle -
@@ -474,8 +502,21 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
           onPress={() => own && setAvatarSheetVisible(true)}
           disabled={!own}
         >
-          <View style={styles.ringOuter}>
-            <View style={styles.ringMiddle}>
+          {showPresenceRing && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.presencePulse,
+                {
+                  borderColor: isOnline ? ACCENT : MUTED,
+                  opacity: pulseOpacity,
+                  transform: [{ scale: pulseScale }],
+                },
+              ]}
+            />
+          )}
+          <View style={[styles.ringOuter, !own && !showPresenceRing && styles.ringHidden]}>
+            <View style={[styles.ringMiddle, !own && !showPresenceRing && styles.ringHidden]}>
               <View style={styles.avatarCore}>
                 {uploadingAvatar ? (
                   <ActivityIndicator color={ACCENT} />
@@ -491,7 +532,6 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
                 <Icon name="edit" size={13} color={BG} />
               </View>
             )}
-            {!own && <View style={[styles.presenceBadge, !isOnline && styles.presenceBadgeOffline]} />}
           </View>
         </TouchableOpacity>
 
@@ -767,6 +807,16 @@ const styles = StyleSheet.create({
   bodyContent: { paddingHorizontal: 16 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, marginBottom: 26 },
   avatarWrap: { alignItems: "center", marginBottom: 18 },
+  presencePulse: {
+    position: "absolute",
+    top: 0,
+    left: "50%",
+    marginLeft: -64,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    borderWidth: 3,
+  },
   ringOuter: {
     width: 128,
     height: 128,
@@ -783,6 +833,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // Cevrimici durumu gizliyse (showPresenceRing=false) halkalarin ozel
+  // rengi yerine dogrudan arkaplanla AYNI siyah - boylece bos bir "halka"
+  // gormus gibi olmuyoruz, sanki hic yokmus gibi arkaplana karisiyor.
+  ringHidden: { backgroundColor: BG },
   avatarCore: {
     width: 88,
     height: 88,
@@ -856,18 +910,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   statRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
-  presenceBadge: {
-    position: "absolute",
-    right: 8,
-    bottom: 8,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: ACCENT,
-    borderWidth: 3,
-    borderColor: BG,
-  },
-  presenceBadgeOffline: { backgroundColor: MUTED },
   statRowLabel: { flex: 1, color: MUTED, fontSize: 13.5, fontWeight: "500", letterSpacing: 0.1 },
   statRowValue: { color: TEXT, fontSize: 14, fontWeight: "700" },
   chartBlock: { paddingTop: 6, paddingBottom: 12 },
