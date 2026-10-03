@@ -502,21 +502,22 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
           onPress={() => own && setAvatarSheetVisible(true)}
           disabled={!own}
         >
-          {showPresenceRing && (
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.presencePulse,
-                {
-                  borderColor: isOnline ? ACCENT : MUTED,
-                  opacity: pulseOpacity,
-                  transform: [{ scale: pulseScale }],
-                },
-              ]}
-            />
-          )}
-          <View style={[styles.ringOuter, !own && !showPresenceRing && styles.ringHidden]}>
-            <View style={[styles.ringMiddle, !own && !showPresenceRing && styles.ringHidden]}>
+          <Animated.View
+            style={[
+              styles.ringOuter,
+              showPresenceRing
+                ? {
+                    backgroundColor: "transparent",
+                    borderWidth: 3,
+                    borderColor: isOnline ? ACCENT : MUTED,
+                    opacity: pulseOpacity,
+                    transform: [{ scale: pulseScale }],
+                  }
+                : !own && styles.ringHidden,
+            ]}
+          />
+          <View style={styles.avatarInnerCenter} pointerEvents="box-none">
+            <View style={styles.ringMiddle}>
               <View style={styles.avatarCore}>
                 {uploadingAvatar ? (
                   <ActivityIndicator color={ACCENT} />
@@ -527,12 +528,12 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
                 )}
               </View>
             </View>
-            {own && (
-              <View style={styles.editBadge}>
-                <Icon name="edit" size={13} color={BG} />
-              </View>
-            )}
           </View>
+          {own && (
+            <View style={styles.editBadge}>
+              <Icon name="edit" size={13} color={BG} />
+            </View>
+          )}
         </TouchableOpacity>
 
         <View style={styles.nameBlock}>
@@ -806,25 +807,24 @@ const styles = StyleSheet.create({
   topBlock: { paddingHorizontal: 24 },
   bodyContent: { paddingHorizontal: 16 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, marginBottom: 26 },
-  avatarWrap: { alignItems: "center", marginBottom: 18 },
-  presencePulse: {
+  avatarWrap: { width: 128, height: 128, alignSelf: "center", marginBottom: 18 },
+  // Disaridaki dekoratif halka - BASKA bir cember eklemek yerine ayni halka
+  // su an acik/aktif ise (showPresenceRing) renklenip disa dogru dalgalanan
+  // animasyona donusuyor, degilse eskisi gibi sabit koyu renginde kaliyor.
+  ringOuter: {
     position: "absolute",
     top: 0,
-    left: "50%",
-    marginLeft: -64,
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    borderWidth: 3,
-  },
-  ringOuter: {
+    left: 0,
     width: 128,
     height: 128,
     borderRadius: 64,
     backgroundColor: "#1C1C1C",
-    alignItems: "center",
-    justifyContent: "center",
   },
+  // Cevrimici durumu gizliyse (showPresenceRing=false) halkanin ozel rengi
+  // yerine dogrudan arkaplanla AYNI siyah - boylece bos bir "halka" gormus
+  // gibi olmuyoruz, sanki hic yokmus gibi arkaplana karisiyor.
+  ringHidden: { backgroundColor: BG },
+  avatarInnerCenter: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
   ringMiddle: {
     width: 108,
     height: 108,
@@ -833,10 +833,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Cevrimici durumu gizliyse (showPresenceRing=false) halkalarin ozel
-  // rengi yerine dogrudan arkaplanla AYNI siyah - boylece bos bir "halka"
-  // gormus gibi olmuyoruz, sanki hic yokmus gibi arkaplana karisiyor.
-  ringHidden: { backgroundColor: BG },
   avatarCore: {
     width: 88,
     height: 88,
