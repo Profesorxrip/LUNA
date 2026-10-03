@@ -16,6 +16,7 @@ import { getSocket, PublicRoomSummary } from "../services/socket";
 import Icon, { IconName } from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import CountryFlag from "../components/CountryFlag";
+import RoomCard from "../components/RoomCard";
 
 interface Props {
   onBack: () => void;
@@ -572,30 +573,14 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
         )}
 
         {activeRoom && (
-          <TouchableOpacity
-            style={styles.activeRoomCard}
-            activeOpacity={0.85}
-            onPress={() => onOpenRoomPreview?.(activeRoom)}
-          >
-            {activeRoom.source?.coverUrl ? (
-              <Image source={{ uri: activeRoom.source.coverUrl }} style={styles.activeRoomThumb} />
-            ) : (
-              <View style={[styles.activeRoomThumb, styles.activeRoomThumbPlaceholder]}>
-                <Icon name="play" size={18} color={TEXT} />
-              </View>
-            )}
-            <View style={styles.activeRoomInfo}>
-              <View style={styles.activeRoomLiveRow}>
-                <View style={styles.liveDot} />
-                <Text style={styles.activeRoomLiveText}>ŞU AN AÇIK</Text>
-              </View>
-              <Text style={styles.activeRoomTitle} numberOfLines={1}>
-                {activeRoom.title}
-              </Text>
-              <Text style={styles.activeRoomMeta}>{activeRoom.participantCount} kişi izliyor</Text>
-            </View>
-            <Icon name="chevronRight" size={18} color={MUTED} />
-          </TouchableOpacity>
+          <>
+            <Text style={styles.sectionHeader}>AKTİF ODA</Text>
+            <RoomCard
+              room={activeRoom}
+              onPress={() => onOpenRoomPreview?.(activeRoom)}
+              style={styles.activeRoomCard}
+            />
+          </>
         )}
 
         {(own || galleryVisible) && (own || galleryPhotos.length > 0) && (
@@ -846,25 +831,7 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
-  activeRoomCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: "#141210",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#2A2422",
-    padding: 10,
-    marginBottom: 24,
-  },
-  activeRoomThumb: { width: 50, height: 50, borderRadius: 8 },
-  activeRoomThumbPlaceholder: { backgroundColor: "#2E4A2F", alignItems: "center", justifyContent: "center" },
-  activeRoomInfo: { flex: 1 },
-  activeRoomLiveRow: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 2 },
-  liveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: ACCENT },
-  activeRoomLiveText: { color: ACCENT, fontSize: 10, fontWeight: "700", letterSpacing: 1 },
-  activeRoomTitle: { color: TEXT, fontSize: 14, fontWeight: "700" },
-  activeRoomMeta: { color: MUTED, fontSize: 11, marginTop: 1 },
+  activeRoomCard: { margin: 0, marginBottom: 24 },
   sectionHeaderActions: { flexDirection: "row", alignItems: "center", gap: 14 },
   galleryScroll: { marginBottom: 24 },
   galleryRow: { gap: 10 },
