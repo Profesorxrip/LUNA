@@ -476,7 +476,13 @@ io.on("connection", (socket: Socket) => {
       ack?.({ ok: true, room: roomToPublicState(room) });
       broadcastRoomsList();
       if (myDb && myUserId)
-        logRoomEvent(myDb, myUserId, room.code, "create", source.label, {
+        // DIKKAT: source.label BOS olabilir (orn. ozel bir URL yapistirilip
+        // baslik otomatik tespit edilemediginde) - room.title ise HER ZAMAN
+        // dolu (createRoom icinde "source.label || hostName'in odasi" diye
+        // garantileniyor). Bunun yerine source.label kullanilirsa media_label
+        // null kalir ve get_user_room_history bu kaydi SESSIZCE atlar - "izledim
+        // ama Gecmis'te gorunmuyor" hatasina yol acar.
+        logRoomEvent(myDb, myUserId, room.code, "create", room.title, {
           participantCount: room.participants.size,
           coverUrl: source.coverUrl,
           type: source.type,
@@ -561,7 +567,9 @@ io.on("connection", (socket: Socket) => {
       ts: Date.now(),
     });
     if (myDb && myUserId)
-      logRoomEvent(myDb, myUserId, room.code, "join", room.playback.source?.label, {
+      // room.title (yukaridaki "create" ile ayni sebep) - source.label BOS
+      // olabilir, room.title HER ZAMAN dolu.
+      logRoomEvent(myDb, myUserId, room.code, "join", room.title, {
         participantCount: room.participants.size,
         coverUrl: room.playback.source?.coverUrl,
         type: room.playback.source?.type,
