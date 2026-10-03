@@ -744,7 +744,7 @@ const styles = StyleSheet.create({
   bufferingBanner: {
     marginHorizontal: 12,
     marginTop: 6,
-    backgroundColor: "rgba(16,185,129,0.12)",
+    backgroundColor: "rgba(14,165,233,0.12)",
     borderColor: theme.accent,
     borderWidth: 1,
     borderRadius: 10,

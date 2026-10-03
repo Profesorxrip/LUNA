@@ -15,7 +15,7 @@ interface Props {
 
 type Tab = "friends" | "recent" | "blocked";
 
-const ACCENT = "#2ECC71";
+const ACCENT = "#0EA5E9";
 const BG = "#000000";
 const TEXT = "#F5F0E6";
 const MUTED = "#9A8F80";

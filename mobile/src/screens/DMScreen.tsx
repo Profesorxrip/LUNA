@@ -35,7 +35,7 @@ interface Props {
   onBack: () => void;
 }
 
-const ACCENT = "#2ECC71";
+const ACCENT = "#0EA5E9";
 const BG = "#000000";
 const TEXT = "#F5F0E6";
 const MUTED = "#9A8F80";
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
   avatarSmallInitial: { color: ACCENT, fontSize: 11, fontWeight: "700" },
   bubbleWrap: { maxWidth: "75%" },
   replyQuote: {
-    backgroundColor: "rgba(46,204,113,0.1)",
+    backgroundColor: "rgba(14,165,233,0.1)",
     borderLeftWidth: 2,
     borderLeftColor: ACCENT,
     borderRadius: 6,
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     paddingVertical: 8,
-    backgroundColor: "rgba(46,204,113,0.08)",
+    backgroundColor: "rgba(14,165,233,0.08)",
   },
   expiryBannerText: { color: ACCENT, fontSize: 11, fontWeight: "600" },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },

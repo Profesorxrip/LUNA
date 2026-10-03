@@ -26,7 +26,7 @@ interface Props {
   onOpenRoomPreview?: (room: PublicRoomSummary) => void;
 }
 
-const ACCENT = "#2ECC71";
+const ACCENT = "#0EA5E9";
 const BG = "#000000";
 const TEXT = "#F5F0E6";
 const MUTED = "#9A8F80";
@@ -677,7 +677,7 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
                         styles.chartBar,
                         {
                           height: Math.max(4, (d.hours / dailyMax) * 70),
-                          backgroundColor: i === selectedDay ? ACCENT : "#2A4A32",
+                          backgroundColor: i === selectedDay ? ACCENT : "#163449",
                         },
                       ]}
                     />
@@ -858,11 +858,11 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
   presenceBadge: {
     position: "absolute",
-    right: 0,
-    bottom: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    right: 8,
+    bottom: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: ACCENT,
     borderWidth: 3,
     borderColor: BG,
