@@ -534,11 +534,6 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
               </View>
             </View>
           </View>
-          {own && (
-            <View style={styles.editBadge}>
-              <Icon name="edit" size={13} color={BG} />
-            </View>
-          )}
         </TouchableOpacity>
 
         <View style={styles.nameBlock}>
@@ -580,21 +575,30 @@ export default function UserProfileScreen({ onBack, own = true, peer, onOpenDM, 
         </View>
         </View>
         <View style={styles.bodyContent}>
-        {editingField === "bio" ? (
-          <TextInput
-            style={styles.bioInput}
-            value={bio}
-            onChangeText={setBio}
-            multiline
-            autoFocus
-            onBlur={() => closeFieldEdit("bio", bio)}
-            placeholder="Biyografi"
-            placeholderTextColor={MUTED}
-          />
-        ) : (
-          <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("bio")}>
-            <Text style={styles.bio}>{bio}</Text>
-          </TouchableOpacity>
+        {(own || bio.trim().length > 0) && (
+          <>
+            <View style={styles.fullDivider} />
+            <Text style={styles.sectionHeader}>BİYOGRAFİ</Text>
+            <View style={styles.fullDivider} />
+            {editingField === "bio" ? (
+              <TextInput
+                style={styles.bioInput}
+                value={bio}
+                onChangeText={setBio}
+                multiline
+                autoFocus
+                onBlur={() => closeFieldEdit("bio", bio)}
+                placeholder="Biyografi"
+                placeholderTextColor={MUTED}
+              />
+            ) : (
+              <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("bio")}>
+                <Text style={bio ? styles.bio : [styles.emptyHistoryText, { marginTop: 14 }]}>
+                  {bio || "Henüz bir biyografi eklemedin."}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
 
         {!own && (
@@ -848,19 +852,6 @@ const styles = StyleSheet.create({
   },
   avatarInitial: { color: ACCENT, fontSize: 32, fontWeight: "700" },
   avatarImage: { width: 88, height: 88, borderRadius: 44 },
-  editBadge: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 3,
-    borderColor: BG,
-  },
   nameBlock: { alignItems: "center", marginBottom: 6 },
   name: { color: TEXT, fontSize: 22, fontWeight: "800", letterSpacing: 0.3 },
   nameInput: {
@@ -884,12 +875,13 @@ const styles = StyleSheet.create({
     minWidth: 100,
     paddingVertical: 2,
   },
-  bio: { color: "#C9BFAE", fontSize: 13, lineHeight: 19, textAlign: "center", marginBottom: 20 },
+  bio: { color: "#C9BFAE", fontSize: 13, lineHeight: 19, marginTop: 14, marginBottom: 24 },
   bioInput: {
     color: "#C9BFAE",
-    fontSize: 12,
-    textAlign: "center",
-    marginBottom: 20,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 14,
+    marginBottom: 24,
     borderWidth: 1,
     borderColor: "#262626",
     borderRadius: 8,
@@ -918,18 +910,18 @@ const styles = StyleSheet.create({
   chartBarTouch: { flex: 1, alignItems: "center", justifyContent: "flex-end", height: "100%" },
   chartBar: { width: "100%", borderRadius: 2 },
   chartSelected: { color: MUTED, fontSize: 11, textAlign: "center" },
-  primaryButton: { flex: 1, backgroundColor: ACCENT, borderRadius: 6, paddingVertical: 13, alignItems: "center" },
-  primaryButtonText: { color: BG, fontSize: 13, fontWeight: "700" },
+  primaryButton: { flex: 1, backgroundColor: ACCENT, borderRadius: 8, paddingVertical: 14, alignItems: "center" },
+  primaryButtonText: { color: "#04140D", fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
   secondaryButton: {
     flex: 1,
     backgroundColor: "transparent",
-    borderRadius: 6,
-    paddingVertical: 13,
+    borderRadius: 8,
+    paddingVertical: 14,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#262626",
   },
-  secondaryButtonText: { color: TEXT, fontSize: 13, fontWeight: "700" },
+  secondaryButtonText: { color: TEXT, fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
   sectionHeader: { color: MUTED, fontSize: 11, fontWeight: "700", letterSpacing: 1.2, paddingVertical: 12 },
   sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12 },
   videoGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 14 },
