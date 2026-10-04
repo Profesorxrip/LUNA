@@ -493,26 +493,6 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
     });
   }
 
-  // "Begenilenler" - sadece KENDI gecmisindeki kayitlari begenebilirsin
-  // (bkz. 0008_video_likes_and_best.sql). Iyimser guncelleme: once yerel
-  // listeyi degistirir, sonra DB'ye yazar.
-  function isLiked(eventId: string): boolean {
-    return likedHistory.some((h) => h.eventId === eventId);
-  }
-
-  async function toggleLike(item: HistoryItem) {
-    if (!own || !myUserId) return;
-    const liked = isLiked(item.eventId);
-    setLikedHistory((prev) =>
-      liked ? prev.filter((h) => h.eventId !== item.eventId) : [item, ...prev]
-    );
-    if (liked) {
-      await supabase.from("room_event_likes").delete().eq("event_id", item.eventId).eq("user_id", myUserId);
-    } else {
-      await supabase.from("room_event_likes").insert({ event_id: item.eventId, user_id: myUserId });
-    }
-  }
-
   const initial = name.charAt(0).toUpperCase();
   const historyList =
     historyTab === "liked" ? likedHistory : historyTab === "best" ? [...history].sort((a, b) => b.participantCount - a.participantCount) : history;
@@ -762,7 +742,7 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
             if (!own && !visible) return null;
             return (
               <View key={stat.key} style={styles.statRow}>
-                <Icon name={stat.icon} size={16} color={TEXT} />
+                <Icon name={stat.icon} size={20} color={TEXT} />
                 <Text style={styles.statRowLabel}>{stat.label}</Text>
                 <Text style={styles.statRowValue}>{stat.value}</Text>
                 {own && (
@@ -826,16 +806,19 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
             <View style={styles.historyTabsRow}>
               {(
                 [
-                  { key: "best", label: "En İyiler" },
                   { key: "history", label: "Geçmiş" },
                   { key: "liked", label: "Beğenilenler" },
+                  { key: "best", label: "En İyiler" },
                 ] as const
               ).map((tab) => (
-                <TouchableOpacity key={tab.key} onPress={() => setHistoryTab(tab.key)} style={styles.historyTabTouch}>
+                <TouchableOpacity
+                  key={tab.key}
+                  onPress={() => setHistoryTab(tab.key)}
+                  style={[styles.historyTabTouch, historyTab === tab.key && styles.historyTabTouchActive]}
+                >
                   <Text style={[styles.historyTabText, historyTab === tab.key && styles.historyTabTextActive]}>
                     {tab.label}
                   </Text>
-                  {historyTab === tab.key && <View style={styles.historyTabUnderline} />}
                 </TouchableOpacity>
               ))}
             </View>
@@ -856,15 +839,6 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
                         <View style={styles.videoPlayBadge}>
                           <Icon name="play" size={11} color={TEXT} />
                         </View>
-                      )}
-                      {own && (
-                        <TouchableOpacity style={styles.videoLikeBadge} onPress={() => toggleLike(item)} hitSlop={6}>
-                          <Icon
-                            name={isLiked(item.eventId) ? "heart" : "heartOutline"}
-                            size={14}
-                            color={isLiked(item.eventId) ? "#FF4D6D" : "#FFFFFF"}
-                          />
-                        </TouchableOpacity>
                       )}
                     </View>
                     <Text style={styles.videoTitle} numberOfLines={2}>
@@ -1033,11 +1007,11 @@ const styles = StyleSheet.create({
   secondaryButtonText: { color: TEXT, fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
   sectionHeader: { color: MUTED, fontSize: 11, fontWeight: "700", letterSpacing: 1.2, paddingVertical: 12 },
   sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12 },
-  historyTabsRow: { flexDirection: "row", gap: 18, marginTop: 14, marginBottom: 4 },
-  historyTabTouch: { paddingBottom: 8 },
+  historyTabsRow: { flexDirection: "row", gap: 8, marginTop: 14, marginBottom: 4 },
+  historyTabTouch: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 16 },
+  historyTabTouchActive: { backgroundColor: "rgba(14,165,233,0.18)" },
   historyTabText: { color: MUTED, fontSize: 12.5, fontWeight: "700" },
-  historyTabTextActive: { color: TEXT },
-  historyTabUnderline: { height: 2, backgroundColor: ACCENT, borderRadius: 1, marginTop: 6 },
+  historyTabTextActive: { color: ACCENT },
   videoGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 14 },
   videoCard: { width: "31%", marginBottom: 18 },
   videoThumb: {
@@ -1061,7 +1035,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  videoLikeBadge: { position: "absolute", top: 4, right: 4 },
   videoTitle: { color: TEXT, fontSize: 11, fontWeight: "600" },
   videoMeta: { color: MUTED, fontSize: 10, fontWeight: "700", marginTop: 2 },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
