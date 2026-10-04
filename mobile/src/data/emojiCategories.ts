@@ -30,6 +30,28 @@ const GROUP_META: Record<string, { label: string; icon: string }> = {
 
 const GROUPS = emojiGroups as unknown as Record<string, { name: string; emojis: { emoji: string; name: string }[] }>;
 
+// Unicode 16.0/17.0 ile eklenen, henuz hicbir yaygin cihaz/fontta renkli
+// karsiligi olmayan (bos/gri bir kutu olarak gorunen) emojiler - canvas
+// piksel analiziyle tek tek dogrulandi. Bu liste disindaki ayni surum
+// numarasina sahip birkac emoji (orn. bayrak/balet emojisi) gercekten
+// renkli ciktigi icin elenmedi.
+const UNSUPPORTED_EMOJI = new Set([
+  "🫪", // distorted face
+  "🪾", // leafless tree
+  "🫩", // face with bags under eyes
+  "🫯", // fight cloud
+  "🫟", // splatter
+  "🫜", // root vegetable
+  "🪊", // trombone
+  "🫍", // orca
+  "🪎", // treasure chest
+  "🫆", // fingerprint
+  "🫈", // hairy creature
+  "🪉", // harp
+  "🪏", // shovel
+  "🛘", // landslide
+]);
+
 export const EMOJI_CATEGORIES: EmojiCategory[] = Object.keys(GROUPS)
   .sort((a, b) => Number(a) - Number(b))
   .map((key) => {
@@ -39,12 +61,14 @@ export const EMOJI_CATEGORIES: EmojiCategory[] = Object.keys(GROUPS)
       key,
       label: meta.label,
       icon: meta.icon,
-      emojis: group.emojis.map((e) => e.emoji),
+      emojis: group.emojis.map((e) => e.emoji).filter((e) => !UNSUPPORTED_EMOJI.has(e)),
     };
   });
 
 // Arama (EmojiPickerSheet'teki search cubugu) icin duz liste - her emojinin
 // ingilizce resmi adini ve hangi Turkce kategori basligina ait oldugunu tutar.
 export const ALL_EMOJIS: EmojiEntry[] = EMOJI_CATEGORIES.flatMap((cat) =>
-  GROUPS[cat.key].emojis.map((e) => ({ emoji: e.emoji, name: e.name, categoryLabel: cat.label }))
+  GROUPS[cat.key].emojis
+    .filter((e) => !UNSUPPORTED_EMOJI.has(e.emoji))
+    .map((e) => ({ emoji: e.emoji, name: e.name, categoryLabel: cat.label }))
 );
