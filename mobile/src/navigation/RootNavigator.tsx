@@ -3,6 +3,7 @@ import { NavigationContainer, RouteProp, useNavigation, useRoute } from "@react-
 import { createNativeStackNavigator, NativeStackNavigationProp } from "@react-navigation/native-stack";
 import DiscoverScreen from "../screens/DiscoverScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import PremiumScreen from "../screens/PremiumScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import FriendsScreen from "../screens/FriendsScreen";
 import DMScreen, { DMPeer } from "../screens/DMScreen";
@@ -23,6 +24,7 @@ type PeerParam = { userId: string; name: string; handle?: string };
 export type RootStackParamList = {
   Discover: undefined;
   Profile: undefined;
+  Premium: undefined;
   UserProfile: { own: boolean; peer?: PeerParam };
   Friends: undefined;
   DM: { peer: DMPeer };
@@ -58,8 +60,14 @@ function ProfileRoute() {
       onBack={() => navigation.goBack()}
       onOpenUserProfile={() => navigation.navigate("UserProfile", { own: true })}
       onOpenFriends={() => navigation.navigate("Friends")}
+      onOpenPremium={() => navigation.navigate("Premium")}
     />
   );
+}
+
+function PremiumRoute() {
+  const navigation = useNavigation<Nav>();
+  return <PremiumScreen onBack={() => navigation.goBack()} />;
 }
 
 function UserProfileRoute() {
@@ -132,6 +140,7 @@ export default function RootNavigator() {
       >
         <Stack.Screen name="Discover" component={DiscoverRoute} />
         <Stack.Screen name="Profile" component={ProfileRoute} />
+        <Stack.Screen name="Premium" component={PremiumRoute} />
         <Stack.Screen name="UserProfile" component={UserProfileRoute} />
         <Stack.Screen name="Friends" component={FriendsRoute} />
         <Stack.Screen name="DM" component={DMRoute} />

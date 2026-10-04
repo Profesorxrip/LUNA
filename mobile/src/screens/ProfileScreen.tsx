@@ -10,12 +10,13 @@ import { showAlert } from "../components/CustomAlert";
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic } from "../utils/haptics";
 
 const SUPPORT_EMAIL = "destek@luna.app";
-const PREMIUM_SUBTITLE = "Reklamların kaldırılması gibi avantajlardan yararlanın.";
+const PREMIUM_SUBTITLE = "REKLAMSIZ BİR LUNA İÇİN...";
 
 interface Props {
   onBack: () => void;
   onOpenUserProfile: () => void;
   onOpenFriends: () => void;
+  onOpenPremium: () => void;
 }
 
 const APP_VERSION = "1.0.0 (1)";
@@ -25,7 +26,7 @@ const APP_VERSION = "1.0.0 (1)";
  * Isim/kullanici adi/avatar artik UserProfileScreen ile AYNI gercek
  * profiles satirindan okunuyor ve degisiklikler oraya da yansiyor (eskiden
  * isim SADECE burada yerel state'ti, kaydedilmiyordu). */
-export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends }: Props) {
+export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends, onOpenPremium }: Props) {
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState("Kullanici");
   const [handle, setHandle] = useState("kullanici");
@@ -78,13 +79,10 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
     isHapticsEnabled().then(setHaptics);
   }, []);
 
-  function toggleHaptics() {
-    setHaptics((v) => {
-      const next = !v;
-      setHapticsEnabled(next);
-      if (next) triggerHaptic();
-      return next;
-    });
+  function applyHaptics(next: boolean) {
+    setHaptics(next);
+    setHapticsEnabled(next);
+    if (next) triggerHaptic();
   }
 
   async function handleRateApp() {
@@ -214,7 +212,7 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         </TouchableOpacity>
 
         <SectionHeader title="Ayarlar" />
-        <ToggleRow title="LUNA Premium" subtitle={PREMIUM_SUBTITLE} onPress={() => placeholder("LUNA Premium")} hideIndicator />
+        <ToggleRow title="LUNA Premium" subtitle={PREMIUM_SUBTITLE} onPress={onOpenPremium} hideIndicator />
         <ToggleRow
           title="Hizli Tepki"
           subtitle="Sohbet mesajlarina cift tiklama tepkinizi degistirin"
@@ -224,20 +222,17 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         <ToggleRow
           title="Davetleri Kisitla"
           subtitle="Sadece arkadaslardan gelen davetlere izin ver"
-          checked={restrictInvites}
-          onToggle={() => setRestrictInvites((v) => !v)}
+          rightElement={<SegmentedToggle value={restrictInvites} onChange={setRestrictInvites} />}
         />
         <ToggleRow
           title="Yetiskin Icerigini Gizle"
           subtitle="Mustehcen icerik gosterme"
-          checked={hideAdult}
-          onToggle={() => setHideAdult((v) => !v)}
+          rightElement={<SegmentedToggle value={hideAdult} onChange={setHideAdult} />}
         />
         <ToggleRow
           title="Dokunsal geri bildirim"
           subtitle="Dokunuslarda ve islemlerde titret"
-          checked={haptics}
-          onToggle={toggleHaptics}
+          rightElement={<SegmentedToggle value={haptics} onChange={applyHaptics} />}
         />
         <ToggleRow
           title="Yuzen Video Oynaticisi"
@@ -371,6 +366,27 @@ function ChevronRow({ title, subtitle, onPress }: { title: string; subtitle?: st
   );
 }
 
+/** Checkbox yerine "Açık/Kapalı" yazili iki segmentli secici - ToggleRow'un
+ * rightElement'i olarak kullaniliyor. Satirin ic ice gecen dokunulabilir
+ * alani oldugu icin dis satirin onPress'i tetiklenmeyebiliyor - titresim
+ * burada ayrica cagiriliyor. */
+function SegmentedToggle({ value, onChange }: { value: boolean; onChange: (next: boolean) => void }) {
+  function choose(next: boolean) {
+    triggerHaptic();
+    onChange(next);
+  }
+  return (
+    <View style={styles.segmented}>
+      <TouchableOpacity style={[styles.segmentOption, !value && styles.segmentOptionActive]} onPress={() => choose(false)}>
+        <Text style={[styles.segmentText, !value && styles.segmentTextActive]}>Kapalı</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.segmentOption, value && styles.segmentOptionActive]} onPress={() => choose(true)}>
+        <Text style={[styles.segmentText, value && styles.segmentTextActive]}>Açık</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#000000" },
   scrollContent: { paddingBottom: 60 },
@@ -416,7 +432,7 @@ const styles = StyleSheet.create({
   avatarImage: { width: "100%", height: "100%" },
   avatarInitial: { color: "#FFFFFF", fontSize: 56, fontWeight: "700" },
   name: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, textAlign: "center", marginTop: 18 },
-  handle: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "600", letterSpacing: 0.2, textAlign: "center", marginTop: 4 },
+  handle: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "600", letterSpacing: 0.2, textAlign: "center", marginTop: 4, marginBottom: 18 },
   sectionHeader: {
     paddingHorizontal: 18,
     paddingVertical: 12,
@@ -471,6 +487,11 @@ const styles = StyleSheet.create({
   },
   checkboxChecked: { backgroundColor: "#D4C9F5", borderColor: "#D4C9F5" },
   checkboxMark: { color: "#3a2140", fontSize: 15, fontWeight: "700" },
+  segmented: { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 10, padding: 2 },
+  segmentOption: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  segmentOptionActive: { backgroundColor: "#0EA5E9" },
+  segmentText: { color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: "700" },
+  segmentTextActive: { color: "#04140D", fontWeight: "800" },
   simpleRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.08)" },
   simpleTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   simpleSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", marginTop: 3, lineHeight: 16 },
