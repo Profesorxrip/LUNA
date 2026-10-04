@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { EMOJI_CATEGORIES } from "../data/emojiCategories";
 import { searchEmojis } from "../data/emojiSearch";
 import Icon from "./Icon";
@@ -73,21 +74,26 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
           <Text style={styles.currentEmoji}>{selected}</Text>
         </View>
 
-        <View style={styles.searchRow}>
-          <Icon name="search" size={16} color="rgba(255,255,255,0.4)" />
+        <LinearGradient
+          colors={["#2a2a35", "#1c1c24", "#101014"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.searchBar}
+        >
+          <Icon name="search" size={18} color="rgba(255,255,255,0.85)" />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Emoji ara... (örn. kalp, pizza, bayrak)"
-            placeholderTextColor="rgba(255,255,255,0.35)"
+            placeholder="Emoji ara"
+            placeholderTextColor="rgba(255,255,255,0.5)"
             style={styles.searchInput}
           />
           {searching && (
             <TouchableOpacity onPress={() => setQuery("")} hitSlop={10}>
-              <Icon name="close" size={16} color="rgba(255,255,255,0.4)" />
+              <Icon name="close" size={16} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
           )}
-        </View>
+        </LinearGradient>
 
         {!searching && (
           <ScrollView
@@ -169,19 +175,20 @@ const styles = StyleSheet.create({
   },
   title: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", letterSpacing: 0.2 },
   currentEmoji: { fontSize: 24, width: 24, textAlign: "right" },
-  searchRow: {
+  searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    gap: 10,
     marginHorizontal: 16,
     marginTop: 12,
-    marginBottom: 4,
-    paddingHorizontal: 12,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
-  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 14 },
+  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 15, outlineWidth: 0, outlineStyle: "none" } as any,
   searchGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 12, paddingTop: 10, gap: 4 },
   emojiCellWrap: { width: 48, height: 48, borderRadius: 12, justifyContent: "center", alignItems: "center" },
   noResults: { color: "rgba(255,255,255,0.4)", fontSize: 13, textAlign: "center", marginTop: 40 },
