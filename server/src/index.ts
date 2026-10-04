@@ -467,10 +467,18 @@ io.on("connection", (socket: Socket) => {
       if (!isOptionalString(name, 60)) return ack?.({ ok: false, error: "Gecersiz isim." });
       if (isPublic !== undefined && !isBoolean(isPublic)) return ack?.({ ok: false, error: "Gecersiz istek." });
       if (!allow("room:create", 10, 60_000)) return ack?.({ ok: false, error: "Cok fazla oda acildi, biraz bekle." });
-      const hostAvatarUrl = myUserId && myDb ? (await getPublicProfile(myDb, myUserId))?.avatarUrl ?? null : null;
+      const hostProfile = myUserId && myDb ? await getPublicProfile(myDb, myUserId) : null;
       // Oda, icerik secilmeden var olamaz - odanin/kartin ismi de secilen
       // icerigin ismi (source.label) oluyor, ayri bir oda basligi girilmiyor.
-      const room = createRoom(socket.id, name || myName || "Host", { isPublic, source }, myUserId, myCountry, hostAvatarUrl);
+      const room = createRoom(
+        socket.id,
+        name || myName || "Host",
+        { isPublic, source },
+        myUserId,
+        myCountry,
+        hostProfile?.avatarUrl ?? null,
+        hostProfile?.defaultAutoTranslate ?? false
+      );
       currentRoomCode = room.code;
       socket.join(room.code);
       ack?.({ ok: true, room: roomToPublicState(room) });

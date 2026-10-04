@@ -16,13 +16,17 @@ const APP_VERSION = "1.0.0 (1)";
 
 /** Rave'in gercek profil/ayarlar ekraninin birebir kopyasi (bkz. kullanicinin
  * gonderdigi ekran goruntuleri) - sadece marka "LUNA" olarak degistirildi.
- * Sosyal hesaplar/versiyon numarasi gibi Rave'e ozel kisimlar YER TUTUCU
- * (gercek hesaplarimiz yok) - kullanicinin acik istegiyle boyle birebir
- * kopyalandi. */
+ * Isim/kullanici adi/avatar artik UserProfileScreen ile AYNI gercek
+ * profiles satirindan okunuyor ve degisiklikler oraya da yansiyor (eskiden
+ * isim SADECE burada yerel state'ti, kaydedilmiyordu). */
 export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends }: Props) {
+  const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState("Kullanici");
+  const [handle, setHandle] = useState("kullanici");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  const [googleLinked, setGoogleLinked] = useState(false);
 
   const [quickReaction, setQuickReaction] = useState("❤️");
   const [premium, setPremium] = useState(true);
@@ -37,13 +41,48 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      const mail = data.user?.email;
-      if (mail) {
-        setEmail(mail);
-        setName(mail.split("@")[0]);
-      }
+      const userId = data.user?.id;
+      if (!userId) return;
+      setMyUserId(userId);
+      setEmail(data.user?.email || null);
+      // Gercek Google hesap baglantisi - Supabase auth.users.identities
+      // dizisinde "google" saglayicisi varsa KULLANICI GERCEKTEN Google ile
+      // giris yapmis/baglamis demektir (eskiden bu rozet HER ZAMAN sahte
+      // bir yesil tikle "bagli" gosteriliyordu).
+      setGoogleLinked((data.user?.identities || []).some((i: any) => i.provider === "google"));
+      supabase
+        .from("profiles")
+        .select("name,handle,avatar_url,default_auto_translate")
+        .eq("id", userId)
+        .maybeSingle()
+        .then(({ data: profile }) => {
+          if (!profile) return;
+          if (profile.name) setName(profile.name);
+          if (profile.handle) setHandle(profile.handle);
+          if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
+          setAutoTranslate(profile.default_auto_translate === true);
+        });
     });
   }, []);
+
+  function persistName(value: string) {
+    setEditingName(false);
+    if (!myUserId || !value.trim()) return;
+    supabase.from("profiles").update({ name: value.trim() }).eq("id", myUserId);
+  }
+
+  // Yeni actigin HER odanin "Chat Otomatik Cevir" baslangic degeri - sadece
+  // bir varsayilan, host odanin icinde RoomSettingsSheet'ten yine
+  // degistirebilir (bkz. server/src/index.ts room:create / rooms.ts
+  // createRoom).
+  function toggleAutoTranslateDefault() {
+    if (!myUserId) return;
+    setAutoTranslate((v) => {
+      const next = !v;
+      supabase.from("profiles").update({ default_auto_translate: next }).eq("id", myUserId);
+      return next;
+    });
+  }
 
   useEffect(() => {
     const socket = getSocket();
@@ -99,7 +138,11 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
 
         <TouchableOpacity style={styles.avatarWrap} onPress={onOpenUserProfile} activeOpacity={0.8}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -110,8 +153,8 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
               value={name}
               onChangeText={setName}
               autoFocus
-              onBlur={() => setEditingName(false)}
-              onSubmitEditing={() => setEditingName(false)}
+              onBlur={() => persistName(name)}
+              onSubmitEditing={() => persistName(name)}
             />
           ) : (
             <Text style={styles.name}>{name.toUpperCase()}</Text>
@@ -120,18 +163,27 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
             <Icon name="edit" size={18} color="rgba(255,255,255,0.8)" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.handle}>@hickimse</Text>
+        <Text style={styles.handle}>@{handle}</Text>
 
         <SectionHeader title="Baglanan hesaplar" />
-        <TouchableOpacity style={styles.accountRow} onPress={() => placeholder("Google")}>
+        <TouchableOpacity
+          style={styles.accountRow}
+          onPress={() => (googleLinked ? undefined : placeholder("Google ile bağlama"))}
+        >
           <Text style={styles.accountLabel}>Google</Text>
           <View style={styles.accountValue}>
-            <View style={styles.checkBadge}>
-              <Text style={styles.checkBadgeText}>✓</Text>
-            </View>
-            <Text style={styles.accountValueText} numberOfLines={1}>
-              {email || "Baglanmadi"} olarak gi...
-            </Text>
+            {googleLinked ? (
+              <>
+                <View style={styles.checkBadge}>
+                  <Text style={styles.checkBadgeText}>✓</Text>
+                </View>
+                <Text style={styles.accountValueText} numberOfLines={1}>
+                  {email} olarak bağlı
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.accountValueText}>Bağlanmadı</Text>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -174,9 +226,9 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         />
         <ToggleRow
           title="Chat mesajlarini otomatik cevir"
-          subtitle="Dilinizle eslesmeyen chat mesajlarini otomatik olarak cevir"
+          subtitle="Yeni acacagin odalarda bu ayar varsayilan olarak boyle baslar (oda icinde yine degistirebilirsin)"
           checked={autoTranslate}
-          onToggle={() => setAutoTranslate((v) => !v)}
+          onToggle={toggleAutoTranslateDefault}
         />
         <ToggleRow
           title="Baska Ses Calarken Sessize Al"
@@ -312,7 +364,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.3)",
+    overflow: "hidden",
   },
+  avatarImage: { width: "100%", height: "100%" },
   avatarInitial: { color: "#FFFFFF", fontSize: 56, fontWeight: "700" },
   nameRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 18 },
   name: { color: "#FFFFFF", fontSize: 24, fontWeight: "700", letterSpacing: 0.5 },

@@ -104,7 +104,11 @@ export function createRoom(
   options: { isPublic?: boolean; source: MediaSource },
   hostUserId?: string | null,
   hostCountry?: string | null,
-  hostAvatarUrl?: string | null
+  hostAvatarUrl?: string | null,
+  // Host'un Ayarlar ekranindaki "Chat mesajlarini otomatik cevir" tercihi -
+  // yeni actigi HER odanin baslangic degeri bu oluyor (host yine de
+  // RoomSettingsSheet'ten oda bazinda degistirebilir).
+  defaultAutoTranslate?: boolean
 ): Room {
   let code = generateRoomCode();
   while (rooms.has(code)) code = generateRoomCode(); // cakisma ihtimaline karsi
@@ -118,7 +122,7 @@ export function createRoom(
     privacy: "open",
     playbackMode: "leader",
     hostCountry: hostCountry ?? null,
-    autoTranslateChat: false,
+    autoTranslateChat: defaultAutoTranslate ?? false,
     poll: null,
     hostSocketId,
     participants: new Map([

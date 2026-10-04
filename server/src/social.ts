@@ -115,10 +115,11 @@ export interface PublicProfile {
   videosVisible: boolean;
   bioVisible: boolean;
   statsVisible: boolean;
+  defaultAutoTranslate: boolean;
 }
 
 const PUBLIC_PROFILE_COLUMNS =
-  "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible";
+  "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,default_auto_translate";
 
 function rowToPublicProfile(row: any): PublicProfile {
   return {
@@ -134,6 +135,7 @@ function rowToPublicProfile(row: any): PublicProfile {
     videosVisible: row.videos_visible !== false,
     bioVisible: row.bio_visible !== false,
     statsVisible: row.stats_visible !== false,
+    defaultAutoTranslate: row.default_auto_translate === true,
   };
 }
 
