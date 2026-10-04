@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, TextInput } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { supabase } from "../services/supabase";
 import { getSocket } from "../services/socket";
 import { theme } from "../theme";
@@ -24,7 +24,6 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
   const [name, setName] = useState("Kullanici");
   const [handle, setHandle] = useState("kullanici");
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [editingName, setEditingName] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [googleLinked, setGoogleLinked] = useState(false);
 
@@ -64,12 +63,6 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         });
     });
   }, []);
-
-  function persistName(value: string) {
-    setEditingName(false);
-    if (!myUserId || !value.trim()) return;
-    supabase.from("profiles").update({ name: value.trim() }).eq("id", myUserId);
-  }
 
   // Yeni actigin HER odanin "Chat Otomatik Cevir" baslangic degeri - sadece
   // bir varsayilan, host odanin icinde RoomSettingsSheet'ten yine
@@ -146,23 +139,7 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
           </View>
         </TouchableOpacity>
 
-        <View style={styles.nameRow}>
-          {editingName ? (
-            <TextInput
-              style={styles.nameInput}
-              value={name}
-              onChangeText={setName}
-              autoFocus
-              onBlur={() => persistName(name)}
-              onSubmitEditing={() => persistName(name)}
-            />
-          ) : (
-            <Text style={styles.name}>{name.toUpperCase()}</Text>
-          )}
-          <TouchableOpacity onPress={() => setEditingName(true)} hitSlop={10}>
-            <Icon name="edit" size={18} color="rgba(255,255,255,0.8)" />
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.name}>{name.toUpperCase()}</Text>
         <Text style={styles.handle}>@{handle}</Text>
 
         <SectionHeader title="Baglanan hesaplar" />
@@ -368,18 +345,8 @@ const styles = StyleSheet.create({
   },
   avatarImage: { width: "100%", height: "100%" },
   avatarInitial: { color: "#FFFFFF", fontSize: 56, fontWeight: "700" },
-  nameRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 18 },
-  name: { color: "#FFFFFF", fontSize: 24, fontWeight: "700", letterSpacing: 0.5 },
-  nameInput: {
-    color: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "700",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.4)",
-    minWidth: 120,
-    textAlign: "center",
-  },
-  handle: { color: "rgba(255,255,255,0.6)", fontSize: 14, textAlign: "center", marginTop: 4 },
+  name: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, textAlign: "center", marginTop: 18 },
+  handle: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "600", letterSpacing: 0.2, textAlign: "center", marginTop: 4 },
   sectionHeader: { backgroundColor: "rgba(0,0,0,0.25)", paddingHorizontal: 18, paddingVertical: 12, marginTop: 20 },
   sectionHeaderText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   accountRow: {
