@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal } from "react-native";
 import * as StoreReview from "expo-store-review";
 import { supabase } from "../services/supabase";
 import { getSocket } from "../services/socket";
@@ -11,6 +11,21 @@ import { isHapticsEnabled, setHapticsEnabled, triggerHaptic } from "../utils/hap
 
 const SUPPORT_EMAIL = "destek@luna.app";
 const PREMIUM_SUBTITLE = "REKLAMSIZ BİR LUNA İÇİN...";
+
+type InviteRestriction = "everyone" | "friends" | "none";
+const INVITE_OPTIONS: { key: InviteRestriction; label: string }[] = [
+  { key: "everyone", label: "Herkes" },
+  { key: "friends", label: "Arkadaşlar" },
+  { key: "none", label: "Hiçkimse" },
+];
+const ADULT_CONTENT_OPTIONS = [
+  { key: "hidden", label: "Gizli" },
+  { key: "shown", label: "Açık" },
+];
+const HAPTICS_OPTIONS = [
+  { key: "on", label: "Açık" },
+  { key: "off", label: "Kapalı" },
+];
 
 interface Props {
   onBack: () => void;
@@ -36,10 +51,9 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
 
   const [quickReaction, setQuickReaction] = useState("❤️");
   const [emojiSheetVisible, setEmojiSheetVisible] = useState(false);
-  const [restrictInvites, setRestrictInvites] = useState(false);
+  const [inviteRestriction, setInviteRestriction] = useState<InviteRestriction>("everyone");
   const [hideAdult, setHideAdult] = useState(true);
   const [haptics, setHaptics] = useState(false);
-  const [floatingPlayer, setFloatingPlayer] = useState(true);
   const [autoTranslate, setAutoTranslate] = useState(false);
   const [muteOnOtherAudio, setMuteOnOtherAudio] = useState(false);
   const [hideLocation, setHideLocation] = useState(true);
@@ -221,24 +235,28 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         />
         <ToggleRow
           title="Davetleri Kisitla"
-          subtitle="Sadece arkadaslardan gelen davetlere izin ver"
-          rightElement={<SegmentedToggle value={restrictInvites} onChange={setRestrictInvites} />}
+          subtitle="Kimlerin seni davet edebilecegini sec"
+          rightElement={
+            <OptionButton value={inviteRestriction} options={INVITE_OPTIONS} onChange={(v) => setInviteRestriction(v as InviteRestriction)} />
+          }
         />
         <ToggleRow
           title="Yetiskin Icerigini Gizle"
           subtitle="Mustehcen icerik gosterme"
-          rightElement={<SegmentedToggle value={hideAdult} onChange={setHideAdult} />}
+          rightElement={
+            <OptionButton
+              value={hideAdult ? "hidden" : "shown"}
+              options={ADULT_CONTENT_OPTIONS}
+              onChange={(v) => setHideAdult(v === "hidden")}
+            />
+          }
         />
         <ToggleRow
           title="Dokunsal geri bildirim"
           subtitle="Dokunuslarda ve islemlerde titret"
-          rightElement={<SegmentedToggle value={haptics} onChange={applyHaptics} />}
-        />
-        <ToggleRow
-          title="Yuzen Video Oynaticisi"
-          subtitle="Videolarin uygulama disinda oynatilmasina izin ver"
-          checked={floatingPlayer}
-          onToggle={() => setFloatingPlayer((v) => !v)}
+          rightElement={
+            <OptionButton value={haptics ? "on" : "off"} options={HAPTICS_OPTIONS} onChange={(v) => applyHaptics(v === "on")} />
+          }
         />
         <ToggleRow
           title="Chat mesajlarini otomatik cevir"
@@ -366,24 +384,53 @@ function ChevronRow({ title, subtitle, onPress }: { title: string; subtitle?: st
   );
 }
 
-/** Checkbox yerine "Açık/Kapalı" yazili iki segmentli secici - ToggleRow'un
- * rightElement'i olarak kullaniliyor. Satirin ic ice gecen dokunulabilir
- * alani oldugu icin dis satirin onPress'i tetiklenmeyebiliyor - titresim
- * burada ayrica cagiriliyor. */
-function SegmentedToggle({ value, onChange }: { value: boolean; onChange: (next: boolean) => void }) {
-  function choose(next: boolean) {
-    triggerHaptic();
-    onChange(next);
-  }
+/** Secili degeri gosteren TEK bir buton - ToggleRow'un rightElement'i olarak
+ * kullaniliyor. Basinca secenekleri listeleyen kucuk bir sayfa aciliyor
+ * (2 secenekli Acik/Kapali gibi ayarlar icin de, Davetleri Kisitla'nin 3
+ * secenegi - Herkes/Arkadaslar/Hickimse - icin de ayni bilesen calisiyor). */
+function OptionButton({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: { key: string; label: string }[];
+  onChange: (key: string) => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const current = options.find((o) => o.key === value);
   return (
-    <View style={styles.segmented}>
-      <TouchableOpacity style={[styles.segmentOption, !value && styles.segmentOptionActive]} onPress={() => choose(false)}>
-        <Text style={[styles.segmentText, !value && styles.segmentTextActive]}>Kapalı</Text>
+    <>
+      <TouchableOpacity
+        style={styles.optionButton}
+        onPress={() => {
+          triggerHaptic();
+          setVisible(true);
+        }}
+      >
+        <Text style={styles.optionButtonText}>{current?.label ?? value}</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[styles.segmentOption, value && styles.segmentOptionActive]} onPress={() => choose(true)}>
-        <Text style={[styles.segmentText, value && styles.segmentTextActive]}>Açık</Text>
-      </TouchableOpacity>
-    </View>
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
+        <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.optionSheet}>
+            {options.map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                style={styles.optionRow}
+                onPress={() => {
+                  triggerHaptic();
+                  onChange(opt.key);
+                  setVisible(false);
+                }}
+              >
+                <Text style={[styles.optionRowText, opt.key === value && styles.optionRowTextActive]}>{opt.label}</Text>
+                {opt.key === value && <Icon name="check" size={16} color="#0EA5E9" />}
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }
 
@@ -487,11 +534,31 @@ const styles = StyleSheet.create({
   },
   checkboxChecked: { backgroundColor: "#D4C9F5", borderColor: "#D4C9F5" },
   checkboxMark: { color: "#3a2140", fontSize: 15, fontWeight: "700" },
-  segmented: { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 10, padding: 2 },
-  segmentOption: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  segmentOptionActive: { backgroundColor: "#0EA5E9" },
-  segmentText: { color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: "700" },
-  segmentTextActive: { color: "#04140D", fontWeight: "800" },
+  optionButton: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  optionButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  optionOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" },
+  optionSheet: {
+    backgroundColor: "#0A0A0A",
+    borderRadius: 16,
+    paddingVertical: 8,
+    minWidth: 220,
+    borderWidth: 1,
+    borderColor: "#1C1C1C",
+  },
+  optionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  optionRowText: { color: "rgba(255,255,255,0.8)", fontSize: 14, fontWeight: "600" },
+  optionRowTextActive: { color: "#FFFFFF", fontWeight: "800" },
   simpleRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.08)" },
   simpleTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   simpleSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", marginTop: 3, lineHeight: 16 },
