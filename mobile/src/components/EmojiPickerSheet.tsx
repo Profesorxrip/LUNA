@@ -70,7 +70,7 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
           <TouchableOpacity onPress={handleClose} hitSlop={10}>
             <Icon name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.title}>Hızlı Tepki</Text>
+          <Text style={styles.title}>HIZLI TEPKİ</Text>
           <Text style={styles.currentEmoji}>{selected}</Text>
         </View>
 
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     paddingTop: 54,
     paddingBottom: 14,
   },
-  title: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", letterSpacing: 0.2 },
+  title: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", letterSpacing: 0.3 },
   currentEmoji: { fontSize: 24, width: 24, textAlign: "right" },
   searchBar: {
     flexDirection: "row",
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: "#FFFFFF", fontSize: 15, outlineWidth: 0, outlineStyle: "none" } as any,
   searchGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 12, paddingTop: 10, gap: 4 },
   emojiCellWrap: { width: 48, height: 48, borderRadius: 12, justifyContent: "center", alignItems: "center" },
-  noResults: { color: "rgba(255,255,255,0.4)", fontSize: 13, textAlign: "center", marginTop: 40 },
+  noResults: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", textAlign: "center", marginTop: 40 },
   tabsRow: { flexGrow: 0 },
   tabsRowContent: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
   tabButton: {
