@@ -170,8 +170,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 54,
     paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1C1C1C",
   },
   title: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", letterSpacing: 0.2 },
   currentEmoji: { fontSize: 24, width: 24, textAlign: "right" },
@@ -192,7 +190,7 @@ const styles = StyleSheet.create({
   searchGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 12, paddingTop: 10, gap: 4 },
   emojiCellWrap: { width: 48, height: 48, borderRadius: 12, justifyContent: "center", alignItems: "center" },
   noResults: { color: "rgba(255,255,255,0.4)", fontSize: 13, textAlign: "center", marginTop: 40 },
-  tabsRow: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: "#1C1C1C" },
+  tabsRow: { flexGrow: 0 },
   tabsRowContent: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
   tabButton: {
     width: 42,
