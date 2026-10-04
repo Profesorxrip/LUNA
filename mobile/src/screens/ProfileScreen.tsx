@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
 import { supabase } from "../services/supabase";
 import { getSocket } from "../services/socket";
 import { theme } from "../theme";
@@ -13,6 +13,10 @@ interface Props {
 }
 
 const APP_VERSION = "1.0.0 (1)";
+
+// Hizli Tepki secimi icin kuratörlü emoji paketi - oda sohbetinde/dm'de bir
+// mesaja cift tiklaninca gonderilecek emoji buradan secilir.
+const EMOJI_PACK = ["❤️", "😂", "😮", "😢", "😡", "👍", "👏", "🔥", "🎉", "💯", "😍", "🙌", "😭", "🤔", "👀", "💀"];
 
 /** Rave'in gercek profil/ayarlar ekraninin birebir kopyasi (bkz. kullanicinin
  * gonderdigi ekran goruntuleri) - sadece marka "LUNA" olarak degistirildi.
@@ -28,6 +32,7 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
   const [googleLinked, setGoogleLinked] = useState(false);
 
   const [quickReaction, setQuickReaction] = useState("❤️");
+  const [emojiSheetVisible, setEmojiSheetVisible] = useState(false);
   const [premium, setPremium] = useState(true);
   const [restrictInvites, setRestrictInvites] = useState(false);
   const [hideAdult, setHideAdult] = useState(true);
@@ -51,7 +56,7 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
       setGoogleLinked((data.user?.identities || []).some((i: any) => i.provider === "google"));
       supabase
         .from("profiles")
-        .select("name,handle,avatar_url,default_auto_translate")
+        .select("name,handle,avatar_url,default_auto_translate,default_reaction_emoji")
         .eq("id", userId)
         .maybeSingle()
         .then(({ data: profile }) => {
@@ -60,6 +65,7 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
           if (profile.handle) setHandle(profile.handle);
           if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
           setAutoTranslate(profile.default_auto_translate === true);
+          if (profile.default_reaction_emoji) setQuickReaction(profile.default_reaction_emoji);
         });
     });
   }, []);
@@ -75,6 +81,14 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
       supabase.from("profiles").update({ default_auto_translate: next }).eq("id", myUserId);
       return next;
     });
+  }
+
+  // Oda sohbetinde/dm'de bir mesaja CIFT TIKLAYINCA gonderilecek emoji -
+  // bkz. RoomScreen.tsx/DMScreen.tsx cift-tik tepki ozelligi.
+  function selectQuickReaction(emoji: string) {
+    setQuickReaction(emoji);
+    setEmojiSheetVisible(false);
+    if (myUserId) supabase.from("profiles").update({ default_reaction_emoji: emoji }).eq("id", myUserId);
   }
 
   useEffect(() => {
@@ -168,7 +182,7 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         <ToggleRow
           title="Hizli Tepki"
           subtitle="Sohbet mesajlarina cift tiklama tepkinizi degistirin"
-          onPress={() => placeholder("Hizli Tepki")}
+          onPress={() => setEmojiSheetVisible(true)}
           rightElement={<Text style={styles.emoji}>{quickReaction}</Text>}
         />
         <ToggleRow
@@ -249,6 +263,35 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
           <Text style={styles.signOutText}>Cikis yap</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal
+        visible={emojiSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEmojiSheetVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.sheetOverlay}
+          activeOpacity={1}
+          onPress={() => setEmojiSheetVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+            <Text style={styles.sheetTitle}>Hizli Tepki</Text>
+            <View style={styles.emojiGrid}>
+              {EMOJI_PACK.map((emoji) => (
+                <TouchableOpacity
+                  key={emoji}
+                  style={[styles.emojiOption, emoji === quickReaction && styles.emojiOptionSelected]}
+                  onPress={() => selectQuickReaction(emoji)}
+                >
+                  <Text style={styles.emojiOptionText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.sheetHandle} />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -316,7 +359,11 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 10,
   },
-  headerLogo: { width: 74, height: 34, marginTop: -9 },
+  // lavin-icon-mark.png'nin gorsel agirlik merkezi (yildiz susleme + "LUNA"
+  // yazisi) kutunun geometrik ortasinin ~6px altinda - ikonlarla ayni
+  // hizaya gelmesi icin bu kadar yukari kaydiriyoruz (piksel analiziyle
+  // olculdu, tahmini degil).
+  headerLogo: { width: 74, height: 34, marginTop: -6, tintColor: "#FFFFFF" },
   friendsButton: { position: "relative" },
   friendsBadge: {
     position: "absolute",
@@ -350,7 +397,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     paddingHorizontal: 18,
     paddingVertical: 12,
-    marginTop: 20,
+    marginTop: 6,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#1C1C1C",
@@ -409,4 +456,27 @@ const styles = StyleSheet.create({
   versionText: { color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: "500", paddingHorizontal: 18, paddingVertical: 10 },
   signOutButton: { marginHorizontal: 18, marginTop: 24, backgroundColor: "rgba(255,77,79,0.15)", borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,77,79,0.4)" },
   signOutText: { color: "#FF8A8A", fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
+  sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  sheetCard: {
+    backgroundColor: "#0A0A0A",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 18,
+    paddingBottom: 28,
+    paddingHorizontal: 18,
+    alignItems: "center",
+  },
+  sheetTitle: { color: "#FFFFFF", fontSize: 15, fontWeight: "800", letterSpacing: 0.2, marginBottom: 16 },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#262626", marginTop: 14 },
+  emojiGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10 },
+  emojiOption: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emojiOptionSelected: { backgroundColor: "rgba(14,165,233,0.25)", borderWidth: 1.5, borderColor: "#0EA5E9" },
+  emojiOptionText: { fontSize: 26 },
 });

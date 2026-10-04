@@ -62,6 +62,10 @@ export default function DMScreen({ peer, onBack }: Props) {
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [nowTick, setNowTick] = useState(Date.now());
+  // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
+  // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
+  const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
+  const lastTapRef = useRef<Record<string, number>>({});
   const listRef = useRef<FlatList<DMMessage>>(null);
   const muteStorageKey = `dm_muted_${peer.userId}`;
 
@@ -70,6 +74,14 @@ export default function DMScreen({ peer, onBack }: Props) {
     supabase.auth.getUser().then(({ data }) => {
       if (cancelled || !data.user) return;
       setMyUserId(data.user.id);
+      supabase
+        .from("profiles")
+        .select("default_reaction_emoji")
+        .eq("id", data.user.id)
+        .maybeSingle()
+        .then(({ data: profile }) => {
+          if (!cancelled && profile?.default_reaction_emoji) setQuickReactionEmoji(profile.default_reaction_emoji);
+        });
       socket.emit("dm:open", { withUserId: peer.userId }, (res: any) => {
         if (res?.ok) {
           setMessages(res.messages);
@@ -99,13 +111,27 @@ export default function DMScreen({ peer, onBack }: Props) {
       if (byUserId !== peer.userId) return;
       setExpiresAfterMs(ms);
     }
+    function handleReaction({
+      fromUserId,
+      messageId,
+      emoji,
+    }: {
+      fromUserId: string;
+      messageId: string;
+      emoji: string | null;
+    }) {
+      if (fromUserId !== peer.userId) return;
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, peerReaction: emoji } : m)));
+    }
     socket.on("dm:message", handleMessage);
     socket.on("dm:seen", handleSeen);
     socket.on("dm:expiry", handleExpiry);
+    socket.on("dm:reaction", handleReaction);
     return () => {
       socket.off("dm:message", handleMessage);
       socket.off("dm:seen", handleSeen);
       socket.off("dm:expiry", handleExpiry);
+      socket.off("dm:reaction", handleReaction);
     };
   }, [peer.userId]);
 
@@ -141,6 +167,18 @@ export default function DMScreen({ peer, onBack }: Props) {
 
   function startReply(message: DMMessage) {
     setReplyingTo({ text: message.text, fromName: message.fromUserId === myUserId ? "Sen" : message.fromName });
+  }
+
+  // Bir mesaja CIFT TIKLAYINCA Ayarlar'da secilen hizli tepki emojisini
+  // gonderir/geri alir (ayni emojiye ikinci cift-tik tepkiyi kaldirir).
+  function handleMessageTap(message: DMMessage) {
+    const now = Date.now();
+    const last = lastTapRef.current[message.id] || 0;
+    lastTapRef.current[message.id] = now;
+    if (now - last > 300) return;
+    const next = message.myReaction === quickReactionEmoji ? null : quickReactionEmoji;
+    setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, myReaction: next } : m)));
+    socket.emit("dm:react", { withUserId: peer.userId, messageId: message.id, emoji: next });
   }
 
   function chooseExpiry(ms: number | null) {
@@ -249,6 +287,7 @@ export default function DMScreen({ peer, onBack }: Props) {
           return (
             <TouchableOpacity
               activeOpacity={0.7}
+              onPress={() => handleMessageTap(item)}
               onLongPress={() => startReply(item)}
               style={[styles.messageRow, isMine ? styles.messageRowMine : styles.messageRowTheirs]}
             >
@@ -268,6 +307,12 @@ export default function DMScreen({ peer, onBack }: Props) {
                 )}
                 <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
                   <Text style={styles.bubbleText}>{item.text}</Text>
+                  {(item.myReaction || item.peerReaction) && (
+                    <View style={styles.reactionBadgeRow}>
+                      {item.peerReaction && <Text style={styles.reactionBadgeEmoji}>{item.peerReaction}</Text>}
+                      {item.myReaction && <Text style={styles.reactionBadgeEmoji}>{item.myReaction}</Text>}
+                    </View>
+                  )}
                 </View>
                 <View style={[styles.metaRow, isMine ? styles.metaRowMine : styles.metaRowTheirs]}>
                   <Text style={styles.metaTime}>
@@ -460,6 +505,18 @@ const styles = StyleSheet.create({
   bubbleMine: { backgroundColor: "#1F3D24" },
   bubbleTheirs: { backgroundColor: "#17130F" },
   bubbleText: { color: TEXT, fontSize: 14, lineHeight: 19 },
+  reactionBadgeRow: {
+    position: "absolute",
+    bottom: -10,
+    right: -6,
+    flexDirection: "row",
+    backgroundColor: "#000000",
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    gap: 2,
+  },
+  reactionBadgeEmoji: { fontSize: 13 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
   metaRowMine: { justifyContent: "flex-end" },
   metaRowTheirs: { justifyContent: "flex-start" },

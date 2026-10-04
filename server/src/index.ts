@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import http from "http";
+import { randomUUID } from "crypto";
 import { Server, Socket } from "socket.io";
 import {
   createRoom,
@@ -448,6 +449,27 @@ io.on("connection", (socket: Socket) => {
     }
   );
 
+  // DM'de bir mesaja CIFT TIKLAYINCA gonderilen tepki - oda sohbetindeki
+  // message:react'in aksine burada sadece 2 taraf oldugu icin sunucu hicbir
+  // state tutmaz, anlik olarak karsi tarafa iletir (emoji:null tepkinin
+  // geri alindigini/toggle oldugunu belirtir).
+  socket.on(
+    "dm:react",
+    (
+      { withUserId, messageId, emoji }: { withUserId: string; messageId: string; emoji: string | null },
+      ack
+    ) => {
+      if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200) || !isNonEmptyString(messageId, 100)) {
+        return ack?.({ ok: false });
+      }
+      if (emoji !== null && !isNonEmptyString(emoji, 8)) return ack?.({ ok: false });
+      if (!allow("dm:react", 40, 10_000)) return ack?.({ ok: false });
+      ack?.({ ok: true });
+      const peerSocketId = getSocketIdForUser(withUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:reaction", { fromUserId: myUserId, messageId, emoji });
+    }
+  );
+
   socket.on("dm:setExpiry", async ({ withUserId, ms }: { withUserId: string; ms: number | null }, ack) => {
     if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200)) return ack?.({ ok: false });
     if (ms !== null && !isFiniteNumber(ms, 1000, 365 * 24 * 60 * 60 * 1000)) return ack?.({ ok: false });
@@ -795,6 +817,7 @@ io.on("connection", (socket: Socket) => {
     const room = getRoom(currentRoomCode);
     const participant = room?.participants.get(socket.id);
     io.to(currentRoomCode).emit("room:chat", {
+      id: randomUUID(),
       system: false,
       from: participant?.name || "?",
       fromSocketId: socket.id,
@@ -803,6 +826,35 @@ io.on("connection", (socket: Socket) => {
       replyTo: validReplyTo,
       ts: Date.now(),
     });
+  });
+
+  // Oda sohbetinde bir mesaja CIFT TIKLAYINCA gonderilen tepki - DM'deki
+  // message:react ile ayni mantik, ama hicbir yerde kalici olarak
+  // saklanmiyor (oda hafizadan silinince bu tepkiler de gider). Ayni emoji
+  // ile ikinci cift-tik tepkiyi geri kaldirir (toggle).
+  socket.on("message:react", ({ messageId, emoji }: { messageId: string; emoji: string }) => {
+    if (!currentRoomCode || !isNonEmptyString(messageId, 100) || !isNonEmptyString(emoji, 8)) return;
+    if (!allow("message:react", 40, 10_000)) return;
+    const room = getRoom(currentRoomCode);
+    if (!room) return;
+    const fromName = room.participants.get(socket.id)?.name || "?";
+    let forMessage = room.messageReactions.get(messageId);
+    if (!forMessage) {
+      forMessage = new Map();
+      room.messageReactions.set(messageId, forMessage);
+    }
+    const existing = forMessage.get(socket.id);
+    if (existing && existing.emoji === emoji) {
+      forMessage.delete(socket.id);
+    } else {
+      forMessage.set(socket.id, { emoji, fromName });
+    }
+    const reactions = Array.from(forMessage.entries()).map(([fromSocketId, r]) => ({
+      fromSocketId,
+      emoji: r.emoji,
+      fromName: r.fromName,
+    }));
+    io.to(currentRoomCode).emit("room:messageReaction", { messageId, reactions });
   });
 
   socket.on("host:kick", ({ targetSocketId }: { targetSocketId: string }, ack) => {

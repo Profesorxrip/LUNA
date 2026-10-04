@@ -17,6 +17,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
 import type { MediaSource, DMReply } from "../services/socket";
+import { supabase } from "../services/supabase";
 import MediaPlayer, { MediaPlayerHandle } from "../components/MediaPlayer";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import ReactionsOverlay, { ReactionsOverlayHandle } from "../components/ReactionsOverlay";
@@ -49,6 +50,7 @@ interface ChatBubbleRowProps {
   isOwn: boolean;
   groupedWithPrev: boolean;
   onReply: () => void;
+  onDoubleTap: () => void;
 }
 
 /** Sohbet mesaji satiri - kendi mesajimizi SAGDAN SOLA, baskasinin mesajini
@@ -61,8 +63,26 @@ interface ChatBubbleRowProps {
  * doldurup tasdigi icin ustten baslamaya devam ediyor. Bu sayede react-
  * native-web'de desteklenmeyen onTextLayout'a bagli kalinmiyor ve native'de
  * de ilk render'da dogru pozisyonla cikiyor - sonradan "ziplama" olmuyor. */
-function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply }: ChatBubbleRowProps) {
+function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap }: ChatBubbleRowProps) {
   const translateX = useRef(new Animated.Value(0)).current;
+  const lastTapRef = useRef(0);
+
+  // Mesaj metnine CIFT TIKLAYINCA Ayarlar'daki hizli tepki emojisini gonderir.
+  function handleTap() {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) onDoubleTap();
+    lastTapRef.current = now;
+  }
+
+  const reactionBadges = item.reactions && item.reactions.length > 0 && (
+    <View style={styles.reactionBadgeRow}>
+      {item.reactions.map((r) => (
+        <Text key={r.fromSocketId} style={styles.reactionBadgeEmoji}>
+          {r.emoji}
+        </Text>
+      ))}
+    </View>
+  );
 
   const pan = useRef(
     PanResponder.create({
@@ -107,12 +127,13 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply }: ChatBubbleRowP
       </Animated.View>
       {isOwn ? (
         <>
-          <View style={styles.messageTextCol}>
+          <TouchableOpacity activeOpacity={1} onPress={handleTap} style={styles.messageTextCol}>
             {replyQuote}
             <Text style={styles.chatMsgOwn} selectable={false}>
               {item.text}
             </Text>
-          </View>
+            {reactionBadges}
+          </TouchableOpacity>
           {!groupedWithPrev && <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} />}
         </>
       ) : (
@@ -122,13 +143,14 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply }: ChatBubbleRowP
           ) : (
             <View style={styles.avatarSpacer} />
           )}
-          <View style={styles.messageTextCol}>
+          <TouchableOpacity activeOpacity={1} onPress={handleTap} style={styles.messageTextCol}>
             {replyQuote}
             <Text style={styles.chatMsg} selectable={false}>
               {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
               {item.text}
             </Text>
-          </View>
+            {reactionBadges}
+          </TouchableOpacity>
         </>
       )}
     </Animated.View>
@@ -152,6 +174,9 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [volume, setVolume] = useState(1);
+  // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
+  // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
+  const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
 
   const playerRef = useRef<MediaPlayerHandle>(null);
   const reactionsRef = useRef<ReactionsOverlayHandle>(null);
@@ -167,11 +192,35 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     room.playback.source?.type === "youtube" || room.playback.source?.type === "hls" || room.playback.source?.type === "mp4";
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const userId = data.user?.id;
+      if (!userId) return;
+      supabase
+        .from("profiles")
+        .select("default_reaction_emoji")
+        .eq("id", userId)
+        .maybeSingle()
+        .then(({ data: profile }) => {
+          if (profile?.default_reaction_emoji) setQuickReactionEmoji(profile.default_reaction_emoji);
+        });
+    });
+  }, []);
+
+  useEffect(() => {
     function handleRoomState(state: RoomState) {
       setRoom(state);
     }
     function handleChat(msg: ChatMessage) {
       setMessages((prev) => [...prev.slice(-199), msg]);
+    }
+    function handleMessageReaction({
+      messageId,
+      reactions,
+    }: {
+      messageId: string;
+      reactions: { emoji: string; fromSocketId: string; fromName: string }[];
+    }) {
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)));
     }
     function handleKicked() {
       showAlert("Odadan atildin", "Oda lideri seni odadan cikardi.");
@@ -179,10 +228,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     }
     socket.on("room:state", handleRoomState);
     socket.on("room:chat", handleChat);
+    socket.on("room:messageReaction", handleMessageReaction);
     socket.on("room:kicked", handleKicked);
     return () => {
       socket.off("room:state", handleRoomState);
       socket.off("room:chat", handleChat);
+      socket.off("room:messageReaction", handleMessageReaction);
       socket.off("room:kicked", handleKicked);
     };
   }, []);
@@ -391,6 +442,14 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     reactionsRef.current?.sendReaction(emoji);
   }
 
+  // Sohbette bir mesaja CIFT TIKLAYINCA Ayarlar'da secilen hizli tepki
+  // emojisini gonderir (ayni emojiyle ikinci cift-tik sunucu tarafinda
+  // geri alinir, bkz. server/src/index.ts message:react).
+  function reactToMessage(item: ChatMessage) {
+    if (!item.id) return;
+    socket.emit("message:react", { messageId: item.id, emoji: quickReactionEmoji });
+  }
+
   function kick(targetSocketId: string) {
     socket.emit("host:kick", { targetSocketId }, () => {});
   }
@@ -519,6 +578,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
               isOwn={item.fromSocketId === socket.id}
               groupedWithPrev={groupedWithPrev}
               onReply={() => startReply(item)}
+              onDoubleTap={() => reactToMessage(item)}
             />
           ) : item.kind === "joined" ? (
             <View style={styles.messageRow}>
@@ -815,6 +875,8 @@ const styles = StyleSheet.create({
   messageTextCol: { flexShrink: 1, minHeight: 32, justifyContent: "center" },
   chatMsg: { color: theme.text, fontSize: 14 },
   chatMsgOwn: { color: theme.text, fontSize: 14, textAlign: "right" },
+  reactionBadgeRow: { flexDirection: "row", gap: 2, marginTop: 2 },
+  reactionBadgeEmoji: { fontSize: 13 },
   chatFrom: { color: theme.text, fontSize: 14, fontWeight: "700" },
   systemMsg: { color: theme.textMuted, fontSize: 12, fontStyle: "italic", textAlign: "center" },
   // Mesaji kaydirirken (reply) beliren kucuk ok ikonu - satirin disina,

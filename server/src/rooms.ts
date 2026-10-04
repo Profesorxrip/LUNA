@@ -94,6 +94,9 @@ export interface Room {
   playback: PlaybackState;
   createdAtMs: number;
   bufferingSocketIds: Set<string>;
+  // Oda sohbetinde bir mesaja cift-tiklayinca eklenen tepkiler - mesajlar
+  // gibi kalici degil, sadece oda hafizadayken yasiyor (messageId -> socketId -> tepki).
+  messageReactions: Map<string, Map<string, { emoji: string; fromName: string }>>;
 }
 
 const rooms = new Map<string, Room>();
@@ -139,6 +142,7 @@ export function createRoom(
     },
     createdAtMs: Date.now(),
     bufferingSocketIds: new Set(),
+    messageReactions: new Map(),
   };
   rooms.set(code, room);
   return room;

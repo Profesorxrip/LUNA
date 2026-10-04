@@ -82,6 +82,11 @@ export interface RoomState {
 }
 
 export interface ChatMessage {
+  // Sadece "chat:send" ile gonderilen gercek kullanici mesajlarinda var -
+  // sistem mesajlarinin (kicked/joined/vb.) id'si yok, cift-tik tepki
+  // alamazlar. Mesaj kalici degil ama id oda hafizadayken tepkileri
+  // eslestirmek icin yeterli.
+  id?: string;
   system: boolean;
   from?: string;
   fromSocketId?: string;
@@ -89,6 +94,9 @@ export interface ChatMessage {
   text: string;
   ts: number;
   replyTo?: DMReply | null;
+  // Bu mesaja cift-tiklayarak tepki veren katilimcilar (bkz. "message:react" /
+  // "room:messageReaction") - oda hafizadan silinince bu da gider, kalici degil.
+  reactions?: { emoji: string; fromSocketId: string; fromName: string }[];
   /** "text" her zaman duz bir yedek ozet tasir (bildirim/erisilebilirlik icin) -
    * "kind" verilmisse istemci asagidaki alanlarla Rave'deki gibi zengin
    * (ikonlu, kalin isimli) bir sistem mesaji ciziyor. */
@@ -150,4 +158,9 @@ export interface DMMessage {
   replyTo: DMReply | null;
   createdAt: number;
   expiresAt: number | null;
+  // Bu mesaja cift-tiklayarak verilen tepki - sunucuda SAKLANMAZ, sadece
+  // konusma acikken anlik olarak karsi tarafa iletilir (bkz. "dm:react" /
+  // "dm:reaction"). Konusma yeniden acilinca kaybolur.
+  myReaction?: string | null;
+  peerReaction?: string | null;
 }
