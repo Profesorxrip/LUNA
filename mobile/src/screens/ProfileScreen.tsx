@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { supabase } from "../services/supabase";
 import { getSocket } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
+import EmojiPickerSheet from "../components/EmojiPickerSheet";
 import { showAlert } from "../components/CustomAlert";
 
 interface Props {
@@ -13,10 +14,6 @@ interface Props {
 }
 
 const APP_VERSION = "1.0.0 (1)";
-
-// Hizli Tepki secimi icin kuratörlü emoji paketi - oda sohbetinde/dm'de bir
-// mesaja cift tiklaninca gonderilecek emoji buradan secilir.
-const EMOJI_PACK = ["❤️", "😂", "😮", "😢", "😡", "👍", "👏", "🔥", "🎉", "💯", "😍", "🙌", "😭", "🤔", "👀", "💀"];
 
 /** Rave'in gercek profil/ayarlar ekraninin birebir kopyasi (bkz. kullanicinin
  * gonderdigi ekran goruntuleri) - sadece marka "LUNA" olarak degistirildi.
@@ -264,34 +261,12 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         </TouchableOpacity>
       </ScrollView>
 
-      <Modal
+      <EmojiPickerSheet
         visible={emojiSheetVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setEmojiSheetVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.sheetOverlay}
-          activeOpacity={1}
-          onPress={() => setEmojiSheetVisible(false)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
-            <Text style={styles.sheetTitle}>Hizli Tepki</Text>
-            <View style={styles.emojiGrid}>
-              {EMOJI_PACK.map((emoji) => (
-                <TouchableOpacity
-                  key={emoji}
-                  style={[styles.emojiOption, emoji === quickReaction && styles.emojiOptionSelected]}
-                  onPress={() => selectQuickReaction(emoji)}
-                >
-                  <Text style={styles.emojiOptionText}>{emoji}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={styles.sheetHandle} />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        selected={quickReaction}
+        onSelect={selectQuickReaction}
+        onClose={() => setEmojiSheetVisible(false)}
+      />
     </View>
   );
 }
@@ -456,27 +431,4 @@ const styles = StyleSheet.create({
   versionText: { color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: "500", paddingHorizontal: 18, paddingVertical: 10 },
   signOutButton: { marginHorizontal: 18, marginTop: 24, backgroundColor: "rgba(255,77,79,0.15)", borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,77,79,0.4)" },
   signOutText: { color: "#FF8A8A", fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
-  sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  sheetCard: {
-    backgroundColor: "#0A0A0A",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 18,
-    paddingBottom: 28,
-    paddingHorizontal: 18,
-    alignItems: "center",
-  },
-  sheetTitle: { color: "#FFFFFF", fontSize: 15, fontWeight: "800", letterSpacing: 0.2, marginBottom: 16 },
-  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#262626", marginTop: 14 },
-  emojiGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10 },
-  emojiOption: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emojiOptionSelected: { backgroundColor: "rgba(14,165,233,0.25)", borderWidth: 1.5, borderColor: "#0EA5E9" },
-  emojiOptionText: { fontSize: 26 },
 });
