@@ -10,6 +10,7 @@ import { showAlert } from "../components/CustomAlert";
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic } from "../utils/haptics";
 
 const SUPPORT_EMAIL = "destek@luna.app";
+const PREMIUM_SUBTITLE = "Reklamların kaldırılması gibi avantajlardan yararlanın.";
 
 interface Props {
   onBack: () => void;
@@ -34,7 +35,6 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
 
   const [quickReaction, setQuickReaction] = useState("❤️");
   const [emojiSheetVisible, setEmojiSheetVisible] = useState(false);
-  const [premium, setPremium] = useState(true);
   const [restrictInvites, setRestrictInvites] = useState(false);
   const [hideAdult, setHideAdult] = useState(true);
   const [haptics, setHaptics] = useState(false);
@@ -214,17 +214,12 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         </TouchableOpacity>
 
         <SectionHeader title="Ayarlar" />
+        <ToggleRow title="LUNA Premium" subtitle={PREMIUM_SUBTITLE} onPress={() => placeholder("LUNA Premium")} hideIndicator />
         <ToggleRow
           title="Hizli Tepki"
           subtitle="Sohbet mesajlarina cift tiklama tepkinizi degistirin"
           onPress={() => setEmojiSheetVisible(true)}
           rightElement={<Text style={styles.emoji}>{quickReaction}</Text>}
-        />
-        <ToggleRow
-          title="LUNA Premium"
-          subtitle="LUNA'yi gelistirmemize ve yeni ozellikler eklememize yardim edin!"
-          checked={premium}
-          onToggle={() => setPremium((v) => !v)}
         />
         <ToggleRow
           title="Davetleri Kisitla"
@@ -324,6 +319,7 @@ function ToggleRow({
   onToggle,
   onPress,
   rightElement,
+  hideIndicator,
 }: {
   title: string;
   subtitle?: string;
@@ -331,6 +327,7 @@ function ToggleRow({
   onToggle?: () => void;
   onPress?: () => void;
   rightElement?: React.ReactNode;
+  hideIndicator?: boolean;
 }) {
   return (
     <TouchableOpacity
@@ -345,7 +342,7 @@ function ToggleRow({
         <Text style={styles.rowTitle}>{title}</Text>
         {subtitle && <Text style={styles.rowSubtitle}>{subtitle}</Text>}
       </View>
-      {rightElement ? (
+      {hideIndicator ? null : rightElement ? (
         rightElement
       ) : (
         <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
@@ -423,7 +420,6 @@ const styles = StyleSheet.create({
   sectionHeader: {
     paddingHorizontal: 18,
     paddingVertical: 12,
-    marginTop: 6,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#1C1C1C",
