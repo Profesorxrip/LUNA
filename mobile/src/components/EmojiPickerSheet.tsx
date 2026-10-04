@@ -1,6 +1,7 @@
-import React, { useMemo, useRef } from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView } from "react-native";
 import { EMOJI_CATEGORIES } from "../data/emojiCategories";
+import { searchEmojis } from "../data/emojiSearch";
 import Icon from "./Icon";
 
 const COLS = 7;
@@ -29,6 +30,14 @@ interface Props {
  * kategori sekmelerine basinca ilgili bolume aninda ziplanabiliyor. */
 export default function EmojiPickerSheet({ visible, selected, onSelect, onClose }: Props) {
   const listRef = useRef<FlatList<ListItem>>(null);
+  const [query, setQuery] = useState("");
+  const searching = query.trim().length > 0;
+  const searchResults = useMemo(() => searchEmojis(query), [query]);
+
+  function handleClose() {
+    setQuery("");
+    onClose();
+  }
 
   const { items, sectionStartIndex, layouts } = useMemo(() => {
     const items: ListItem[] = [];
@@ -54,57 +63,93 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
       <View style={styles.screen}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} hitSlop={10}>
+          <TouchableOpacity onPress={handleClose} hitSlop={10}>
             <Icon name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.title}>Hızlı Tepki</Text>
           <Text style={styles.currentEmoji}>{selected}</Text>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabsRow}
-          contentContainerStyle={styles.tabsRowContent}
-        >
-          {EMOJI_CATEGORIES.map((cat, i) => (
-            <TouchableOpacity key={cat.key} style={styles.tabButton} onPress={() => jumpTo(i)}>
-              <Text style={styles.tabIcon}>{cat.icon}</Text>
+        <View style={styles.searchRow}>
+          <Icon name="search" size={16} color="rgba(255,255,255,0.4)" />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Emoji ara... (örn. kalp, pizza, bayrak)"
+            placeholderTextColor="rgba(255,255,255,0.35)"
+            style={styles.searchInput}
+          />
+          {searching && (
+            <TouchableOpacity onPress={() => setQuery("")} hitSlop={10}>
+              <Icon name="close" size={16} color="rgba(255,255,255,0.4)" />
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          )}
+        </View>
 
-        <FlatList
-          ref={listRef}
-          data={items}
-          keyExtractor={(item, index) => (item.type === "header" ? `h-${index}` : `r-${index}`)}
-          getItemLayout={(_data, index) => ({ ...layouts[index], index })}
-          renderItem={({ item }) =>
-            item.type === "header" ? (
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionHeaderText}>{item.title}</Text>
-              </View>
-            ) : (
-              <View style={styles.emojiRow}>
-                {item.emojis.map((emoji) => (
-                  <TouchableOpacity
-                    key={emoji}
-                    style={[styles.emojiCell, emoji === selected && styles.emojiCellSelected]}
-                    onPress={() => onSelect(emoji)}
-                  >
-                    <Text style={styles.emojiText}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )
-          }
-          initialNumToRender={24}
-          windowSize={8}
-          contentContainerStyle={styles.listContent}
-        />
+        {!searching && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tabsRow}
+            contentContainerStyle={styles.tabsRowContent}
+          >
+            {EMOJI_CATEGORIES.map((cat, i) => (
+              <TouchableOpacity key={cat.key} style={styles.tabButton} onPress={() => jumpTo(i)}>
+                <Text style={styles.tabIcon}>{cat.icon}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
+        {searching ? (
+          searchResults.length === 0 ? (
+            <Text style={styles.noResults}>Sonuç bulunamadı</Text>
+          ) : (
+            <ScrollView contentContainerStyle={styles.searchGrid}>
+              {searchResults.map((emoji) => (
+                <TouchableOpacity
+                  key={emoji}
+                  style={[styles.emojiCellWrap, emoji === selected && styles.emojiCellSelected]}
+                  onPress={() => onSelect(emoji)}
+                >
+                  <Text style={styles.emojiText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={items}
+            keyExtractor={(item, index) => (item.type === "header" ? `h-${index}` : `r-${index}`)}
+            getItemLayout={(_data, index) => ({ ...layouts[index], index })}
+            renderItem={({ item }) =>
+              item.type === "header" ? (
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionHeaderText}>{item.title}</Text>
+                </View>
+              ) : (
+                <View style={styles.emojiRow}>
+                  {item.emojis.map((emoji) => (
+                    <TouchableOpacity
+                      key={emoji}
+                      style={[styles.emojiCell, emoji === selected && styles.emojiCellSelected]}
+                      onPress={() => onSelect(emoji)}
+                    >
+                      <Text style={styles.emojiText}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )
+            }
+            initialNumToRender={24}
+            windowSize={8}
+            contentContainerStyle={styles.listContent}
+          />
+        )}
       </View>
     </Modal>
   );
@@ -124,6 +169,22 @@ const styles = StyleSheet.create({
   },
   title: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", letterSpacing: 0.2 },
   currentEmoji: { fontSize: 24, width: 24, textAlign: "right" },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 14 },
+  searchGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 12, paddingTop: 10, gap: 4 },
+  emojiCellWrap: { width: 48, height: 48, borderRadius: 12, justifyContent: "center", alignItems: "center" },
+  noResults: { color: "rgba(255,255,255,0.4)", fontSize: 13, textAlign: "center", marginTop: 40 },
   tabsRow: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: "#1C1C1C" },
   tabsRowContent: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
   tabButton: {

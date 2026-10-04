@@ -7,6 +7,12 @@ export interface EmojiCategory {
   emojis: string[];
 }
 
+export interface EmojiEntry {
+  emoji: string;
+  name: string; // unicode-emoji-json'daki ingilizce resmi isim - arama icin
+  categoryLabel: string;
+}
+
 // unicode-emoji-json'un grup sirasi (0-8) Unicode'un resmi kategori sirasi -
 // Turkce etiket + sekme ikonu burada eslestiriliyor. Her Hizli Tepki secimi
 // bu TAM unicode emoji setinden (1900+ emoji) yapilabiliyor.
@@ -22,10 +28,12 @@ const GROUP_META: Record<string, { label: string; icon: string }> = {
   "8": { label: "Bayraklar", icon: "🏁" },
 };
 
-export const EMOJI_CATEGORIES: EmojiCategory[] = Object.keys(emojiGroups)
+const GROUPS = emojiGroups as unknown as Record<string, { name: string; emojis: { emoji: string; name: string }[] }>;
+
+export const EMOJI_CATEGORIES: EmojiCategory[] = Object.keys(GROUPS)
   .sort((a, b) => Number(a) - Number(b))
   .map((key) => {
-    const group = (emojiGroups as unknown as Record<string, { name: string; emojis: { emoji: string }[] }>)[key];
+    const group = GROUPS[key];
     const meta = GROUP_META[key] || { label: group.name, icon: group.emojis[0]?.emoji || "❔" };
     return {
       key,
@@ -34,3 +42,9 @@ export const EMOJI_CATEGORIES: EmojiCategory[] = Object.keys(emojiGroups)
       emojis: group.emojis.map((e) => e.emoji),
     };
   });
+
+// Arama (EmojiPickerSheet'teki search cubugu) icin duz liste - her emojinin
+// ingilizce resmi adini ve hangi Turkce kategori basligina ait oldugunu tutar.
+export const ALL_EMOJIS: EmojiEntry[] = EMOJI_CATEGORIES.flatMap((cat) =>
+  GROUPS[cat.key].emojis.map((e) => ({ emoji: e.emoji, name: e.name, categoryLabel: cat.label }))
+);
