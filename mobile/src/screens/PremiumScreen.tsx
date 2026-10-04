@@ -4,16 +4,11 @@ import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import { triggerHaptic } from "../utils/haptics";
 
-interface Props {
-  onBack: () => void;
-}
-
 const ACCENT = "#0EA5E9";
 
 const BENEFITS = [
   "Reklamsız, kesintisiz izleme deneyimi",
   "Profilinde özel Premium rozeti",
-  "Odalarda daha yüksek katılımcı limiti",
   "Öncelikli destek",
 ];
 
@@ -28,7 +23,7 @@ const PLANS: { key: PlanKey; label: string; price: string; note?: string }[] = [
  * calisiyor, ama GERCEK tahsilat (App Store/Play Store IAP ya da Stripe)
  * henuz baglanmadi (magaza hesaplari bu ortamdan kurulamiyor) - bu yuzden
  * "Devam Et" su an durumu acikca soyleyen bir bilgi mesaji gosteriyor. */
-export default function PremiumScreen({ onBack }: Props) {
+export default function PremiumScreen() {
   const [selectedPlan, setSelectedPlan] = useState<PlanKey>("yearly");
 
   function handleContinue() {
@@ -42,12 +37,6 @@ export default function PremiumScreen({ onBack }: Props) {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} hitSlop={10}>
-            <Icon name="close" size={26} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.hero}>
           <View style={styles.crownBadge}>
             <Icon name="crown" size={36} color={ACCENT} />
@@ -105,8 +94,7 @@ export default function PremiumScreen({ onBack }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#000000" },
   scrollContent: { paddingBottom: 48 },
-  header: { paddingHorizontal: 18, paddingTop: 54, paddingBottom: 10 },
-  hero: { alignItems: "center", marginTop: 8, paddingHorizontal: 24 },
+  hero: { alignItems: "center", paddingTop: 54, paddingHorizontal: 24 },
   crownBadge: {
     width: 72,
     height: 72,
@@ -119,9 +107,9 @@ const styles = StyleSheet.create({
   title: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3 },
   tagline: {
     color: "rgba(255,255,255,0.6)",
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0.4,
+    fontSize: 12,
+    fontWeight: "500",
+    lineHeight: 16,
     marginTop: 6,
     textAlign: "center",
   },
@@ -135,7 +123,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  benefitText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600", flex: 1 },
+  benefitText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700", flex: 1 },
   plans: { marginTop: 32, paddingHorizontal: 18, gap: 10 },
   planCard: {
     flexDirection: "row",

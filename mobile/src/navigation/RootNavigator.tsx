@@ -66,8 +66,7 @@ function ProfileRoute() {
 }
 
 function PremiumRoute() {
-  const navigation = useNavigation<Nav>();
-  return <PremiumScreen onBack={() => navigation.goBack()} />;
+  return <PremiumScreen />;
 }
 
 function UserProfileRoute() {
