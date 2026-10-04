@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 10,
   },
-  headerLogo: { width: 74, height: 34, marginTop: -4 },
+  headerLogo: { width: 74, height: 34, marginTop: -9 },
   friendsButton: { position: "relative" },
   friendsBadge: {
     position: "absolute",
@@ -347,7 +347,14 @@ const styles = StyleSheet.create({
   avatarInitial: { color: "#FFFFFF", fontSize: 56, fontWeight: "700" },
   name: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, textAlign: "center", marginTop: 18 },
   handle: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "600", letterSpacing: 0.2, textAlign: "center", marginTop: 4 },
-  sectionHeader: { backgroundColor: "rgba(0,0,0,0.25)", paddingHorizontal: 18, paddingVertical: 12, marginTop: 20 },
+  sectionHeader: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#1C1C1C",
+  },
   sectionHeaderText: { color: "rgba(255,255,255,0.65)", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
   accountRow: {
     flexDirection: "row",
