@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking } from "react-native";
+import * as StoreReview from "expo-store-review";
 import { supabase } from "../services/supabase";
 import { getSocket } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
 import EmojiPickerSheet from "../components/EmojiPickerSheet";
 import { showAlert } from "../components/CustomAlert";
+import { isHapticsEnabled, setHapticsEnabled, triggerHaptic } from "../utils/haptics";
+
+const SUPPORT_EMAIL = "destek@luna.app";
 
 interface Props {
   onBack: () => void;
@@ -66,6 +70,40 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         });
     });
   }, []);
+
+  // Cihaz bazli bir tercih oldugu icin profiles'ta degil, AsyncStorage'da
+  // tutuluyor (bkz. src/utils/haptics.ts) - acikken Ayarlar ekranindaki
+  // dokunma/geçis islemlerinde GERCEKTEN titresim tetikler.
+  useEffect(() => {
+    isHapticsEnabled().then(setHaptics);
+  }, []);
+
+  function toggleHaptics() {
+    setHaptics((v) => {
+      const next = !v;
+      setHapticsEnabled(next);
+      if (next) triggerHaptic();
+      return next;
+    });
+  }
+
+  async function handleRateApp() {
+    try {
+      if (await StoreReview.hasAction()) {
+        await StoreReview.requestReview();
+      } else {
+        showAlert("LUNA'yı Değerlendir", "Değerlendirme şu anda bu cihazda kullanılamıyor.");
+      }
+    } catch {
+      showAlert("LUNA'yı Değerlendir", "Değerlendirme açılamadı.");
+    }
+  }
+
+  function handleContactUs() {
+    Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LUNA Destek")}`).catch(() => {
+      showAlert("Bize ulaşın", `${SUPPORT_EMAIL} adresine e-posta gönderemedik. Posta uygulamanızı kontrol edin.`);
+    });
+  }
 
   // Yeni actigin HER odanin "Chat Otomatik Cevir" baslangic degeri - sadece
   // bir varsayilan, host odanin icinde RoomSettingsSheet'ten yine
@@ -204,7 +242,7 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
           title="Dokunsal geri bildirim"
           subtitle="Dokunuslarda ve islemlerde titret"
           checked={haptics}
-          onToggle={() => setHaptics((v) => !v)}
+          onToggle={toggleHaptics}
         />
         <ToggleRow
           title="Yuzen Video Oynaticisi"
@@ -234,7 +272,7 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         <ChevronRow title="Gizlilik" onPress={() => placeholder("Gizlilik")} />
 
         <SectionHeader title="Geri Bildirim" />
-        <TouchableOpacity style={styles.simpleRow} onPress={() => placeholder("LUNA'yi Degerlendir")}>
+        <TouchableOpacity style={styles.simpleRow} onPress={handleRateApp}>
           <Text style={styles.simpleTitle}>LUNA'yi Degerlendir</Text>
           <Text style={styles.simpleSubtitle}>
             LUNA'yi begendin mi? Kisa bir degerlendirme cok yardimci olur. Tesekkurler!
@@ -242,7 +280,7 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         </TouchableOpacity>
 
         <SectionHeader title="Yardim" />
-        <TouchableOpacity style={styles.simpleRow} onPress={() => placeholder("Bize ulasin")}>
+        <TouchableOpacity style={styles.simpleRow} onPress={handleContactUs}>
           <Text style={styles.simpleTitle}>Bize ulasin</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.simpleRow} onPress={() => placeholder("Tanilamayi calistir")}>
@@ -295,7 +333,14 @@ function ToggleRow({
   rightElement?: React.ReactNode;
 }) {
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress || onToggle} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.row}
+      onPress={() => {
+        triggerHaptic();
+        (onPress || onToggle)?.();
+      }}
+      activeOpacity={0.7}
+    >
       <View style={styles.rowText}>
         <Text style={styles.rowTitle}>{title}</Text>
         {subtitle && <Text style={styles.rowSubtitle}>{subtitle}</Text>}
@@ -313,7 +358,13 @@ function ToggleRow({
 
 function ChevronRow({ title, subtitle, onPress }: { title: string; subtitle?: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.row}
+      onPress={() => {
+        triggerHaptic();
+        onPress();
+      }}
+    >
       <View style={styles.rowText}>
         <Text style={styles.rowTitle}>{title}</Text>
         {subtitle && <Text style={styles.rowSubtitle}>{subtitle}</Text>}
