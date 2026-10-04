@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   name: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, textAlign: "center", marginTop: 18 },
   handle: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "600", letterSpacing: 0.2, textAlign: "center", marginTop: 4 },
   sectionHeader: { backgroundColor: "rgba(0,0,0,0.25)", paddingHorizontal: 18, paddingVertical: 12, marginTop: 20 },
-  sectionHeaderText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  sectionHeaderText: { color: "rgba(255,255,255,0.65)", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
   accountRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.08)",
   },
-  accountLabel: { color: "#FFFFFF", fontSize: 15 },
+  accountLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   accountValue: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 },
   checkBadge: {
     width: 20,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkBadgeText: { color: "#1a2a6c", fontSize: 12, fontWeight: "700" },
-  accountValueText: { color: "rgba(255,255,255,0.85)", fontSize: 13, flexShrink: 1 },
+  accountValueText: { color: "rgba(255,255,255,0.6)", fontSize: 12.5, fontWeight: "500", flexShrink: 1 },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -381,8 +381,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   rowText: { flex: 1 },
-  rowTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-  rowSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 12.5, marginTop: 3, lineHeight: 17 },
+  rowTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  rowSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", marginTop: 3, lineHeight: 16 },
   emoji: { fontSize: 24 },
   checkbox: {
     width: 26,
@@ -396,10 +396,10 @@ const styles = StyleSheet.create({
   checkboxChecked: { backgroundColor: "#D4C9F5", borderColor: "#D4C9F5" },
   checkboxMark: { color: "#3a2140", fontSize: 15, fontWeight: "700" },
   simpleRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.08)" },
-  simpleTitle: { color: "#FFFFFF", fontSize: 15.5 },
-  simpleSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 12.5, marginTop: 3, lineHeight: 17 },
+  simpleTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  simpleSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", marginTop: 3, lineHeight: 16 },
   dangerText: { color: "#FF8A8A" },
-  versionText: { color: "rgba(255,255,255,0.4)", fontSize: 13, paddingHorizontal: 18, paddingVertical: 10 },
+  versionText: { color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: "500", paddingHorizontal: 18, paddingVertical: 10 },
   signOutButton: { marginHorizontal: 18, marginTop: 24, backgroundColor: "rgba(255,77,79,0.15)", borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,77,79,0.4)" },
-  signOutText: { color: "#FF8A8A", fontSize: 16, fontWeight: "700" },
+  signOutText: { color: "#FF8A8A", fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
 });
