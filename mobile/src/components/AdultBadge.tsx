@@ -15,12 +15,15 @@ export default function AdultBadge({ size = 26 }: Props) {
   );
 }
 
+// NOT: View'a opacity vermek yerine renklerin kendisine alfa (rgba) veriyoruz -
+// container opacity'si ustteki video/kapak resmiyle birlikte her seyi (metni
+// de) soluklastirip "kirli beyaz" bir gorunum yaratiyordu; dogrudan rgba ise
+// gercekten seffaf, net kenarli bir "hayalet" rozet verir.
 const styles = StyleSheet.create({
   circle: {
-    borderColor: "#FFFFFF",
+    borderColor: "rgba(255,255,255,0.65)",
     alignItems: "center",
     justifyContent: "center",
-    opacity: 0.62,
   },
-  text: { color: "#FFFFFF", fontWeight: "800" },
+  text: { color: "rgba(255,255,255,0.65)", fontWeight: "800" },
 });
