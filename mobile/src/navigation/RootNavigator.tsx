@@ -117,7 +117,11 @@ function RoomPreviewRoute() {
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<RouteProp<RootStackParamList, "RoomPreview">>();
   function joinRoomFromPreview() {
-    getSocket().emit("room:join", { code: params.room.code, name: "Misafir" }, (res: any) => {
+    // "name" gonderilmiyor - sunucu zaten identify olmus GERCEK kullanicinin
+    // adini biliyor (myName), bunu client'in tekrar hesaplayip "Misafir" ile
+    // EZMESINE gerek yok (eskiden tum katilimcilar yanlislikla "Misafir"
+    // gorunuyordu, bkz. DiscoverScreen.tsx joinByCode ayni duzeltme).
+    getSocket().emit("room:join", { code: params.room.code }, (res: any) => {
       if (res.ok) {
         navigation.reset({ index: 1, routes: [{ name: "Discover" }, { name: "Room", params: { room: res.room } }] });
       }

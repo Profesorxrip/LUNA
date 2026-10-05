@@ -112,8 +112,11 @@ export default function DiscoverScreen({
   }, [fetchRooms]);
 
   function joinByCode(code: string) {
-    const name = "Misafir"; // gercek isim CreateJoin akisinda soruluyor; hizli katilim icin varsayilan
-    getSocket().emit("room:join", { code, name }, (res: any) => {
+    // "name" gonderilmiyor - sunucu zaten identify olmus GERCEK kullanicinin
+    // adini biliyor, client'in bunu "Misafir" ile EZMESINE gerek yok (eskiden
+    // tum katilimcilar - giris yapmis olsalar bile - yanlislikla "Misafir"
+    // gorunuyordu).
+    getSocket().emit("room:join", { code }, (res: any) => {
       if (res.ok) onJoinRoom(res.room);
     });
   }

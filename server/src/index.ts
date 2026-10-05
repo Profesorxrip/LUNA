@@ -689,7 +689,7 @@ io.on("connection", (socket: Socket) => {
     });
   });
 
-  socket.on("room:join", async ({ code, name }: { code: string; name: string }, ack) => {
+  socket.on("room:join", async ({ code, name }: { code: string; name?: string }, ack) => {
     if (!isNonEmptyString(code, 12)) return ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
     if (!isOptionalString(name, 60)) return ack?.({ ok: false, error: "Gecersiz isim." });
     if (!allow("room:join", 20, 60_000)) return ack?.({ ok: false, error: "Cok fazla deneme, biraz bekle." });
