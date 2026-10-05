@@ -1,25 +1,33 @@
-import React from "react";
-import { Text, TextStyle } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Image, ImageStyle, StyleProp } from "react-native";
 
 interface Props {
   country: string | null | undefined;
   size?: number;
-  style?: TextStyle;
+  style?: StyleProp<ImageStyle>;
 }
 
-// ISO 3166-1 alpha-2 kodu ("TR", "US"...) -> bayrak emoji. Her harf, Unicode
-// "regional indicator symbol" karsiligina cevrilir (A -> 🇦 ... Z -> 🇿),
-// iki harf yan yana gelince isletim sistemi bunlari otomatik bayrak olarak
-// render eder - resim/ikon paketi gerekmez.
-function flagEmoji(country: string): string {
-  const code = country.trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(code)) return "🏳️";
-  const base = 0x1f1e6;
-  const chars = [...code].map((c) => base + (c.charCodeAt(0) - 65));
-  return String.fromCodePoint(...chars);
-}
+// Emoji bayrak yerine gercek bayrak gorseli (flagcdn.com) - Android'de emoji
+// bayraklar bitmap font oldugu icin buyutulunce pikselli/bloklu gorunuyordu,
+// bu da her platformda ayni crisp gorseli veriyor.
+const FLAG_CDN = "https://flagcdn.com/w80";
 
 export default function CountryFlag({ country, size = 16, style }: Props) {
-  if (!country) return null;
-  return <Text style={[{ fontSize: size }, style]}>{flagEmoji(country)}</Text>;
+  const code = country?.trim().toLowerCase();
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [code]);
+
+  if (!code || !/^[a-z]{2}$/.test(code) || failed) return null;
+
+  const width = Math.round(size * 1.33);
+  return (
+    <Image
+      source={{ uri: `${FLAG_CDN}/${code}.png` }}
+      style={[{ width, height: size, borderRadius: 2 }, style]}
+      onError={() => setFailed(true)}
+    />
+  );
 }
