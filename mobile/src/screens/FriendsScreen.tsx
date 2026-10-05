@@ -127,7 +127,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
-          placeholder="Ara"
+          placeholder="ARA"
           placeholderTextColor={MUTED}
         />
       </View>
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "#141210",
   },
-  searchInput: { flex: 1, color: TEXT, fontSize: 14, textTransform: "uppercase" },
+  searchInput: { flex: 1, color: TEXT, fontSize: 14 },
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   emptyText: { color: MUTED, textAlign: "center", marginTop: 60, fontSize: 14 },
   row: {

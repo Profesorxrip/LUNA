@@ -297,7 +297,7 @@ export default function DMScreen({ peer, onBack }: Props) {
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Sohbette ara..."
+            placeholder="SOHBETTE ARA..."
             placeholderTextColor={MUTED}
             autoFocus
           />
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#1E1A17",
   },
-  searchInput: { flex: 1, color: TEXT, fontSize: 13, textTransform: "uppercase" },
+  searchInput: { flex: 1, color: TEXT, fontSize: 13 },
   expiryBanner: {
     flexDirection: "row",
     alignItems: "center",

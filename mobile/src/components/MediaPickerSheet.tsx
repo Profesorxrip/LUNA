@@ -165,7 +165,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               <Icon name="search" size={18} color="rgba(255,255,255,0.85)" />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Ara"
+                placeholder="ARA"
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 value={search}
                 onChangeText={setSearch}
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
   },
-  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 16, outlineWidth: 0, outlineStyle: "none", textTransform: "uppercase" } as any,
+  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 16, outlineWidth: 0, outlineStyle: "none" } as any,
   list: { flexDirection: "row", flexWrap: "wrap" },
   listItem: { width: "50%", paddingVertical: 14, alignItems: "center" },
   listItemLogo: { height: 76, justifyContent: "center" },
