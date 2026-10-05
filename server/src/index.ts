@@ -22,6 +22,7 @@ import {
   findActiveRoomForUser,
   hostUserIdOf,
   setBuffering,
+  setParticipantLocation,
   isHost,
   MediaSource,
   PrivacyLevel,
@@ -868,6 +869,23 @@ io.on("connection", (socket: Socket) => {
     const room = getRoom(currentRoomCode);
     if (!room) return;
     setBuffering(room, socket.id, isBuffering);
+    broadcastRoom(currentRoomCode);
+  });
+
+  // Oda haritasi ("Haritayi Goster") icin GERCEK GPS konumu - sadece
+  // katilimci Ayarlar'daki "Konumu Gizle"yi KAPATIP paylasmayi SECTIYSE
+  // client bunu hic gondermez (bkz. mobile RoomScreen.tsx showMap).
+  // Hicbir yerde kalici saklanmaz, sadece oda hafizasinda tutulur.
+  socket.on("room:location", ({ lat, lng }: { lat: number | null; lng: number | null }) => {
+    if (!currentRoomCode) return;
+    const room = getRoom(currentRoomCode);
+    if (!room) return;
+    if (lat === null && lng === null) {
+      setParticipantLocation(room, socket.id, null);
+    } else {
+      if (!isFiniteNumber(lat, -90, 90) || !isFiniteNumber(lng, -180, 180)) return;
+      setParticipantLocation(room, socket.id, { lat, lng });
+    }
     broadcastRoom(currentRoomCode);
   });
 

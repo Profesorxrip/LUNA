@@ -21,6 +21,9 @@ export interface Participant {
   isHost: boolean;
   muted: boolean;
   avatarUrl?: string | null;
+  // Oda haritasi icin - sadece "Konumu Gizle" kapali olup paylasmayi
+  // SECEN katilimcilarda dolu (bkz. RoomMapSheet.tsx).
+  location?: { lat: number; lng: number } | null;
 }
 
 /** Oynatilan medyanin turu - bkz. sunucu tarafi rooms.ts:

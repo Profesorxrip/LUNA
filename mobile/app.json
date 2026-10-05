@@ -20,6 +20,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "LUNA, oda içindeki haritada konumunu diğer katılımcılara göstermek için konumuna ihtiyaç duyuyor. İstersen Ayarlar'dan Konumu Gizle'yi açabilirsin."
+        }
+      ]
+    ]
   }
 }

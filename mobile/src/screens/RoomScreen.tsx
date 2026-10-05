@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
 import type { MediaSource, DMReply } from "../services/socket";
 import { supabase } from "../services/supabase";
@@ -26,9 +27,11 @@ import ParticipantsModal from "../components/ParticipantsModal";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
+import RoomMapSheet from "../components/RoomMapSheet";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
+import { isHideLocationEnabled } from "../utils/locationSettings";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
 import { useVoiceChat } from "../hooks/useVoiceChat";
 import { theme } from "../theme";
@@ -189,6 +192,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [replyingTo, setReplyingTo] = useState<DMReply | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [mapVisible, setMapVisible] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [participantsVisible, setParticipantsVisible] = useState(false);
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
@@ -478,14 +482,25 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     }
   }
 
-  function showMap() {
-    // Gercek harita/konum ozelligi (react-native-maps) Expo Go'da calismiyor -
-    // LiveKit'te oldugu gibi ozel bir "development build" gerektiriyor.
-    // O adima gecince burasi gercek katilimci konumlarini gosterecek.
-    showAlert(
-      "Harita yakinda",
-      "Katilimcilarin konumunu gosteren harita ozelligi icin ozel bir kurulum gerekiyor - yakinda ekleyecegiz."
-    );
+  // Oda haritasi - react-native-maps YERINE WebView+Leaflet kullaniyoruz
+  // (bkz. RoomMapSheet.tsx) ki Expo Go'da native kod derlemeden calissin.
+  // "Konumu Gizle" ACIKSA (varsayilan) GPS hic istenmez/gonderilmez - sadece
+  // kapatip paylasmayi SECENLERIN konumu digerlerine gorunur.
+  async function showMap() {
+    const hidden = await isHideLocationEnabled();
+    if (!hidden) {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.granted) {
+        try {
+          const pos = await Location.getCurrentPositionAsync({});
+          socket.emit("room:location", { lat: pos.coords.latitude, lng: pos.coords.longitude });
+        } catch {
+          // Konum alinamadi (orn. cihazda GPS kapali) - sessizce yok say,
+          // harita yine de digerlerinin konumuyla acilir.
+        }
+      }
+    }
+    setMapVisible(true);
   }
 
   function sendChat() {
@@ -537,6 +552,14 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       { text: "Cik", style: "destructive", onPress: voice.leave },
     ]);
   }
+
+  // Haritada gosterilecek katilimcilar - sadece "Konumu Gizle"yi KAPATIP
+  // paylasmayi secenlerin location'i dolu gelir (bkz. showMap / server
+  // rooms.ts setParticipantLocation).
+  const mapMarkers = room.participants
+    .filter((p) => p.location)
+    .map((p) => ({ name: p.name, lat: p.location!.lat, lng: p.location!.lng, isMe: p.socketId === socket.id }));
+  const hiddenParticipantCount = room.participants.length - mapMarkers.length;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -760,6 +783,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         uploading={uploadingImage}
         onCancel={() => setPendingImageUri(null)}
         onSend={sendPickedImage}
+      />
+      <RoomMapSheet
+        visible={mapVisible}
+        onClose={() => setMapVisible(false)}
+        markers={mapMarkers}
+        hiddenCount={hiddenParticipantCount}
       />
       <ParticipantsModal
         visible={participantsVisible}

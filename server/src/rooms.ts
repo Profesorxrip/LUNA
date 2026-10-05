@@ -15,6 +15,11 @@ export interface Participant {
   // oda durumu (room:state) her degistiginde tekrar DB'ye gitmeden senkron
   // yayinlanabilsin diye (bkz. index.ts room:create / room:join).
   avatarUrl?: string | null;
+  // Oda haritasinda ("Haritayi Goster") gosterilecek GERCEK GPS konumu -
+  // SADECE katilimci kendi Ayarlar'indaki "Konumu Gizle"yi KAPATIP
+  // paylasmayi secerse dolar (bkz. index.ts "room:location"), hicbir yerde
+  // kalici saklanmaz, oda hafizadan silinince bu da gider.
+  location?: { lat: number; lng: number } | null;
 }
 
 // Ayarlar ekranindaki "GIZLILIK" secenekleri:
@@ -320,6 +325,14 @@ export function bufferingState(room: Room) {
     .map((id) => room.participants.get(id)?.name)
     .filter((n): n is string => Boolean(n));
   return { anyoneBuffering: room.bufferingSocketIds.size > 0, names };
+}
+
+/** Oda haritasi icin - katilimci KENDI tercihiyle (Konumu Gizle kapaliysa)
+ * GPS konumunu gonderdiginde burada tutulur (bkz. index.ts "room:location").
+ * null gonderilirse (orn. haritayi kapatirken) konum temizlenir. */
+export function setParticipantLocation(room: Room, socketId: string, location: { lat: number; lng: number } | null) {
+  const participant = room.participants.get(socketId);
+  if (participant) participant.location = location;
 }
 
 /** PLAYBACK ayarina gore video secme yetkisi hep host'ta kalir (vote modu

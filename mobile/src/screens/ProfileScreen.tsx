@@ -10,6 +10,7 @@ import EmojiPickerSheet from "../components/EmojiPickerSheet";
 import { showAlert } from "../components/CustomAlert";
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic } from "../utils/haptics";
 import { isMuteOnOtherAudioEnabled, setMuteOnOtherAudioEnabled } from "../utils/audioSettings";
+import { isHideLocationEnabled, setHideLocationEnabled } from "../utils/locationSettings";
 import { LANGUAGES, setAppLanguage, LanguageCode } from "../i18n";
 
 const SUPPORT_EMAIL = "destek@luna.app";
@@ -118,6 +119,7 @@ export default function ProfileScreen({
   useEffect(() => {
     isHapticsEnabled().then(setHaptics);
     isMuteOnOtherAudioEnabled().then(setMuteOnOtherAudio);
+    isHideLocationEnabled().then(setHideLocation);
   }, []);
 
   function applyHaptics(next: boolean) {
@@ -131,6 +133,13 @@ export default function ProfileScreen({
   function applyMuteOnOtherAudio(next: boolean) {
     setMuteOnOtherAudio(next);
     setMuteOnOtherAudioEnabled(next);
+  }
+
+  // "Konumu Gizle" artik GERCEK: acikken (varsayilan) RoomScreen'deki oda
+  // haritasi GPS konumunu hic istemez/gondermez (bkz. src/utils/locationSettings.ts).
+  function applyHideLocation(next: boolean) {
+    setHideLocation(next);
+    setHideLocationEnabled(next);
   }
 
   // "Davetleri Kisitla" artik GERCEK: sunucuda send_friend_request/send_dm
@@ -391,7 +400,7 @@ export default function ProfileScreen({
           title={t("profile.hideLocationTitle")}
           subtitle={t("profile.hideLocationSubtitle")}
           rightElement={
-            <OptionButton value={hideLocation ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => setHideLocation(v === "on")} />
+            <OptionButton value={hideLocation ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => applyHideLocation(v === "on")} />
           }
         />
         <ChevronRow title={t("profile.languageTitle")} subtitle={currentLanguageLabel} onPress={() => setLanguageSheetVisible(true)} />
