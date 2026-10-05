@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, StyleProp, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import { PublicRoomSummary, MediaSource } from "../services/socket";
 import { theme } from "../theme";
 import PlatformBadge from "./PlatformBadge";
@@ -62,6 +63,12 @@ export default function RoomCard({ room, friendIds = new Set(), onPress, onLongP
         <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
           <Text style={styles.thumbnailPlaceholderText}>{room.source ? sourceIcon(room.source.type) : "▶"}</Text>
         </View>
+      )}
+      {/* 18+ isaretli odalarin kapak resmi - hideAdultContent kapali olsa bile
+          (o zaten odayi tamamen gizliyor) kart burada GORUNUYORSA kapak hic
+          acik sekilde gosterilmez, her zaman bulanik kalir. */}
+      {room.isAdult && (
+        <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
       )}
       {platformKey && (
         <View style={styles.platformBadge} pointerEvents="none">

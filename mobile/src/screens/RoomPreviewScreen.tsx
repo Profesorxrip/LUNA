@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import { BlurView } from "expo-blur";
 import { getSocket, PublicRoomSummary, RoomParticipantDetail, MediaSource, PrivacyLevel } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
@@ -109,6 +110,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
         ) : (
           <View style={[styles.cover, styles.coverPlaceholder]} />
         )}
+        {room.isAdult && <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />}
         <View style={styles.playBadge}>
           <Icon name="play" size={26} color="#FFFFFF" />
         </View>
