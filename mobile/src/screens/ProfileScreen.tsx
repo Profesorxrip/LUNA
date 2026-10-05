@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator } from "react-native";
 import * as StoreReview from "expo-store-review";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../services/supabase";
 import { getSocket, SERVER_URL } from "../services/socket";
 import { theme } from "../theme";
@@ -8,24 +9,11 @@ import Icon from "../components/Icon";
 import EmojiPickerSheet from "../components/EmojiPickerSheet";
 import { showAlert } from "../components/CustomAlert";
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic } from "../utils/haptics";
+import { LANGUAGES, setAppLanguage, LanguageCode } from "../i18n";
 
 const SUPPORT_EMAIL = "destek@luna.app";
-const PREMIUM_SUBTITLE = "REKLAMSIZ BİR LUNA İÇİN...";
 
 type InviteRestriction = "everyone" | "friends" | "none";
-const INVITE_OPTIONS: { key: InviteRestriction; label: string }[] = [
-  { key: "everyone", label: "Herkes" },
-  { key: "friends", label: "Arkadaşlar" },
-  { key: "none", label: "Hiçkimse" },
-];
-const ADULT_CONTENT_OPTIONS = [
-  { key: "hidden", label: "Gizli" },
-  { key: "shown", label: "Açık" },
-];
-const ON_OFF_OPTIONS = [
-  { key: "on", label: "Açık" },
-  { key: "off", label: "Kapalı" },
-];
 
 interface Props {
   onBack: () => void;
@@ -58,6 +46,23 @@ export default function ProfileScreen({
   onOpenPrivacy,
   onOpenBackgroundInfo,
 }: Props) {
+  const { t, i18n } = useTranslation();
+  const INVITE_OPTIONS: { key: InviteRestriction; label: string }[] = [
+    { key: "everyone", label: t("profile.inviteEveryone") },
+    { key: "friends", label: t("profile.inviteFriends") },
+    { key: "none", label: t("profile.inviteNone") },
+  ];
+  const ADULT_CONTENT_OPTIONS = [
+    { key: "hidden", label: t("profile.adultHidden") },
+    { key: "shown", label: t("profile.adultShown") },
+  ];
+  const ON_OFF_OPTIONS = [
+    { key: "on", label: t("common.open") },
+    { key: "off", label: t("common.closed") },
+  ];
+  const currentLanguageLabel = LANGUAGES.find((l) => l.code === i18n.language)?.label ?? LANGUAGES[0].label;
+  const [languageSheetVisible, setLanguageSheetVisible] = useState(false);
+
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState("Kullanici");
   const [handle, setHandle] = useState("kullanici");
@@ -122,16 +127,16 @@ export default function ProfileScreen({
       if (await StoreReview.hasAction()) {
         await StoreReview.requestReview();
       } else {
-        showAlert("LUNA'yı Değerlendir", "Değerlendirme şu anda bu cihazda kullanılamıyor.");
+        showAlert(t("profile.rateTitle"), t("profile.rateUnavailable"));
       }
     } catch {
-      showAlert("LUNA'yı Değerlendir", "Değerlendirme açılamadı.");
+      showAlert(t("profile.rateTitle"), t("profile.rateFailed"));
     }
   }
 
   function handleContactUs() {
     Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LUNA Destek")}`).catch(() => {
-      showAlert("Bize ulaşın", `${SUPPORT_EMAIL} adresine e-posta gönderemedik. Posta uygulamanızı kontrol edin.`);
+      showAlert(t("profile.contactTitle"), t("profile.contactEmailFailed", { email: SUPPORT_EMAIL }));
     });
   }
 
@@ -142,7 +147,12 @@ export default function ProfileScreen({
   // cikabilir - bu GERCEK sonuc, sahte bir "hep basarili" degil.
   async function runDiagnostics() {
     triggerHaptic();
-    const labels = ["Sunucu bağlantısı", "Gerçek zamanlı bağlantı", "Supabase bağlantısı", "Oturum durumu"];
+    const labels = [
+      t("profile.diagnosticsServer"),
+      t("profile.diagnosticsRealtime"),
+      t("profile.diagnosticsSupabase"),
+      t("profile.diagnosticsSession"),
+    ];
     setDiagnostics(labels.map((label) => ({ label, status: "pending" })));
     setDiagnosticsVisible(true);
 
@@ -171,7 +181,7 @@ export default function ProfileScreen({
       update(2, "fail");
     }
 
-    update(3, "ok", myUserId ? "Giriş yapıldı" : "Misafir");
+    update(3, "ok", myUserId ? t("profile.diagnosticsLoggedIn") : t("profile.diagnosticsGuest"));
   }
 
   // Yeni actigin HER odanin "Chat Otomatik Cevir" baslangic degeri - sadece
@@ -208,13 +218,13 @@ export default function ProfileScreen({
   }, []);
 
   function placeholder(label: string) {
-    showAlert(label, "Bu ozellik yakinda eklenecek.");
+    showAlert(label, t("profile.comingSoon"));
   }
 
   function handleSignOut() {
-    showAlert("Cikis yap", "Hesabindan cikmak istedigine emin misin?", [
-      { text: "Iptal", style: "cancel" },
-      { text: "Cikis yap", style: "destructive", onPress: () => supabase.auth.signOut() },
+    showAlert(t("profile.signOutTitle"), t("profile.signOutConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("profile.signOutTitle"), style: "destructive", onPress: () => supabase.auth.signOut() },
     ]);
   }
 
@@ -222,22 +232,28 @@ export default function ProfileScreen({
   // RPC'sini (bkz. migration 0012) cagirir, auth.users satiri silinince
   // ON DELETE CASCADE sayesinde profil/DM/arkadaslik/galeri de otomatik gider.
   function handleDeleteAccount() {
-    showAlert("Hesabi Sil", "Bu islem geri alinamaz. Devam etmek istedigine emin misin?", [
-      { text: "Iptal", style: "cancel" },
+    showAlert(t("profile.deleteAccountTitle"), t("profile.deleteAccountConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Hesabi Sil",
+        text: t("profile.deleteAccountTitle"),
         style: "destructive",
         onPress: () => {
           getSocket().emit("account:delete", {}, (res: any) => {
             if (res?.ok) {
               supabase.auth.signOut();
             } else {
-              showAlert("Hesabi Sil", res?.error || "Hesap silinemedi, lutfen tekrar dene.");
+              showAlert(t("profile.deleteAccountTitle"), res?.error || t("profile.deleteAccountFailed"));
             }
           });
         },
       },
     ]);
+  }
+
+  function handleSelectLanguage(code: LanguageCode) {
+    triggerHaptic();
+    setAppLanguage(code);
+    setLanguageSheetVisible(false);
   }
 
   return (
@@ -271,12 +287,12 @@ export default function ProfileScreen({
         <Text style={styles.name}>{name.toUpperCase()}</Text>
         <Text style={styles.handle}>@{handle}</Text>
 
-        <SectionHeader title="Baglanan hesaplar" />
+        <SectionHeader title={t("profile.sectionAccounts")} />
         <TouchableOpacity
           style={styles.accountRow}
-          onPress={() => (googleLinked ? undefined : placeholder("Google ile bağlama"))}
+          onPress={() => (googleLinked ? undefined : placeholder(t("profile.connectGoogleAlertTitle")))}
         >
-          <Text style={styles.accountLabel}>Google</Text>
+          <Text style={styles.accountLabel}>{t("profile.google")}</Text>
           <View style={styles.accountValue}>
             {googleLinked ? (
               <>
@@ -284,33 +300,33 @@ export default function ProfileScreen({
                   <Text style={styles.checkBadgeText}>✓</Text>
                 </View>
                 <Text style={styles.accountValueText} numberOfLines={1}>
-                  {email} olarak bağlı
+                  {t("profile.googleConnected", { email })}
                 </Text>
               </>
             ) : (
-              <Text style={styles.accountValueText}>Bağlanmadı</Text>
+              <Text style={styles.accountValueText}>{t("profile.notConnected")}</Text>
             )}
           </View>
         </TouchableOpacity>
 
-        <SectionHeader title="Ayarlar" />
-        <ToggleRow title="LUNA Premium" subtitle={PREMIUM_SUBTITLE} onPress={onOpenPremium} hideIndicator />
+        <SectionHeader title={t("profile.sectionSettings")} />
+        <ToggleRow title={t("profile.premiumTitle")} subtitle={t("profile.premiumSubtitle")} onPress={onOpenPremium} hideIndicator />
         <ToggleRow
-          title="Hizli Tepki"
-          subtitle="Sohbet mesajlarina cift tiklama tepkinizi degistirin"
+          title={t("profile.quickReactionTitle")}
+          subtitle={t("profile.quickReactionSubtitle")}
           onPress={() => setEmojiSheetVisible(true)}
           rightElement={<Text style={styles.emoji}>{quickReaction}</Text>}
         />
         <ToggleRow
-          title="Davetleri Kisitla"
-          subtitle="Kimlerin seni davet edebilecegini sec"
+          title={t("profile.restrictInvitesTitle")}
+          subtitle={t("profile.restrictInvitesSubtitle")}
           rightElement={
             <OptionButton value={inviteRestriction} options={INVITE_OPTIONS} onChange={(v) => setInviteRestriction(v as InviteRestriction)} />
           }
         />
         <ToggleRow
-          title="Yetiskin Icerigini Gizle"
-          subtitle="Mustehcen icerik gosterme"
+          title={t("profile.hideAdultTitle")}
+          subtitle={t("profile.hideAdultSubtitle")}
           rightElement={
             <OptionButton
               value={hideAdult ? "hidden" : "shown"}
@@ -320,22 +336,22 @@ export default function ProfileScreen({
           }
         />
         <ToggleRow
-          title="Dokunsal geri bildirim"
-          subtitle="Dokunuslarda ve islemlerde titret"
+          title={t("profile.hapticsTitle")}
+          subtitle={t("profile.hapticsSubtitle")}
           rightElement={
             <OptionButton value={haptics ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => applyHaptics(v === "on")} />
           }
         />
         <ToggleRow
-          title="Chat mesajlarini otomatik cevir"
-          subtitle="Yeni acacagin odalarda bu ayar varsayilan olarak boyle baslar (oda icinde yine degistirebilirsin)"
+          title={t("profile.autoTranslateTitle")}
+          subtitle={t("profile.autoTranslateSubtitle")}
           rightElement={
             <OptionButton value={autoTranslate ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => applyAutoTranslate(v === "on")} />
           }
         />
         <ToggleRow
-          title="Baska Ses Calarken Sessize Al"
-          subtitle="Baska bir uygulama ses calarken LUNA'nin sesini kisar, ancak cihaziniz aramalar sirasinda LUNA'yi otomatik olarak sessize alabilir"
+          title={t("profile.muteOtherAudioTitle")}
+          subtitle={t("profile.muteOtherAudioSubtitle")}
           rightElement={
             <OptionButton
               value={muteOnOtherAudio ? "on" : "off"}
@@ -345,40 +361,38 @@ export default function ProfileScreen({
           }
         />
         <ToggleRow
-          title="Konumu Gizle"
-          subtitle="Haritada gozukmeyeceksiniz"
+          title={t("profile.hideLocationTitle")}
+          subtitle={t("profile.hideLocationSubtitle")}
           rightElement={
             <OptionButton value={hideLocation ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => setHideLocation(v === "on")} />
           }
         />
-        <ChevronRow title="Dil" subtitle="Cihaz dili (Turkce)" onPress={() => placeholder("Dil")} />
-        <ChevronRow title="Gizlilik" onPress={onOpenPrivacy} />
+        <ChevronRow title={t("profile.languageTitle")} subtitle={currentLanguageLabel} onPress={() => setLanguageSheetVisible(true)} />
+        <ChevronRow title={t("profile.privacyTitle")} onPress={onOpenPrivacy} />
 
-        <SectionHeader title="Geri Bildirim" />
+        <SectionHeader title={t("profile.sectionFeedback")} />
         <TouchableOpacity style={styles.simpleRow} onPress={handleRateApp}>
-          <Text style={styles.simpleTitle}>LUNA'yi Degerlendir</Text>
-          <Text style={styles.simpleSubtitle}>
-            LUNA'yi begendin mi? Kisa bir degerlendirme cok yardimci olur. Tesekkurler!
-          </Text>
+          <Text style={styles.simpleTitle}>{t("profile.rateTitle")}</Text>
+          <Text style={styles.simpleSubtitle}>{t("profile.rateSubtitle")}</Text>
         </TouchableOpacity>
 
-        <SectionHeader title="Yardim" />
+        <SectionHeader title={t("profile.sectionHelp")} />
         <TouchableOpacity style={styles.simpleRow} onPress={handleContactUs}>
-          <Text style={styles.simpleTitle}>Bize ulasin</Text>
+          <Text style={styles.simpleTitle}>{t("profile.contactTitle")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.simpleRow} onPress={runDiagnostics}>
-          <Text style={styles.simpleTitle}>Tanilamayi calistir</Text>
+          <Text style={styles.simpleTitle}>{t("profile.diagnosticsRun")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.simpleRow} onPress={onOpenBackgroundInfo}>
-          <Text style={styles.simpleTitle}>LUNA arka planda durduruluyor mu?</Text>
+          <Text style={styles.simpleTitle}>{t("profile.backgroundTitle")}</Text>
         </TouchableOpacity>
         <Text style={styles.versionText}>{APP_VERSION}</Text>
         <TouchableOpacity style={styles.simpleRow} onPress={handleDeleteAccount}>
-          <Text style={[styles.simpleTitle, styles.dangerText]}>Hesabi Sil</Text>
+          <Text style={[styles.simpleTitle, styles.dangerText]}>{t("profile.deleteAccountTitle")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Text style={styles.signOutText}>Cikis yap</Text>
+          <Text style={styles.signOutText}>{t("profile.signOutTitle")}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -390,6 +404,26 @@ export default function ProfileScreen({
       />
 
       <Modal
+        visible={languageSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLanguageSheetVisible(false)}
+      >
+        <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setLanguageSheetVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.optionSheet}>
+            <ScrollView style={styles.languageSheetScroll}>
+              {LANGUAGES.map((lang) => (
+                <TouchableOpacity key={lang.code} style={styles.optionRow} onPress={() => handleSelectLanguage(lang.code)}>
+                  <Text style={[styles.optionRowText, lang.code === i18n.language && styles.optionRowTextActive]}>{lang.label}</Text>
+                  {lang.code === i18n.language && <Icon name="check" size={16} color="#0EA5E9" />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
         visible={diagnosticsVisible}
         transparent
         animationType="fade"
@@ -397,7 +431,7 @@ export default function ProfileScreen({
       >
         <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setDiagnosticsVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.diagnosticsCard}>
-            <Text style={styles.diagnosticsTitle}>TANILAMA</Text>
+            <Text style={styles.diagnosticsTitle}>{t("profile.diagnosticsTitle").toUpperCase()}</Text>
             {diagnostics.map((r) => (
               <View key={r.label} style={styles.diagnosticsRow}>
                 <Text style={styles.diagnosticsLabel}>{r.label}</Text>
@@ -405,13 +439,13 @@ export default function ProfileScreen({
                   <ActivityIndicator size="small" color="#0EA5E9" />
                 ) : (
                   <Text style={[styles.diagnosticsStatus, r.status === "ok" ? styles.diagnosticsOk : styles.diagnosticsFail]}>
-                    {r.detail ?? (r.status === "ok" ? "Başarılı" : "Başarısız")}
+                    {r.detail ?? (r.status === "ok" ? t("profile.diagnosticsSuccess") : t("profile.diagnosticsFail"))}
                   </Text>
                 )}
               </View>
             ))}
             <TouchableOpacity style={styles.diagnosticsCloseBtn} onPress={() => setDiagnosticsVisible(false)}>
-              <Text style={styles.diagnosticsCloseText}>Kapat</Text>
+              <Text style={styles.diagnosticsCloseText}>{t("common.close")}</Text>
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -653,6 +687,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#1C1C1C",
   },
+  languageSheetScroll: { maxHeight: 360 },
   optionRow: {
     flexDirection: "row",
     justifyContent: "space-between",

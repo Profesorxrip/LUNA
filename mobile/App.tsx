@@ -9,6 +9,7 @@ import RootNavigator from "./src/navigation/RootNavigator";
 import CustomAlertHost from "./src/components/CustomAlert";
 import { getSocket } from "./src/services/socket";
 import { registerForPushNotifications } from "./src/services/notifications";
+import { loadStoredLanguage } from "./src/i18n";
 
 // Roadmap AŞAMA 3: gercek authentication artik zorunlu.
 const PREVIEW_SKIP_AUTH = false;
@@ -18,6 +19,7 @@ export default function App() {
   const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
+    loadStoredLanguage();
     if (PREVIEW_SKIP_AUTH) {
       setCheckingSession(false);
       return;
