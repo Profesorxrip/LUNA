@@ -58,9 +58,10 @@ import {
   getPublicProfile,
   profilesFor,
   ensureCountry,
+  ensureCity,
 } from "./social";
 import { verifyAccessToken, clientForUser, isSupabaseConfigured, publicReadClient } from "./supabase";
-import { lookupCountry, clientIpFromHandshake } from "./geoip";
+import { lookupCountry, lookupCity, clientIpFromHandshake } from "./geoip";
 import { submitReport } from "./moderation";
 import { logRoomEvent } from "./analytics";
 import { registerPushToken, unregisterPushToken, notifyIfOffline, PushPlatform } from "./notifications";
@@ -110,6 +111,9 @@ const io = new Server(server, { cors: { origin: "*" } });
 interface ConnMeta {
   userId: string | null;
   country: string | null;
+  // "Yakindakiler" icin il bilgisi - "Konumu Gizle" aciksa hep null kalir
+  // (bkz. rooms.ts visibleToViewer, turkeyProvinces.ts).
+  city: string | null;
   db: ReturnType<typeof clientForUser> | null;
   // Ayarlar ekranindaki "Yetiskin Icerigini Gizle" tercihi - Discover
   // listesini kisisellestirirken kullanilir (bkz. rooms.ts visibleToViewer).
@@ -136,7 +140,7 @@ async function broadcastRoomsList() {
     const friendIds = meta.userId && meta.db ? new Set((await listFriends(meta.db, meta.userId)).map((f) => f.userId)) : new Set<string>();
     io.to(socketId).emit(
       "rooms:list",
-      listPublicRooms({ userId: meta.userId, country: meta.country, friendIds, hideAdultContent: meta.hideAdultContent })
+      listPublicRooms({ userId: meta.userId, country: meta.country, city: meta.city, friendIds, hideAdultContent: meta.hideAdultContent })
     );
   }
 }
@@ -194,16 +198,18 @@ io.on("connection", (socket: Socket) => {
   let myName = "Misafir";
   let myDb: ReturnType<typeof clientForUser> | null = null;
   let myCountry: string | null = null;
+  let myCity: string | null = null;
+  let myHideLocation = true;
   let myHideAdultContent = false;
   const allow = makeRateLimiter();
 
   // Giris yapmamis (anonim) bir istemci de Discover'da "acik" odalari
   // gorebilmeli - bu yuzden HERKES (identify olsun olmasin) buraya kaydedilir.
-  connectionMeta.set(socket.id, { userId: null, country: null, db: null, hideAdultContent: false });
+  connectionMeta.set(socket.id, { userId: null, country: null, city: null, db: null, hideAdultContent: false });
 
   socket.on("rooms:list", async (_data, ack) => {
     const friendIds = myUserId && myDb ? new Set((await listFriends(myDb, myUserId)).map((f) => f.userId)) : new Set<string>();
-    ack?.(listPublicRooms({ userId: myUserId, country: myCountry, friendIds, hideAdultContent: myHideAdultContent }));
+    ack?.(listPublicRooms({ userId: myUserId, country: myCountry, city: myCity, friendIds, hideAdultContent: myHideAdultContent }));
   });
 
   // Ozelden mesajlasma / arkadaslik icin: kullanici Supabase access token'ini
@@ -219,7 +225,7 @@ io.on("connection", (socket: Socket) => {
     myUserId = user.id;
     myName = user.email ? user.email.split("@")[0] : "Kullanici";
     myDb = clientForUser(accessToken);
-    connectionMeta.set(socket.id, { userId: myUserId, country: myCountry, db: myDb, hideAdultContent: myHideAdultContent });
+    connectionMeta.set(socket.id, { userId: myUserId, country: myCountry, city: myCity, db: myDb, hideAdultContent: myHideAdultContent });
     setOnline(myUserId, socket.id);
     await setUserName(myDb, myUserId, myName);
     ack?.({ ok: true, userId: myUserId, name: myName });
@@ -249,6 +255,32 @@ io.on("connection", (socket: Socket) => {
         if (meta) meta.country = country;
       })
       .catch(() => {});
+
+    // Kayitli "Konumu Gizle" tercihini yukle - SADECE kapaliysa (paylasmayi
+    // sectiyse) il tespiti (ensureCity) calistirilir, aciksa (varsayilan) il
+    // hic sorgulanmaz - "Yakindakiler" bu kullaniciyi hic yakalayamaz.
+    myDb
+      .from("profiles")
+      .select("hide_location, city")
+      .eq("id", myUserId)
+      .maybeSingle()
+      .then(({ data }) => {
+        myHideLocation = data?.hide_location !== false; // varsayilan: gizli
+        if (myHideLocation) return;
+        if (data?.city) {
+          myCity = data.city;
+          const meta = connectionMeta.get(socket.id);
+          if (meta) meta.city = myCity;
+          return;
+        }
+        ensureCity(myDb!, myUserId!, ip, lookupCity)
+          .then((city) => {
+            myCity = city;
+            const meta = connectionMeta.get(socket.id);
+            if (meta) meta.city = city;
+          })
+          .catch(() => {});
+      }, () => {});
   });
 
   function requireAuth(ack?: (res: any) => void): boolean {
@@ -270,6 +302,32 @@ io.on("connection", (socket: Socket) => {
     await myDb!.from("profiles").update({ hide_adult_content: enabled }).eq("id", myUserId);
     ack?.({ ok: true });
     broadcastRoomsList();
+  });
+
+  // Ayarlar ekranindaki "Konumu Gizle" - GERCEK deger hem kaydediliyor hem
+  // bu baglantinin "Yakindakiler" eslesmesini ANINDA guncelliyor. Kapatilirsa
+  // (paylasmayi SECERSE) il hemen tespit edilir; acilirsa (gizlerse) bilinen
+  // il DE siliniyor - "gizle" dedikten sonra eski ilin DB'de kalmasi mantiksiz.
+  socket.on("profile:hideLocation", async ({ enabled }: { enabled: boolean }, ack) => {
+    if (!requireAuth(ack) || !isBoolean(enabled)) return ack?.({ ok: false });
+    myHideLocation = enabled;
+    if (enabled) {
+      myCity = null;
+      const meta = connectionMeta.get(socket.id);
+      if (meta) meta.city = null;
+      await myDb!.from("profiles").update({ hide_location: true, city: null }).eq("id", myUserId);
+    } else {
+      await myDb!.from("profiles").update({ hide_location: false }).eq("id", myUserId);
+      const ip = clientIpFromHandshake(socket.handshake);
+      ensureCity(myDb!, myUserId!, ip, lookupCity)
+        .then((city) => {
+          myCity = city;
+          const meta = connectionMeta.get(socket.id);
+          if (meta) meta.city = city;
+        })
+        .catch(() => {});
+    }
+    ack?.({ ok: true });
   });
 
   socket.on("friend:status", async ({ withUserId }: { withUserId: string }, ack) => {
@@ -377,7 +435,7 @@ io.on("connection", (socket: Socket) => {
   socket.on("user:activeRoom", async ({ userId }: { userId: string }, ack) => {
     if (!isNonEmptyString(userId, 200)) return ack?.({ ok: false, error: "Gecersiz kullanici." });
     const friendIds = myUserId && myDb ? new Set((await listFriends(myDb, myUserId)).map((f) => f.userId)) : new Set<string>();
-    const room = findActiveRoomForUser(userId, { userId: myUserId, country: myCountry, friendIds });
+    const room = findActiveRoomForUser(userId, { userId: myUserId, country: myCountry, city: myCity, friendIds });
     ack?.({ ok: true, room });
   });
 
@@ -559,7 +617,9 @@ io.on("connection", (socket: Socket) => {
         myUserId,
         myCountry,
         hostProfile?.avatarUrl ?? null,
-        hostProfile?.defaultAutoTranslate ?? false
+        hostProfile?.defaultAutoTranslate ?? false,
+        undefined,
+        myCity
       );
       currentRoomCode = room.code;
       socket.join(room.code);
@@ -747,7 +807,7 @@ io.on("connection", (socket: Socket) => {
         return ack?.({ ok: false, error: "Gecersiz istek." });
       const room = getRoom(currentRoomCode);
       if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
-      const applied = updateRoomSettings(room, socket.id, updates, myCountry);
+      const applied = updateRoomSettings(room, socket.id, updates, myCountry, myCity);
       if (!applied) return ack?.({ ok: false, error: "Sadece lider ayarlari degistirebilir." });
       if (updates.playbackMode && updates.playbackMode !== "vote") clearPollTimer(currentRoomCode);
       ack?.({ ok: true });

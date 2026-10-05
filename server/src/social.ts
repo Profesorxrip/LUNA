@@ -170,3 +170,16 @@ export async function ensureCountry(db: SupabaseClient, userId: string, ip: stri
   if (country) await db.from("profiles").update({ country }).eq("id", userId);
   return country;
 }
+
+// ensureCountry ile AYNI "bir kere ogren, kalici sakla" mantigi - "Yakindakiler"
+// artik ulke degil il (+ komsu il) bazinda eslestirdigi icin (bkz.
+// turkeyProvinces.ts). SADECE "Konumu Gizle" KAPALI olan (paylasmayi secen)
+// kullanicilar icin cagrilir (bkz. index.ts user:identify) - gizli olanlarda
+// hic calistirilmaz, il hep null kalir.
+export async function ensureCity(db: SupabaseClient, userId: string, ip: string, lookup: (ip: string) => Promise<string | null>): Promise<string | null> {
+  const { data } = await db.from("profiles").select("city").eq("id", userId).maybeSingle();
+  if (data?.city) return data.city;
+  const city = await lookup(ip);
+  if (city) await db.from("profiles").update({ city }).eq("id", userId);
+  return city;
+}

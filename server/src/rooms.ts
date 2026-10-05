@@ -1,4 +1,5 @@
 import { customAlphabet } from "nanoid";
+import { areNeighboringProvinces, normalizeProvince } from "./turkeyProvinces";
 
 // Oda kodlari icin: karistirilmasi kolay 0/O, 1/I gibi karakterler cikarildi.
 const generateRoomCode = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
@@ -92,6 +93,10 @@ export interface Room {
   // IP'den tespit edilen) ulkesinin bir kopyasi - profiles tablosuna her
   // kontrolde gitmemek icin.
   hostCountry: string | null;
+  // "Yakindakiler" artik ulke degil il (+ komsu il) bazinda eslesiyor (bkz.
+  // turkeyProvinces.ts) - host "Konumu Gizle"yi actiysa hep null kalir,
+  // bu durumda oda Yakindakiler ile HICBIR ZAMAN bulunamaz.
+  hostCity: string | null;
   autoTranslateChat: boolean;
   poll: Poll | null;
   hostSocketId: string;
@@ -123,7 +128,10 @@ export function createRoom(
   defaultAutoTranslate?: boolean,
   // Host odayi acarken "18+ icerik" olarak isaretlemis mi - RoomSettingsSheet'ten
   // sonradan da degistirilebilir (bkz. updateRoomSettings).
-  isAdult?: boolean
+  isAdult?: boolean,
+  // Host'un (Konumu Gizle kapaliysa IP'den tespit edilen) ili - "Yakindakiler"
+  // icin (bkz. hostCity aciklamasi).
+  hostCity?: string | null
 ): Room {
   let code = generateRoomCode();
   while (rooms.has(code)) code = generateRoomCode(); // cakisma ihtimaline karsi
@@ -137,6 +145,7 @@ export function createRoom(
     privacy: "open",
     playbackMode: "leader",
     hostCountry: hostCountry ?? null,
+    hostCity: hostCity ?? null,
     autoTranslateChat: defaultAutoTranslate ?? false,
     poll: null,
     hostSocketId,
@@ -168,6 +177,10 @@ export function hostUserIdOf(room: Room): string | null {
 export interface DiscoverViewer {
   userId: string | null;
   country: string | null;
+  // "Yakindakiler" icin (bkz. hostCity) - viewer "Konumu Gizle"yi actiysa
+  // hep null gelir, bu durumda viewer "Yakindakiler" odalarini HIC GOREMEZ
+  // (kendi ili bilinmedigi icin eslestirilemiyor).
+  city?: string | null;
   friendIds: Set<string>;
   // Ayarlar ekranindaki "Yetiskin Icerigini Gizle" tercihi - aciksa 18+
   // isaretli odalar bu bakan icin Discover'da (kendi odasi haric) hic gorunmez.
@@ -183,8 +196,15 @@ function visibleToViewer(room: Room, viewer: DiscoverViewer): boolean {
       return true;
     case "invite":
       return false;
-    case "nearby":
-      return Boolean(viewer.country && room.hostCountry && viewer.country === room.hostCountry);
+    case "nearby": {
+      // Konumu Gizle'yi acan taraf (host ya da viewer, farketmez) null
+      // city tasir - bu durumda eslestirme HICBIR ZAMAN olmaz, "yakindakiler"
+      // gizli konumlu kullanicilari hic yakalamaz.
+      if (!viewer.city || !room.hostCity) return false;
+      const viewerCity = normalizeProvince(viewer.city);
+      const hostCity = normalizeProvince(room.hostCity);
+      return viewerCity === hostCity || areNeighboringProvinces(viewerCity, hostCity);
+    }
     case "friends":
       return Boolean(hostId && viewer.friendIds.has(hostId));
     default:
@@ -194,13 +214,20 @@ function visibleToViewer(room: Room, viewer: DiscoverViewer): boolean {
 
 /** Kesif/ana ekranda listelenecek odalarin ozet listesi - GIZLILIK ayarina
  * gore her istemciye FARKLI (kisisellestirilmis) bir liste donebilir:
- * "open" herkese, "nearby" ayni ulkedeki (bkz. hostCountry aciklamasi)
- * kullanicilara, "friends" host'un gercek arkadaslarina, "invite" ise hic
- * kimseye (sadece kod/link ile) gorunur. En yeni olusturulan en basta. */
+ * "open" herkese, "nearby" artik viewer'in ili+komsu illerindeki (bkz.
+ * hostCity aciklamasi) kullanicilara, "friends" host'un gercek arkadaslarina,
+ * "invite" ise hic kimseye (sadece kod/link ile) gorunur. Siralama ONCE
+ * viewer ile AYNI ULKEDEKI odalar (en yeniden eskiye), SONRA digerleri
+ * (yine en yeniden eskiye). */
 export function listPublicRooms(viewer: DiscoverViewer) {
   return Array.from(rooms.values())
     .filter((r) => visibleToViewer(r, viewer))
-    .sort((a, b) => b.createdAtMs - a.createdAtMs)
+    .sort((a, b) => {
+      const aSameCountry = viewer.country && a.hostCountry === viewer.country ? 0 : 1;
+      const bSameCountry = viewer.country && b.hostCountry === viewer.country ? 0 : 1;
+      if (aSameCountry !== bSameCountry) return aSameCountry - bSameCountry;
+      return b.createdAtMs - a.createdAtMs;
+    })
     .map((r) => ({
       code: r.code,
       title: r.title,
@@ -376,13 +403,15 @@ export function updateRoomSettings(
   room: Room,
   requesterId: string,
   updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean; isAdult?: boolean },
-  hostCountry?: string | null
+  hostCountry?: string | null,
+  hostCity?: string | null
 ): boolean {
   if (!isHost(room, requesterId)) return false;
   if (updates.privacy) {
     room.privacy = updates.privacy;
     room.isPublic = updates.privacy === "open";
     if (updates.privacy === "nearby" && hostCountry !== undefined) room.hostCountry = hostCountry;
+    if (updates.privacy === "nearby" && hostCity !== undefined) room.hostCity = hostCity;
   }
   if (updates.playbackMode) {
     room.playbackMode = updates.playbackMode;

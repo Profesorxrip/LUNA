@@ -140,6 +140,9 @@ export default function ProfileScreen({
   function applyHideLocation(next: boolean) {
     setHideLocation(next);
     setHideLocationEnabled(next);
+    // Sunucu artik "Yakindakiler" eslesmesi icin de bu tercihi biliyor
+    // (bkz. server/src/index.ts profile:hideLocation).
+    getSocket().emit("profile:hideLocation", { enabled: next }, () => {});
   }
 
   // "Davetleri Kisitla" artik GERCEK: sunucuda send_friend_request/send_dm
