@@ -97,6 +97,10 @@ export interface Room {
   // Oda sohbetinde bir mesaja cift-tiklayinca eklenen tepkiler - mesajlar
   // gibi kalici degil, sadece oda hafizadayken yasiyor (messageId -> socketId -> tepki).
   messageReactions: Map<string, Map<string, { emoji: string; fromName: string }>>;
+  // Host odayi "18+ icerik" olarak isaretleyebilir - Ayarlar ekranindaki
+  // "Yetiskin Icerigini Gizle" acik olan kullanicilarin Discover listesinde
+  // bu oda hic gorunmez (bkz. visibleToViewer).
+  isAdult: boolean;
 }
 
 const rooms = new Map<string, Room>();
@@ -111,7 +115,10 @@ export function createRoom(
   // Host'un Ayarlar ekranindaki "Chat mesajlarini otomatik cevir" tercihi -
   // yeni actigi HER odanin baslangic degeri bu oluyor (host yine de
   // RoomSettingsSheet'ten oda bazinda degistirebilir).
-  defaultAutoTranslate?: boolean
+  defaultAutoTranslate?: boolean,
+  // Host odayi acarken "18+ icerik" olarak isaretlemis mi - RoomSettingsSheet'ten
+  // sonradan da degistirilebilir (bkz. updateRoomSettings).
+  isAdult?: boolean
 ): Room {
   let code = generateRoomCode();
   while (rooms.has(code)) code = generateRoomCode(); // cakisma ihtimaline karsi
@@ -143,6 +150,7 @@ export function createRoom(
     createdAtMs: Date.now(),
     bufferingSocketIds: new Set(),
     messageReactions: new Map(),
+    isAdult: isAdult ?? false,
   };
   rooms.set(code, room);
   return room;
@@ -156,11 +164,15 @@ export interface DiscoverViewer {
   userId: string | null;
   country: string | null;
   friendIds: Set<string>;
+  // Ayarlar ekranindaki "Yetiskin Icerigini Gizle" tercihi - aciksa 18+
+  // isaretli odalar bu bakan icin Discover'da (kendi odasi haric) hic gorunmez.
+  hideAdultContent?: boolean;
 }
 
 function visibleToViewer(room: Room, viewer: DiscoverViewer): boolean {
   const hostId = hostUserIdOf(room);
   if (viewer.userId && hostId === viewer.userId) return true; // kendi odan hep gorunur
+  if (room.isAdult && viewer.hideAdultContent) return false;
   switch (room.privacy) {
     case "open":
       return true;
@@ -194,6 +206,7 @@ export function listPublicRooms(viewer: DiscoverViewer) {
       isPlaying: r.playback.isPlaying,
       positionSeconds: currentPlaybackPosition(r.playback),
       durationSeconds: r.playback.durationSeconds ?? null,
+      isAdult: r.isAdult,
       // Discover kartinda katilimci avatar siramasi kaydirilarak
       // gorulebiliyor - makul bir ust sinira kadar hepsini gonderiyoruz.
       participants: Array.from(r.participants.values())
@@ -227,6 +240,7 @@ export function findActiveRoomForUser(targetUserId: string, viewer: DiscoverView
     isPlaying: room.playback.isPlaying,
     positionSeconds: currentPlaybackPosition(room.playback),
     durationSeconds: room.playback.durationSeconds ?? null,
+    isAdult: room.isAdult,
     participants: Array.from(room.participants.values())
       .slice(0, 20)
       .map((p) => ({ name: p.name, userId: p.userId ?? null })),
@@ -348,7 +362,7 @@ export function updatePlayback(
 export function updateRoomSettings(
   room: Room,
   requesterId: string,
-  updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean },
+  updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean; isAdult?: boolean },
   hostCountry?: string | null
 ): boolean {
   if (!isHost(room, requesterId)) return false;
@@ -363,6 +377,7 @@ export function updateRoomSettings(
     if (updates.playbackMode !== "vote") room.poll = null;
   }
   if (updates.autoTranslateChat !== undefined) room.autoTranslateChat = updates.autoTranslateChat;
+  if (updates.isAdult !== undefined) room.isAdult = updates.isAdult;
   return true;
 }
 
@@ -463,6 +478,7 @@ export function roomToPublicState(room: Room) {
     privacy: room.privacy,
     playbackMode: room.playbackMode,
     autoTranslateChat: room.autoTranslateChat,
+    isAdult: room.isAdult,
     poll: serializePoll(room),
     hostSocketId: room.hostSocketId,
     participants: Array.from(room.participants.values()),

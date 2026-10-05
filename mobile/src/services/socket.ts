@@ -74,6 +74,10 @@ export interface RoomState {
   privacy: PrivacyLevel;
   playbackMode: PlaybackMode;
   autoTranslateChat: boolean;
+  // Host odayi "18+ icerik" olarak isaretledi mi - Ayarlar ekranindaki
+  // "Yetiskin Icerigini Gizle" acik olan kullanicilarin Discover'inda bu
+  // oda hic gorunmez (bkz. server/src/rooms.ts visibleToViewer).
+  isAdult: boolean;
   poll: Poll | null;
   hostSocketId: string;
   participants: Participant[];
@@ -125,6 +129,7 @@ export interface PublicRoomSummary {
   isPlaying: boolean;
   positionSeconds: number;
   durationSeconds: number | null;
+  isAdult: boolean;
   participants: { name: string; userId: string | null }[];
 }
 

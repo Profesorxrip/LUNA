@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { isMuteOnOtherAudioEnabled, audioMixingModeFor } from "../utils/audioSettings";
 
 /** .m3u8 (HLS) ve .mp4 dogrudan stream linkleri icin native oynatici.
  * expo-video, react-native-video'nun aksine Expo Go'da CALISIR (ozel
@@ -25,6 +26,11 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
   const player = useVideoPlayer(url, (p) => {
     p.loop = false;
     p.timeUpdateEventInterval = 1;
+    // Ayarlar ekranindaki "Baska Ses Calarken Sessize Al" - acikken LUNA
+    // baska uygulamalarin sesiyle ayni anda calabiliyor (bkz. src/utils/audioSettings.ts).
+    isMuteOnOtherAudioEnabled().then((enabled) => {
+      p.audioMixingMode = audioMixingModeFor(enabled);
+    });
   });
 
   // NOT: "url" prop'u degistiginde kaynagi burada AYRICA replaceAsync ile

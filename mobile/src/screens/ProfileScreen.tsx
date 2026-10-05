@@ -9,6 +9,7 @@ import Icon from "../components/Icon";
 import EmojiPickerSheet from "../components/EmojiPickerSheet";
 import { showAlert } from "../components/CustomAlert";
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic } from "../utils/haptics";
+import { isMuteOnOtherAudioEnabled, setMuteOnOtherAudioEnabled } from "../utils/audioSettings";
 import { LANGUAGES, setAppLanguage, LanguageCode } from "../i18n";
 
 const SUPPORT_EMAIL = "destek@luna.app";
@@ -73,7 +74,7 @@ export default function ProfileScreen({
   const [quickReaction, setQuickReaction] = useState("❤️");
   const [emojiSheetVisible, setEmojiSheetVisible] = useState(false);
   const [inviteRestriction, setInviteRestriction] = useState<InviteRestriction>("everyone");
-  const [hideAdult, setHideAdult] = useState(true);
+  const [hideAdult, setHideAdult] = useState(false);
   const [haptics, setHaptics] = useState(false);
   const [autoTranslate, setAutoTranslate] = useState(false);
   const [muteOnOtherAudio, setMuteOnOtherAudio] = useState(false);
@@ -95,7 +96,7 @@ export default function ProfileScreen({
       setGoogleLinked((data.user?.identities || []).some((i: any) => i.provider === "google"));
       supabase
         .from("profiles")
-        .select("name,handle,avatar_url,default_auto_translate,default_reaction_emoji")
+        .select("name,handle,avatar_url,default_auto_translate,default_reaction_emoji,invite_restriction,hide_adult_content")
         .eq("id", userId)
         .maybeSingle()
         .then(({ data: profile }) => {
@@ -105,6 +106,8 @@ export default function ProfileScreen({
           if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
           setAutoTranslate(profile.default_auto_translate === true);
           if (profile.default_reaction_emoji) setQuickReaction(profile.default_reaction_emoji);
+          if (profile.invite_restriction) setInviteRestriction(profile.invite_restriction as InviteRestriction);
+          setHideAdult(profile.hide_adult_content === true);
         });
     });
   }, []);
@@ -114,12 +117,36 @@ export default function ProfileScreen({
   // dokunma/geçis islemlerinde GERCEKTEN titresim tetikler.
   useEffect(() => {
     isHapticsEnabled().then(setHaptics);
+    isMuteOnOtherAudioEnabled().then(setMuteOnOtherAudio);
   }, []);
 
   function applyHaptics(next: boolean) {
     setHaptics(next);
     setHapticsEnabled(next);
     if (next) triggerHaptic();
+  }
+
+  // "Baska Ses Calarken Sessize Al" - cihaz bazli, HlsPlayer'in audioMixingMode
+  // ayarini gercekten degistirir (bkz. src/utils/audioSettings.ts).
+  function applyMuteOnOtherAudio(next: boolean) {
+    setMuteOnOtherAudio(next);
+    setMuteOnOtherAudioEnabled(next);
+  }
+
+  // "Davetleri Kisitla" artik GERCEK: sunucuda send_friend_request/send_dm
+  // RPC'leri (bkz. migration 0013) bu degere gore yeni arkadaslik
+  // isteklerini ve/veya DM'leri reddediyor.
+  function applyInviteRestriction(next: InviteRestriction) {
+    setInviteRestriction(next);
+    if (myUserId) supabase.from("profiles").update({ invite_restriction: next }).eq("id", myUserId);
+  }
+
+  // "Yetiskin Icerigini Gizle" artik GERCEK: sunucuya (soket uzerinden,
+  // DOGRUDAN supabase degil) bildiriyoruz ki Discover listesini ANINDA
+  // kisisellestirsin (bkz. server/src/index.ts profile:hideAdultContent).
+  function applyHideAdultContent(next: boolean) {
+    setHideAdult(next);
+    getSocket().emit("profile:hideAdultContent", { enabled: next }, () => {});
   }
 
   async function handleRateApp() {
@@ -321,7 +348,7 @@ export default function ProfileScreen({
           title={t("profile.restrictInvitesTitle")}
           subtitle={t("profile.restrictInvitesSubtitle")}
           rightElement={
-            <OptionButton value={inviteRestriction} options={INVITE_OPTIONS} onChange={(v) => setInviteRestriction(v as InviteRestriction)} />
+            <OptionButton value={inviteRestriction} options={INVITE_OPTIONS} onChange={(v) => applyInviteRestriction(v as InviteRestriction)} />
           }
         />
         <ToggleRow
@@ -331,7 +358,7 @@ export default function ProfileScreen({
             <OptionButton
               value={hideAdult ? "hidden" : "shown"}
               options={ADULT_CONTENT_OPTIONS}
-              onChange={(v) => setHideAdult(v === "hidden")}
+              onChange={(v) => applyHideAdultContent(v === "hidden")}
             />
           }
         />
@@ -356,7 +383,7 @@ export default function ProfileScreen({
             <OptionButton
               value={muteOnOtherAudio ? "on" : "off"}
               options={ON_OFF_OPTIONS}
-              onChange={(v) => setMuteOnOtherAudio(v === "on")}
+              onChange={(v) => applyMuteOnOtherAudio(v === "on")}
             />
           }
         />

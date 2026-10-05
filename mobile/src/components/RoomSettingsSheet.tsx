@@ -12,9 +12,11 @@ interface Props {
   privacy: PrivacyLevel;
   playbackMode: PlaybackMode;
   autoTranslateChat: boolean;
+  isAdult: boolean;
   onChangePrivacy: (p: PrivacyLevel) => void;
   onChangePlaybackMode: (m: PlaybackMode) => void;
   onToggleAutoTranslate: (v: boolean) => void;
+  onToggleAdult: (v: boolean) => void;
   micConnected: boolean;
   micMuted: boolean;
   onMicPress: () => void;
@@ -61,9 +63,11 @@ export default function RoomSettingsSheet({
   privacy,
   playbackMode,
   autoTranslateChat,
+  isAdult,
   onChangePrivacy,
   onChangePlaybackMode,
   onToggleAutoTranslate,
+  onToggleAdult,
   micConnected,
   micMuted,
   onMicPress,
@@ -173,6 +177,16 @@ export default function RoomSettingsSheet({
                 value={autoTranslateChat}
                 onValueChange={onToggleAutoTranslate}
                 trackColor={{ false: theme.border, true: theme.accent }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+
+            <View style={styles.translateRow}>
+              <Text style={styles.translateLabel}>18+ içerik</Text>
+              <Switch
+                value={isAdult}
+                onValueChange={onToggleAdult}
+                trackColor={{ false: theme.border, true: theme.danger }}
                 thumbColor="#FFFFFF"
               />
             </View>

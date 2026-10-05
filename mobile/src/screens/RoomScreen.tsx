@@ -391,6 +391,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     socket.emit("room:settings", { autoTranslateChat }, () => {});
   }
 
+  function toggleAdult(isAdult: boolean) {
+    socket.emit("room:settings", { isAdult }, () => {});
+  }
+
   function handleVolumeChange(v: number) {
     setVolume(v);
     voice.setRemoteVolume(v);
@@ -712,6 +716,8 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onChangePrivacy={changePrivacy}
         onChangePlaybackMode={changePlaybackMode}
         onToggleAutoTranslate={toggleAutoTranslate}
+        isAdult={room.isAdult}
+        onToggleAdult={toggleAdult}
         micConnected={voice.connected}
         micMuted={voice.muted}
         onMicPress={handleMicPress}

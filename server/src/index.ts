@@ -109,6 +109,9 @@ interface ConnMeta {
   userId: string | null;
   country: string | null;
   db: ReturnType<typeof clientForUser> | null;
+  // Ayarlar ekranindaki "Yetiskin Icerigini Gizle" tercihi - Discover
+  // listesini kisisellestirirken kullanilir (bkz. rooms.ts visibleToViewer).
+  hideAdultContent: boolean;
 }
 const connectionMeta = new Map<string, ConnMeta>();
 
@@ -129,7 +132,10 @@ function broadcastRoom(code: string) {
 async function broadcastRoomsList() {
   for (const [socketId, meta] of connectionMeta) {
     const friendIds = meta.userId && meta.db ? new Set((await listFriends(meta.db, meta.userId)).map((f) => f.userId)) : new Set<string>();
-    io.to(socketId).emit("rooms:list", listPublicRooms({ userId: meta.userId, country: meta.country, friendIds }));
+    io.to(socketId).emit(
+      "rooms:list",
+      listPublicRooms({ userId: meta.userId, country: meta.country, friendIds, hideAdultContent: meta.hideAdultContent })
+    );
   }
 }
 
@@ -186,15 +192,16 @@ io.on("connection", (socket: Socket) => {
   let myName = "Misafir";
   let myDb: ReturnType<typeof clientForUser> | null = null;
   let myCountry: string | null = null;
+  let myHideAdultContent = false;
   const allow = makeRateLimiter();
 
   // Giris yapmamis (anonim) bir istemci de Discover'da "acik" odalari
   // gorebilmeli - bu yuzden HERKES (identify olsun olmasin) buraya kaydedilir.
-  connectionMeta.set(socket.id, { userId: null, country: null, db: null });
+  connectionMeta.set(socket.id, { userId: null, country: null, db: null, hideAdultContent: false });
 
   socket.on("rooms:list", async (_data, ack) => {
     const friendIds = myUserId && myDb ? new Set((await listFriends(myDb, myUserId)).map((f) => f.userId)) : new Set<string>();
-    ack?.(listPublicRooms({ userId: myUserId, country: myCountry, friendIds }));
+    ack?.(listPublicRooms({ userId: myUserId, country: myCountry, friendIds, hideAdultContent: myHideAdultContent }));
   });
 
   // Ozelden mesajlasma / arkadaslik icin: kullanici Supabase access token'ini
@@ -210,10 +217,26 @@ io.on("connection", (socket: Socket) => {
     myUserId = user.id;
     myName = user.email ? user.email.split("@")[0] : "Kullanici";
     myDb = clientForUser(accessToken);
-    connectionMeta.set(socket.id, { userId: myUserId, country: myCountry, db: myDb });
+    connectionMeta.set(socket.id, { userId: myUserId, country: myCountry, db: myDb, hideAdultContent: myHideAdultContent });
     setOnline(myUserId, socket.id);
     await setUserName(myDb, myUserId, myName);
     ack?.({ ok: true, userId: myUserId, name: myName });
+
+    // Kayitli "Yetiskin Icerigini Gizle" tercihini yukle - kritik degil,
+    // basarisiz olursa/gecikirse akisi bloklamaz (ulke tespiti gibi).
+    myDb
+      .from("profiles")
+      .select("hide_adult_content")
+      .eq("id", myUserId)
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          myHideAdultContent = data?.hide_adult_content === true;
+          const meta = connectionMeta.get(socket.id);
+          if (meta) meta.hideAdultContent = myHideAdultContent;
+        },
+        () => {}
+      );
 
     // Ulke bilgisi kritik degil - basarisiz olursa/gecikirse akisi bloklamaz.
     const ip = clientIpFromHandshake(socket.handshake);
@@ -233,6 +256,19 @@ io.on("connection", (socket: Socket) => {
     }
     return true;
   }
+
+  // Ayarlar ekranindaki "Yetiskin Icerigini Gizle" - GERCEK deger hem
+  // kaydediliyor hem de bu baglantinin Discover listesini ANINDA
+  // kisisellestirmek icin bellekte guncelleniyor (bkz. broadcastRoomsList).
+  socket.on("profile:hideAdultContent", async ({ enabled }: { enabled: boolean }, ack) => {
+    if (!requireAuth(ack) || !isBoolean(enabled)) return ack?.({ ok: false });
+    myHideAdultContent = enabled;
+    const meta = connectionMeta.get(socket.id);
+    if (meta) meta.hideAdultContent = enabled;
+    await myDb!.from("profiles").update({ hide_adult_content: enabled }).eq("id", myUserId);
+    ack?.({ ok: true });
+    broadcastRoomsList();
+  });
 
   socket.on("friend:status", async ({ withUserId }: { withUserId: string }, ack) => {
     if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200)) return ack?.({ ok: false });
@@ -669,16 +705,21 @@ io.on("connection", (socket: Socket) => {
     }
   );
 
-  // Ayarlar ekrani: GIZLILIK / PLAYBACK / sohbet otomatik ceviri - sadece host.
+  // Ayarlar ekrani: GIZLILIK / PLAYBACK / sohbet otomatik ceviri / 18+ icerik - sadece host.
   socket.on(
     "room:settings",
-    async (updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean }, ack) => {
+    async (
+      updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean; isAdult?: boolean },
+      ack
+    ) => {
       if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
       if (updates.privacy && !isOneOf(updates.privacy, ["open", "nearby", "friends", "invite"] as const))
         return ack?.({ ok: false, error: "Gecersiz gizlilik degeri." });
       if (updates.playbackMode && !isOneOf(updates.playbackMode, ["leader", "playOnly", "autoplay", "vote"] as const))
         return ack?.({ ok: false, error: "Gecersiz playback degeri." });
       if (updates.autoTranslateChat !== undefined && !isBoolean(updates.autoTranslateChat))
+        return ack?.({ ok: false, error: "Gecersiz istek." });
+      if (updates.isAdult !== undefined && !isBoolean(updates.isAdult))
         return ack?.({ ok: false, error: "Gecersiz istek." });
       const room = getRoom(currentRoomCode);
       if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
@@ -724,6 +765,18 @@ io.on("connection", (socket: Socket) => {
           settingLabel: "Sohbet çevirisi",
           settingValue: value,
           text: `${byName} sohbet cevirisini "${value}" yapti.`,
+          ts: Date.now(),
+        });
+      }
+      if (updates.isAdult !== undefined) {
+        const value = updates.isAdult ? "Açık" : "Kapalı";
+        io.to(currentRoomCode).emit("room:chat", {
+          system: true,
+          kind: "settings",
+          byName,
+          settingLabel: "18+ içerik",
+          settingValue: value,
+          text: `${byName} 18+ icerik isaretini "${value}" yapti.`,
           ts: Date.now(),
         });
       }
