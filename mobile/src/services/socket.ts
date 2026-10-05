@@ -96,6 +96,9 @@ export interface ChatMessage {
   fromSocketId?: string;
   fromAvatarUrl?: string | null;
   text: string;
+  // Gercek fotograf mesaji - verilmisse "text" sadece yedek ozet ("📷 Fotograf").
+  mediaUrl?: string;
+  isAdult?: boolean;
   ts: number;
   replyTo?: DMReply | null;
   // Bu mesaja cift-tiklayarak tepki veren katilimcilar (bkz. "message:react" /
@@ -160,6 +163,7 @@ export interface DMMessage {
   fromName: string;
   text: string;
   mediaUrl?: string;
+  isAdult?: boolean;
   replyTo: DMReply | null;
   createdAt: number;
   expiresAt: number | null;

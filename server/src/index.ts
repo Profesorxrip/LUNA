@@ -33,6 +33,7 @@ import {
   openConversation,
   previewConversation,
   sendMessage,
+  sendImageMessage,
   setExpiryMs,
   markSeen,
   setOnline,
@@ -485,6 +486,28 @@ io.on("connection", (socket: Socket) => {
     }
   );
 
+  // DM'de GERCEK fotograf gonderme - client fotografi "chat-media" storage
+  // bucket'ina kendisi yukler (bkz. 0015_chat_media.sql), buraya sadece
+  // ortaya cikan public URL'i ve "+18 isaretle" tercihini gonderir.
+  socket.on(
+    "dm:sendImage",
+    async ({ toUserId, mediaUrl, isAdult }: { toUserId: string; mediaUrl: string; isAdult?: boolean }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isNonEmptyString(mediaUrl, 2000)) {
+        return ack?.({ ok: false });
+      }
+      if (isAdult !== undefined && !isBoolean(isAdult)) return ack?.({ ok: false });
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendImageMessage(myDb!, toUserId, mediaUrl, isAdult === true);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      const peerSocketId = getSocketIdForUser(toUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+      notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "📷 Fotoğraf gönderdi").catch(() => {});
+    }
+  );
+
   // DM'de bir mesaja CIFT TIKLAYINCA gonderilen tepki - oda sohbetindeki
   // message:react'in aksine burada sadece 2 taraf oldugu icin sunucu hicbir
   // state tutmaz, anlik olarak karsi tarafa iletir (emoji:null tepkinin
@@ -877,6 +900,28 @@ io.on("connection", (socket: Socket) => {
       fromAvatarUrl: participant?.avatarUrl ?? null,
       text: text.trim().slice(0, 1000),
       replyTo: validReplyTo,
+      ts: Date.now(),
+    });
+  });
+
+  // Oda sohbetinde GERCEK fotograf gonderme - oda mesajlari hic kalici
+  // olmadigi icin (bkz. rooms.ts) burada DB yok, sadece client'in "chat-media"
+  // bucket'ina yukledigi public URL'i digerlerine anlik olarak iletiyoruz.
+  socket.on("chat:sendImage", ({ mediaUrl, isAdult }: { mediaUrl: string; isAdult?: boolean }) => {
+    if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000)) return;
+    if (isAdult !== undefined && !isBoolean(isAdult)) return;
+    if (!allow("chat:send", 20, 10_000)) return;
+    const room = getRoom(currentRoomCode);
+    const participant = room?.participants.get(socket.id);
+    io.to(currentRoomCode).emit("room:chat", {
+      id: randomUUID(),
+      system: false,
+      from: participant?.name || "?",
+      fromSocketId: socket.id,
+      fromAvatarUrl: participant?.avatarUrl ?? null,
+      text: "📷 Fotoğraf",
+      mediaUrl,
+      isAdult: isAdult === true,
       ts: Date.now(),
     });
   });

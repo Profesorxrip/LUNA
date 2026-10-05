@@ -11,11 +11,14 @@ import {
   Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 import { getSocket, DMMessage, DMReply } from "../services/socket";
 import { supabase } from "../services/supabase";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
+import SendMediaSheet from "../components/SendMediaSheet";
+import ChatImageBubble from "../components/ChatImageBubble";
 
 const EXPIRY_OPTIONS: { label: string; ms: number | null }[] = [
   { label: "Kapalı", ms: null },
@@ -62,6 +65,8 @@ export default function DMScreen({ peer, onBack }: Props) {
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [nowTick, setNowTick] = useState(Date.now());
+  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
   // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
@@ -159,6 +164,48 @@ export default function DMScreen({ peer, onBack }: Props) {
     });
     setInput("");
     setReplyingTo(null);
+  }
+
+  async function pickImage() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
+    if (result.canceled || !result.assets?.[0]) return;
+    setPendingImageUri(result.assets[0].uri);
+  }
+
+  // "chat-media" bucket'ina (avatars/gallery ile ayni desen, bkz.
+  // 0015_chat_media.sql) kendi klasorune yukler, ardindan "dm:sendImage" ile
+  // karsi tarafa iletir.
+  async function sendPickedImage(isAdult: boolean) {
+    if (!pendingImageUri || !myUserId) return;
+    setUploadingImage(true);
+    try {
+      const arrayBuffer = await fetch(pendingImageUri).then((res) => res.arrayBuffer());
+      const ext = pendingImageUri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
+      const contentType = ext === "png" ? "image/png" : "image/jpeg";
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const path = `${myUserId}/${fileName}`;
+      const { error: uploadError } = await supabase.storage.from("chat-media").upload(path, arrayBuffer, { contentType });
+      if (uploadError) throw uploadError;
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      socket.emit(
+        "dm:sendImage",
+        { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, isAdult },
+        (res: any) => {
+          if (res?.ok) setMessages((prev) => [...prev, res.message]);
+          else showAlert("Gönderilemedi", res?.error || "Fotoğraf gönderilemedi, tekrar dene.");
+        }
+      );
+      setPendingImageUri(null);
+    } catch (err: any) {
+      showAlert("Gönderilemedi", err?.message || "Fotoğraf gönderilirken bir hata oluştu, tekrar dene.");
+    } finally {
+      setUploadingImage(false);
+    }
   }
 
   function insertMention() {
@@ -305,15 +352,19 @@ export default function DMScreen({ peer, onBack }: Props) {
                     </Text>
                   </View>
                 )}
-                <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
-                  <Text style={styles.bubbleText}>{item.text}</Text>
-                  {(item.myReaction || item.peerReaction) && (
-                    <View style={styles.reactionBadgeRow}>
-                      {item.peerReaction && <Text style={styles.reactionBadgeEmoji}>{item.peerReaction}</Text>}
-                      {item.myReaction && <Text style={styles.reactionBadgeEmoji}>{item.myReaction}</Text>}
-                    </View>
-                  )}
-                </View>
+                {item.mediaUrl ? (
+                  <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
+                ) : (
+                  <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
+                    <Text style={styles.bubbleText}>{item.text}</Text>
+                  </View>
+                )}
+                {(item.myReaction || item.peerReaction) && (
+                  <View style={styles.reactionBadgeRow}>
+                    {item.peerReaction && <Text style={styles.reactionBadgeEmoji}>{item.peerReaction}</Text>}
+                    {item.myReaction && <Text style={styles.reactionBadgeEmoji}>{item.myReaction}</Text>}
+                  </View>
+                )}
                 <View style={[styles.metaRow, isMine ? styles.metaRowMine : styles.metaRowTheirs]}>
                   <Text style={styles.metaTime}>
                     {new Date(item.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
@@ -358,7 +409,7 @@ export default function DMScreen({ peer, onBack }: Props) {
             <TouchableOpacity onPress={insertMention} hitSlop={6}>
               <Icon name="mention" size={22} color={TEXT} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => placeholder("Medya")} hitSlop={6}>
+            <TouchableOpacity onPress={pickImage} hitSlop={6}>
               <Icon name="image" size={22} color={TEXT} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => placeholder("Sesli Mesaj")} hitSlop={6}>
@@ -396,7 +447,7 @@ export default function DMScreen({ peer, onBack }: Props) {
             ) : (
               <View style={styles.mediaGrid}>
                 {mediaMessages.map((m) => (
-                  <View key={m.id} style={styles.mediaThumb} />
+                  <ChatImageBubble key={m.id} uri={m.mediaUrl!} isAdult={m.isAdult} size={96} />
                 ))}
               </View>
             )}
@@ -448,6 +499,14 @@ export default function DMScreen({ peer, onBack }: Props) {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      <SendMediaSheet
+        visible={!!pendingImageUri}
+        imageUri={pendingImageUri}
+        uploading={uploadingImage}
+        onCancel={() => setPendingImageUri(null)}
+        onSend={sendPickedImage}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -623,7 +682,6 @@ const styles = StyleSheet.create({
   },
   mediaEmpty: { color: MUTED, fontSize: 13, marginTop: 30, textAlign: "center" },
   mediaGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
-  mediaThumb: { width: 96, height: 96, borderRadius: 8, backgroundColor: "#1F3D24" },
   sheetCloseBtn: { marginTop: 20, alignItems: "center", paddingVertical: 12 },
   sheetCloseBtnText: { color: MUTED, fontSize: 14, fontWeight: "600" },
   reportInput: {

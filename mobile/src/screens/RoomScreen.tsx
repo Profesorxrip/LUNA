@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from "expo-image-picker";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
 import type { MediaSource, DMReply } from "../services/socket";
 import { supabase } from "../services/supabase";
@@ -23,6 +24,8 @@ import MediaPickerSheet from "../components/MediaPickerSheet";
 import ReactionsOverlay, { ReactionsOverlayHandle } from "../components/ReactionsOverlay";
 import ParticipantsModal from "../components/ParticipantsModal";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
+import SendMediaSheet from "../components/SendMediaSheet";
+import ChatImageBubble from "../components/ChatImageBubble";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
@@ -127,13 +130,19 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap }: C
       </Animated.View>
       {isOwn ? (
         <>
-          <TouchableOpacity activeOpacity={1} onPress={handleTap} style={styles.messageTextCol}>
+          <View style={styles.messageTextCol}>
             {replyQuote}
-            <Text style={styles.chatMsgOwn} selectable={false}>
-              {item.text}
-            </Text>
+            {item.mediaUrl ? (
+              <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
+            ) : (
+              <TouchableOpacity activeOpacity={1} onPress={handleTap}>
+                <Text style={styles.chatMsgOwn} selectable={false}>
+                  {item.text}
+                </Text>
+              </TouchableOpacity>
+            )}
             {reactionBadges}
-          </TouchableOpacity>
+          </View>
           {!groupedWithPrev && <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} />}
         </>
       ) : (
@@ -143,14 +152,23 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap }: C
           ) : (
             <View style={styles.avatarSpacer} />
           )}
-          <TouchableOpacity activeOpacity={1} onPress={handleTap} style={styles.messageTextCol}>
+          <View style={styles.messageTextCol}>
             {replyQuote}
-            <Text style={styles.chatMsg} selectable={false}>
-              {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
-              {item.text}
-            </Text>
+            {item.mediaUrl ? (
+              <>
+                {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}</Text>}
+                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
+              </>
+            ) : (
+              <TouchableOpacity activeOpacity={1} onPress={handleTap}>
+                <Text style={styles.chatMsg} selectable={false}>
+                  {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
+                  {item.text}
+                </Text>
+              </TouchableOpacity>
+            )}
             {reactionBadges}
-          </TouchableOpacity>
+          </View>
         </>
       )}
     </Animated.View>
@@ -170,6 +188,8 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [chatFocused, setChatFocused] = useState(false);
   const [replyingTo, setReplyingTo] = useState<DMReply | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [participantsVisible, setParticipantsVisible] = useState(false);
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -417,8 +437,45 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     setChatInput((prev) => (prev.endsWith("@") || prev.length === 0 ? prev + "@" : prev + " @"));
   }
 
-  function pickImage() {
-    showAlert("Yakinda", "Sohbete fotograf ekleme ozelligi yakinda geliyor.");
+  async function pickImage() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
+    if (result.canceled || !result.assets?.[0]) return;
+    setPendingImageUri(result.assets[0].uri);
+  }
+
+  // "chat-media" bucket'ina gonderen kullanicinin KENDI klasorune (avatars/
+  // gallery ile ayni desen, bkz. 0015_chat_media.sql) yukler, ortaya cikan
+  // public URL'i sonra "chat:sendImage" ile odadaki herkese iletilir.
+  async function sendPickedImage(isAdult: boolean) {
+    if (!pendingImageUri) return;
+    setUploadingImage(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) {
+        showAlert("Giriş gerekli", "Fotoğraf göndermek için giriş yapmış olman gerekiyor.");
+        return;
+      }
+      const arrayBuffer = await fetch(pendingImageUri).then((res) => res.arrayBuffer());
+      const ext = pendingImageUri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
+      const contentType = ext === "png" ? "image/png" : "image/jpeg";
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const path = `${userId}/${fileName}`;
+      const { error: uploadError } = await supabase.storage.from("chat-media").upload(path, arrayBuffer, { contentType });
+      if (uploadError) throw uploadError;
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      socket.emit("chat:sendImage", { mediaUrl: publicUrlData.publicUrl, isAdult });
+      setPendingImageUri(null);
+    } catch (err: any) {
+      showAlert("Gönderilemedi", err?.message || "Fotoğraf gönderilirken bir hata oluştu, tekrar dene.");
+    } finally {
+      setUploadingImage(false);
+    }
   }
 
   function showMap() {
@@ -696,6 +753,13 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onClose={() => setPickerVisible(false)}
         onSelect={selectSource}
         relatedVideosFor={pollRelatedVideoId}
+      />
+      <SendMediaSheet
+        visible={!!pendingImageUri}
+        imageUri={pendingImageUri}
+        uploading={uploadingImage}
+        onCancel={() => setPendingImageUri(null)}
+        onSend={sendPickedImage}
       />
       <ParticipantsModal
         visible={participantsVisible}

@@ -10,6 +10,8 @@ export interface DMMessage {
   fromUserId: string;
   fromName: string;
   text: string;
+  mediaUrl: string | null;
+  isAdult: boolean;
   replyTo: DMReply | null;
   createdAt: number;
   expiresAt: number | null;
@@ -41,6 +43,8 @@ function mapRow(row: any): DMMessage {
     fromUserId: row.from_user,
     fromName: row.from_name,
     text: row.text,
+    mediaUrl: row.media_url ?? null,
+    isAdult: row.is_adult === true,
     replyTo: row.reply_to_text ? { text: row.reply_to_text, fromName: row.reply_to_from_name } : null,
     createdAt: new Date(row.created_at).getTime(),
     expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : null,
@@ -100,6 +104,19 @@ export async function sendMessage(
   });
   if (error) {
     // RPC 'blocked' exception'ini firlatiyorsa PostgREST bunu error.message'da tasir.
+    return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  return { ok: true, message: mapRow(data) };
+}
+
+export async function sendImageMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  mediaUrl: string,
+  isAdult: boolean
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_dm_image", { to_user: toUserId, media_url: mediaUrl, is_adult: isAdult });
+  if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
   }
   return { ok: true, message: mapRow(data) };
