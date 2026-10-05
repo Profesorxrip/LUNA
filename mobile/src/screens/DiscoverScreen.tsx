@@ -15,7 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { getSocket, PublicRoomSummary, DiscoverSections, RoomState, MediaSource, FriendUser } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
-import Icon from "../components/Icon";
+import Icon, { IconName } from "../components/Icon";
 import LoadingView from "../components/LoadingView";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import RoomCard from "../components/RoomCard";
@@ -45,11 +45,11 @@ const EMPTY_SECTIONS: DiscoverSections = { invited: [], friends: [], nearby: [],
 // seni ozel olarak davet ettiyse), Arkadaslar, Yakindakiler, Acik. Her bolumun
 // ic siralamasi sunucuda zaten hazirlaniyor, burada sadece gruplanip
 // (numColumns'a gore satirlara bolunup) gosteriliyor.
-const SECTION_TITLES: { key: keyof DiscoverSections; title: string }[] = [
-  { key: "invited", title: "Davetliler" },
-  { key: "friends", title: "Arkadaşlar" },
-  { key: "nearby", title: "Yakındakiler" },
-  { key: "open", title: "Açık" },
+const SECTION_TITLES: { key: keyof DiscoverSections; title: string; icon: IconName }[] = [
+  { key: "invited", title: "Davetliler", icon: "invite" },
+  { key: "friends", title: "Arkadaşlar", icon: "people" },
+  { key: "nearby", title: "Yakındakiler", icon: "pin" },
+  { key: "open", title: "Açık", icon: "globe" },
 ];
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -78,9 +78,9 @@ export default function DiscoverScreen({
   widthRef.current = width;
 
   const trimmedSearch = search.trim().toLowerCase();
-  const sectionListData = SECTION_TITLES.map(({ key, title }) => {
+  const sectionListData = SECTION_TITLES.map(({ key, title, icon }) => {
     const filtered = sections[key].filter((r) => r.title.toLowerCase().includes(trimmedSearch));
-    return { key, title, data: chunk(filtered, numColumns) };
+    return { key, title, icon, data: chunk(filtered, numColumns) };
   }).filter((s) => s.data.length > 0);
 
   useEffect(() => {
@@ -197,7 +197,12 @@ export default function DiscoverScreen({
             </Text>
           )
         }
-        renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeaderRow}>
+            <Icon name={section.icon} size={14} color={theme.textMuted} />
+            <Text style={styles.sectionHeader}>{section.title}</Text>
+          </View>
+        )}
         renderItem={({ item: row }) => (
           <View style={styles.row}>
             {row.map((item) => (
@@ -254,15 +259,20 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: "#FFFFFF", fontSize: 15, outlineWidth: 0, outlineStyle: "none" } as any,
   listContent: { padding: 8, flexGrow: 1 },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingTop: 14,
+    paddingBottom: 6,
+  },
   sectionHeader: {
     color: theme.textMuted,
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
-    paddingHorizontal: 8,
-    paddingTop: 14,
-    paddingBottom: 6,
   },
   row: { flexDirection: "row" },
   emptyText: { color: theme.textMuted, textAlign: "center", marginTop: 60, fontSize: 15 },
