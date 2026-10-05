@@ -22,7 +22,7 @@ const ADULT_CONTENT_OPTIONS = [
   { key: "hidden", label: "Gizli" },
   { key: "shown", label: "Açık" },
 ];
-const HAPTICS_OPTIONS = [
+const ON_OFF_OPTIONS = [
   { key: "on", label: "Açık" },
   { key: "off", label: "Kapalı" },
 ];
@@ -178,13 +178,9 @@ export default function ProfileScreen({
   // bir varsayilan, host odanin icinde RoomSettingsSheet'ten yine
   // degistirebilir (bkz. server/src/index.ts room:create / rooms.ts
   // createRoom).
-  function toggleAutoTranslateDefault() {
-    if (!myUserId) return;
-    setAutoTranslate((v) => {
-      const next = !v;
-      supabase.from("profiles").update({ default_auto_translate: next }).eq("id", myUserId);
-      return next;
-    });
+  function applyAutoTranslate(next: boolean) {
+    setAutoTranslate(next);
+    if (myUserId) supabase.from("profiles").update({ default_auto_translate: next }).eq("id", myUserId);
   }
 
   // Oda sohbetinde/dm'de bir mesaja CIFT TIKLAYINCA gonderilecek emoji -
@@ -327,26 +323,33 @@ export default function ProfileScreen({
           title="Dokunsal geri bildirim"
           subtitle="Dokunuslarda ve islemlerde titret"
           rightElement={
-            <OptionButton value={haptics ? "on" : "off"} options={HAPTICS_OPTIONS} onChange={(v) => applyHaptics(v === "on")} />
+            <OptionButton value={haptics ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => applyHaptics(v === "on")} />
           }
         />
         <ToggleRow
           title="Chat mesajlarini otomatik cevir"
           subtitle="Yeni acacagin odalarda bu ayar varsayilan olarak boyle baslar (oda icinde yine degistirebilirsin)"
-          checked={autoTranslate}
-          onToggle={toggleAutoTranslateDefault}
+          rightElement={
+            <OptionButton value={autoTranslate ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => applyAutoTranslate(v === "on")} />
+          }
         />
         <ToggleRow
           title="Baska Ses Calarken Sessize Al"
           subtitle="Baska bir uygulama ses calarken LUNA'nin sesini kisar, ancak cihaziniz aramalar sirasinda LUNA'yi otomatik olarak sessize alabilir"
-          checked={muteOnOtherAudio}
-          onToggle={() => setMuteOnOtherAudio((v) => !v)}
+          rightElement={
+            <OptionButton
+              value={muteOnOtherAudio ? "on" : "off"}
+              options={ON_OFF_OPTIONS}
+              onChange={(v) => setMuteOnOtherAudio(v === "on")}
+            />
+          }
         />
         <ToggleRow
           title="Konumu Gizle"
           subtitle="Haritada gozukmeyeceksiniz"
-          checked={hideLocation}
-          onToggle={() => setHideLocation((v) => !v)}
+          rightElement={
+            <OptionButton value={hideLocation ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => setHideLocation(v === "on")} />
+          }
         />
         <ChevronRow title="Dil" subtitle="Cihaz dili (Turkce)" onPress={() => placeholder("Dil")} />
         <ChevronRow title="Gizlilik" onPress={onOpenPrivacy} />
