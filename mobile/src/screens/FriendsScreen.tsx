@@ -47,7 +47,6 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
   const [search, setSearch] = useState("");
   const [friends, setFriends] = useState<FriendUser[]>([]);
   const [incoming, setIncoming] = useState<FriendUser[]>([]);
-  const [outgoing, setOutgoing] = useState<FriendUser[]>([]);
   const [blocked, setBlocked] = useState<FriendUser[]>([]);
   const [recentRoommates, setRecentRoommates] = useState<RecentRoommate[]>([]);
   const [previews, setPreviews] = useState<Record<string, DMMessage | null>>({});
@@ -60,7 +59,6 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
       if (!res?.ok) return;
       setFriends(res.friends);
       setIncoming(res.incoming);
-      setOutgoing(res.outgoing);
       setBlocked(res.blocked);
       setRecentRoommates(res.recentRoommates || []);
       res.friends.forEach((f: FriendUser) => {
@@ -91,10 +89,6 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
     socket.emit("friend:respond", { fromUserId, accept: true }, () => refresh());
   }
 
-  function cancelOutgoing(toUserId: string) {
-    socket.emit("friend:cancel", { toUserId }, () => refresh());
-  }
-
   function unblock(userId: string) {
     showAlert("Engeli Kaldır", "Bu kişinin engelini kaldırmak istiyor musun?", [
       { text: "Vazgeç", style: "cancel" },
@@ -107,8 +101,6 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
     query ? list.filter((u) => u.name.toLowerCase().includes(query) || u.userId.toLowerCase().includes(query)) : list;
 
   const visibleFriends = filterList(friends);
-  const visibleIncoming = filterList(incoming);
-  const visibleOutgoing = filterList(outgoing);
   const visibleBlocked = filterList(blocked);
   const visibleRecentRoommates = filterList(recentRoommates);
 
@@ -247,32 +239,23 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
           <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
             <Text style={styles.sheetTitle}>İstekler</Text>
             <FlatList
-              data={[...incoming, ...outgoing]}
+              data={incoming}
               keyExtractor={(f) => f.userId}
               ListEmptyComponent={<Text style={styles.emptyText}>Bekleyen arkadaşlık isteği yok.</Text>}
-              renderItem={({ item }) => {
-                const isIncoming = incoming.some((f) => f.userId === item.userId);
-                return (
-                  <View style={styles.row}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-                    </View>
-                    <View style={styles.rowText}>
-                      <Text style={styles.rowName}>{item.name}</Text>
-                      <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
-                    </View>
-                    {isIncoming ? (
-                      <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
-                        <Icon name="invite" size={26} color={ACCENT} />
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity onPress={() => cancelOutgoing(item.userId)}>
-                        <Text style={styles.pendingText}>Bekliyor</Text>
-                      </TouchableOpacity>
-                    )}
+              renderItem={({ item }) => (
+                <View style={styles.row}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
                   </View>
-                );
-              }}
+                  <View style={styles.rowText}>
+                    <Text style={styles.rowName}>{item.name}</Text>
+                    <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
+                    <Icon name="invite" size={26} color={ACCENT} />
+                  </TouchableOpacity>
+                </View>
+              )}
             />
           </TouchableOpacity>
         </TouchableOpacity>
@@ -362,7 +345,6 @@ const styles = StyleSheet.create({
   rowName: { color: TEXT, fontSize: 15, fontWeight: "700" },
   rowHandle: { color: MUTED, fontSize: 12, marginTop: 2 },
   rowPreview: { color: MUTED, fontSize: 12, marginTop: 2 },
-  pendingText: { color: MUTED, fontSize: 12, fontWeight: "600" },
   tabBarWrap: { position: "absolute", bottom: 24, left: 0, right: 0, alignItems: "center" },
   tabBar: {
     flexDirection: "row",

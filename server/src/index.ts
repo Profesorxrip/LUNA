@@ -53,7 +53,6 @@ import {
   unblockUser,
   listFriends,
   listIncoming,
-  listOutgoing,
   listBlocked,
   getPublicProfile,
   profilesFor,
@@ -539,7 +538,6 @@ io.on("connection", (socket: Socket) => {
       ok: true,
       friends: await listFriends(myDb!, myUserId!),
       incoming: await listIncoming(myDb!, myUserId!),
-      outgoing: await listOutgoing(myDb!, myUserId!),
       blocked: await listBlocked(myDb!, myUserId!),
       recentRoommates: recentRoommatesFor(myUserId!),
     });
