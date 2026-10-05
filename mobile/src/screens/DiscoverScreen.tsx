@@ -244,7 +244,11 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
-  headerLogo: { width: 74, height: 34, marginTop: -4 },
+  // lavin-icon-mark.png'nin gorsel agirlik merkezi (yildiz susleme + "LUNA"
+  // yazisi) kutunun geometrik ortasinin ~6px altinda - ikonlarla ayni
+  // hizaya gelmesi icin bu kadar yukari kaydiriyoruz (piksel analiziyle
+  // olculdu, tahmini degil).
+  headerLogo: { width: 74, height: 34, marginTop: -6, tintColor: "#FFFFFF" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
