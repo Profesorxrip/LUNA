@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "#141210",
   },
-  searchInput: { flex: 1, color: TEXT, fontSize: 14 },
+  searchInput: { flex: 1, color: TEXT, fontSize: 14, textTransform: "uppercase" },
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   emptyText: { color: MUTED, textAlign: "center", marginTop: 60, fontSize: 14 },
   row: {

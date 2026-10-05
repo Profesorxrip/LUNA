@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
   },
-  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 15, outlineWidth: 0, outlineStyle: "none" } as any,
+  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 15, outlineWidth: 0, outlineStyle: "none", textTransform: "uppercase" } as any,
   listContent: { padding: 8, flexGrow: 1 },
   sectionHeaderRow: {
     flexDirection: "row",
