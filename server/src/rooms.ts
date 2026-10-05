@@ -21,6 +21,9 @@ export interface Participant {
   // paylasmayi secerse dolar (bkz. index.ts "room:location"), hicbir yerde
   // kalici saklanmaz, oda hafizadan silinince bu da gider.
   location?: { lat: number; lng: number } | null;
+  // Discover'daki "Açık" bolumunde siralama icin - bir arkadasimin bu odaya
+  // EN SON NE ZAMAN GIRDIGINI bulabilmek icin (bkz. mostRecentFriendJoinMs).
+  joinedAtMs: number;
 }
 
 // Ayarlar ekranindaki "GIZLILIK" secenekleri:
@@ -152,7 +155,15 @@ export function createRoom(
     participants: new Map([
       [
         hostSocketId,
-        { socketId: hostSocketId, name: hostName, isHost: true, muted: false, userId: hostUserId ?? null, avatarUrl: hostAvatarUrl ?? null },
+        {
+          socketId: hostSocketId,
+          name: hostName,
+          isHost: true,
+          muted: false,
+          userId: hostUserId ?? null,
+          avatarUrl: hostAvatarUrl ?? null,
+          joinedAtMs: Date.now(),
+        },
       ],
     ]),
     playback: {
@@ -185,6 +196,10 @@ export interface DiscoverViewer {
   // Ayarlar ekranindaki "Yetiskin Icerigini Gizle" tercihi - aciksa 18+
   // isaretli odalar bu bakan icin Discover'da (kendi odasi haric) hic gorunmez.
   hideAdultContent?: boolean;
+  // Bana birinin ozel olarak davet ettigi odalar (kod -> davet zamani) -
+  // gizlilik tipinden BAGIMSIZ olarak Discover'in en ustundeki "Davetliler"
+  // bolumune dusuyor (bkz. index.ts "room:invite", pendingInvites).
+  invitedCodes?: Map<string, number>;
 }
 
 function visibleToViewer(room: Room, viewer: DiscoverViewer): boolean {
@@ -212,39 +227,83 @@ function visibleToViewer(room: Room, viewer: DiscoverViewer): boolean {
   }
 }
 
-/** Kesif/ana ekranda listelenecek odalarin ozet listesi - GIZLILIK ayarina
- * gore her istemciye FARKLI (kisisellestirilmis) bir liste donebilir:
- * "open" herkese, "nearby" artik viewer'in ili+komsu illerindeki (bkz.
- * hostCity aciklamasi) kullanicilara, "friends" host'un gercek arkadaslarina,
- * "invite" ise hic kimseye (sadece kod/link ile) gorunur. Siralama ONCE
- * viewer ile AYNI ULKEDEKI odalar (en yeniden eskiye), SONRA digerleri
- * (yine en yeniden eskiye). */
-export function listPublicRooms(viewer: DiscoverViewer) {
-  return Array.from(rooms.values())
-    .filter((r) => visibleToViewer(r, viewer))
-    .sort((a, b) => {
-      const aSameCountry = viewer.country && a.hostCountry === viewer.country ? 0 : 1;
-      const bSameCountry = viewer.country && b.hostCountry === viewer.country ? 0 : 1;
-      if (aSameCountry !== bSameCountry) return aSameCountry - bSameCountry;
-      return b.createdAtMs - a.createdAtMs;
-    })
-    .map((r) => ({
-      code: r.code,
-      title: r.title,
-      participantCount: r.participants.size,
-      source: r.playback.source,
-      isPublic: r.privacy === "open",
-      privacy: r.privacy,
-      isPlaying: r.playback.isPlaying,
-      positionSeconds: currentPlaybackPosition(r.playback),
-      durationSeconds: r.playback.durationSeconds ?? null,
-      isAdult: r.isAdult,
-      // Discover kartinda katilimci avatar siramasi kaydirilarak
-      // gorulebiliyor - makul bir ust sinira kadar hepsini gonderiyoruz.
-      participants: Array.from(r.participants.values())
-        .slice(0, 20)
-        .map((p) => ({ name: p.name, userId: p.userId ?? null })),
-    }));
+function mapRoomSummary(r: Room) {
+  return {
+    code: r.code,
+    title: r.title,
+    participantCount: r.participants.size,
+    source: r.playback.source,
+    isPublic: r.privacy === "open",
+    privacy: r.privacy,
+    isPlaying: r.playback.isPlaying,
+    positionSeconds: currentPlaybackPosition(r.playback),
+    durationSeconds: r.playback.durationSeconds ?? null,
+    isAdult: r.isAdult,
+    // Discover kartinda katilimci avatar siramasi kaydirilarak
+    // gorulebiliyor - makul bir ust sinira kadar hepsini gonderiyoruz.
+    participants: Array.from(r.participants.values())
+      .slice(0, 20)
+      .map((p) => ({ name: p.name, userId: p.userId ?? null })),
+  };
+}
+
+export interface DiscoverSections {
+  invited: ReturnType<typeof mapRoomSummary>[];
+  friends: ReturnType<typeof mapRoomSummary>[];
+  nearby: ReturnType<typeof mapRoomSummary>[];
+  open: ReturnType<typeof mapRoomSummary>[];
+}
+
+/** Kesif/ana ekran artik TEK bir liste degil, 4 ayri bolum donduruyor:
+ *
+ * 1. "invited" - biri beni bu odaya OZEL OLARAK davet etmisse, odanin
+ *    GERCEK gizlilik tipinden BAGIMSIZ olarak burada (en son davet en
+ *    ustte). Kendi odan ya da zaten "friends"/"nearby" ile normalde
+ *    gorebilecegin bir oda olsa bile davetliysen SADECE burada gorunur
+ *    (tekrar asagida de listelenmez).
+ * 2. "friends" - gizliligi "Sadece Arkadaslar" ve host'un gercek arkadasin
+ *    oldugu odalar, en yeni acilan en ustte (oda acilma zamanina gore).
+ * 3. "nearby" - gizliligi "Yakindakiler" ve il/komsu il eslesen odalar,
+ *    yine en yeni acilan en ustte.
+ * 4. "open" - gizliligi "Acik" olan odalar. Once icinde en az bir
+ *    ARKADASIM olan odalar (aralarinda: bir arkadasimin EN SON o odaya
+ *    GIRDIGI ana gore, en yeni en ustte), sonra arkadassiz odalar
+ *    (katilimci sayisina gore, en kalabalik en ustte).
+ */
+export function listPublicRooms(viewer: DiscoverViewer): DiscoverSections {
+  const invited: Room[] = [];
+  const friends: Room[] = [];
+  const nearby: Room[] = [];
+  const open: Room[] = [];
+
+  for (const room of rooms.values()) {
+    if (viewer.invitedCodes?.has(room.code)) {
+      invited.push(room);
+      continue;
+    }
+    if (!visibleToViewer(room, viewer)) continue;
+    if (room.privacy === "friends") friends.push(room);
+    else if (room.privacy === "nearby") nearby.push(room);
+    else open.push(room); // "open" ya da (kendi "invite" odan gibi nadir bir kenar durum) varsayilan
+  }
+
+  invited.sort((a, b) => (viewer.invitedCodes!.get(b.code) ?? 0) - (viewer.invitedCodes!.get(a.code) ?? 0));
+  friends.sort((a, b) => b.createdAtMs - a.createdAtMs);
+  nearby.sort((a, b) => b.createdAtMs - a.createdAtMs);
+  open.sort((a, b) => {
+    const aFriendMs = mostRecentFriendJoinMs(a, viewer.friendIds);
+    const bFriendMs = mostRecentFriendJoinMs(b, viewer.friendIds);
+    if (Boolean(aFriendMs) !== Boolean(bFriendMs)) return aFriendMs ? -1 : 1; // arkadasli oda hep once
+    if (aFriendMs && bFriendMs) return bFriendMs - aFriendMs; // ikisi de arkadasli: en son giren once
+    return b.participants.size - a.participants.size; // ikisi de arkadassiz: en kalabalik once
+  });
+
+  return {
+    invited: invited.map(mapRoomSummary),
+    friends: friends.map(mapRoomSummary),
+    nearby: nearby.map(mapRoomSummary),
+    open: open.map(mapRoomSummary),
+  };
 }
 
 export function getRoom(code: string): Room | undefined {
@@ -262,21 +321,7 @@ export function findActiveRoomForUser(targetUserId: string, viewer: DiscoverView
     Array.from(r.participants.values()).some((p) => p.userId === targetUserId)
   );
   if (!room || !visibleToViewer(room, viewer)) return null;
-  return {
-    code: room.code,
-    title: room.title,
-    participantCount: room.participants.size,
-    source: room.playback.source,
-    isPublic: room.privacy === "open",
-    privacy: room.privacy,
-    isPlaying: room.playback.isPlaying,
-    positionSeconds: currentPlaybackPosition(room.playback),
-    durationSeconds: room.playback.durationSeconds ?? null,
-    isAdult: room.isAdult,
-    participants: Array.from(room.participants.values())
-      .slice(0, 20)
-      .map((p) => ({ name: p.name, userId: p.userId ?? null })),
-  };
+  return mapRoomSummary(room);
 }
 
 export function joinRoom(
@@ -288,8 +333,26 @@ export function joinRoom(
 ): Room | null {
   const room = getRoom(code);
   if (!room) return null;
-  room.participants.set(socketId, { socketId, name, isHost: false, muted: false, userId: userId ?? null, avatarUrl: avatarUrl ?? null });
+  room.participants.set(socketId, {
+    socketId,
+    name,
+    isHost: false,
+    muted: false,
+    userId: userId ?? null,
+    avatarUrl: avatarUrl ?? null,
+    joinedAtMs: Date.now(),
+  });
   return room;
+}
+
+/** Discover'daki "Acik" bolumunde siralama icin - bu odaya bir arkadasimin
+ * EN SON ne zaman girdigini bulur (yoksa 0 doner, yani "arkadasi yok"). */
+function mostRecentFriendJoinMs(room: Room, friendIds: Set<string>): number {
+  let latest = 0;
+  for (const p of room.participants.values()) {
+    if (p.userId && friendIds.has(p.userId) && p.joinedAtMs > latest) latest = p.joinedAtMs;
+  }
+  return latest;
 }
 
 /** Katilimci odadan ayrilir. Ayrilan host ise, odadaki EN ESKI (Map ekleme

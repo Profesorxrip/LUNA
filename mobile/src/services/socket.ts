@@ -20,6 +20,7 @@ export interface Participant {
   name: string;
   isHost: boolean;
   muted: boolean;
+  userId?: string | null;
   avatarUrl?: string | null;
   // Oda haritasi icin - sadece "Konumu Gizle" kapali olup paylasmayi
   // SECEN katilimcilarda dolu (bkz. RoomMapSheet.tsx).
@@ -140,6 +141,15 @@ export interface PublicRoomSummary {
   durationSeconds: number | null;
   isAdult: boolean;
   participants: { name: string; userId: string | null }[];
+}
+
+// Discover/"rooms:list" artik tek bir liste degil, 4 ayri bolum doner -
+// bkz. server/src/rooms.ts listPublicRooms.
+export interface DiscoverSections {
+  invited: PublicRoomSummary[];
+  friends: PublicRoomSummary[];
+  nearby: PublicRoomSummary[];
+  open: PublicRoomSummary[];
 }
 
 export interface RoomParticipantDetail {

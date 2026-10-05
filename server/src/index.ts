@@ -130,6 +130,26 @@ const connectionMeta = new Map<string, ConnMeta>();
 // silinince veya playback modu degisince temizlenir.
 const pollTimers = new Map<string, NodeJS.Timeout>();
 
+// Biri bir arkadasini bir odaya davet ettiginde burada tutulur - userId ->
+// (oda kodu -> davet bilgisi). Supabase'e YAZILMIYOR (digerleri gibi oda
+// verisi de kalici degil) - sunucu yeniden baslayinca sifirlanir, bu kabul
+// edilebilir (bkz. "room:invite"). Davet edilen kisi Discover'inda bu odayi
+// gizlilik tipinden BAGIMSIZ olarak "Davetliler" bolumunde gorur.
+const pendingInvites = new Map<string, Map<string, { invitedAtMs: number; fromName: string }>>();
+
+function invitedCodesFor(userId: string | null): Map<string, number> {
+  const map = new Map<string, number>();
+  if (!userId) return map;
+  const invites = pendingInvites.get(userId);
+  if (!invites) return map;
+  // Suresi gecmis (oda artik yok) davetleri sessizce temizleyip atliyoruz.
+  for (const [code, info] of invites) {
+    if (getRoom(code)) map.set(code, info.invitedAtMs);
+    else invites.delete(code);
+  }
+  return map;
+}
+
 function broadcastRoom(code: string) {
   const room = getRoom(code);
   if (room) io.to(code).emit("room:state", roomToPublicState(room));
@@ -141,13 +161,29 @@ function broadcastRoom(code: string) {
  * liste hesaplanip SADECE o socket'e gonderilir. Bir oda acildiginda/
  * kapandiginda/katilimci sayisi ya da video degistiginde cagrilir. */
 async function broadcastRoomsList() {
-  for (const [socketId, meta] of connectionMeta) {
-    const friendIds = meta.userId && meta.db ? new Set((await listFriends(meta.db, meta.userId)).map((f) => f.userId)) : new Set<string>();
-    io.to(socketId).emit(
-      "rooms:list",
-      listPublicRooms({ userId: meta.userId, country: meta.country, city: meta.city, friendIds, hideAdultContent: meta.hideAdultContent })
-    );
+  for (const socketId of connectionMeta.keys()) {
+    await broadcastRoomsListTo(socketId);
   }
+}
+
+// broadcastRoomsList'in TEK bir baglantiya gonderilen hali - birine yeni bir
+// davet geldiginde TUM baglantilari degil, SADECE o kisiyi guncellemek icin
+// (bkz. "room:invite").
+async function broadcastRoomsListTo(socketId: string) {
+  const meta = connectionMeta.get(socketId);
+  if (!meta) return;
+  const friendIds = meta.userId && meta.db ? new Set((await listFriends(meta.db, meta.userId)).map((f) => f.userId)) : new Set<string>();
+  io.to(socketId).emit(
+    "rooms:list",
+    listPublicRooms({
+      userId: meta.userId,
+      country: meta.country,
+      city: meta.city,
+      friendIds,
+      hideAdultContent: meta.hideAdultContent,
+      invitedCodes: invitedCodesFor(meta.userId),
+    })
+  );
 }
 
 function clearPollTimer(code: string) {
@@ -215,7 +251,16 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("rooms:list", async (_data, ack) => {
     const friendIds = myUserId && myDb ? new Set((await listFriends(myDb, myUserId)).map((f) => f.userId)) : new Set<string>();
-    ack?.(listPublicRooms({ userId: myUserId, country: myCountry, city: myCity, friendIds, hideAdultContent: myHideAdultContent }));
+    ack?.(
+      listPublicRooms({
+        userId: myUserId,
+        country: myCountry,
+        city: myCity,
+        friendIds,
+        hideAdultContent: myHideAdultContent,
+        invitedCodes: invitedCodesFor(myUserId),
+      })
+    );
   });
 
   // Ozelden mesajlasma / arkadaslik icin: kullanici Supabase access token'ini
@@ -965,6 +1010,32 @@ io.on("connection", (socket: Socket) => {
       setParticipantLocation(room, socket.id, { lat, lng });
     }
     broadcastRoom(currentRoomCode);
+  });
+
+  // Oda icinden bir arkadasini BU odaya davet et - Discover'in en ustundeki
+  // "Davetliler" bolumunu besler (bkz. rooms.ts listPublicRooms). Odanin
+  // GERCEK gizlilik tipinden BAGIMSIZ calisir (acik bir odaya da davet
+  // gonderilebilir), sadece GERCEK arkadaslar arasinda.
+  socket.on("room:invite", async ({ toUserId }: { toUserId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200)) return ack?.({ ok: false });
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    const status = await getFriendStatus(myDb!, toUserId);
+    if (status !== "friends") return ack?.({ ok: false, error: "Sadece gercek arkadaslarini davet edebilirsin." });
+    if (!allow("room:invite", 20, 60_000)) return ack?.({ ok: false, error: "Cok fazla davet gonderdin, biraz bekle." });
+
+    let invites = pendingInvites.get(toUserId);
+    if (!invites) {
+      invites = new Map();
+      pendingInvites.set(toUserId, invites);
+    }
+    invites.set(currentRoomCode, { invitedAtMs: Date.now(), fromName: myName });
+    ack?.({ ok: true });
+
+    const peerSocketId = getSocketIdForUser(toUserId);
+    if (peerSocketId) broadcastRoomsListTo(peerSocketId);
+    notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, `${myName} seni bir odaya davet etti`).catch(() => {});
   });
 
   /** Video uzerinde ucusan emoji reaksiyonlari - sunucu hicbir state tutmaz,

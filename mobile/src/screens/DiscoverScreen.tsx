@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
-  FlatList,
+  SectionList,
   Image,
   TextInput,
   TouchableOpacity,
@@ -12,7 +12,7 @@ import {
   PanResponder,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { getSocket, PublicRoomSummary, RoomState, MediaSource, FriendUser } from "../services/socket";
+import { getSocket, PublicRoomSummary, DiscoverSections, RoomState, MediaSource, FriendUser } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
@@ -38,6 +38,26 @@ const SWIPE_THRESHOLD = 60;
 // iki kart, dar ekranda kart tam genislikte tek sutun.
 const WIDE_BREAKPOINT = 700;
 
+const EMPTY_SECTIONS: DiscoverSections = { invited: [], friends: [], nearby: [], open: [] };
+
+// Discover artik tek bir liste degil, sirayla 4 bolum (bkz. server/src/rooms.ts
+// listPublicRooms): Davetliler (en ustte, gizlilik tipinden bagimsiz - biri
+// seni ozel olarak davet ettiyse), Arkadaslar, Yakindakiler, Acik. Her bolumun
+// ic siralamasi sunucuda zaten hazirlaniyor, burada sadece gruplanip
+// (numColumns'a gore satirlara bolunup) gosteriliyor.
+const SECTION_TITLES: { key: keyof DiscoverSections; title: string }[] = [
+  { key: "invited", title: "Davetliler" },
+  { key: "friends", title: "Arkadaşlar" },
+  { key: "nearby", title: "Yakındakiler" },
+  { key: "open", title: "Açık" },
+];
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) rows.push(arr.slice(i, i + size));
+  return rows;
+}
+
 export default function DiscoverScreen({
   onJoinRoom,
   onOpenProfile,
@@ -47,7 +67,7 @@ export default function DiscoverScreen({
 }: Props) {
   const { width } = useWindowDimensions();
   const numColumns = width >= WIDE_BREAKPOINT ? 2 : 1;
-  const [rooms, setRooms] = useState<PublicRoomSummary[]>([]);
+  const [sections, setSections] = useState<DiscoverSections>(EMPTY_SECTIONS);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -57,7 +77,11 @@ export default function DiscoverScreen({
   const widthRef = useRef(width);
   widthRef.current = width;
 
-  const visibleRooms = rooms.filter((r) => r.title.toLowerCase().includes(search.trim().toLowerCase()));
+  const trimmedSearch = search.trim().toLowerCase();
+  const sectionListData = SECTION_TITLES.map(({ key, title }) => {
+    const filtered = sections[key].filter((r) => r.title.toLowerCase().includes(trimmedSearch));
+    return { key, title, data: chunk(filtered, numColumns) };
+  }).filter((s) => s.data.length > 0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -93,8 +117,8 @@ export default function DiscoverScreen({
   ).current;
 
   const fetchRooms = useCallback(() => {
-    getSocket().emit("rooms:list", {}, (list: PublicRoomSummary[]) => {
-      setRooms(list);
+    getSocket().emit("rooms:list", {}, (result: DiscoverSections) => {
+      setSections(result);
       setLoading(false);
       setRefreshing(false);
     });
@@ -105,9 +129,9 @@ export default function DiscoverScreen({
     fetchRooms();
     // Sunucu, herhangi bir acik oda degistiginde (olusturma/katilma/video
     // degisimi) bu event'i TUM baglı istemcilere yayinlar - canli liste.
-    socket.on("rooms:list", setRooms);
+    socket.on("rooms:list", setSections);
     return () => {
-      socket.off("rooms:list", setRooms);
+      socket.off("rooms:list", setSections);
     };
   }, [fetchRooms]);
 
@@ -157,31 +181,37 @@ export default function DiscoverScreen({
         />
       </LinearGradient>
 
-      <FlatList
-        key={numColumns} // sutun sayisi degisince FlatList'i yeniden olustur (RN kurali)
-        data={visibleRooms}
-        numColumns={numColumns}
-        keyExtractor={(item) => item.code}
+      <SectionList
+        key={numColumns} // sutun sayisi degisince yeniden olustur (RN kurali)
+        sections={sectionListData}
+        keyExtractor={(row, index) => row.map((r) => r.code).join("-") || String(index)}
         contentContainerStyle={styles.listContent}
+        stickySectionHeadersEnabled={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchRooms(); }} tintColor="#fff" />}
         ListEmptyComponent={
           loading ? (
             <LoadingView />
           ) : (
             <Text style={styles.emptyText}>
-              {search.trim() ? "Aramanla eslesen oda yok." : "Su an acik oda yok. Ilk odayi sen ac!"}
+              {trimmedSearch ? "Aramanla eslesen oda yok." : "Su an acik oda yok. Ilk odayi sen ac!"}
             </Text>
           )
         }
-        renderItem={({ item }) => (
-          <RoomCard
-            room={item}
-            friendIds={friendIds}
-            onPress={() => joinByCode(item.code)}
-            onLongPress={() => onOpenRoomPreview(item)}
-            onOpenParticipant={onOpenParticipant}
-            style={{ flex: 1 / numColumns }}
-          />
+        renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
+        renderItem={({ item: row }) => (
+          <View style={styles.row}>
+            {row.map((item) => (
+              <RoomCard
+                key={item.code}
+                room={item}
+                friendIds={friendIds}
+                onPress={() => joinByCode(item.code)}
+                onLongPress={() => onOpenRoomPreview(item)}
+                onOpenParticipant={onOpenParticipant}
+                style={{ flex: 1 / numColumns }}
+              />
+            ))}
+          </View>
         )}
       />
 
@@ -224,6 +254,17 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: "#FFFFFF", fontSize: 15, outlineWidth: 0, outlineStyle: "none" } as any,
   listContent: { padding: 8, flexGrow: 1 },
+  sectionHeader: {
+    color: theme.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    paddingHorizontal: 8,
+    paddingTop: 14,
+    paddingBottom: 6,
+  },
+  row: { flexDirection: "row" },
   emptyText: { color: theme.textMuted, textAlign: "center", marginTop: 60, fontSize: 15 },
   fab: {
     position: "absolute",
