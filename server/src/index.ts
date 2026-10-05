@@ -66,6 +66,7 @@ import { submitReport } from "./moderation";
 import { logRoomEvent } from "./analytics";
 import { registerPushToken, unregisterPushToken, notifyIfOffline, PushPlatform } from "./notifications";
 import { isNonEmptyString, isOptionalString, isBoolean, isFiniteNumber, isOneOf } from "./validate";
+import { translateToLanguages } from "./translate";
 
 const SOURCE_TYPES = ["youtube", "hls", "mp4", "external"] as const;
 
@@ -118,6 +119,10 @@ interface ConnMeta {
   // Ayarlar ekranindaki "Yetiskin Icerigini Gizle" tercihi - Discover
   // listesini kisisellestirirken kullanilir (bkz. rooms.ts visibleToViewer).
   hideAdultContent: boolean;
+  // Uygulamanin su anki dili (i18n) - "Chat Mesajlarini Otomatik Cevir"
+  // acikken bir mesaji KIME hangi dile cevirecegimizi bulmak icin (bkz.
+  // "chat:send"). Misafirler de (giris yapmamis) bildirebilir.
+  language: string;
 }
 const connectionMeta = new Map<string, ConnMeta>();
 
@@ -201,11 +206,12 @@ io.on("connection", (socket: Socket) => {
   let myCity: string | null = null;
   let myHideLocation = true;
   let myHideAdultContent = false;
+  let myLanguage = "tr";
   const allow = makeRateLimiter();
 
   // Giris yapmamis (anonim) bir istemci de Discover'da "acik" odalari
   // gorebilmeli - bu yuzden HERKES (identify olsun olmasin) buraya kaydedilir.
-  connectionMeta.set(socket.id, { userId: null, country: null, city: null, db: null, hideAdultContent: false });
+  connectionMeta.set(socket.id, { userId: null, country: null, city: null, db: null, hideAdultContent: false, language: myLanguage });
 
   socket.on("rooms:list", async (_data, ack) => {
     const friendIds = myUserId && myDb ? new Set((await listFriends(myDb, myUserId)).map((f) => f.userId)) : new Set<string>();
@@ -225,7 +231,7 @@ io.on("connection", (socket: Socket) => {
     myUserId = user.id;
     myName = user.email ? user.email.split("@")[0] : "Kullanici";
     myDb = clientForUser(accessToken);
-    connectionMeta.set(socket.id, { userId: myUserId, country: myCountry, city: myCity, db: myDb, hideAdultContent: myHideAdultContent });
+    connectionMeta.set(socket.id, { userId: myUserId, country: myCountry, city: myCity, db: myDb, hideAdultContent: myHideAdultContent, language: myLanguage });
     setOnline(myUserId, socket.id);
     await setUserName(myDb, myUserId, myName);
     ack?.({ ok: true, userId: myUserId, name: myName });
@@ -328,6 +334,18 @@ io.on("connection", (socket: Socket) => {
         .catch(() => {});
     }
     ack?.({ ok: true });
+  });
+
+  // Uygulamanin su anki dili - "Chat Mesajlarini Otomatik Cevir" acik bir
+  // odada bir mesaji HANGI dillere cevirecegimizi bulmak icin (bkz.
+  // "chat:send"). Giris yapmamis MISAFIRLER de chat'e yazip okudugu icin
+  // requireAuth YOK - herkes bildirebilir. Client bunu App.tsx acilisinda
+  // ve Ayarlar'da dil degistirince gonderir (bkz. mobile/src/i18n/index.ts).
+  socket.on("profile:language", ({ lang }: { lang: string }) => {
+    if (!isNonEmptyString(lang, 10)) return;
+    myLanguage = lang;
+    const meta = connectionMeta.get(socket.id);
+    if (meta) meta.language = lang;
   });
 
   socket.on("friend:status", async ({ withUserId }: { withUserId: string }, ack) => {
@@ -970,16 +988,38 @@ io.on("connection", (socket: Socket) => {
       replyTo && isNonEmptyString(replyTo.text, 1000) && isNonEmptyString(replyTo.fromName, 200) ? replyTo : null;
     const room = getRoom(currentRoomCode);
     const participant = room?.participants.get(socket.id);
+    const messageId = randomUUID();
+    const trimmedText = text.trim().slice(0, 1000);
     io.to(currentRoomCode).emit("room:chat", {
-      id: randomUUID(),
+      id: messageId,
       system: false,
       from: participant?.name || "?",
       fromSocketId: socket.id,
       fromAvatarUrl: participant?.avatarUrl ?? null,
-      text: text.trim().slice(0, 1000),
+      text: trimmedText,
       replyTo: validReplyTo,
       ts: Date.now(),
     });
+
+    // "Chat Mesajlarini Otomatik Cevir" acikken - mesaj GECIKMEDEN (cevirisiz)
+    // gonderildi, ceviriler arka planda hazirlanip ayri bir event'le
+    // (room:chatTranslation) mesaja SONRADAN eklenir (bkz. message:react ile
+    // ayni "id ile sonradan guncelle" deseni). Odadaki her FARKLI dil icin
+    // TEK istek atilir, gonderenin kendi dili disinda.
+    if (room?.autoTranslateChat) {
+      const fromLang = connectionMeta.get(socket.id)?.language ?? "tr";
+      const targetLangs = new Set(
+        Array.from(room.participants.keys())
+          .map((sid) => connectionMeta.get(sid)?.language)
+          .filter((lang): lang is string => Boolean(lang))
+      );
+      translateToLanguages(trimmedText, fromLang, targetLangs)
+        .then((translations) => {
+          if (Object.keys(translations).length === 0) return;
+          io.to(currentRoomCode!).emit("room:chatTranslation", { messageId, translations });
+        })
+        .catch(() => {});
+    }
   });
 
   // Oda sohbetinde GERCEK fotograf gonderme - oda mesajlari hic kalici

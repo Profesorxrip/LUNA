@@ -1,6 +1,7 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSocket } from "../services/socket";
 import tr from "./locales/tr.json";
 import en from "./locales/en.json";
 import de from "./locales/de.json";
@@ -51,10 +52,15 @@ export async function loadStoredLanguage(): Promise<void> {
   } catch {
     // depolama okunamazsa sessizce varsayilanda (tr) kal
   }
+  // Sunucu "Chat Mesajlarini Otomatik Cevir" icin bu baglantinin dilini
+  // bilmeli - giris yapmamis MISAFIRLER de chat kullandigi icin uygulama
+  // acilisinda HERKES bildirir (bkz. server/src/index.ts profile:language).
+  getSocket().emit("profile:language", { lang: i18n.language });
 }
 
 export async function setAppLanguage(code: LanguageCode): Promise<void> {
   await i18n.changeLanguage(code);
+  getSocket().emit("profile:language", { lang: code });
   try {
     await AsyncStorage.setItem(STORAGE_KEY, code);
   } catch {

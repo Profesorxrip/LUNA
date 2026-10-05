@@ -102,6 +102,9 @@ export interface ChatMessage {
   // Gercek fotograf mesaji - verilmisse "text" sadece yedek ozet ("📷 Fotograf").
   mediaUrl?: string;
   isAdult?: boolean;
+  // "Chat Mesajlarini Otomatik Cevir" acikken SONRADAN ("room:chatTranslation"
+  // ile) dolar - dil kodu -> cevrilmis metin (bkz. RoomScreen.tsx ChatBubbleRow).
+  translations?: Record<string, string>;
   ts: number;
   replyTo?: DMReply | null;
   // Bu mesaja cift-tiklayarak tepki veren katilimcilar (bkz. "message:react" /

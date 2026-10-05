@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
@@ -70,8 +71,15 @@ interface ChatBubbleRowProps {
  * native-web'de desteklenmeyen onTextLayout'a bagli kalinmiyor ve native'de
  * de ilk render'da dogru pozisyonla cikiyor - sonradan "ziplama" olmuyor. */
 function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap }: ChatBubbleRowProps) {
+  const { i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
+  // "Chat Mesajlarini Otomatik Cevir" - ceviri varsa varsayilan GOSTERILIR,
+  // dokununca orijinal metne gecilip geri donulebilir (Instagram/WhatsApp'taki
+  // "Cevirisini gor / Orijinali gor" deseniyle ayni mantik).
+  const [showOriginal, setShowOriginal] = useState(false);
+  const translation = item.translations?.[i18n.language];
+  const displayText = translation && !showOriginal ? translation : item.text;
 
   // Mesaj metnine CIFT TIKLAYINCA Ayarlar'daki hizli tepki emojisini gonderir.
   function handleTap() {
@@ -140,8 +148,13 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap }: C
             ) : (
               <TouchableOpacity activeOpacity={1} onPress={handleTap}>
                 <Text style={styles.chatMsgOwn} selectable={false}>
-                  {item.text}
+                  {displayText}
                 </Text>
+                {translation && (
+                  <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
+                    <Text style={styles.translatedHint}>{showOriginal ? "Çeviriyi gör" : "Orijinalini gör"}</Text>
+                  </TouchableOpacity>
+                )}
               </TouchableOpacity>
             )}
             {reactionBadges}
@@ -166,8 +179,13 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap }: C
               <TouchableOpacity activeOpacity={1} onPress={handleTap}>
                 <Text style={styles.chatMsg} selectable={false}>
                   {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
-                  {item.text}
+                  {displayText}
                 </Text>
+                {translation && (
+                  <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
+                    <Text style={styles.translatedHint}>{showOriginal ? "Çeviriyi gör" : "Orijinalini gör"}</Text>
+                  </TouchableOpacity>
+                )}
               </TouchableOpacity>
             )}
             {reactionBadges}
@@ -246,17 +264,25 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     }) {
       setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)));
     }
+    // "Chat Mesajlarini Otomatik Cevir" - ceviri mesajdan birkac yuz ms sonra
+    // ayri bir event'le gelir (bkz. server/src/index.ts chat:send), ilgili
+    // mesaja id ile sonradan eklenir (bkz. ChatBubbleRow).
+    function handleChatTranslation({ messageId, translations }: { messageId: string; translations: Record<string, string> }) {
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, translations } : m)));
+    }
     function handleKicked() {
       showAlert("Odadan atildin", "Oda lideri seni odadan cikardi.");
       onLeave();
     }
     socket.on("room:state", handleRoomState);
     socket.on("room:chat", handleChat);
+    socket.on("room:chatTranslation", handleChatTranslation);
     socket.on("room:messageReaction", handleMessageReaction);
     socket.on("room:kicked", handleKicked);
     return () => {
       socket.off("room:state", handleRoomState);
       socket.off("room:chat", handleChat);
+      socket.off("room:chatTranslation", handleChatTranslation);
       socket.off("room:messageReaction", handleMessageReaction);
       socket.off("room:kicked", handleKicked);
     };
@@ -977,6 +1003,7 @@ const styles = StyleSheet.create({
   reactionBadgeRow: { flexDirection: "row", gap: 2, marginTop: 2 },
   reactionBadgeEmoji: { fontSize: 13 },
   chatFrom: { color: theme.text, fontSize: 14, fontWeight: "700" },
+  translatedHint: { color: theme.accentBright, fontSize: 10, fontWeight: "600", marginTop: 2 },
   systemMsg: { color: theme.textMuted, fontSize: 12, fontStyle: "italic", textAlign: "center" },
   // Mesaji kaydirirken (reply) beliren kucuk ok ikonu - satirin disina,
   // acilan bosluga yerlesiyor (bkz. ChatBubbleRow).
