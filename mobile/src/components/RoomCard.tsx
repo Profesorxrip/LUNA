@@ -27,8 +27,12 @@ function platformKeyForSource(source: MediaSource | null): PlatformKey | null {
   if (source.type === "youtube") return "youtube";
   if (source.type === "external") {
     const match = EXTERNAL_PLATFORMS.find((p) => bareDomain(source.url).includes(bareDomain(p.url)));
-    return match?.logo ?? null;
+    // Markali bir platformla eslesmeyen harici linkler ("Web" secenegiyle
+    // yapistirilan genel sayfalar) icin kure rozeti dusuyoruz.
+    return match?.logo ?? "web";
   }
+  // .mp4/.m3u8 direkt linkleri de "Web" secenegiyle yapistiriliyor.
+  if (source.type === "hls" || source.type === "mp4") return "web";
   return null;
 }
 
