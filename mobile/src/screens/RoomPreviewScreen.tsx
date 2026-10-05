@@ -6,6 +6,7 @@ import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import PlatformBadge from "../components/PlatformBadge";
+import AdultBadge from "../components/AdultBadge";
 import CountryFlag from "../components/CountryFlag";
 import { PlatformKey } from "../components/PlatformLogo";
 import { EXTERNAL_PLATFORMS } from "../utils/media";
@@ -112,6 +113,11 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
             <PlatformBadge platform={platform.key} size={30} />
           </View>
         )}
+        {room.isAdult && (
+          <View style={styles.adultBadge}>
+            <AdultBadge size={30} />
+          </View>
+        )}
       </TouchableOpacity>
 
       <Text style={styles.title} numberOfLines={2}>
@@ -200,6 +206,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   platformBadge: { position: "absolute", top: 12, right: 12 },
+  adultBadge: { position: "absolute", top: 12, left: 12 },
   title: { color: theme.text, fontSize: 20, fontWeight: "700", marginHorizontal: 16, marginTop: 16 },
   platformLabel: { color: theme.textMuted, fontSize: 14, marginHorizontal: 16, marginTop: 4 },
   statusRow: {

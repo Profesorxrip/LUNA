@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { PublicRoomSummary, MediaSource } from "../services/socket";
 import { theme } from "../theme";
 import PlatformBadge from "./PlatformBadge";
+import AdultBadge from "./AdultBadge";
 import { PlatformKey } from "./PlatformLogo";
 import { EXTERNAL_PLATFORMS } from "../utils/media";
 
@@ -65,7 +66,7 @@ export default function RoomCard({ room, friendIds = new Set(), onPress, onLongP
       )}
       {room.isAdult && (
         <View style={styles.adultBadge} pointerEvents="none">
-          <Text style={styles.adultBadgeText}>18+</Text>
+          <AdultBadge />
         </View>
       )}
       <LinearGradient colors={["transparent", "rgba(0,0,0,0.88)"]} style={styles.cardGradient} pointerEvents="none" />
@@ -121,14 +122,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     left: 8,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: theme.danger,
   },
-  adultBadgeText: { color: theme.danger, fontSize: 11, fontWeight: "800" },
   cardGradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: "75%" },
   cardOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 10 },
   cardTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
