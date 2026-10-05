@@ -5,7 +5,7 @@ const SECTIONS = [
   {
     heading: "Hangi verileri topluyoruz",
     body:
-      "Hesabını oluştururken e-posta adresini (veya Google hesabını) ve bir şifreyi Supabase üzerinden saklıyoruz. Profilinde doldurduğun isim, kullanıcı adı, biyografi ve profil fotoğrafı; katıldığın/oluşturduğun odalar, oda sohbeti ve özel mesajların (DM); arkadaşlık istekleri ve arkadaş listen; IP adresinden tahmin edilen ülke bilginin (yalnızca \"yakınımdaki odalar\" özelliği için) de bizde tutulur.",
+      "Hesabını oluştururken e-posta adresini (veya Google hesabını) ve bir şifreyi Supabase üzerinden saklıyoruz. Profilinde doldurduğun isim, kullanıcı adı, biyografi ve profil fotoğrafı; katıldığın/oluşturduğun odalar, oda sohbeti ve özel mesajların (DM); arkadaşlık istekleri ve arkadaş listen; IP adresinden tahmin edilen ülke ve il bilgin (yalnızca \"yakınımdaki odalar\" özelliği için, Ayarlar'daki \"Konumu Gizle\" ile kapatabilirsin) de bizde tutulur.",
   },
   {
     heading: "Verilerini nasıl kullanıyoruz",
