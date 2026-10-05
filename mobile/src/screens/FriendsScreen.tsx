@@ -85,10 +85,6 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
     socket.emit("friend:respond", { fromUserId, accept: true }, () => refresh());
   }
 
-  function decline(fromUserId: string) {
-    socket.emit("friend:respond", { fromUserId, accept: false }, () => refresh());
-  }
-
   function cancelOutgoing(toUserId: string) {
     socket.emit("friend:cancel", { toUserId }, () => refresh());
   }
@@ -182,14 +178,9 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
                   <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
                 </View>
                 {isIncoming ? (
-                  <View style={styles.rowActions}>
-                    <TouchableOpacity onPress={() => decline(item.userId)} hitSlop={8}>
-                      <Icon name="close" size={16} color={MUTED} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
-                      <Icon name="invite" size={26} color={ACCENT} />
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
+                    <Icon name="invite" size={26} color={ACCENT} />
+                  </TouchableOpacity>
                 ) : (
                   <TouchableOpacity onPress={() => cancelOutgoing(item.userId)}>
                     <Text style={styles.pendingText}>Bekliyor</Text>
@@ -295,7 +286,6 @@ const styles = StyleSheet.create({
   rowName: { color: TEXT, fontSize: 15, fontWeight: "700" },
   rowHandle: { color: MUTED, fontSize: 12, marginTop: 2 },
   rowPreview: { color: MUTED, fontSize: 12, marginTop: 2 },
-  rowActions: { flexDirection: "row", alignItems: "center", gap: 16 },
   pendingText: { color: MUTED, fontSize: 12, fontWeight: "600" },
   tabBarWrap: { position: "absolute", bottom: 24, left: 0, right: 0, alignItems: "center" },
   tabBar: {
