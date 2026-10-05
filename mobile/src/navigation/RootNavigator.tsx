@@ -103,6 +103,7 @@ function FriendsRoute() {
       onBack={() => navigation.goBack()}
       onOpenSettings={() => navigation.navigate("Profile")}
       onOpenDM={(peer) => navigation.navigate("DM", { peer })}
+      onOpenParticipant={(peer) => navigation.navigate("UserProfile", { own: false, peer })}
     />
   );
 }

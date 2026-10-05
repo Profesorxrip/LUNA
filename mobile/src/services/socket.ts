@@ -168,6 +168,15 @@ export interface FriendUser {
   name: string;
 }
 
+// Arkadaslar ekrani "Son Zamanlarda" sekmesi - arkadas olsun olmasin, son
+// zamanlarda ayni odaya birlikte girdigimiz kisiler (bkz. server/src/
+// index.ts recordTogether), en son birlikte olunan zamana gore sirali.
+export interface RecentRoommate {
+  userId: string;
+  name: string;
+  lastTogetherMs: number;
+}
+
 export interface DMReply {
   text: string;
   fromName: string;

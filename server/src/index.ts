@@ -137,6 +137,37 @@ const pollTimers = new Map<string, NodeJS.Timeout>();
 // gizlilik tipinden BAGIMSIZ olarak "Davetliler" bolumunde gorur.
 const pendingInvites = new Map<string, Map<string, { invitedAtMs: number; fromName: string }>>();
 
+// Arkadaslar ekranindaki "Son Zamanlarda" sekmesi icin - biri bir odaya
+// girdiginde, o odada ZATEN olan diger GERCEK (userId'li) katilimcilarla
+// "son birlikte olduk" bilgisi karsilikli guncellenir. pendingInvites gibi
+// Supabase'e YAZILMIYOR - oda verisi zaten kalici degil, sunucu yeniden
+// baslayinca sifirlanmasi kabul edilebilir.
+const recentRoommates = new Map<string, Map<string, { name: string; lastTogetherMs: number }>>();
+
+function recordTogether(aUserId: string, aName: string, bUserId: string, bName: string) {
+  const now = Date.now();
+  let aMap = recentRoommates.get(aUserId);
+  if (!aMap) {
+    aMap = new Map();
+    recentRoommates.set(aUserId, aMap);
+  }
+  aMap.set(bUserId, { name: bName, lastTogetherMs: now });
+  let bMap = recentRoommates.get(bUserId);
+  if (!bMap) {
+    bMap = new Map();
+    recentRoommates.set(bUserId, bMap);
+  }
+  bMap.set(aUserId, { name: aName, lastTogetherMs: now });
+}
+
+function recentRoommatesFor(userId: string): { userId: string; name: string; lastTogetherMs: number }[] {
+  const mates = recentRoommates.get(userId);
+  if (!mates) return [];
+  return Array.from(mates.entries())
+    .map(([mateId, info]) => ({ userId: mateId, name: info.name, lastTogetherMs: info.lastTogetherMs }))
+    .sort((a, b) => b.lastTogetherMs - a.lastTogetherMs);
+}
+
 function invitedCodesFor(userId: string | null): Map<string, number> {
   const map = new Map<string, number>();
   if (!userId) return map;
@@ -510,6 +541,7 @@ io.on("connection", (socket: Socket) => {
       incoming: await listIncoming(myDb!, myUserId!),
       outgoing: await listOutgoing(myDb!, myUserId!),
       blocked: await listBlocked(myDb!, myUserId!),
+      recentRoommates: recentRoommatesFor(myUserId!),
     });
   });
 
@@ -765,6 +797,15 @@ io.on("connection", (socket: Socket) => {
     if (!room) {
       ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
       return;
+    }
+    // "Son Zamanlarda" (bkz. recordTogether) - odada ZATEN bulunan diger
+    // gercek kullanicilarla "simdi birlikteyiz" bilgisini karsilikli kaydet.
+    if (myUserId) {
+      for (const p of room.participants.values()) {
+        if (p.socketId !== socket.id && p.userId && p.userId !== myUserId) {
+          recordTogether(myUserId, myName, p.userId, p.name);
+        }
+      }
     }
     currentRoomCode = room.code;
     socket.join(room.code);

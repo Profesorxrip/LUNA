@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image } from "react-native";
-import { getSocket, FriendUser, DMMessage } from "../services/socket";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, Modal } from "react-native";
+import { getSocket, FriendUser, RecentRoommate, DMMessage } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
@@ -11,6 +11,7 @@ interface Props {
   onBack: () => void;
   onOpenSettings: () => void;
   onOpenDM: (peer: DMPeer) => void;
+  onOpenParticipant: (peer: { userId: string; name: string; handle?: string }) => void;
 }
 
 type Tab = "friends" | "recent" | "blocked";
@@ -37,8 +38,10 @@ function relativeTime(ts: number): string {
 
 /** Rave'in "Arkadaslar" ekraninin yapisinin bir kopyasi - Discover'daki
  * cark/kesif basligini paylasir, altta 3 sekmeli (Arkadaslar / Son
- * Zamanlarda / Engellendi) bir liste - LUNA'nin siyah/yesil temasiyla. */
-export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Props) {
+ * Zamanlarda / Engellendi) bir liste - LUNA'nin siyah/yesil temasiyla.
+ * Bekleyen arkadaslik istekleri burada degil, arama cubugunun yanindaki
+ * "Istekler" butonuyla acilan ayri bir sheet'te (bkz. asagisi). */
+export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpenParticipant }: Props) {
   const socket = getSocket();
   const [tab, setTab] = useState<Tab>("friends");
   const [search, setSearch] = useState("");
@@ -46,8 +49,10 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
   const [incoming, setIncoming] = useState<FriendUser[]>([]);
   const [outgoing, setOutgoing] = useState<FriendUser[]>([]);
   const [blocked, setBlocked] = useState<FriendUser[]>([]);
+  const [recentRoommates, setRecentRoommates] = useState<RecentRoommate[]>([]);
   const [previews, setPreviews] = useState<Record<string, DMMessage | null>>({});
   const [loading, setLoading] = useState(true);
+  const [requestsVisible, setRequestsVisible] = useState(false);
 
   const refresh = useCallback(() => {
     socket.emit("friends:list", {}, (res: any) => {
@@ -57,6 +62,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
       setIncoming(res.incoming);
       setOutgoing(res.outgoing);
       setBlocked(res.blocked);
+      setRecentRoommates(res.recentRoommates || []);
       res.friends.forEach((f: FriendUser) => {
         socket.emit("dm:preview", { withUserId: f.userId }, (r: any) => {
           if (r?.ok) setPreviews((prev) => ({ ...prev, [f.userId]: r.lastMessage }));
@@ -97,13 +103,14 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
   }
 
   const query = search.trim().toLowerCase();
-  const filterList = (list: FriendUser[]) =>
+  const filterList = <T extends { name: string; userId: string }>(list: T[]) =>
     query ? list.filter((u) => u.name.toLowerCase().includes(query) || u.userId.toLowerCase().includes(query)) : list;
 
   const visibleFriends = filterList(friends);
   const visibleIncoming = filterList(incoming);
   const visibleOutgoing = filterList(outgoing);
   const visibleBlocked = filterList(blocked);
+  const visibleRecentRoommates = filterList(recentRoommates);
 
   return (
     <View style={styles.screen}>
@@ -117,15 +124,25 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchBar}>
-        <Icon name="search" size={16} color={MUTED} />
-        <TextInput
-          style={styles.searchInput}
-          value={search}
-          onChangeText={setSearch}
-          placeholder="ARA"
-          placeholderTextColor={MUTED}
-        />
+      <View style={styles.searchRow}>
+        <View style={styles.searchBar}>
+          <Icon name="search" size={16} color={MUTED} />
+          <TextInput
+            style={styles.searchInput}
+            value={search}
+            onChangeText={setSearch}
+            placeholder="ARA"
+            placeholderTextColor={MUTED}
+          />
+        </View>
+        <TouchableOpacity style={styles.requestsButton} onPress={() => setRequestsVisible(true)} hitSlop={8}>
+          <Icon name="bell" size={20} color={TEXT} />
+          {incoming.length > 0 && (
+            <View style={styles.requestsBadge}>
+              <Text style={styles.requestsBadgeText}>{incoming.length}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       {tab === "friends" && (
@@ -162,33 +179,26 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
 
       {tab === "recent" && (
         <FlatList
-          data={[...visibleIncoming, ...visibleOutgoing]}
+          data={visibleRecentRoommates}
           keyExtractor={(f) => f.userId}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>Bekleyen arkadaşlık isteği yok.</Text>}
-          renderItem={({ item }) => {
-            const isIncoming = visibleIncoming.some((f) => f.userId === item.userId);
-            return (
-              <View style={styles.row}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-                </View>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowName}>{item.name}</Text>
-                  <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
-                </View>
-                {isIncoming ? (
-                  <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
-                    <Icon name="invite" size={26} color={ACCENT} />
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity onPress={() => cancelOutgoing(item.userId)}>
-                    <Text style={styles.pendingText}>Bekliyor</Text>
-                  </TouchableOpacity>
-                )}
+          ListEmptyComponent={
+            loading ? <LoadingView /> : <Text style={styles.emptyText}>Son zamanlarda aynı odaya girdiğin kimse yok.</Text>
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => onOpenParticipant({ userId: item.userId, name: item.name, handle: toHandle(item.name) })}
+            >
+              <View style={styles.avatar}>
+                <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
               </View>
-            );
-          }}
+              <View style={styles.rowText}>
+                <Text style={styles.rowName}>{item.name}</Text>
+                <Text style={styles.rowHandle}>{relativeTime(item.lastTogetherMs)} önce aynı odadaydınız</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         />
       )}
 
@@ -231,6 +241,42 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM }: Prop
           </TouchableOpacity>
         </View>
       </View>
+
+      <Modal visible={requestsVisible} animationType="fade" transparent onRequestClose={() => setRequestsVisible(false)}>
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setRequestsVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
+            <Text style={styles.sheetTitle}>İstekler</Text>
+            <FlatList
+              data={[...incoming, ...outgoing]}
+              keyExtractor={(f) => f.userId}
+              ListEmptyComponent={<Text style={styles.emptyText}>Bekleyen arkadaşlık isteği yok.</Text>}
+              renderItem={({ item }) => {
+                const isIncoming = incoming.some((f) => f.userId === item.userId);
+                return (
+                  <View style={styles.row}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <View style={styles.rowText}>
+                      <Text style={styles.rowName}>{item.name}</Text>
+                      <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
+                    </View>
+                    {isIncoming ? (
+                      <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
+                        <Icon name="invite" size={26} color={ACCENT} />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity onPress={() => cancelOutgoing(item.userId)}>
+                        <Text style={styles.pendingText}>Bekliyor</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              }}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -251,18 +297,48 @@ const styles = StyleSheet.create({
   // hizaya gelmesi icin bu kadar yukari kaydiriyoruz (piksel analiziyle
   // olculdu, tahmini degil).
   headerLogo: { width: 74, height: 34, marginTop: -6, tintColor: "#FFFFFF" },
-  searchBar: {
+  searchRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     marginHorizontal: 16,
     marginBottom: 10,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: "#141210",
   },
   searchInput: { flex: 1, color: TEXT, fontSize: 14 },
+  requestsButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#141210",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  requestsBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: "#E34848",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  requestsBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", padding: 24 },
+  sheet: { backgroundColor: "#141210", borderRadius: 16, padding: 20, maxHeight: "70%" },
+  sheetTitle: { color: TEXT, fontSize: 16, fontWeight: "700", marginBottom: 12 },
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   emptyText: { color: MUTED, textAlign: "center", marginTop: 60, fontSize: 14 },
   row: {
