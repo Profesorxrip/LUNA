@@ -907,6 +907,17 @@ io.on("connection", (socket: Socket) => {
     }
   );
 
+  // Ayarlar ekranindaki "Hesabi Sil" - GERCEK ve GERI ALINAMAZ bir silme.
+  // delete_own_account() RPC'si (bkz. migration 0012) sadece caginin KENDI
+  // auth.uid()'sini silebiliyor, ON DELETE CASCADE sayesinde profil/DM/
+  // arkadaslik/galeri gibi butun bagimli veriler de otomatik siliniyor.
+  socket.on("account:delete", async (_data, ack) => {
+    if (!requireAuth(ack)) return;
+    if (!allow("account:delete", 3, 60_000)) return ack?.({ ok: false, error: "Cok fazla deneme, biraz bekle." });
+    const { error } = await myDb!.rpc("delete_own_account");
+    ack?.({ ok: !error, error: error?.message });
+  });
+
   // Push bildirim token kaydi (roadmap AŞAMA 9). Gercek teslimat icin
   // mobil tarafin expo-notifications ile gercek bir cihaz/token elde
   // etmesi gerekir - bu sadece sunucu tarafi altyapisi.

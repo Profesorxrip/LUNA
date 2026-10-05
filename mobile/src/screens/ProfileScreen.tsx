@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator } from "react-native";
 import * as StoreReview from "expo-store-review";
 import { supabase } from "../services/supabase";
-import { getSocket } from "../services/socket";
+import { getSocket, SERVER_URL } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
 import EmojiPickerSheet from "../components/EmojiPickerSheet";
@@ -32,6 +32,15 @@ interface Props {
   onOpenUserProfile: () => void;
   onOpenFriends: () => void;
   onOpenPremium: () => void;
+  onOpenPrivacy: () => void;
+  onOpenBackgroundInfo: () => void;
+}
+
+type DiagnosticStatus = "pending" | "ok" | "fail";
+interface DiagnosticResult {
+  label: string;
+  status: DiagnosticStatus;
+  detail?: string;
 }
 
 const APP_VERSION = "1.0.0 (1)";
@@ -41,7 +50,14 @@ const APP_VERSION = "1.0.0 (1)";
  * Isim/kullanici adi/avatar artik UserProfileScreen ile AYNI gercek
  * profiles satirindan okunuyor ve degisiklikler oraya da yansiyor (eskiden
  * isim SADECE burada yerel state'ti, kaydedilmiyordu). */
-export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends, onOpenPremium }: Props) {
+export default function ProfileScreen({
+  onBack,
+  onOpenUserProfile,
+  onOpenFriends,
+  onOpenPremium,
+  onOpenPrivacy,
+  onOpenBackgroundInfo,
+}: Props) {
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState("Kullanici");
   const [handle, setHandle] = useState("kullanici");
@@ -58,6 +74,8 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
   const [muteOnOtherAudio, setMuteOnOtherAudio] = useState(false);
   const [hideLocation, setHideLocation] = useState(true);
   const [incomingCount, setIncomingCount] = useState(0);
+  const [diagnosticsVisible, setDiagnosticsVisible] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<DiagnosticResult[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -117,6 +135,45 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
     });
   }
 
+  // "Tanilamayi calistir" artik GERCEK kontroller yapiyor: sunucuya HTTP ile
+  // ulasilabiliyor mu, soket gercek zamanli baglantisi acik mi, Supabase'e
+  // gercek bir sorguyla ulasilabiliyor mu ve oturum durumu ne. Bu ortamda
+  // (sandbox) agin disari kapali olmasi sebebiyle bazilari basarisiz
+  // cikabilir - bu GERCEK sonuc, sahte bir "hep basarili" degil.
+  async function runDiagnostics() {
+    triggerHaptic();
+    const labels = ["Sunucu bağlantısı", "Gerçek zamanlı bağlantı", "Supabase bağlantısı", "Oturum durumu"];
+    setDiagnostics(labels.map((label) => ({ label, status: "pending" })));
+    setDiagnosticsVisible(true);
+
+    function update(index: number, status: DiagnosticStatus, detail?: string) {
+      setDiagnostics((prev) => prev.map((r, i) => (i === index ? { ...r, status, detail } : r)));
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`${SERVER_URL}/health`, { signal: controller.signal });
+      clearTimeout(timeout);
+      const json = await res.json();
+      update(0, res.ok && json?.ok ? "ok" : "fail");
+    } catch {
+      update(0, "fail");
+    }
+
+    update(1, getSocket().connected ? "ok" : "fail");
+
+    try {
+      const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000));
+      const { error } = await Promise.race([supabase.from("profiles").select("id").limit(1), timeout]);
+      update(2, error ? "fail" : "ok");
+    } catch {
+      update(2, "fail");
+    }
+
+    update(3, "ok", myUserId ? "Giriş yapıldı" : "Misafir");
+  }
+
   // Yeni actigin HER odanin "Chat Otomatik Cevir" baslangic degeri - sadece
   // bir varsayilan, host odanin icinde RoomSettingsSheet'ten yine
   // degistirebilir (bkz. server/src/index.ts room:create / rooms.ts
@@ -165,10 +222,25 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
     ]);
   }
 
+  // GERCEK ve GERI ALINAMAZ hesap silme - sunucudaki delete_own_account()
+  // RPC'sini (bkz. migration 0012) cagirir, auth.users satiri silinince
+  // ON DELETE CASCADE sayesinde profil/DM/arkadaslik/galeri de otomatik gider.
   function handleDeleteAccount() {
     showAlert("Hesabi Sil", "Bu islem geri alinamaz. Devam etmek istedigine emin misin?", [
       { text: "Iptal", style: "cancel" },
-      { text: "Hesabi Sil", style: "destructive", onPress: () => placeholder("Hesabi Sil") },
+      {
+        text: "Hesabi Sil",
+        style: "destructive",
+        onPress: () => {
+          getSocket().emit("account:delete", {}, (res: any) => {
+            if (res?.ok) {
+              supabase.auth.signOut();
+            } else {
+              showAlert("Hesabi Sil", res?.error || "Hesap silinemedi, lutfen tekrar dene.");
+            }
+          });
+        },
+      },
     ]);
   }
 
@@ -277,7 +349,7 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
           onToggle={() => setHideLocation((v) => !v)}
         />
         <ChevronRow title="Dil" subtitle="Cihaz dili (Turkce)" onPress={() => placeholder("Dil")} />
-        <ChevronRow title="Gizlilik" onPress={() => placeholder("Gizlilik")} />
+        <ChevronRow title="Gizlilik" onPress={onOpenPrivacy} />
 
         <SectionHeader title="Geri Bildirim" />
         <TouchableOpacity style={styles.simpleRow} onPress={handleRateApp}>
@@ -291,10 +363,10 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         <TouchableOpacity style={styles.simpleRow} onPress={handleContactUs}>
           <Text style={styles.simpleTitle}>Bize ulasin</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.simpleRow} onPress={() => placeholder("Tanilamayi calistir")}>
+        <TouchableOpacity style={styles.simpleRow} onPress={runDiagnostics}>
           <Text style={styles.simpleTitle}>Tanilamayi calistir</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.simpleRow} onPress={() => placeholder("Arka plan")}>
+        <TouchableOpacity style={styles.simpleRow} onPress={onOpenBackgroundInfo}>
           <Text style={styles.simpleTitle}>LUNA arka planda durduruluyor mu?</Text>
         </TouchableOpacity>
         <Text style={styles.versionText}>{APP_VERSION}</Text>
@@ -313,6 +385,34 @@ export default function ProfileScreen({ onBack, onOpenUserProfile, onOpenFriends
         onSelect={selectQuickReaction}
         onClose={() => setEmojiSheetVisible(false)}
       />
+
+      <Modal
+        visible={diagnosticsVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDiagnosticsVisible(false)}
+      >
+        <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setDiagnosticsVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.diagnosticsCard}>
+            <Text style={styles.diagnosticsTitle}>TANILAMA</Text>
+            {diagnostics.map((r) => (
+              <View key={r.label} style={styles.diagnosticsRow}>
+                <Text style={styles.diagnosticsLabel}>{r.label}</Text>
+                {r.status === "pending" ? (
+                  <ActivityIndicator size="small" color="#0EA5E9" />
+                ) : (
+                  <Text style={[styles.diagnosticsStatus, r.status === "ok" ? styles.diagnosticsOk : styles.diagnosticsFail]}>
+                    {r.detail ?? (r.status === "ok" ? "Başarılı" : "Başarısız")}
+                  </Text>
+                )}
+              </View>
+            ))}
+            <TouchableOpacity style={styles.diagnosticsCloseBtn} onPress={() => setDiagnosticsVisible(false)}>
+              <Text style={styles.diagnosticsCloseText}>Kapat</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -559,6 +659,36 @@ const styles = StyleSheet.create({
   },
   optionRowText: { color: "rgba(255,255,255,0.8)", fontSize: 14, fontWeight: "600" },
   optionRowTextActive: { color: "#FFFFFF", fontWeight: "800" },
+  diagnosticsCard: {
+    backgroundColor: "#0A0A0A",
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    minWidth: 280,
+    borderWidth: 1,
+    borderColor: "#1C1C1C",
+  },
+  diagnosticsTitle: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    marginBottom: 14,
+  },
+  diagnosticsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+  diagnosticsLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  diagnosticsStatus: { fontSize: 13, fontWeight: "700" },
+  diagnosticsOk: { color: "#34D399" },
+  diagnosticsFail: { color: "#FF8A8A" },
+  diagnosticsCloseBtn: { marginTop: 16, alignItems: "center" },
+  diagnosticsCloseText: { color: "#0EA5E9", fontSize: 14, fontWeight: "800" },
   simpleRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.08)" },
   simpleTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   simpleSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", marginTop: 3, lineHeight: 16 },

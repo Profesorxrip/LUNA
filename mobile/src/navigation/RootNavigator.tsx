@@ -4,6 +4,8 @@ import { createNativeStackNavigator, NativeStackNavigationProp } from "@react-na
 import DiscoverScreen from "../screens/DiscoverScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import PremiumScreen from "../screens/PremiumScreen";
+import PrivacyScreen from "../screens/PrivacyScreen";
+import BackgroundInfoScreen from "../screens/BackgroundInfoScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import FriendsScreen from "../screens/FriendsScreen";
 import DMScreen, { DMPeer } from "../screens/DMScreen";
@@ -25,6 +27,8 @@ export type RootStackParamList = {
   Discover: undefined;
   Profile: undefined;
   Premium: undefined;
+  Privacy: undefined;
+  BackgroundInfo: undefined;
   UserProfile: { own: boolean; peer?: PeerParam };
   Friends: undefined;
   DM: { peer: DMPeer };
@@ -61,12 +65,22 @@ function ProfileRoute() {
       onOpenUserProfile={() => navigation.navigate("UserProfile", { own: true })}
       onOpenFriends={() => navigation.navigate("Friends")}
       onOpenPremium={() => navigation.navigate("Premium")}
+      onOpenPrivacy={() => navigation.navigate("Privacy")}
+      onOpenBackgroundInfo={() => navigation.navigate("BackgroundInfo")}
     />
   );
 }
 
 function PremiumRoute() {
   return <PremiumScreen />;
+}
+
+function PrivacyRoute() {
+  return <PrivacyScreen />;
+}
+
+function BackgroundInfoRoute() {
+  return <BackgroundInfoScreen />;
 }
 
 function UserProfileRoute() {
@@ -140,6 +154,8 @@ export default function RootNavigator() {
         <Stack.Screen name="Discover" component={DiscoverRoute} />
         <Stack.Screen name="Profile" component={ProfileRoute} />
         <Stack.Screen name="Premium" component={PremiumRoute} />
+        <Stack.Screen name="Privacy" component={PrivacyRoute} />
+        <Stack.Screen name="BackgroundInfo" component={BackgroundInfoRoute} />
         <Stack.Screen name="UserProfile" component={UserProfileRoute} />
         <Stack.Screen name="Friends" component={FriendsRoute} />
         <Stack.Screen name="DM" component={DMRoute} />
