@@ -13,6 +13,7 @@ import {
   Animated,
   PanResponder,
   useWindowDimensions,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
@@ -25,6 +26,7 @@ import MediaPlayer, { MediaPlayerHandle } from "../components/MediaPlayer";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import ReactionsOverlay, { ReactionsOverlayHandle } from "../components/ReactionsOverlay";
 import VideoControlsOverlay from "../components/VideoControlsOverlay";
+import VideoSeekBar from "../components/VideoSeekBar";
 import ParticipantsModal from "../components/ParticipantsModal";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
@@ -222,6 +224,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // degisince (asagidaki useEffect) sifirlanir - eski videonun begenisi
   // yeni videoya tasinmaz.
   const [likedEventId, setLikedEventId] = useState<string | null>(null);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  // Video tam ekran mi - sadece BU ekranda gorsel bir mod, oda sohbeti/
+  // katilimci durumu etkilenmez, sadece video alani buyuyup chat gizlenir.
+  const [fullscreenVideo, setFullscreenVideo] = useState(false);
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
   // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
@@ -460,12 +467,55 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     else playerRef.current?.play();
   }
 
+  function seekTo(seconds: number) {
+    if (!canControlTransport) return;
+    const next = Math.max(0, seconds);
+    playerRef.current?.seekTo(next);
+    socket.emit("playback:update", { positionSeconds: next, isPlaying: room.playback.isPlaying });
+  }
+
   async function skipBy(deltaSeconds: number) {
     if (!canControlTransport) return;
     const current = (await playerRef.current?.getCurrentTime()) ?? room.playback.positionSeconds;
-    const next = Math.max(0, current + deltaSeconds);
-    playerRef.current?.seekTo(next);
-    socket.emit("playback:update", { positionSeconds: next, isPlaying: room.playback.isPlaying });
+    seekTo(current + deltaSeconds);
+  }
+
+  // Ilerletme cubugundaki canli pozisyon - sunucu sadece degisiklik oldukca
+  // (play/pause/seek, host kalp atisinda 5sn'de bir) gonderiyor, aradaki
+  // sureyi "updatedAtMs'den bu yana gecen zaman" ile yerel olarak tahmin
+  // ediyoruz (misafir surukleme duzeltmesindeki AYNI formul).
+  const [displayPosition, setDisplayPosition] = useState(room.playback.positionSeconds);
+  useEffect(() => {
+    function tick() {
+      if (!room.playback.isPlaying) {
+        setDisplayPosition(room.playback.positionSeconds);
+        return;
+      }
+      const elapsed = (Date.now() - room.playback.updatedAtMs) / 1000;
+      setDisplayPosition(room.playback.positionSeconds + elapsed);
+    }
+    tick();
+    const timer = setInterval(tick, 500);
+    return () => clearInterval(timer);
+  }, [room.playback.positionSeconds, room.playback.isPlaying, room.playback.updatedAtMs]);
+
+  function toggleFullscreenVideo() {
+    setFullscreenVideo((v) => !v);
+  }
+
+  // Video ustundeki uyari ikonu - o anki odayi/videoyu host'u hedef alarak
+  // sikayet eder, DMScreen'deki "Sikayet Et" ile AYNI genel mekanizma
+  // (report:submit) - LUNA'da oda/video'ya ozel ayri bir rapor turu yok.
+  const roomHostUserId = room.participants.find((p) => p.isHost)?.userId ?? null;
+  function submitRoomReport() {
+    const reason = reportReason.trim();
+    if (!reason || !roomHostUserId) return;
+    socket.emit("report:submit", { targetUserId: roomHostUserId, reason }, (res: any) => {
+      if (res?.ok) showAlert("Rapor gönderildi", "Bildirimin için teşekkürler, inceleyeceğiz.");
+      else showAlert("Hata", "Rapor gönderilemedi, tekrar dene.");
+    });
+    setReportReason("");
+    setReportVisible(false);
   }
 
   // "Sıradakine gec" - vote modunda, video dogal olarak bitmeden host'un
@@ -669,7 +719,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           sohbet olarak akar (roomBody/videoCol/chatCol sadece DESKTOP'ta
           ekstra stil alir, mobilde gorunum ESKISI GIBI kalir). */}
       <View style={[styles.roomBody, isDesktop && styles.roomBodyDesktop]}>
-        <View style={isDesktop && styles.videoColDesktop}>
+        <View style={[isDesktop && styles.videoColDesktop, fullscreenVideo && styles.videoColFullscreen]}>
           {/* Medya alani - ust barin hemen altinda, ustune binmeden */}
           <View style={styles.mediaSection}>
             <ReactionsOverlay ref={reactionsRef}>
@@ -691,12 +741,25 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                   onSkip={skipBy}
                   showSkipNext={canSkipToNext}
                   onSkipNext={skipToNext}
+                  onReport={() => setReportVisible(true)}
+                  onSettings={() => setSettingsVisible(true)}
                 />
               )}
             </ReactionsOverlay>
 
             <LinearGradient colors={["transparent", theme.bg]} style={styles.bottomFade} pointerEvents="none" />
           </View>
+
+          {syncable && (
+            <VideoSeekBar
+              positionSeconds={displayPosition}
+              durationSeconds={room.playback.durationSeconds ?? null}
+              canSeek={canControlTransport}
+              onSeek={seekTo}
+              isFullscreen={fullscreenVideo}
+              onToggleFullscreen={toggleFullscreenVideo}
+            />
+          )}
 
           {room.buffering.anyoneBuffering && (
             <View style={styles.bufferingBanner}>
@@ -734,6 +797,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           )}
         </View>
 
+        {!fullscreenVideo && (
         <View style={[styles.chatCol, isDesktop && styles.chatColDesktop]}>
       {/* Sohbet - medyanin hemen altinda, gradyanla ona "batmis" gibi baslar */}
       <FlatList
@@ -860,6 +924,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       </View>
       {voice.error && <Text style={styles.errorText}>{voice.error}</Text>}
         </View>
+        )}
       </View>
 
       <MediaPickerSheet
@@ -925,6 +990,31 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           </View>
         </View>
       )}
+
+      <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)}>
+        <TouchableOpacity style={styles.reportOverlay} activeOpacity={1} onPress={() => setReportVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.reportCard} onPress={() => {}}>
+            <Text style={styles.reportTitle}>Bu odayı şikayet et</Text>
+            <Text style={styles.reportSubtitle}>Neden şikayet ettiğini kısaca yaz.</Text>
+            <TextInput
+              style={styles.reportInput}
+              value={reportReason}
+              onChangeText={setReportReason}
+              placeholder="Şikayet nedeni..."
+              placeholderTextColor={theme.textMuted}
+              multiline
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.reportSubmitBtn, !reportReason.trim() && styles.reportSubmitBtnDisabled]}
+              onPress={submitRoomReport}
+              disabled={!reportReason.trim()}
+            >
+              <Text style={styles.reportSubmitBtnText}>Gönder</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -952,6 +1042,7 @@ const styles = StyleSheet.create({
   roomBody: { flex: 1 },
   roomBodyDesktop: { flexDirection: "row" },
   videoColDesktop: { flex: 1, paddingHorizontal: 24, paddingTop: 16 },
+  videoColFullscreen: { flex: 1, justifyContent: "center", backgroundColor: theme.bg },
   // chatCol mobilde FlatList'in flex:1 ile kalan yuksekligi doldurabilmesi
   // icin kendisi de flex:1 olmali (eskiden FlatList dogrudan ana flex:1
   // konteynerin cocuguydu, simdi bir katman daha icerde oldugu icin bu
@@ -1180,4 +1271,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  reportOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  reportCard: {
+    backgroundColor: theme.surface,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    padding: 20,
+    alignItems: "center",
+  },
+  reportTitle: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 4, alignSelf: "flex-start" },
+  reportSubtitle: { color: theme.textMuted, fontSize: 12, marginBottom: 14, alignSelf: "flex-start" },
+  reportInput: {
+    width: "100%",
+    minHeight: 80,
+    backgroundColor: theme.surfaceAlt,
+    color: theme.text,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    textAlignVertical: "top",
+    marginBottom: 14,
+  },
+  reportSubmitBtn: { width: "100%", backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 14, alignItems: "center" },
+  reportSubmitBtnDisabled: { opacity: 0.4 },
+  reportSubmitBtnText: { color: "#04140D", fontWeight: "700", fontSize: 16 },
 });

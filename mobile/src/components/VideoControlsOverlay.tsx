@@ -11,6 +11,8 @@ interface Props {
   onSkip: (deltaSeconds: number) => void;
   showSkipNext: boolean;
   onSkipNext: () => void;
+  onReport: () => void;
+  onSettings: () => void;
 }
 
 const AUTO_HIDE_MS = 3000;
@@ -30,6 +32,8 @@ export default function VideoControlsOverlay({
   onSkip,
   showSkipNext,
   onSkipNext,
+  onReport,
+  onSettings,
 }: Props) {
   const [visible, setVisible] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -76,6 +80,15 @@ export default function VideoControlsOverlay({
             )}
           </View>
 
+          <View style={styles.topRightRow}>
+            <TouchableOpacity style={styles.smallIconTouch} onPress={onReport} hitSlop={10}>
+              <Icon name="warning" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.smallIconTouch} onPress={onSettings} hitSlop={10}>
+              <Icon name="settings" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
           {canControlTransport && (
             <View style={styles.centerRow}>
               <TouchableOpacity style={styles.skipTouch} onPress={() => onSkip(-10)} hitSlop={10}>
@@ -100,6 +113,7 @@ export default function VideoControlsOverlay({
 const styles = StyleSheet.create({
   touchArea: { ...StyleSheet.absoluteFill, justifyContent: "center" },
   topRow: { position: "absolute", top: 10, left: 10, flexDirection: "row", gap: 14 },
+  topRightRow: { position: "absolute", top: 10, right: 10, flexDirection: "row", gap: 14 },
   smallIconTouch: {
     width: 32,
     height: 32,
