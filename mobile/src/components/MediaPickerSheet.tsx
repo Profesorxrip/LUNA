@@ -35,13 +35,29 @@ interface GridItem {
 }
 
 const externalItems: GridItem[] = EXTERNAL_PLATFORMS.map((p) => ({ key: p.key, label: p.label, logo: p.logo }));
+function ext(key: string): GridItem {
+  return externalItems.find((i) => i.key === key)!;
+}
+// Prime ve Disney+ BILINCLI olarak ayni satirda yan yana - ikisinin de
+// yazi govdesi gercekten AYNI HIZADA gorunsun diye kendi gorsellerine
+// asimetrik dolgu eklendi (bkz. PlatformLogo.tsx).
 const ALL_ITEMS: GridItem[] = [
   { key: "youtube", label: "YouTube", logo: "youtube" },
-  ...externalItems.filter((i) => i.key !== "x"),
+  ext("netflix"),
+  ext("hbomax"),
+  ext("twitch"),
+  ext("drive"),
+  ext("icloud"),
+  ext("spotify"),
   { key: "web", label: "Web", logo: "web" },
+  ext("prime"),
+  ext("disney"),
   { key: "history", label: "Geçmiş", logo: "gecmis" },
   { key: "liked", label: "Beğenilenler", logo: "begenilenler" },
-  ...externalItems.filter((i) => i.key === "x"),
+  // X icin ayri bir kart YOK - zaten "Web" ile x.com linki yapistirilinca
+  // ayni sekilde acilabiliyor (EXTERNAL_PLATFORMS'ta "x" hala duruyor, o
+  // sayede Web'den girilen bir X linki de dogru rozet/logo ile eslesiyor,
+  // bkz. RoomCard.tsx/RoomPreviewScreen.tsx domain eslestirme).
 ];
 
 /** Rave'in gercek "ne izlemek istersin" ekranina benzer TAM SAYFA ekran -
