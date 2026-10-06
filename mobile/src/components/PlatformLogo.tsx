@@ -18,7 +18,7 @@ const REAL_LOGOS: Record<PlatformKey, { source: any; ratio: number }> = {
   disneyplus: { source: require("../../assets/logos/disney-plus.png"), ratio: 1.8422 },
   primevideo: { source: require("../../assets/logos/prime-video.png"), ratio: 3.2481 },
   x: { source: require("../../assets/logos/x.png"), ratio: 0.9786 },
-  drive: { source: require("../../assets/logos/drive.png"), ratio: 2.9667 },
+  drive: { source: require("../../assets/logos/drive.png"), ratio: 4.2692 },
   web: { source: require("../../assets/logos/web.png"), ratio: 0.748 },
   twitch: { source: require("../../assets/logos/twitch.png"), ratio: 3.0144 },
   hbomax: { source: require("../../assets/logos/hbomax.png"), ratio: 5.2429 },
