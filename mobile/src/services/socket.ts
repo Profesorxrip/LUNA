@@ -94,6 +94,9 @@ export interface RoomState {
   // "Sadece Oynat" modunda beklemede olan videolar (bkz. server/src/rooms.ts
   // enqueueSource/advanceQueue) - diger modlarda hep bos dizi gelir.
   videoQueue: MediaSource[];
+  // true ise sesli sohbette HERKES mikrofonunu acabilir; false ise SADECE
+  // host acabilir (bkz. server/src/rooms.ts micOpenToAll).
+  micOpenToAll: boolean;
 }
 
 export interface ChatMessage {

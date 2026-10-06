@@ -124,6 +124,11 @@ export interface Room {
   // oynayani KESMIYOR, siraya giriyor (bkz. enqueueSource). Video dogal
   // olarak bitince sıradaki otomatik oynatiliyor (bkz. advanceQueue).
   videoQueue: MediaSource[];
+  // true ise sesli sohbette HERKES mikrofonunu acabilir; false ise SADECE
+  // host acabilir (digerleri sadece dinleyebilir) - hem LiveKit token'inda
+  // (canPublish, bkz. index.ts "voice:token") hem zaten baglanmis olanlarin
+  // CANLI izninde (bkz. index.ts "room:settings", RoomServiceClient) uygulanir.
+  micOpenToAll: boolean;
 }
 
 const rooms = new Map<string, Room>();
@@ -188,6 +193,7 @@ export function createRoom(
     isAdult: isAdult ?? false,
     videoHistory: [],
     videoQueue: [],
+    micOpenToAll: true,
   };
   rooms.set(code, room);
   return room;
@@ -552,7 +558,7 @@ export function applyAutoplayNext(room: Room, source: MediaSource): void {
 export function updateRoomSettings(
   room: Room,
   requesterId: string,
-  updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean; isAdult?: boolean },
+  updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean; isAdult?: boolean; micOpenToAll?: boolean },
   hostCountry?: string | null,
   hostCity?: string | null
 ): boolean {
@@ -570,6 +576,7 @@ export function updateRoomSettings(
   }
   if (updates.autoTranslateChat !== undefined) room.autoTranslateChat = updates.autoTranslateChat;
   if (updates.isAdult !== undefined) room.isAdult = updates.isAdult;
+  if (updates.micOpenToAll !== undefined) room.micOpenToAll = updates.micOpenToAll;
   return true;
 }
 
@@ -684,5 +691,6 @@ export function roomToPublicState(room: Room) {
     // "Sadece Oynat" modunda sıradaki videolar - kullanicinin kendi eklediginin
     // sıraya girdigini gorebilmesi icin (bkz. MediaPickerSheet/RoomScreen).
     videoQueue: room.videoQueue,
+    micOpenToAll: room.micOpenToAll,
   };
 }

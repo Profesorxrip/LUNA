@@ -37,7 +37,7 @@ import {
   PlaybackMode,
   POLL_DURATION_MS,
 } from "./rooms";
-import { createVoiceToken } from "./livekit";
+import { createVoiceToken, syncVoicePermissions } from "./livekit";
 import {
   openConversation,
   previewConversation,
@@ -1002,7 +1002,13 @@ io.on("connection", (socket: Socket) => {
   socket.on(
     "room:settings",
     async (
-      updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean; isAdult?: boolean },
+      updates: {
+        privacy?: PrivacyLevel;
+        playbackMode?: PlaybackMode;
+        autoTranslateChat?: boolean;
+        isAdult?: boolean;
+        micOpenToAll?: boolean;
+      },
       ack
     ) => {
       if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
@@ -1014,6 +1020,8 @@ io.on("connection", (socket: Socket) => {
         return ack?.({ ok: false, error: "Gecersiz istek." });
       if (updates.isAdult !== undefined && !isBoolean(updates.isAdult))
         return ack?.({ ok: false, error: "Gecersiz istek." });
+      if (updates.micOpenToAll !== undefined && !isBoolean(updates.micOpenToAll))
+        return ack?.({ ok: false, error: "Gecersiz istek." });
       const room = getRoom(currentRoomCode);
       if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
       const applied = updateRoomSettings(room, socket.id, updates, myCountry, myCity);
@@ -1022,6 +1030,13 @@ io.on("connection", (socket: Socket) => {
       ack?.({ ok: true });
       broadcastRoom(currentRoomCode);
       broadcastRoomsList();
+      if (updates.micOpenToAll !== undefined) {
+        // Zaten sesli sohbete baglanmis olan (host haric) katilimcilarin
+        // CANLI LiveKit iznini de guncelliyoruz - aksi halde kilit, sadece
+        // YENI baglananlar icin gecerli olurdu (bkz. livekit.ts syncVoicePermissions).
+        const nonHostSocketIds = Array.from(room.participants.keys()).filter((id) => id !== room.hostSocketId);
+        syncVoicePermissions(currentRoomCode, nonHostSocketIds, updates.micOpenToAll).catch(() => {});
+      }
       // Rave'deki gibi: bir ayar degistiginde sohbet akisina ozel ikonlu
       // (disli) bir sistem mesaji dusuyor (bkz. RoomScreen.tsx "settings" render dali).
       const byName = room.participants.get(socket.id)?.name || myName;
@@ -1070,6 +1085,18 @@ io.on("connection", (socket: Socket) => {
           settingLabel: "18+ içerik",
           settingValue: value,
           text: `${byName} 18+ icerik isaretini "${value}" yapti.`,
+          ts: Date.now(),
+        });
+      }
+      if (updates.micOpenToAll !== undefined) {
+        const value = updates.micOpenToAll ? "Açık" : "Kapalı";
+        io.to(currentRoomCode).emit("room:chat", {
+          system: true,
+          kind: "settings",
+          byName,
+          settingLabel: "Herkes mikrofon açabilsin",
+          settingValue: value,
+          text: `${byName} mikrofon ayarini "${value}" yapti.`,
           ts: Date.now(),
         });
       }
@@ -1436,9 +1463,13 @@ io.on("connection", (socket: Socket) => {
     if (!currentRoomCode) return ack?.({ ok: false, error: "Once bir odaya katil." });
     const room = getRoom(currentRoomCode);
     const participant = room?.participants.get(socket.id);
+    // "Herkes mikrofon acabilsin" kapaliysa (bkz. rooms.ts micOpenToAll)
+    // SADECE host mikrofon yayinlayabilir - digerleri sadece dinleyebilir
+    // (canSubscribe hep true kalir, sadece canPublish kisitlanir).
+    const canPublish = !room || isHost(room, socket.id) || room.micOpenToAll;
     try {
-      const token = await createVoiceToken(currentRoomCode, participant?.name || "Misafir", socket.id);
-      ack?.({ ok: true, token, livekitUrl: process.env.LIVEKIT_URL || "" });
+      const token = await createVoiceToken(currentRoomCode, participant?.name || "Misafir", socket.id, canPublish);
+      ack?.({ ok: true, token, livekitUrl: process.env.LIVEKIT_URL || "", canPublish });
     } catch (err: any) {
       ack?.({ ok: false, error: err.message });
     }

@@ -17,7 +17,7 @@ export function useVoiceChat() {
   const [error, setError] = useState<string | null>(null);
   const [nativeModuleMissing, setNativeModuleMissing] = useState(false);
 
-  const join = useCallback(async () => {
+  const join = useCallback(async (startMuted = false) => {
     setError(null);
     let livekitReactNative: typeof import("@livekit/react-native");
     let livekitClient: typeof import("livekit-client");
@@ -47,10 +47,15 @@ export function useVoiceChat() {
       const room = new livekitClient.Room();
       room.on(livekitClient.RoomEvent.Disconnected, () => setConnected(false));
       await room.connect(res.livekitUrl, res.token);
-      await room.localParticipant.setMicrophoneEnabled(true);
+      // "Herkes mikrofon acabilsin" kapaliysa (bkz. RoomScreen.tsx
+      // handleMicPress) host disindakiler SESSIZ (sadece dinleyici) olarak
+      // baglanir - sunucu zaten LiveKit token'inda canPublish'i kapatiyor
+      // (bkz. server/src/livekit.ts), bu sadece baglanti anindaki ilk
+      // durumu dogru yansitmak icin.
+      await room.localParticipant.setMicrophoneEnabled(!startMuted);
       roomRef.current = room;
       setConnected(true);
-      setMuted(false);
+      setMuted(startMuted);
     } catch (err: any) {
       setError(err?.message || "Sesli sohbete baglanilamadi.");
     }

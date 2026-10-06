@@ -224,8 +224,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // degisince (asagidaki useEffect) sifirlanir - eski videonun begenisi
   // yeni videoya tasinmaz.
   const [likedEventId, setLikedEventId] = useState<string | null>(null);
-  const [reportVisible, setReportVisible] = useState(false);
-  const [reportReason, setReportReason] = useState("");
   // Video tam ekran mi - sadece BU ekranda gorsel bir mod, oda sohbeti/
   // katilimci durumu etkilenmez, sadece video alani buyuyup chat gizlenir.
   const [fullscreenVideo, setFullscreenVideo] = useState(false);
@@ -524,21 +522,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     setFullscreenVideo((v) => !v);
   }
 
-  // Video ustundeki uyari ikonu - o anki odayi/videoyu host'u hedef alarak
-  // sikayet eder, DMScreen'deki "Sikayet Et" ile AYNI genel mekanizma
-  // (report:submit) - LUNA'da oda/video'ya ozel ayri bir rapor turu yok.
-  const roomHostUserId = room.participants.find((p) => p.isHost)?.userId ?? null;
-  function submitRoomReport() {
-    const reason = reportReason.trim();
-    if (!reason || !roomHostUserId) return;
-    socket.emit("report:submit", { targetUserId: roomHostUserId, reason }, (res: any) => {
-      if (res?.ok) showAlert("Rapor gönderildi", "Bildirimin için teşekkürler, inceleyeceğiz.");
-      else showAlert("Hata", "Rapor gönderilemedi, tekrar dene.");
-    });
-    setReportReason("");
-    setReportVisible(false);
-  }
-
   // "Sıradakine gec" - her playback modunda kalbin saginda gorunur (host
   // icin). "vote"/"autoplay" modundaysa video dogal olarak bitmeden
   // sunucudaki otomatik gecisi ERKEN tetikler (sunucuda zaten
@@ -586,6 +569,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 
   function toggleAdult(isAdult: boolean) {
     socket.emit("room:settings", { isAdult }, () => {});
+  }
+
+  function toggleMicOpenToAll(micOpenToAll: boolean) {
+    socket.emit("room:settings", { micOpenToAll }, () => {});
   }
 
   function handleVolumeChange(v: number) {
@@ -709,10 +696,33 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     onLeave();
   }
 
+  // "Herkes mikrofon acabilsin" kapaliysa (bkz. RoomSettingsSheet) SADECE
+  // host mikrofonunu acabilir - digerleri sesli sohbete sessiz (dinleyici)
+  // olarak katilabilir ama kendi mikrofonunu acamaz (bkz. useVoiceChat.ts
+  // join'in startMuted parametresi, livekit.ts canPublish). Mikrofonu
+  // KAPATMAK her zaman serbest, sadece ACMAK kisitlanir.
+  const canOpenMic = isHost || room.micOpenToAll;
   function handleMicPress() {
-    if (!voice.connected) voice.join();
-    else voice.toggleMute();
+    if (!voice.connected) {
+      voice.join(!canOpenMic);
+      return;
+    }
+    if (voice.muted && !canOpenMic) {
+      showAlert("Mikrofon kilitli", "Bu odada sadece lider mikrofonunu acabilir.");
+      return;
+    }
+    voice.toggleMute();
   }
+
+  // Lider sesli sohbeti kilitlerse (micOpenToAll false olursa) ZATEN
+  // baglanmis ve mikrofonu acik olan misafirleri otomatik susturuyoruz -
+  // sunucu LiveKit'teki CANLI iznini de ayni anda kapatiyor (bkz.
+  // server/src/index.ts "room:settings" syncVoicePermissions), burasi
+  // sadece yerel UI/mikrofon durumunu ayni anda dogru gostermek icin.
+  useEffect(() => {
+    if (canOpenMic || !voice.connected || voice.muted) return;
+    voice.toggleMute();
+  }, [canOpenMic, voice.connected, voice.muted, voice.toggleMute]);
 
   function handleMicLongPress() {
     if (!voice.connected) return;
@@ -1014,10 +1024,8 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onLeaveVoice={voice.leave}
         volume={volume}
         onVolumeChange={handleVolumeChange}
-        onReport={() => {
-          setSettingsVisible(false);
-          setReportVisible(true);
-        }}
+        micOpenToAll={room.micOpenToAll}
+        onToggleMicOpenToAll={toggleMicOpenToAll}
       />
 
       {leaveConfirmVisible && (
@@ -1035,31 +1043,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           </View>
         </View>
       )}
-
-      <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)}>
-        <TouchableOpacity style={styles.reportOverlay} activeOpacity={1} onPress={() => setReportVisible(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.reportCard} onPress={() => {}}>
-            <Text style={styles.reportTitle}>Bu odayı şikayet et</Text>
-            <Text style={styles.reportSubtitle}>Neden şikayet ettiğini kısaca yaz.</Text>
-            <TextInput
-              style={styles.reportInput}
-              value={reportReason}
-              onChangeText={setReportReason}
-              placeholder="Şikayet nedeni..."
-              placeholderTextColor={theme.textMuted}
-              multiline
-              autoFocus
-            />
-            <TouchableOpacity
-              style={[styles.reportSubmitBtn, !reportReason.trim() && styles.reportSubmitBtnDisabled]}
-              onPress={submitRoomReport}
-              disabled={!reportReason.trim()}
-            >
-              <Text style={styles.reportSubmitBtnText}>Gönder</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -1316,28 +1299,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  reportOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  reportCard: {
-    backgroundColor: theme.surface,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    padding: 20,
-    alignItems: "center",
-  },
-  reportTitle: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 4, alignSelf: "flex-start" },
-  reportSubtitle: { color: theme.textMuted, fontSize: 12, marginBottom: 14, alignSelf: "flex-start" },
-  reportInput: {
-    width: "100%",
-    minHeight: 80,
-    backgroundColor: theme.surfaceAlt,
-    color: theme.text,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 14,
-    textAlignVertical: "top",
-    marginBottom: 14,
-  },
-  reportSubmitBtn: { width: "100%", backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 14, alignItems: "center" },
-  reportSubmitBtnDisabled: { opacity: 0.4 },
-  reportSubmitBtnText: { color: "#04140D", fontWeight: "700", fontSize: 16 },
 });
