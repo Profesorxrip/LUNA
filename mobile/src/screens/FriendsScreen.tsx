@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   requestsBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", padding: 24 },
+  backdrop: { flex: 1, backgroundColor: BG, justifyContent: "center", padding: 24 },
   sheet: { backgroundColor: "#141210", borderRadius: 16, padding: 20, maxHeight: "70%" },
   sheetTitle: { color: TEXT, fontSize: 16, fontWeight: "700", marginBottom: 12 },
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
