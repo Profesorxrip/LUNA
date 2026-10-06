@@ -52,6 +52,11 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
   const [previews, setPreviews] = useState<Record<string, DMMessage | null>>({});
   const [loading, setLoading] = useState(true);
   const [requestsVisible, setRequestsVisible] = useState(false);
+  // "Son Zamanlarda" sekmesinde bu oturumda istek gonderilen kullanicilar -
+  // sunucu bize ayrica "giden istekler" listesi dondurmedigi icin (bkz.
+  // friends:list - kasten sadeleştirildi) sadece bu ekranda, bu oturumda
+  // gonderilenleri hatirliyoruz; buton kum saatine donup iptal edilebiliyor.
+  const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
 
   const refresh = useCallback(() => {
     socket.emit("friends:list", {}, (res: any) => {
@@ -95,8 +100,22 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
 
   function sendFriendRequest(toUserId: string, name: string) {
     socket.emit("friend:request", { toUserId }, (res: any) => {
-      if (res?.ok) showAlert("İstek gönderildi", `${name} kullanıcısına arkadaşlık isteği gönderildi.`);
-      else showAlert("Gönderilemedi", "Arkadaşlık isteği gönderilemedi, tekrar dene.");
+      if (res?.ok) {
+        setSentRequests((prev) => new Set(prev).add(toUserId));
+        showAlert("İstek gönderildi", `${name} kullanıcısına arkadaşlık isteği gönderildi.`);
+      } else {
+        showAlert("Gönderilemedi", "Arkadaşlık isteği gönderilemedi, tekrar dene.");
+      }
+    });
+  }
+
+  function cancelSentRequest(toUserId: string) {
+    socket.emit("friend:cancel", { toUserId }, () => {
+      setSentRequests((prev) => {
+        const next = new Set(prev);
+        next.delete(toUserId);
+        return next;
+      });
     });
   }
 
@@ -202,9 +221,15 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
                   <Text style={styles.rowHandle}>{relativeTime(item.lastTogetherMs)} önce aynı odadaydınız</Text>
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
-                <Icon name="invite" size={26} color={ACCENT} />
-              </TouchableOpacity>
+              {sentRequests.has(item.userId) ? (
+                <TouchableOpacity onPress={() => cancelSentRequest(item.userId)} hitSlop={8}>
+                  <Icon name="hourglass" size={22} color={MUTED} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
+                  <Icon name="invite" size={26} color={ACCENT} />
+                </TouchableOpacity>
+              )}
             </View>
           )}
         />
