@@ -243,6 +243,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
           <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
             <Text style={styles.sheetTitle}>İstekler</Text>
             <FlatList
+              style={styles.requestsList}
               data={incoming}
               keyExtractor={(f) => f.userId}
               ListEmptyComponent={<Text style={styles.emptyText}>Bekleyen arkadaşlık isteği yok.</Text>}
@@ -328,9 +329,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   requestsBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
-  backdrop: { flex: 1, backgroundColor: BG, justifyContent: "center", padding: 24 },
-  sheet: { backgroundColor: "#141210", borderRadius: 16, padding: 20, maxHeight: "70%" },
+  backdrop: { flex: 1, backgroundColor: BG, justifyContent: "flex-end" },
+  sheet: {
+    backgroundColor: "#141210",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 20,
+    width: "100%",
+    height: "60%",
+  },
   sheetTitle: { color: TEXT, fontSize: 16, fontWeight: "700", marginBottom: 12 },
+  requestsList: { flex: 1 },
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   emptyText: { color: MUTED, textAlign: "center", marginTop: 60, fontSize: 14 },
   row: {
