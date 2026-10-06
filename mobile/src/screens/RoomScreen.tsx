@@ -571,10 +571,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     socket.emit("room:settings", { isAdult }, () => {});
   }
 
-  function toggleMicOpenToAll(micOpenToAll: boolean) {
-    socket.emit("room:settings", { micOpenToAll }, () => {});
-  }
-
   function handleVolumeChange(v: number) {
     setVolume(v);
     voice.setRemoteVolume(v);
@@ -696,11 +692,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     onLeave();
   }
 
-  // "Herkes mikrofon acabilsin" kapaliysa (bkz. RoomSettingsSheet) SADECE
-  // host mikrofonunu acabilir - digerleri sesli sohbete sessiz (dinleyici)
-  // olarak katilabilir ama kendi mikrofonunu acamaz (bkz. useVoiceChat.ts
-  // join'in startMuted parametresi, livekit.ts canPublish). Mikrofonu
-  // KAPATMAK her zaman serbest, sadece ACMAK kisitlanir.
+  // Ayri bir ayar YOK - "Ses" zaten var olan host'un kendi mikrofon
+  // durumudur: host mikrofonunu acarsa (Ses: Acik) HERKES mikrofon acabilir,
+  // host kapatirsa/sesli sohbetten ayrilirsa (Ses: Kapali) SADECE host
+  // acabilir (bkz. useVoiceChat.ts join'in startMuted parametresi,
+  // livekit.ts canPublish). Mikrofonu KAPATMAK her zaman serbest, sadece
+  // ACMAK kisitlanir.
   const canOpenMic = isHost || room.micOpenToAll;
   function handleMicPress() {
     if (!voice.connected) {
@@ -714,10 +711,19 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     voice.toggleMute();
   }
 
+  // Host'un mikrofonu su an acik mi (baglanmis VE susturulmamis) - bu deger
+  // degistikce sunucuya bildiriyoruz, sunucu da odanin mikrofon politikasini
+  // (room.micOpenToAll) buna gore gunceller (bkz. server/src/index.ts
+  // "voice:hostMicOpen"). Host degilsek hicbir sey yapmiyoruz.
+  useEffect(() => {
+    if (!isHost) return;
+    socket.emit("voice:hostMicOpen", { open: voice.connected && !voice.muted });
+  }, [isHost, voice.connected, voice.muted]);
+
   // Lider sesli sohbeti kilitlerse (micOpenToAll false olursa) ZATEN
   // baglanmis ve mikrofonu acik olan misafirleri otomatik susturuyoruz -
   // sunucu LiveKit'teki CANLI iznini de ayni anda kapatiyor (bkz.
-  // server/src/index.ts "room:settings" syncVoicePermissions), burasi
+  // server/src/index.ts "voice:hostMicOpen" syncVoicePermissions), burasi
   // sadece yerel UI/mikrofon durumunu ayni anda dogru gostermek icin.
   useEffect(() => {
     if (canOpenMic || !voice.connected || voice.muted) return;
@@ -1024,8 +1030,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onLeaveVoice={voice.leave}
         volume={volume}
         onVolumeChange={handleVolumeChange}
-        micOpenToAll={room.micOpenToAll}
-        onToggleMicOpenToAll={toggleMicOpenToAll}
       />
 
       {leaveConfirmVisible && (

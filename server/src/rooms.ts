@@ -124,10 +124,12 @@ export interface Room {
   // oynayani KESMIYOR, siraya giriyor (bkz. enqueueSource). Video dogal
   // olarak bitince sıradaki otomatik oynatiliyor (bkz. advanceQueue).
   videoQueue: MediaSource[];
-  // true ise sesli sohbette HERKES mikrofonunu acabilir; false ise SADECE
-  // host acabilir (digerleri sadece dinleyebilir) - hem LiveKit token'inda
-  // (canPublish, bkz. index.ts "voice:token") hem zaten baglanmis olanlarin
-  // CANLI izninde (bkz. index.ts "room:settings", RoomServiceClient) uygulanir.
+  // Ayri bir ayar DEGIL - host'un KENDI mikrofonunun su an acik olup
+  // olmadigini yansitir (bkz. index.ts "voice:hostMicOpen"). Host mikrofonunu
+  // actiginda (Ses: Acik) HERKES mikrofon acabilir, host kapattiginda/sesli
+  // sohbetten ayrildiginda (Ses: Kapali) SADECE host acabilir - bu hem
+  // LiveKit token'inda (canPublish) hem zaten baglanmis olanlarin CANLI
+  // izninde (bkz. livekit.ts syncVoicePermissions) uygulanir.
   micOpenToAll: boolean;
 }
 
@@ -193,7 +195,7 @@ export function createRoom(
     isAdult: isAdult ?? false,
     videoHistory: [],
     videoQueue: [],
-    micOpenToAll: true,
+    micOpenToAll: false,
   };
   rooms.set(code, room);
   return room;
@@ -558,7 +560,7 @@ export function applyAutoplayNext(room: Room, source: MediaSource): void {
 export function updateRoomSettings(
   room: Room,
   requesterId: string,
-  updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean; isAdult?: boolean; micOpenToAll?: boolean },
+  updates: { privacy?: PrivacyLevel; playbackMode?: PlaybackMode; autoTranslateChat?: boolean; isAdult?: boolean },
   hostCountry?: string | null,
   hostCity?: string | null
 ): boolean {
@@ -576,7 +578,17 @@ export function updateRoomSettings(
   }
   if (updates.autoTranslateChat !== undefined) room.autoTranslateChat = updates.autoTranslateChat;
   if (updates.isAdult !== undefined) room.isAdult = updates.isAdult;
-  if (updates.micOpenToAll !== undefined) room.micOpenToAll = updates.micOpenToAll;
+  return true;
+}
+
+/** Host kendi mikrofonunu actiginda/kapattiginda (bkz. index.ts
+ * "voice:hostMicOpen") odanin mikrofon politikasini gunceller - host
+ * disinda kimse bunu degistiremez. Deger zaten ayniysa false doner (gereksiz
+ * broadcast/LiveKit senkronu onlenir, bkz. index.ts cagiran taraf). */
+export function setHostMicOpen(room: Room, requesterId: string, open: boolean): boolean {
+  if (!isHost(room, requesterId)) return false;
+  if (room.micOpenToAll === open) return false;
+  room.micOpenToAll = open;
   return true;
 }
 

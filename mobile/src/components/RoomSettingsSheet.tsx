@@ -23,10 +23,6 @@ interface Props {
   onLeaveVoice: () => void;
   volume: number;
   onVolumeChange: (v: number) => void;
-  // true ise sesli sohbette herkes mikrofonunu acabilir; false ise sadece
-  // host acabilir (bkz. RoomScreen.tsx handleMicPress, server micOpenToAll).
-  micOpenToAll: boolean;
-  onToggleMicOpenToAll: (v: boolean) => void;
 }
 
 const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
@@ -78,8 +74,6 @@ export default function RoomSettingsSheet({
   onLeaveVoice,
   volume,
   onVolumeChange,
-  micOpenToAll,
-  onToggleMicOpenToAll,
 }: Props) {
   const [expanded, setExpanded] = useState<"privacy" | "playback" | null>(null);
 
@@ -175,16 +169,6 @@ export default function RoomSettingsSheet({
               <TouchableOpacity onPress={onLeaveVoice} hitSlop={8}>
                 <Icon name="phone" size={22} color={micConnected ? theme.danger : theme.textMuted} />
               </TouchableOpacity>
-            </View>
-
-            <View style={styles.translateRow}>
-              <Text style={styles.translateLabel}>Herkes mikrofon açabilsin</Text>
-              <Switch
-                value={micOpenToAll}
-                onValueChange={onToggleMicOpenToAll}
-                trackColor={{ false: theme.border, true: theme.accent }}
-                thumbColor="#FFFFFF"
-              />
             </View>
 
             <View style={styles.translateRow}>
