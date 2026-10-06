@@ -358,9 +358,9 @@ const styles = StyleSheet.create({
   },
   avatarInitial: { color: ACCENT, fontSize: 18, fontWeight: "700" },
   rowText: { flex: 1 },
-  rowName: { color: TEXT, fontSize: 15, fontWeight: "700" },
-  rowHandle: { color: MUTED, fontSize: 12, marginTop: 2 },
-  rowPreview: { color: MUTED, fontSize: 12, marginTop: 2 },
+  rowName: { color: TEXT, fontSize: 14, fontWeight: "700" },
+  rowHandle: { color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },
+  rowPreview: { color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },
   requestActions: { flexDirection: "row", alignItems: "center", gap: 16 },
   tabBarWrap: { position: "absolute", bottom: 24, left: 0, right: 0, alignItems: "center" },
   tabBar: {
