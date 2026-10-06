@@ -35,7 +35,10 @@ const PLAYER_HTML = `
       player = new YT.Player('player', {
         height: '100%',
         width: '100%',
-        playerVars: { playsinline: 1, controls: 1 },
+        // controls:0 - YouTube'un kendi oynat/duraklat/sarma cubugu YERINE
+        // artik RoomScreen'deki ozel VideoControlsOverlay kullaniliyor
+        // (Rave'deki gibi) - iki ayri kontrol seti ust uste gorunmesin diye.
+        playerVars: { playsinline: 1, controls: 0 },
         events: {
           onReady: function () {
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'duration', seconds: player.getDuration() }));

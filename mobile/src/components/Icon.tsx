@@ -32,9 +32,10 @@ import {
   ForwardIcon,
   ArrowUturnLeftIcon,
   HeartIcon,
+  PauseIcon,
 } from "react-native-heroicons/solid";
 import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
-import { MicOff, Hourglass, Crown } from "lucide-react-native";
+import { MicOff, Hourglass, Crown, RotateCcw, RotateCw } from "lucide-react-native";
 
 export type IconName =
   | "close"
@@ -72,7 +73,10 @@ export type IconName =
   | "kicked"
   | "reply"
   | "heart"
-  | "heartOutline";
+  | "heartOutline"
+  | "pause"
+  | "rotateCcw"
+  | "rotateCw";
 
 interface Props {
   name: IconName;
@@ -119,12 +123,15 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   reply: ArrowUturnLeftIcon,
   heart: HeartIcon,
   heartOutline: HeartOutlineIcon,
+  pause: PauseIcon,
 };
 
 const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>>> = {
   micOff: MicOff,
   hourglass: Hourglass,
   crown: Crown,
+  rotateCcw: RotateCcw,
+  rotateCw: RotateCw,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {

@@ -90,7 +90,10 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
 
   return (
     <View style={styles.container}>
-      <VideoView style={styles.video} player={player} nativeControls contentFit="contain" />
+      {/* nativeControls=false - artik RoomScreen'deki ozel VideoControlsOverlay
+          kullaniliyor (Rave'deki gibi) - iki ayri kontrol seti ust uste
+          gorunmesin diye. */}
+      <VideoView style={styles.video} player={player} nativeControls={false} contentFit="contain" />
     </View>
   );
 });

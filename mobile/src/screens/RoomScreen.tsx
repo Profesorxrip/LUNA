@@ -24,6 +24,7 @@ import { supabase } from "../services/supabase";
 import MediaPlayer, { MediaPlayerHandle } from "../components/MediaPlayer";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import ReactionsOverlay, { ReactionsOverlayHandle } from "../components/ReactionsOverlay";
+import VideoControlsOverlay from "../components/VideoControlsOverlay";
 import ParticipantsModal from "../components/ParticipantsModal";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
@@ -449,6 +450,34 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     });
   }
 
+  // Video uzerine binen kontrollerin oynat/duraklat/±10sn butonlari - sadece
+  // playerRef'i tetikliyor, GERCEK senkron zaten mevcut onStateChange
+  // zincirinden (handleHostPlayerChange) geciyor, burada AYRICA emit
+  // etmiyoruz (cift gonderim/yarisi onlenir).
+  function togglePlayPause() {
+    if (!canControlTransport) return;
+    if (room.playback.isPlaying) playerRef.current?.pause();
+    else playerRef.current?.play();
+  }
+
+  async function skipBy(deltaSeconds: number) {
+    if (!canControlTransport) return;
+    const current = (await playerRef.current?.getCurrentTime()) ?? room.playback.positionSeconds;
+    const next = Math.max(0, current + deltaSeconds);
+    playerRef.current?.seekTo(next);
+    socket.emit("playback:update", { positionSeconds: next, isPlaying: room.playback.isPlaying });
+  }
+
+  // "Sıradakine gec" - vote modunda, video dogal olarak bitmeden host'un
+  // oylamayi ERKEN acmasi. Sunucu tarafinda zaten "playback:ended" (video
+  // bitince ayni akisi tetikleyen event) ile BIREBIR ayni islem - yeni bir
+  // sunucu kodu gerekmiyor.
+  const canSkipToNext = isHost && room.playbackMode === "vote" && !room.poll;
+  function skipToNext() {
+    if (!canSkipToNext) return;
+    socket.emit("playback:ended");
+  }
+
   function shareRoom() {
     Share.share({ message: `LUNA'da "${room.title}" odama katil! Kod: ${room.code}` }).catch(() => {});
   }
@@ -626,9 +655,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         <TouchableOpacity style={[styles.iconTouch, !isHost && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
           <Icon name="search" size={30} color={theme.text} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconTouch} onPress={toggleLike} hitSlop={8}>
-          <Icon name={likedEventId ? "heart" : "heartOutline"} size={26} color={likedEventId ? "#E34848" : theme.text} />
-        </TouchableOpacity>
         <TouchableOpacity style={styles.participantsBadge} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
           <Icon name="people" size={30} color={theme.text} />
           <View style={styles.countBubble}>
@@ -655,6 +681,18 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 onDuration={handleDuration}
                 onEnded={handleEnded}
               />
+              {syncable && (
+                <VideoControlsOverlay
+                  isPlaying={room.playback.isPlaying}
+                  canControlTransport={canControlTransport}
+                  liked={Boolean(likedEventId)}
+                  onToggleLike={toggleLike}
+                  onPlayPause={togglePlayPause}
+                  onSkip={skipBy}
+                  showSkipNext={canSkipToNext}
+                  onSkipNext={skipToNext}
+                />
+              )}
             </ReactionsOverlay>
 
             <LinearGradient colors={["transparent", theme.bg]} style={styles.bottomFade} pointerEvents="none" />
