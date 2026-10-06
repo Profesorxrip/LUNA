@@ -22,7 +22,7 @@ const REAL_LOGOS: Record<PlatformKey, { source: any; ratio: number }> = {
   web: { source: require("../../assets/logos/web.png"), ratio: 0.748 },
   twitch: { source: require("../../assets/logos/twitch.png"), ratio: 3.0144 },
   hbomax: { source: require("../../assets/logos/hbomax.png"), ratio: 5.2429 },
-  icloud: { source: require("../../assets/logos/icloud.png"), ratio: 1.0529 },
+  icloud: { source: require("../../assets/logos/icloud.png"), ratio: 5.4164 },
 };
 
 /** Platform secim ekraninda kullanilan marka rozetleri - kullanicinin
