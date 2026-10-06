@@ -18,6 +18,9 @@ import {
   castVote,
   resolvePoll,
   goToPreviousVideo,
+  canEnqueueSource,
+  enqueueSource,
+  advanceQueue,
   roomToPublicState,
   listPublicRooms,
   findActiveRoomForUser,
@@ -946,6 +949,39 @@ io.on("connection", (socket: Socket) => {
     });
   });
 
+  // "Sadece Oynat" modunda HERKES video ekleyebilir - ama eklenen video
+  // mevcut oynayani kesmez, siraya girer (bkz. rooms.ts enqueueSource).
+  // Ayni video zaten oynuyorsa/sıradaysa sessizce yoksayilir (duplicate).
+  socket.on("room:enqueueSource", ({ source }: { source: MediaSource }, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    if (!isValidMediaSource(source)) return ack?.({ ok: false, error: "Gecersiz medya kaynagi." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    if (!canEnqueueSource(room)) return ack?.({ ok: false, error: "Bu ozellik sadece 'Sadece Oynat' modunda kullanilabilir." });
+    const result = enqueueSource(room, source);
+    ack?.({ ok: true, status: result });
+    if (result === "duplicate") return;
+    broadcastRoom(currentRoomCode);
+    if (result === "now") broadcastRoomsList();
+    const byName = room.participants.get(socket.id)?.name || myName;
+    const title = source.label || source.type;
+    if (result === "now") {
+      io.to(currentRoomCode).emit("room:chat", {
+        system: true,
+        kind: "nowPlaying",
+        title,
+        text: `Simdi ${title} oynatiliyor`,
+        ts: Date.now(),
+      });
+    } else {
+      io.to(currentRoomCode).emit("room:chat", {
+        system: true,
+        text: `${byName} "${title}" videosunu siraya ekledi.`,
+        ts: Date.now(),
+      });
+    }
+  });
+
   // Ayarlar ekrani: GIZLILIK / PLAYBACK / sohbet otomatik ceviri / 18+ icerik - sadece host.
   socket.on(
     "room:settings",
@@ -1049,17 +1085,35 @@ io.on("connection", (socket: Socket) => {
     }
   });
 
-  // Video dogal olarak bittiginde (sadece host'un oynaticisindan gelir)
+  // Video dogal olarak bittiginde (sadece host'un oynaticisindan gelir):
   // "Haydi Oylayalim" modundaysak otomatik olarak yeni bir "sirada ne
   // olsun" penceresi aciyoruz - herkesin ekraninda medya secme ekrani
-  // otomatik acilacak (bkz. RoomScreen.tsx room.poll useEffect'i).
+  // otomatik acilacak (bkz. RoomScreen.tsx room.poll useEffect'i). "Sadece
+  // Oynat" modundaysak kuyrukta bekleyen bir sonraki video varsa otomatik
+  // oynatiyoruz (bkz. rooms.ts advanceQueue).
   socket.on("playback:ended", () => {
     if (!currentRoomCode) return;
     const room = getRoom(currentRoomCode);
-    if (!room || !isHost(room, socket.id) || room.playbackMode !== "vote" || room.poll) return;
-    startVideoEndedPoll(room);
-    pollTimers.set(currentRoomCode, setTimeout(() => resolvePollAndBroadcast(currentRoomCode!), POLL_DURATION_MS));
-    broadcastRoom(currentRoomCode);
+    if (!room || !isHost(room, socket.id)) return;
+    if (room.playbackMode === "vote") {
+      if (room.poll) return;
+      startVideoEndedPoll(room);
+      pollTimers.set(currentRoomCode, setTimeout(() => resolvePollAndBroadcast(currentRoomCode!), POLL_DURATION_MS));
+      broadcastRoom(currentRoomCode);
+    } else if (room.playbackMode === "playOnly") {
+      const next = advanceQueue(room);
+      if (!next) return;
+      broadcastRoom(currentRoomCode);
+      broadcastRoomsList();
+      const title = next.label || next.type;
+      io.to(currentRoomCode).emit("room:chat", {
+        system: true,
+        kind: "nowPlaying",
+        title,
+        text: `Simdi ${title} oynatiliyor`,
+        ts: Date.now(),
+      });
+    }
   });
 
   socket.on("room:vote", ({ proposalId }: { proposalId: string }, ack) => {

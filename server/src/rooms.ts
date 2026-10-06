@@ -119,6 +119,11 @@ export interface Room {
   // Geriye donulunce TEKRAR bu yigina eklenmez (applyPlayback'in recordHistory=false
   // cagrisi), yoksa ileri-geri yapildikca ayni video sonsuza kadar birikirdi.
   videoHistory: MediaSource[];
+  // SADECE "Sadece Oynat" modunda kullanilir - bu modda video SECIMI artik
+  // host'a ozel degil, HERKES video ekleyebiliyor; ama eklenen video mevcut
+  // oynayani KESMIYOR, siraya giriyor (bkz. enqueueSource). Video dogal
+  // olarak bitince sıradaki otomatik oynatiliyor (bkz. advanceQueue).
+  videoQueue: MediaSource[];
 }
 
 const rooms = new Map<string, Room>();
@@ -182,6 +187,7 @@ export function createRoom(
     messageReactions: new Map(),
     isAdult: isAdult ?? false,
     videoHistory: [],
+    videoQueue: [],
   };
   rooms.set(code, room);
   return room;
@@ -491,6 +497,39 @@ export function goToPreviousVideo(room: Room, requesterId: string): MediaSource 
   return previous;
 }
 
+/** "Sadece Oynat" modunda video SECIMI artik host'a ozel degil - HERKES
+ * ekleyebilir, ama eklenen video mevcut oynayani KESMIYOR, siraya giriyor
+ * (bkz. advanceQueue - video dogal olarak bitince sıradaki otomatik
+ * oynatilir). Ayni video (zaten oynayan YA DA zaten sirada olan) tekrar
+ * eklenirse yeni bir kayit OLUSMAZ - "duplicate" donup sessizce yoksayilir,
+ * boylece birden fazla kisi ayni videoyu secerse kuyrukta TEK SEFER yer alir. */
+export function canEnqueueSource(room: Room): boolean {
+  return room.playbackMode === "playOnly";
+}
+
+export type EnqueueResult = "now" | "queued" | "duplicate";
+
+export function enqueueSource(room: Room, source: MediaSource): EnqueueResult {
+  if (room.playback.source && sourcesMatch(room.playback.source, source)) return "duplicate";
+  if (room.videoQueue.some((q) => sourcesMatch(q, source))) return "duplicate";
+  if (!room.playback.source) {
+    applyPlayback(room, { source, isPlaying: source.type !== "external", positionSeconds: 0, durationSeconds: null });
+    return "now";
+  }
+  room.videoQueue.push(source);
+  return "queued";
+}
+
+/** Video dogal olarak bitince (bkz. index.ts "playback:ended") "Sadece
+ * Oynat" modunda kuyruktaki bir sonraki video otomatik uygulanir - kuyruk
+ * bossa hicbir sey yapmaz (video eskisi gibi oldugu yerde durur). */
+export function advanceQueue(room: Room): MediaSource | null {
+  const next = room.videoQueue.shift();
+  if (!next) return null;
+  applyPlayback(room, { source: next, isPlaying: next.type !== "external", positionSeconds: 0, durationSeconds: null });
+  return next;
+}
+
 export function updateRoomSettings(
   room: Room,
   requesterId: string,
@@ -619,5 +658,8 @@ export function roomToPublicState(room: Room) {
     playback: { ...room.playback, positionSeconds: currentPlaybackPosition(room.playback) },
     buffering: bufferingState(room),
     hasPreviousVideo: room.videoHistory.length > 0,
+    // "Sadece Oynat" modunda sıradaki videolar - kullanicinin kendi eklediginin
+    // sıraya girdigini gorebilmesi icin (bkz. MediaPickerSheet/RoomScreen).
+    videoQueue: room.videoQueue,
   };
 }

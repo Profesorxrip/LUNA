@@ -243,6 +243,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // sarabiliyor - video SECME yetkisi (openMediaPicker/selectSource'ta ayrica
   // kontrol edilir) "vote" haric hep host'ta kalir.
   const canControlTransport = isHost || room.playbackMode === "playOnly" || room.playbackMode === "autoplay";
+  // "Sadece Oynat" modunda HERKES video ekleyebilir (siraya girer, bkz.
+  // selectSource) - "vote" modunda da herkes oneri sunabilir (oylamaya girer).
+  // Diger modlarda (leader/autoplay) secim hala sadece host'a ozel.
+  const canPickMedia = isHost || room.playbackMode === "vote" || room.playbackMode === "playOnly";
   const syncable =
     room.playback.source?.type === "youtube" || room.playback.source?.type === "hls" || room.playback.source?.type === "mp4";
 
@@ -398,16 +402,31 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       setPickerVisible(false);
       return;
     }
+    if (room.playbackMode === "playOnly") {
+      // Herkes ekleyebilir ama mevcut oynayani kesmez, siraya girer (bkz.
+      // server/src/rooms.ts enqueueSource). Sunucudan room:state ile donen
+      // yeni/degismeyen kaynagi yukardaki useEffect (satir ~344) zaten
+      // yukleyip oynatacak - burada AYRICA loadVideo cagirmiyoruz.
+      socket.emit("room:enqueueSource", { source }, () => {});
+      return;
+    }
     socket.emit("playback:update", { source, isPlaying: source.type !== "external", positionSeconds: 0 });
     if (source.type !== "external") playerRef.current?.loadVideo(source.url, 0);
   }
 
-  // Video dogal olarak bitince (sadece "vote" modunda, sadece host tetikler) -
-  // sunucu 10 saniyelik bir oylama penceresi acar, bu da asagidaki poll
-  // useEffect'inin herkeste secim ekranini otomatik acmasini tetikler.
+  // Video dogal olarak bitince: "vote" modunda sunucu 10 saniyelik bir oylama
+  // penceresi acar (asagidaki poll useEffect'i herkeste secim ekranini
+  // otomatik acar); "playOnly" modunda sunucu kuyruktaki bir sonraki videoyu
+  // otomatik oynatir (bkz. server/src/index.ts playback:ended, rooms.ts
+  // advanceQueue) - ikisinde de SADECE host'un oynaticisi tetikler.
   const handleEnded = useCallback(() => {
-    if (!isHost || room.playbackMode !== "vote" || room.poll) return;
-    socket.emit("playback:ended");
+    if (!isHost) return;
+    if (room.playbackMode === "vote") {
+      if (room.poll) return;
+      socket.emit("playback:ended");
+    } else if (room.playbackMode === "playOnly") {
+      socket.emit("playback:ended");
+    }
   }, [isHost, room.playbackMode, room.poll]);
 
   // Oylama yeni basladiginda (null -> dolu) HERKESTE secim ekranini otomatik
@@ -431,7 +450,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   }, [room.poll]);
 
   function openMediaPicker() {
-    if (!isHost && room.playbackMode !== "vote") {
+    if (!canPickMedia) {
       showAlert("Sadece lider secebilir", "Medyayi sadece oda lideri degistirebilir.");
       return;
     }
@@ -716,7 +735,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           <Icon name="settings" size={30} color={theme.text} />
         </TouchableOpacity>
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logo} resizeMode="contain" />
-        <TouchableOpacity style={[styles.iconTouch, !isHost && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
+        <TouchableOpacity style={[styles.iconTouch, !canPickMedia && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
           <Icon name="search" size={30} color={theme.text} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.participantsBadge} onPress={() => setParticipantsVisible(true)} hitSlop={8}>

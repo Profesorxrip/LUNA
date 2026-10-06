@@ -91,6 +91,9 @@ export interface RoomState {
   // server/src/rooms.ts videoHistory) - sadece host icin anlamli, misafirler
   // bu true olsa bile emit edemez (sunucu tekrar kontrol eder).
   hasPreviousVideo: boolean;
+  // "Sadece Oynat" modunda beklemede olan videolar (bkz. server/src/rooms.ts
+  // enqueueSource/advanceQueue) - diger modlarda hep bos dizi gelir.
+  videoQueue: MediaSource[];
 }
 
 export interface ChatMessage {
