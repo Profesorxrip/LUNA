@@ -1102,21 +1102,38 @@ io.on("connection", (socket: Socket) => {
   });
 
   // Video dogal olarak bittiginde (sadece host'un oynaticisindan gelir):
-  // "Haydi Oylayalim" modundaysak otomatik olarak yeni bir "sirada ne
-  // olsun" penceresi aciyoruz - herkesin ekraninda medya secme ekrani
-  // otomatik acilacak (bkz. RoomScreen.tsx room.poll useEffect'i). "Sadece
-  // Oynat" modundaysak kuyrukta bekleyen bir sonraki video varsa otomatik
-  // oynatiyoruz (bkz. rooms.ts advanceQueue). "Otomatik Oynat" modundaysak
-  // VE video YouTube ise, YouTube'un GERCEK ilgili video onerisine otomatik
-  // geciyoruz (bkz. youtubeRelated.ts) - baska hicbir platformun "ilgili"
-  // verisine erisimimiz olmadigi icin (Netflix/Disney+/Web vb. bizim icin
-  // kapali kutu bir web sitesi) o durumlarda hicbir sey yapmiyoruz.
+  // "Haydi Oylayalim" modundaysak, ONCEKI oylamadan kuyrukta bekleyen bir
+  // video varsa (bkz. rooms.ts resolvePoll - oylamayi kaybeden adaylar oy
+  // sirasina gore kuyruga girer) once onu oynatiyoruz; kuyruk BOSSA yeni bir
+  // "sirada ne olsun" penceresi aciyoruz - herkesin ekraninda medya secme
+  // ekrani otomatik acilacak (bkz. RoomScreen.tsx room.poll useEffect'i).
+  // "Sadece Oynat" modundaysak kuyrukta bekleyen bir sonraki video varsa
+  // otomatik oynatiyoruz (bkz. rooms.ts advanceQueue). "Otomatik Oynat"
+  // modundaysak VE video YouTube ise, YouTube'un GERCEK ilgili video
+  // onerisine otomatik geciyoruz (bkz. youtubeRelated.ts) - baska hicbir
+  // platformun "ilgili" verisine erisimimiz olmadigi icin (Netflix/
+  // Disney+/Web vb. bizim icin kapali kutu bir web sitesi) o durumlarda
+  // hicbir sey yapmiyoruz.
   socket.on("playback:ended", async () => {
     if (!currentRoomCode) return;
     const room = getRoom(currentRoomCode);
     if (!room || !isHost(room, socket.id)) return;
     if (room.playbackMode === "vote") {
       if (room.poll) return;
+      const queued = advanceQueue(room);
+      if (queued) {
+        broadcastRoom(currentRoomCode);
+        broadcastRoomsList();
+        const title = queued.label || queued.type;
+        io.to(currentRoomCode).emit("room:chat", {
+          system: true,
+          kind: "nowPlaying",
+          title,
+          text: `Simdi ${title} oynatiliyor`,
+          ts: Date.now(),
+        });
+        return;
+      }
       startVideoEndedPoll(room);
       pollTimers.set(currentRoomCode, setTimeout(() => resolvePollAndBroadcast(currentRoomCode!), POLL_DURATION_MS));
       broadcastRoom(currentRoomCode);

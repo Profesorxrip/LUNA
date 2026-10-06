@@ -617,9 +617,14 @@ export function castVote(room: Room, voterSocketId: string, proposalId: string):
   return true;
 }
 
-/** Suresi dolan ya da herkesin oy kullandigi bir oylamayi sonuclandirir -
- * en cok oyu alan aday (esitlikte ilk onerilen) uygulanir. Oy hic
- * kullanilmadiysa ilk oneri kazanir. Aktif oylama yoksa null doner. */
+/** Suresi dolan ya da herkesin oy kullandigi bir oylamayi sonuclandirir - TUM
+ * adaylar oy sayisina gore (azalan) siralanir, esitlikte ONCE ONERILEN
+ * one gecer. En onde olan HEMEN oynar, digerleri AYNI sirayla kuyruga
+ * girer (bkz. advanceQueue) - ornegin 5/3/1/1 oy dagiliminda once 5 oylu
+ * oynar, o bitince 3 oylu, sonra (esit 1'er oyda) erken onerilen otomatik
+ * siraya girer. Kuyruk, bu oylamanin SONUCUYLA degistirilir (onceki bir
+ * oylamadan kalan bekleyen videolar varsa onlarin yerini alir). Hic oneri
+ * yoksa null doner, oy hic kullanilmadiysa ilk oneri "kazanir". */
 export function resolvePoll(room: Room): MediaSource | null {
   const poll = room.poll;
   if (!poll || poll.proposals.length === 0) {
@@ -628,16 +633,15 @@ export function resolvePoll(room: Room): MediaSource | null {
   }
   const counts = new Map<string, number>();
   for (const proposalId of poll.votes.values()) counts.set(proposalId, (counts.get(proposalId) ?? 0) + 1);
-  let winner = poll.proposals[0];
-  let winnerVotes = counts.get(winner.id) ?? 0;
-  for (const p of poll.proposals.slice(1)) {
-    const votes = counts.get(p.id) ?? 0;
-    if (votes > winnerVotes) {
-      winner = p;
-      winnerVotes = votes;
-    }
-  }
+  const order = new Map(poll.proposals.map((p, i) => [p.id, i]));
+  const ranked = [...poll.proposals].sort((a, b) => {
+    const diff = (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0);
+    if (diff !== 0) return diff;
+    return order.get(a.id)! - order.get(b.id)!;
+  });
+  const [winner, ...rest] = ranked;
   room.poll = null;
+  room.videoQueue = rest.map((p) => p.source);
   applyPlayback(room, { source: winner.source, isPlaying: winner.source.type !== "external", positionSeconds: 0, durationSeconds: null });
   return winner.source;
 }
