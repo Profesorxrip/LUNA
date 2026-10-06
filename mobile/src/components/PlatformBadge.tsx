@@ -6,7 +6,10 @@ import type { PlatformKey } from "./PlatformLogo";
 // ekranindaki (PlatformLogo.tsx) renkli logolardan FARKLI, ayri bir set:
 // arkaplan/ic renkler temizlenip tek renkli (beyaz) siluete cevrildi,
 // yari-seffaf bir "hayalet" rozet olarak gosterilecek (bkz. DiscoverScreen).
-const BADGES: Record<PlatformKey, { source: any; ratio: number }> = {
+// "gecmis"/"begenilenler" burada YOK - bunlar gercek bir oynatma kaynagi
+// DEGIL, sadece platform secme ekranindaki birer giris noktasi, bir odanin
+// rozeti hicbir zaman bu ikisi olamaz.
+const BADGES: Partial<Record<PlatformKey, { source: any; ratio: number }>> = {
   youtube: { source: require("../../assets/badges/youtube.png"), ratio: 1.4478 },
   netflix: { source: require("../../assets/badges/netflix.png"), ratio: 0.5512 },
   primevideo: { source: require("../../assets/badges/primevideo.png"), ratio: 1.1739 },
@@ -28,7 +31,9 @@ interface Props {
 /** PlatformLogo'daki gibi ALAN bazli olceklendirme - kare bir ikon da,
  * genis bir wordmark da goze ayni buyuklukte gorunur. */
 export default function PlatformBadge({ platform, size = 16 }: Props) {
-  const { source, ratio } = BADGES[platform];
+  const badge = BADGES[platform];
+  if (!badge) return null;
+  const { source, ratio } = badge;
   const scale = Math.sqrt(ratio);
   const width = size * scale;
   const height = size / scale;

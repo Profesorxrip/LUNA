@@ -31,7 +31,7 @@ type Mode = "grid" | "youtube" | "weburl" | "history" | "liked";
 interface GridItem {
   key: string;
   label: string;
-  logo?: (typeof EXTERNAL_PLATFORMS)[number]["logo"] | "youtube" | "web";
+  logo: (typeof EXTERNAL_PLATFORMS)[number]["logo"] | "youtube" | "web";
 }
 
 const externalItems: GridItem[] = EXTERNAL_PLATFORMS.map((p) => ({ key: p.key, label: p.label, logo: p.logo }));
@@ -39,10 +39,8 @@ const ALL_ITEMS: GridItem[] = [
   { key: "youtube", label: "YouTube", logo: "youtube" },
   ...externalItems.filter((i) => i.key !== "x"),
   { key: "web", label: "Web", logo: "web" },
-  // Gercek marka logosu olmadigi icin diger kartlar gibi PlatformLogo degil,
-  // sadece buyuk harfli kalin bir yazi-logo ile gosteriliyor (bkz. renderItem).
-  { key: "history", label: "Geçmiş" },
-  { key: "liked", label: "Beğenilenler" },
+  { key: "history", label: "Geçmiş", logo: "gecmis" },
+  { key: "liked", label: "Beğenilenler", logo: "begenilenler" },
   ...externalItems.filter((i) => i.key === "x"),
 ];
 
@@ -231,13 +229,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               {visibleItems.map((item) => (
                 <TouchableOpacity key={item.key} style={styles.listItem} onPress={() => selectItem(item.key)}>
                   <View style={styles.listItemLogo}>
-                    {item.logo ? (
-                      <PlatformLogo platform={item.logo} size={64} />
-                    ) : (
-                      <Text style={styles.textLogo} numberOfLines={1} adjustsFontSizeToFit>
-                        {item.label.toLocaleUpperCase("tr-TR")}
-                      </Text>
-                    )}
+                    <PlatformLogo platform={item.logo} size={64} />
                   </View>
                 </TouchableOpacity>
               ))}
@@ -332,9 +324,6 @@ const styles = StyleSheet.create({
   list: { flexDirection: "row", flexWrap: "wrap" },
   listItem: { width: "50%", paddingVertical: 14, alignItems: "center" },
   listItemLogo: { height: 76, justifyContent: "center", paddingHorizontal: 12 },
-  // Gercek marka logosu olmayan dahili kartlar (Gecmis/Begenilenler) icin -
-  // diger wordmark'larla ayni gorsel agirlikta, sadece buyuk/kalin bir yazi.
-  textLogo: { color: "#FFFFFF", fontSize: 26, fontWeight: "800", letterSpacing: 0.5, textAlign: "center" },
   title: { color: theme.text, fontSize: 22, fontWeight: "700" },
   historyScreen: { flex: 1 },
   historyLoading: { marginTop: 60 },

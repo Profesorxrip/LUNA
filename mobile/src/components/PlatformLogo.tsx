@@ -1,7 +1,20 @@
 import React from "react";
 import { Image } from "react-native";
 
-export type PlatformKey = "youtube" | "netflix" | "primevideo" | "disneyplus" | "hbomax" | "twitch" | "x" | "drive" | "web" | "icloud" | "spotify";
+export type PlatformKey =
+  | "youtube"
+  | "netflix"
+  | "primevideo"
+  | "disneyplus"
+  | "hbomax"
+  | "twitch"
+  | "x"
+  | "drive"
+  | "web"
+  | "icloud"
+  | "spotify"
+  | "gecmis"
+  | "begenilenler";
 
 interface Props {
   platform: PlatformKey;
@@ -24,6 +37,11 @@ const REAL_LOGOS: Record<PlatformKey, { source: any; ratio: number }> = {
   hbomax: { source: require("../../assets/logos/hbomax.png"), ratio: 5.2429 },
   icloud: { source: require("../../assets/logos/icloud.png"), ratio: 5.4164 },
   spotify: { source: require("../../assets/logos/spotify.png"), ratio: 4.782 },
+  // Gercek marka logosu olmadigi icin kullanicinin gonderdigi referans
+  // tabela goruntusune (kalin Montserrat font + sparkle yildizlar) gore
+  // uretilmis dahili yazi-logolar (bkz. scripts/generate asset script).
+  gecmis: { source: require("../../assets/logos/gecmis.png"), ratio: 2.4237 },
+  begenilenler: { source: require("../../assets/logos/begenilenler.png"), ratio: 1.5537 },
 };
 
 /** Platform secim ekraninda kullanilan marka rozetleri - kullanicinin
