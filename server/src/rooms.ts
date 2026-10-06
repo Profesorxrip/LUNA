@@ -530,6 +530,25 @@ export function advanceQueue(room: Room): MediaSource | null {
   return next;
 }
 
+/** "Otomatik Oynat" modunda su ana kadar bu ODADA oynatilmis TUM YouTube
+ * video id'lerini (su anki + gecmis) dondurur - YouTube'un ilgili video
+ * onerilerinden ayni videoyu TEKRAR secmemek icin (bkz. index.ts
+ * pickNextAutoplayVideo). */
+export function playedYoutubeIdsInRoom(room: Room): Set<string> {
+  const ids = new Set<string>();
+  if (room.playback.source?.type === "youtube") ids.add(room.playback.source.url);
+  for (const s of room.videoHistory) if (s.type === "youtube") ids.add(s.url);
+  return ids;
+}
+
+/** "Otomatik Oynat" modunda video dogal olarak bitince YouTube'un GERCEK
+ * ilgili video onerisine otomatik gecer (bkz. index.ts "playback:ended",
+ * youtubeRelated.ts pickNextAutoplayVideo) - sadece YouTube kaynaklari icin
+ * calisir, baska hicbir platformun "ilgili" verisine erisimimiz yok. */
+export function applyAutoplayNext(room: Room, source: MediaSource): void {
+  applyPlayback(room, { source, isPlaying: true, positionSeconds: 0, durationSeconds: null });
+}
+
 export function updateRoomSettings(
   room: Room,
   requesterId: string,

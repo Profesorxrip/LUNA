@@ -418,13 +418,15 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // penceresi acar (asagidaki poll useEffect'i herkeste secim ekranini
   // otomatik acar); "playOnly" modunda sunucu kuyruktaki bir sonraki videoyu
   // otomatik oynatir (bkz. server/src/index.ts playback:ended, rooms.ts
-  // advanceQueue) - ikisinde de SADECE host'un oynaticisi tetikler.
+  // advanceQueue); "autoplay" modunda (sadece YouTube kaynaklarda) sunucu
+  // YouTube'un GERCEK ilgili video onerisine otomatik gecer (bkz.
+  // youtubeRelated.ts) - hepsinde SADECE host'un oynaticisi tetikler.
   const handleEnded = useCallback(() => {
     if (!isHost) return;
     if (room.playbackMode === "vote") {
       if (room.poll) return;
       socket.emit("playback:ended");
-    } else if (room.playbackMode === "playOnly") {
+    } else if (room.playbackMode === "playOnly" || room.playbackMode === "autoplay") {
       socket.emit("playback:ended");
     }
   }, [isHost, room.playbackMode, room.poll]);
@@ -538,15 +540,20 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   }
 
   // "Sıradakine gec" - her playback modunda kalbin saginda gorunur (host
-  // icin). Vote modundaysa video dogal olarak bitmeden oylamayi ERKEN acar
-  // (sunucuda zaten "playback:ended" ile BIREBIR ayni islem). Diger modlarda
-  // (lider/sadece oynat/otomatik oynat) oylama kavrami olmadigi icin dogrudan
-  // video secme ekranini acar - zaten o modlarda sadece lider secebiliyor.
+  // icin). "vote"/"autoplay" modundaysa video dogal olarak bitmeden
+  // sunucudaki otomatik gecisi ERKEN tetikler (sunucuda zaten
+  // "playback:ended" ile BIREBIR ayni islem - autoplay'de kaynak YouTube
+  // degilse sunucu sessizce hicbir sey yapmaz, cunku baska platformlarda
+  // "sıradaki" diye bir seyimiz yok). Diger modlarda (lider/sadece oynat)
+  // oylama/otomatik gecis kavrami olmadigi icin dogrudan video secme
+  // ekranini acar - zaten o modlarda sadece lider secebiliyor.
   const canSkipToNext = isHost;
   function skipToNext() {
     if (!isHost) return;
     if (room.playbackMode === "vote") {
       if (room.poll) return; // oylama zaten acik, tekrar tetiklemeye gerek yok
+      socket.emit("playback:ended");
+    } else if (room.playbackMode === "autoplay") {
       socket.emit("playback:ended");
     } else {
       openMediaPicker();

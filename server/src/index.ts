@@ -5,6 +5,7 @@ import http from "http";
 import { randomUUID } from "crypto";
 import { Server, Socket } from "socket.io";
 import { getFaviconBadge } from "./faviconBadge";
+import { pickNextAutoplayVideo } from "./youtubeRelated";
 import {
   createRoom,
   getRoom,
@@ -22,6 +23,8 @@ import {
   canEnqueueSource,
   enqueueSource,
   advanceQueue,
+  playedYoutubeIdsInRoom,
+  applyAutoplayNext,
   roomToPublicState,
   listPublicRooms,
   findActiveRoomForUser,
@@ -1103,8 +1106,12 @@ io.on("connection", (socket: Socket) => {
   // olsun" penceresi aciyoruz - herkesin ekraninda medya secme ekrani
   // otomatik acilacak (bkz. RoomScreen.tsx room.poll useEffect'i). "Sadece
   // Oynat" modundaysak kuyrukta bekleyen bir sonraki video varsa otomatik
-  // oynatiyoruz (bkz. rooms.ts advanceQueue).
-  socket.on("playback:ended", () => {
+  // oynatiyoruz (bkz. rooms.ts advanceQueue). "Otomatik Oynat" modundaysak
+  // VE video YouTube ise, YouTube'un GERCEK ilgili video onerisine otomatik
+  // geciyoruz (bkz. youtubeRelated.ts) - baska hicbir platformun "ilgili"
+  // verisine erisimimiz olmadigi icin (Netflix/Disney+/Web vb. bizim icin
+  // kapali kutu bir web sitesi) o durumlarda hicbir sey yapmiyoruz.
+  socket.on("playback:ended", async () => {
     if (!currentRoomCode) return;
     const room = getRoom(currentRoomCode);
     if (!room || !isHost(room, socket.id)) return;
@@ -1119,6 +1126,28 @@ io.on("connection", (socket: Socket) => {
       broadcastRoom(currentRoomCode);
       broadcastRoomsList();
       const title = next.label || next.type;
+      io.to(currentRoomCode).emit("room:chat", {
+        system: true,
+        kind: "nowPlaying",
+        title,
+        text: `Simdi ${title} oynatiliyor`,
+        ts: Date.now(),
+      });
+    } else if (room.playbackMode === "autoplay") {
+      const current = room.playback.source;
+      if (!current || current.type !== "youtube") return;
+      const excludeIds = playedYoutubeIdsInRoom(room);
+      const next = await pickNextAutoplayVideo(current.url, excludeIds);
+      if (!next) return;
+      // Ayni "ended" icin baska bir event araya girip odayi degistirmis
+      // olabilir (ornegin host odadan ayrildi) - async bekleme sonrasi oda
+      // hala ayni modda/durumda mi diye TEKRAR kontrol ediyoruz.
+      const freshRoom = getRoom(currentRoomCode);
+      if (!freshRoom || freshRoom.playbackMode !== "autoplay" || freshRoom.playback.source?.url !== current.url) return;
+      applyAutoplayNext(freshRoom, { type: "youtube", url: next.videoId, label: next.title || "YouTube Videosu" });
+      broadcastRoom(currentRoomCode);
+      broadcastRoomsList();
+      const title = next.title || "YouTube Videosu";
       io.to(currentRoomCode).emit("room:chat", {
         system: true,
         kind: "nowPlaying",
