@@ -93,6 +93,13 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
     socket.emit("friend:respond", { fromUserId, accept: false }, () => refresh());
   }
 
+  function sendFriendRequest(toUserId: string, name: string) {
+    socket.emit("friend:request", { toUserId }, (res: any) => {
+      if (res?.ok) showAlert("İstek gönderildi", `${name} kullanıcısına arkadaşlık isteği gönderildi.`);
+      else showAlert("Gönderilemedi", "Arkadaşlık isteği gönderilemedi, tekrar dene.");
+    });
+  }
+
   function unblock(userId: string) {
     showAlert("Engeli Kaldır", "Bu kişinin engelini kaldırmak istiyor musun?", [
       { text: "Vazgeç", style: "cancel" },
@@ -182,18 +189,23 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
             loading ? <LoadingView /> : <Text style={styles.emptyText}>Son zamanlarda aynı odaya girdiğin kimse yok.</Text>
           }
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => onOpenParticipant({ userId: item.userId, name: item.name, handle: toHandle(item.name) })}
-            >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-              </View>
-              <View style={styles.rowText}>
-                <Text style={styles.rowName}>{item.name}</Text>
-                <Text style={styles.rowHandle}>{relativeTime(item.lastTogetherMs)} önce aynı odadaydınız</Text>
-              </View>
-            </TouchableOpacity>
+            <View style={styles.row}>
+              <TouchableOpacity
+                style={styles.rowMain}
+                onPress={() => onOpenParticipant({ userId: item.userId, name: item.name, handle: toHandle(item.name) })}
+              >
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowName}>{item.name}</Text>
+                  <Text style={styles.rowHandle}>{relativeTime(item.lastTogetherMs)} önce aynı odadaydınız</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
+                <Icon name="invite" size={26} color={ACCENT} />
+              </TouchableOpacity>
+            </View>
           )}
         />
       )}
@@ -261,7 +273,7 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
                       <Icon name="close" size={16} color={MUTED} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
-                      <Icon name="invite" size={26} color={ACCENT} />
+                      <Icon name="check" size={22} color={ACCENT} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -348,6 +360,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
   },
+  rowMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
   avatar: {
     width: 48,
     height: 48,
