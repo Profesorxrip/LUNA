@@ -11,7 +11,6 @@ interface Props {
   onSkip: (deltaSeconds: number) => void;
   showSkipNext: boolean;
   onSkipNext: () => void;
-  onReport: () => void;
   onSettings: () => void;
 }
 
@@ -32,7 +31,6 @@ export default function VideoControlsOverlay({
   onSkip,
   showSkipNext,
   onSkipNext,
-  onReport,
   onSettings,
 }: Props) {
   const [visible, setVisible] = useState(false);
@@ -81,9 +79,6 @@ export default function VideoControlsOverlay({
           </View>
 
           <View style={styles.topRightRow}>
-            <TouchableOpacity style={styles.smallIconTouch} onPress={onReport} hitSlop={10}>
-              <Icon name="warning" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
             <TouchableOpacity style={styles.smallIconTouch} onPress={onSettings} hitSlop={10}>
               <Icon name="settings" size={18} color="#FFFFFF" />
             </TouchableOpacity>

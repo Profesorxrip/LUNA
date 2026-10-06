@@ -741,7 +741,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                   onSkip={skipBy}
                   showSkipNext={canSkipToNext}
                   onSkipNext={skipToNext}
-                  onReport={() => setReportVisible(true)}
                   onSettings={() => setSettingsVisible(true)}
                 />
               )}
@@ -973,6 +972,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onLeaveVoice={voice.leave}
         volume={volume}
         onVolumeChange={handleVolumeChange}
+        onReport={() => {
+          setSettingsVisible(false);
+          setReportVisible(true);
+        }}
       />
 
       {leaveConfirmVisible && (

@@ -23,6 +23,7 @@ interface Props {
   onLeaveVoice: () => void;
   volume: number;
   onVolumeChange: (v: number) => void;
+  onReport: () => void;
 }
 
 const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
@@ -74,6 +75,7 @@ export default function RoomSettingsSheet({
   onLeaveVoice,
   volume,
   onVolumeChange,
+  onReport,
 }: Props) {
   const [expanded, setExpanded] = useState<"privacy" | "playback" | null>(null);
 
@@ -190,6 +192,13 @@ export default function RoomSettingsSheet({
                 thumbColor="#FFFFFF"
               />
             </View>
+
+            <TouchableOpacity style={styles.row} onPress={onReport}>
+              <View style={styles.rowText}>
+                <Text style={[styles.rowLabel, styles.reportLabel]}>Bu odayı şikayet et</Text>
+              </View>
+              <Icon name="warning" size={22} color={theme.danger} />
+            </TouchableOpacity>
           </ScrollView>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -247,4 +256,5 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.08)",
   },
   translateLabel: { color: theme.text, fontSize: 14, fontWeight: "600" },
+  reportLabel: { color: theme.danger, fontSize: 15 },
 });
