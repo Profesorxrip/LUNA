@@ -1,7 +1,7 @@
 import React from "react";
 import { Image } from "react-native";
 
-export type PlatformKey = "youtube" | "netflix" | "primevideo" | "disneyplus" | "hbomax" | "twitch" | "x" | "drive" | "web" | "icloud";
+export type PlatformKey = "youtube" | "netflix" | "primevideo" | "disneyplus" | "hbomax" | "twitch" | "x" | "drive" | "web" | "icloud" | "spotify";
 
 interface Props {
   platform: PlatformKey;
@@ -23,6 +23,7 @@ const REAL_LOGOS: Record<PlatformKey, { source: any; ratio: number }> = {
   twitch: { source: require("../../assets/logos/twitch.png"), ratio: 3.0144 },
   hbomax: { source: require("../../assets/logos/hbomax.png"), ratio: 5.2429 },
   icloud: { source: require("../../assets/logos/icloud.png"), ratio: 5.4164 },
+  spotify: { source: require("../../assets/logos/spotify.png"), ratio: 4.782 },
 };
 
 /** Platform secim ekraninda kullanilan marka rozetleri - kullanicinin

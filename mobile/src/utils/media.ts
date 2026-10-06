@@ -10,5 +10,6 @@ export const EXTERNAL_PLATFORMS: { key: string; label: string; url: string; logo
   { key: "twitch", label: "Twitch", url: "https://www.twitch.tv", logo: "twitch" },
   { key: "drive", label: "Drive", url: "https://drive.google.com", logo: "drive" },
   { key: "icloud", label: "iCloud", url: "https://www.icloud.com", logo: "icloud" },
+  { key: "spotify", label: "Spotify", url: "https://open.spotify.com", logo: "spotify" },
   { key: "x", label: "X", url: "https://www.x.com", logo: "x" },
 ];

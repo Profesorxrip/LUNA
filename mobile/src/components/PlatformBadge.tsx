@@ -17,6 +17,7 @@ const BADGES: Record<PlatformKey, { source: any; ratio: number }> = {
   icloud: { source: require("../../assets/badges/icloud.png"), ratio: 1.5515 },
   x: { source: require("../../assets/badges/x.png"), ratio: 0.9786 },
   web: { source: require("../../assets/logos/web.png"), ratio: 0.748 },
+  spotify: { source: require("../../assets/badges/spotify.png"), ratio: 1.0 },
 };
 
 interface Props {
