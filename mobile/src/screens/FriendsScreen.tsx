@@ -89,6 +89,10 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
     socket.emit("friend:respond", { fromUserId, accept: true }, () => refresh());
   }
 
+  function decline(fromUserId: string) {
+    socket.emit("friend:respond", { fromUserId, accept: false }, () => refresh());
+  }
+
   function unblock(userId: string) {
     showAlert("Engeli Kaldır", "Bu kişinin engelini kaldırmak istiyor musun?", [
       { text: "Vazgeç", style: "cancel" },
@@ -251,9 +255,14 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
                     <Text style={styles.rowName}>{item.name}</Text>
                     <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
                   </View>
-                  <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
-                    <Icon name="invite" size={26} color={ACCENT} />
-                  </TouchableOpacity>
+                  <View style={styles.requestActions}>
+                    <TouchableOpacity onPress={() => decline(item.userId)} hitSlop={8}>
+                      <Icon name="close" size={16} color={MUTED} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
+                      <Icon name="invite" size={26} color={ACCENT} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             />
@@ -345,6 +354,7 @@ const styles = StyleSheet.create({
   rowName: { color: TEXT, fontSize: 15, fontWeight: "700" },
   rowHandle: { color: MUTED, fontSize: 12, marginTop: 2 },
   rowPreview: { color: MUTED, fontSize: 12, marginTop: 2 },
+  requestActions: { flexDirection: "row", alignItems: "center", gap: 16 },
   tabBarWrap: { position: "absolute", bottom: 24, left: 0, right: 0, alignItems: "center" },
   tabBar: {
     flexDirection: "row",
