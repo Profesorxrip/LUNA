@@ -338,8 +338,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: "#1E1A17",
   },
   avatar: {
     width: 48,
