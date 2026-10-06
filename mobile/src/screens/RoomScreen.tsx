@@ -518,14 +518,20 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     setReportVisible(false);
   }
 
-  // "Sıradakine gec" - vote modunda, video dogal olarak bitmeden host'un
-  // oylamayi ERKEN acmasi. Sunucu tarafinda zaten "playback:ended" (video
-  // bitince ayni akisi tetikleyen event) ile BIREBIR ayni islem - yeni bir
-  // sunucu kodu gerekmiyor.
-  const canSkipToNext = isHost && room.playbackMode === "vote" && !room.poll;
+  // "Sıradakine gec" - her playback modunda kalbin saginda gorunur (host
+  // icin). Vote modundaysa video dogal olarak bitmeden oylamayi ERKEN acar
+  // (sunucuda zaten "playback:ended" ile BIREBIR ayni islem). Diger modlarda
+  // (lider/sadece oynat/otomatik oynat) oylama kavrami olmadigi icin dogrudan
+  // video secme ekranini acar - zaten o modlarda sadece lider secebiliyor.
+  const canSkipToNext = isHost;
   function skipToNext() {
-    if (!canSkipToNext) return;
-    socket.emit("playback:ended");
+    if (!isHost) return;
+    if (room.playbackMode === "vote") {
+      if (room.poll) return; // oylama zaten acik, tekrar tetiklemeye gerek yok
+      socket.emit("playback:ended");
+    } else {
+      openMediaPicker();
+    }
   }
 
   // "Onceki video" - bu odada daha once oynatilmis bir kaynaga doner (bkz.
