@@ -62,7 +62,7 @@ import {
 import { verifyAccessToken, clientForUser, isSupabaseConfigured, publicReadClient } from "./supabase";
 import { lookupCountry, lookupCity, clientIpFromHandshake } from "./geoip";
 import { submitReport } from "./moderation";
-import { logRoomEvent } from "./analytics";
+import { logRoomEvent, logLikeEvent } from "./analytics";
 import { registerPushToken, unregisterPushToken, notifyIfOffline, PushPlatform } from "./notifications";
 import { isNonEmptyString, isOptionalString, isBoolean, isFiniteNumber, isOneOf } from "./validate";
 import { translateToLanguages } from "./translate";
@@ -493,6 +493,7 @@ io.on("connection", (socket: Socket) => {
         mediaLabel: row.media_label,
         mediaCoverUrl: row.media_cover_url,
         mediaType: row.media_type,
+        mediaUrl: row.media_url,
         participantCount: row.participant_count || 0,
         createdAt: new Date(row.created_at).getTime(),
       })),
@@ -515,10 +516,40 @@ io.on("connection", (socket: Socket) => {
         mediaLabel: row.media_label,
         mediaCoverUrl: row.media_cover_url,
         mediaType: row.media_type,
+        mediaUrl: row.media_url,
         participantCount: row.participant_count || 0,
         createdAt: new Date(row.created_at).getTime(),
       })),
     });
+  });
+
+  // Oda icinde izlenen videoyu "begen" - su an oynatilan medyanin GUNCEL
+  // bilgisiyle yeni bir "like" olayi olusturup begeniyi ona bagliyor (bkz.
+  // logLikeEvent aciklamasi). Geri donen eventId, "room:unlike" ile geri
+  // almak icin istemcide tutulur.
+  socket.on("room:like", async (_data, ack) => {
+    if (!requireAuth(ack)) return;
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    const room = getRoom(currentRoomCode);
+    if (!room || !room.playback.source) return ack?.({ ok: false, error: "Su an oynatilan bir video yok." });
+    const eventId = await logLikeEvent(myDb!, myUserId!, room.code, room.title, {
+      participantCount: room.participants.size,
+      coverUrl: room.playback.source.coverUrl ?? null,
+      type: room.playback.source.type,
+      url: room.playback.source.url,
+    });
+    if (!eventId) return ack?.({ ok: false, error: "Begenilemedi, tekrar dene." });
+    const { error } = await myDb!.from("room_event_likes").insert({ event_id: eventId, user_id: myUserId });
+    if (error) return ack?.({ ok: false, error: "Begenilemedi, tekrar dene." });
+    ack?.({ ok: true, eventId });
+  });
+
+  socket.on("room:unlike", async ({ eventId }: { eventId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(eventId, 200)) return ack?.({ ok: false });
+    // RLS zaten "user_id = auth.uid()" ile sinirliyor - baskasinin begenisini
+    // silemezsin, ekstra kontrole gerek yok.
+    await myDb!.from("room_event_likes").delete().eq("event_id", eventId).eq("user_id", myUserId);
+    ack?.({ ok: true });
   });
 
   // Profildeki "su an acik odasi" karti - hedef kullanici gercekten acik

@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { LinearGradient } from "expo-linear-gradient";
+import { getSocket, HistoryItem, SourceType } from "../services/socket";
 import type { MediaSource } from "../services/socket";
+import { supabase } from "../services/supabase";
 import { theme } from "../theme";
 import { EXTERNAL_PLATFORMS } from "../utils/media";
 import { extractYouTubeId, fetchYouTubeTitle } from "../utils/youtube";
 import PlatformLogo from "./PlatformLogo";
-import Icon from "./Icon";
+import Icon, { IconName } from "./Icon";
+import { showAlert } from "./CustomAlert";
 
 interface Props {
   visible: boolean;
@@ -23,13 +26,24 @@ interface Props {
   relatedVideosFor?: string | null;
 }
 
-type Mode = "grid" | "youtube" | "weburl";
+type Mode = "grid" | "youtube" | "weburl" | "history" | "liked";
 
-const externalItems = EXTERNAL_PLATFORMS.map((p) => ({ key: p.key, label: p.label, logo: p.logo }));
-const ALL_ITEMS = [
-  { key: "youtube", label: "YouTube", logo: "youtube" as const },
+interface GridItem {
+  key: string;
+  label: string;
+  logo?: (typeof EXTERNAL_PLATFORMS)[number]["logo"] | "youtube" | "web";
+  icon?: IconName;
+}
+
+const externalItems: GridItem[] = EXTERNAL_PLATFORMS.map((p) => ({ key: p.key, label: p.label, logo: p.logo }));
+const ALL_ITEMS: GridItem[] = [
+  { key: "youtube", label: "YouTube", logo: "youtube" },
   ...externalItems.filter((i) => i.key !== "x"),
-  { key: "web", label: "Web", logo: "web" as const },
+  { key: "web", label: "Web", logo: "web" },
+  // Gercek marka logosu olmadigi icin diger kartlar gibi PlatformLogo degil,
+  // ikon+yazi ile gosteriliyor (bkz. renderItem).
+  { key: "history", label: "Geçmiş", icon: "clock" },
+  { key: "liked", label: "Beğenilenler", icon: "heart" },
   ...externalItems.filter((i) => i.key === "x"),
 ];
 
@@ -51,6 +65,14 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   const [loadingTitle, setLoadingTitle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const detectedVideoRef = useRef<string | null>(null);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [likedItems, setLikedItems] = useState<HistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
+  }, []);
 
   useEffect(() => {
     if (visible && relatedVideosFor !== undefined) {
@@ -116,9 +138,44 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
       setMode("weburl");
       return;
     }
+    if (key === "history" || key === "liked") {
+      setMode(key);
+      loadHistory(key);
+      return;
+    }
     const platform = EXTERNAL_PLATFORMS.find((p) => p.key === key);
     if (!platform) return;
     onSelect({ type: "external", url: platform.url, label: platform.label });
+    handleClose();
+  }
+
+  // "Geçmiş"/"Beğenilenler" karti acilinca kendi gecmisimizi/begenilerimizi
+  // ceker - UserProfileScreen'deki ayni isimli sekmelerle AYNI veri kaynagi
+  // (user:roomHistory/user:likedHistory), burada sadece secilip AYNI videoyla
+  // yeni bir oda acmak icin kullaniliyor.
+  function loadHistory(kind: "history" | "liked") {
+    if (!myUserId) return;
+    setLoadingHistory(true);
+    const event = kind === "history" ? "user:roomHistory" : "user:likedHistory";
+    getSocket().emit(event, { userId: myUserId }, (res: any) => {
+      setLoadingHistory(false);
+      if (!res?.ok) return;
+      if (kind === "history") setHistoryItems(res.history);
+      else setLikedItems(res.history);
+    });
+  }
+
+  function selectHistoryItem(item: HistoryItem) {
+    if (!item.mediaUrl || !item.mediaType) {
+      showAlert("Açılamadı", "Bu video artık açılamıyor.");
+      return;
+    }
+    onSelect({
+      type: item.mediaType as SourceType,
+      url: item.mediaUrl,
+      label: item.mediaLabel,
+      coverUrl: item.mediaCoverUrl || undefined,
+    });
     handleClose();
   }
 
@@ -175,12 +232,48 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               {visibleItems.map((item) => (
                 <TouchableOpacity key={item.key} style={styles.listItem} onPress={() => selectItem(item.key)}>
                   <View style={styles.listItemLogo}>
-                    <PlatformLogo platform={item.logo} size={64} />
+                    {item.logo ? (
+                      <PlatformLogo platform={item.logo} size={64} />
+                    ) : (
+                      <View style={styles.specialTile}>
+                        <Icon name={item.icon!} size={28} color="#FFFFFF" />
+                        <Text style={styles.specialTileLabel}>{item.label}</Text>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
               ))}
             </View>
           </>
+        ) : mode === "history" || mode === "liked" ? (
+          <ScrollView style={styles.historyScreen} showsVerticalScrollIndicator={false}>
+            <Text style={styles.title}>{mode === "liked" ? "Beğenilenler" : "Geçmiş"}</Text>
+            {loadingHistory ? (
+              <ActivityIndicator color="#FFFFFF" size="large" style={styles.historyLoading} />
+            ) : (mode === "liked" ? likedItems : historyItems).length === 0 ? (
+              <Text style={styles.historyEmptyText}>
+                {mode === "liked" ? "Henüz beğendiğin bir video yok." : "Henüz izleme geçmişin yok."}
+              </Text>
+            ) : (
+              <View style={styles.historyGrid}>
+                {(mode === "liked" ? likedItems : historyItems).map((item) => (
+                  <TouchableOpacity key={item.eventId} style={styles.historyCard} onPress={() => selectHistoryItem(item)}>
+                    <View style={styles.historyThumb}>
+                      {item.mediaCoverUrl ? (
+                        <Image source={{ uri: item.mediaCoverUrl }} style={styles.historyThumbImage} />
+                      ) : (
+                        <Icon name="play" size={20} color="#FFFFFF" />
+                      )}
+                    </View>
+                    <Text style={styles.historyTitle} numberOfLines={2}>
+                      {item.mediaLabel}
+                    </Text>
+                    <Text style={styles.historyMeta}>{item.participantCount} kişi</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </ScrollView>
         ) : mode === "youtube" ? (
           <View style={styles.youtubeContainer}>
             <WebView
@@ -241,7 +334,29 @@ const styles = StyleSheet.create({
   list: { flexDirection: "row", flexWrap: "wrap" },
   listItem: { width: "50%", paddingVertical: 14, alignItems: "center" },
   listItemLogo: { height: 76, justifyContent: "center" },
+  specialTile: { alignItems: "center", gap: 6 },
+  specialTileLabel: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
   title: { color: theme.text, fontSize: 22, fontWeight: "700" },
+  historyScreen: { flex: 1 },
+  historyLoading: { marginTop: 60 },
+  historyEmptyText: { color: theme.textMuted, fontSize: 14, marginTop: 40, textAlign: "center" },
+  historyGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 20 },
+  historyCard: { width: "48%", marginBottom: 20 },
+  historyThumb: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    borderRadius: 10,
+    backgroundColor: "#15151a",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    marginBottom: 8,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  historyThumbImage: { width: "100%", height: "100%" },
+  historyTitle: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
+  historyMeta: { color: theme.textMuted, fontSize: 11, fontWeight: "600", marginTop: 3 },
   formBox: { backgroundColor: theme.bg, borderRadius: 16, padding: 20, gap: 16, marginTop: 20 },
   input: {
     backgroundColor: theme.surfaceAlt,

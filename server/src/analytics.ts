@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export type RoomEventType = "create" | "join" | "leave";
+export type RoomEventType = "create" | "join" | "leave" | "like";
 
 export interface RoomEventMedia {
   participantCount?: number;
@@ -38,5 +38,39 @@ export async function logRoomEvent(
     });
   } catch {
     // best-effort - analitik kaydinin basarisiz olmasi kullaniciyi etkilemez.
+  }
+}
+
+/** Odada izlenen videoyu "begenme" - get_user_room_history'nin filtreledigi
+ * ('create'/'join' disinda kalan) ayri bir "like" olayi olarak, O ANKI
+ * oynatilan medyanin GUNCEL bilgisiyle kaydedilir (katilma anindan beri
+ * video degismis olabilir, o yuzden mevcut join/create kaydini degil YENI
+ * bir kayit kullaniyoruz). Donen id, room_event_likes'a eklenecek. */
+export async function logLikeEvent(
+  db: SupabaseClient,
+  userId: string,
+  roomCode: string,
+  mediaLabel: string | null,
+  media: RoomEventMedia
+): Promise<string | null> {
+  try {
+    const { data, error } = await db
+      .from("room_events")
+      .insert({
+        user_id: userId,
+        room_code: roomCode,
+        event_type: "like" as RoomEventType,
+        media_label: mediaLabel || null,
+        participant_count: media.participantCount ?? null,
+        media_cover_url: media.coverUrl ?? null,
+        media_type: media.type ?? null,
+        media_url: media.url ?? null,
+      })
+      .select("id")
+      .single();
+    if (error || !data) return null;
+    return data.id as string;
+  } catch {
+    return null;
   }
 }

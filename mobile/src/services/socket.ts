@@ -152,6 +152,21 @@ export interface DiscoverSections {
   open: PublicRoomSummary[];
 }
 
+// Profil ekranindaki "Geçmiş"/"Beğenilenler" sekmeleri VE platform secme
+// ekranindaki ayni isimli izgaralar icin ortak satir tipi (bkz. "user:
+// roomHistory"/"user:likedHistory"). mediaUrl/mediaType doluysa bu video
+// AYNI kaynakla yeniden acilabilir (bkz. MediaPickerSheet).
+export interface HistoryItem {
+  eventId: string;
+  roomCode: string;
+  mediaLabel: string;
+  mediaCoverUrl: string | null;
+  mediaType: string | null;
+  mediaUrl: string | null;
+  participantCount: number;
+  createdAt: number;
+}
+
 export interface RoomParticipantDetail {
   userId: string | null;
   name: string;

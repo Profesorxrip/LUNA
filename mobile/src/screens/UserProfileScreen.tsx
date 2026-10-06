@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../services/supabase";
-import { getSocket, PublicRoomSummary } from "../services/socket";
+import { getSocket, PublicRoomSummary, HistoryItem } from "../services/socket";
 import Icon, { IconName } from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import CountryFlag from "../components/CountryFlag";
@@ -58,16 +58,6 @@ interface ActivityStats {
   longestSessionHours: number;
   biggestRoom: number;
   daily: Record<string, number>;
-}
-
-interface HistoryItem {
-  eventId: string;
-  roomCode: string;
-  mediaLabel: string;
-  mediaCoverUrl: string | null;
-  mediaType: string | null;
-  participantCount: number;
-  createdAt: number;
 }
 
 interface GalleryPhoto {

@@ -216,6 +216,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [volume, setVolume] = useState(1);
+  // Su an izlenen video "begenilmis" mi - sunucunun dondurdugu eventId,
+  // begeniyi geri almak (room:unlike) icin saklaniyor. Oda kodu/video
+  // degisince (asagidaki useEffect) sifirlanir - eski videonun begenisi
+  // yeni videoya tasinmaz.
+  const [likedEventId, setLikedEventId] = useState<string | null>(null);
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
   // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
@@ -425,6 +430,25 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     setPickerVisible(true);
   }
 
+  // Video degisince (host yeni bir kaynak secince) eski videonun begeni
+  // durumu yeni videoya YANLISLIKLA tasinmasin diye sifirlaniyor.
+  useEffect(() => {
+    setLikedEventId(null);
+  }, [room.playback.source?.url]);
+
+  function toggleLike() {
+    if (!room.playback.source) return;
+    if (likedEventId) {
+      const eventId = likedEventId;
+      setLikedEventId(null);
+      socket.emit("room:unlike", { eventId }, () => {});
+      return;
+    }
+    socket.emit("room:like", {}, (res: any) => {
+      if (res?.ok) setLikedEventId(res.eventId);
+    });
+  }
+
   function shareRoom() {
     Share.share({ message: `LUNA'da "${room.title}" odama katil! Kod: ${room.code}` }).catch(() => {});
   }
@@ -601,6 +625,9 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logo} resizeMode="contain" />
         <TouchableOpacity style={[styles.iconTouch, !isHost && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
           <Icon name="search" size={30} color={theme.text} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconTouch} onPress={toggleLike} hitSlop={8}>
+          <Icon name={likedEventId ? "heart" : "heartOutline"} size={26} color={likedEventId ? "#E34848" : theme.text} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.participantsBadge} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
           <Icon name="people" size={30} color={theme.text} />
