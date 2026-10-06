@@ -9,7 +9,7 @@ import { theme } from "../theme";
 import { EXTERNAL_PLATFORMS } from "../utils/media";
 import { extractYouTubeId, fetchYouTubeTitle } from "../utils/youtube";
 import PlatformLogo from "./PlatformLogo";
-import Icon, { IconName } from "./Icon";
+import Icon from "./Icon";
 import { showAlert } from "./CustomAlert";
 
 interface Props {
@@ -32,7 +32,6 @@ interface GridItem {
   key: string;
   label: string;
   logo?: (typeof EXTERNAL_PLATFORMS)[number]["logo"] | "youtube" | "web";
-  icon?: IconName;
 }
 
 const externalItems: GridItem[] = EXTERNAL_PLATFORMS.map((p) => ({ key: p.key, label: p.label, logo: p.logo }));
@@ -41,9 +40,9 @@ const ALL_ITEMS: GridItem[] = [
   ...externalItems.filter((i) => i.key !== "x"),
   { key: "web", label: "Web", logo: "web" },
   // Gercek marka logosu olmadigi icin diger kartlar gibi PlatformLogo degil,
-  // ikon+yazi ile gosteriliyor (bkz. renderItem).
-  { key: "history", label: "Geçmiş", icon: "clock" },
-  { key: "liked", label: "Beğenilenler", icon: "heart" },
+  // sadece buyuk harfli kalin bir yazi-logo ile gosteriliyor (bkz. renderItem).
+  { key: "history", label: "Geçmiş" },
+  { key: "liked", label: "Beğenilenler" },
   ...externalItems.filter((i) => i.key === "x"),
 ];
 
@@ -235,10 +234,9 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                     {item.logo ? (
                       <PlatformLogo platform={item.logo} size={64} />
                     ) : (
-                      <View style={styles.specialTile}>
-                        <Icon name={item.icon!} size={28} color="#FFFFFF" />
-                        <Text style={styles.specialTileLabel}>{item.label}</Text>
-                      </View>
+                      <Text style={styles.textLogo} numberOfLines={1} adjustsFontSizeToFit>
+                        {item.label.toLocaleUpperCase("tr-TR")}
+                      </Text>
                     )}
                   </View>
                 </TouchableOpacity>
@@ -333,9 +331,10 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: "#FFFFFF", fontSize: 16, outlineWidth: 0, outlineStyle: "none" } as any,
   list: { flexDirection: "row", flexWrap: "wrap" },
   listItem: { width: "50%", paddingVertical: 14, alignItems: "center" },
-  listItemLogo: { height: 76, justifyContent: "center" },
-  specialTile: { alignItems: "center", gap: 6 },
-  specialTileLabel: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
+  listItemLogo: { height: 76, justifyContent: "center", paddingHorizontal: 12 },
+  // Gercek marka logosu olmayan dahili kartlar (Gecmis/Begenilenler) icin -
+  // diger wordmark'larla ayni gorsel agirlikta, sadece buyuk/kalin bir yazi.
+  textLogo: { color: "#FFFFFF", fontSize: 26, fontWeight: "800", letterSpacing: 0.5, textAlign: "center" },
   title: { color: theme.text, fontSize: 22, fontWeight: "700" },
   historyScreen: { flex: 1 },
   historyLoading: { marginTop: 60 },
