@@ -261,15 +261,15 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
       <View style={styles.tabBarWrap}>
         <View style={styles.tabBar}>
           <TouchableOpacity style={styles.tabItem} onPress={() => setTab("friends")}>
-            <Icon name="people" size={20} color={tab === "friends" ? TEXT : MUTED} />
+            <Icon name="people" size={24} color={tab === "friends" ? TEXT : MUTED} />
             <Text style={[styles.tabLabel, tab === "friends" && styles.tabLabelActive]}>Arkadaşlar</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tabItem} onPress={() => setTab("recent")}>
-            <Icon name="clock" size={20} color={tab === "recent" ? TEXT : MUTED} />
+            <Icon name="clock" size={24} color={tab === "recent" ? TEXT : MUTED} />
             <Text style={[styles.tabLabel, tab === "recent" && styles.tabLabelActive]}>Son Zamanlarda</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tabItem} onPress={() => setTab("blocked")}>
-            <Icon name="personBlock" size={20} color={tab === "blocked" ? TEXT : MUTED} />
+            <Icon name="personBlock" size={24} color={tab === "blocked" ? TEXT : MUTED} />
             <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
           </TouchableOpacity>
         </View>
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   rowHandle: { color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },
   rowPreview: { color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },
   requestActions: { flexDirection: "row", alignItems: "center", gap: 16 },
-  tabBarWrap: { position: "absolute", bottom: 24, left: 0, right: 0, alignItems: "center" },
+  tabBarWrap: { position: "absolute", bottom: 34, left: 0, right: 0, alignItems: "center" },
   tabBar: {
     flexDirection: "row",
     backgroundColor: "rgba(20,18,16,0.95)",
