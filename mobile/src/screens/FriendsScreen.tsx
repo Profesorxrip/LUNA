@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   requestsBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   backdrop: { flex: 1, backgroundColor: BG, justifyContent: "flex-end" },
   sheet: {
-    backgroundColor: "#141210",
+    backgroundColor: BG,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
