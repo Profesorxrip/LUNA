@@ -17,6 +17,7 @@ import {
   startVideoEndedPoll,
   castVote,
   resolvePoll,
+  goToPreviousVideo,
   roomToPublicState,
   listPublicRooms,
   findActiveRoomForUser,
@@ -921,6 +922,29 @@ io.on("connection", (socket: Socket) => {
       }
     }
   );
+
+  // Rave'deki gibi, videonun ustundeki overlay'de kalbin SOLUNDAKI "onceki
+  // video" ikonu - bu odada daha once oynatilmis bir onceki kaynaga doner
+  // (bkz. rooms.ts goToPreviousVideo/videoHistory). Sadece host, ve gercekten
+  // geri donulecek bir video varsa.
+  socket.on("room:previousVideo", (_data, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    const previous = goToPreviousVideo(room, socket.id);
+    if (!previous) return ack?.({ ok: false, error: "Geri donulecek video yok." });
+    ack?.({ ok: true });
+    broadcastRoom(currentRoomCode);
+    broadcastRoomsList();
+    const title = previous.label || previous.type;
+    io.to(currentRoomCode).emit("room:chat", {
+      system: true,
+      kind: "nowPlaying",
+      title,
+      text: `Simdi ${title} oynatiliyor`,
+      ts: Date.now(),
+    });
+  });
 
   // Ayarlar ekrani: GIZLILIK / PLAYBACK / sohbet otomatik ceviri / 18+ icerik - sadece host.
   socket.on(

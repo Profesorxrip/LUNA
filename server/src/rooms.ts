@@ -114,6 +114,11 @@ export interface Room {
   // "Yetiskin Icerigini Gizle" acik olan kullanicilarin Discover listesinde
   // bu oda hic gorunmez (bkz. visibleToViewer).
   isAdult: boolean;
+  // Bu odada su ana kadar oynatilmis onceki kaynaklarin yigini (mevcut
+  // oynayan HARIC) - "onceki videoya don" ozelligi icin (bkz. goToPreviousVideo).
+  // Geriye donulunce TEKRAR bu yigina eklenmez (applyPlayback'in recordHistory=false
+  // cagrisi), yoksa ileri-geri yapildikca ayni video sonsuza kadar birikirdi.
+  videoHistory: MediaSource[];
 }
 
 const rooms = new Map<string, Room>();
@@ -176,6 +181,7 @@ export function createRoom(
     bufferingSocketIds: new Set(),
     messageReactions: new Map(),
     isAdult: isAdult ?? false,
+    videoHistory: [],
   };
   rooms.set(code, room);
   return room;
@@ -443,7 +449,12 @@ export function canControlTransport(room: Room, socketId: string): boolean {
 
 // Host kontrolu YAPMADAN dogrudan uygular - sadece bu dosya icindeki, zaten
 // yetkiyi kendisi kontrol eden cagiranlar (oy sonucu uygulama gibi) icin.
-function applyPlayback(room: Room, update: Partial<PlaybackState>) {
+// recordHistory=false SADECE goToPreviousVideo'nun kendisinden gelir - geriye
+// donus videoHistory yigininin KENDISINI tuketiyor, tekrar oraya eklenmez.
+function applyPlayback(room: Room, update: Partial<PlaybackState>, recordHistory = true) {
+  if (recordHistory && update.source && room.playback.source && !sourcesMatch(room.playback.source, update.source)) {
+    room.videoHistory.push(room.playback.source);
+  }
   room.playback = { ...room.playback, ...update, updatedAtMs: Date.now() };
   if (update.source?.label) room.title = update.source.label;
 }
@@ -460,6 +471,24 @@ export function updatePlayback(
   }
   applyPlayback(room, update);
   return true;
+}
+
+// "Onceki video" - sadece host, ve odada gercekten daha once oynatilmis bir
+// video varsa kullanilabilir (vote modunda bile - bu, oylamadan BAGIMSIZ bir
+// "geri don" eylemi, yeni bir secim/oy degil).
+export function canGoToPreviousVideo(room: Room, requesterId: string): boolean {
+  return room.videoHistory.length > 0 && isHost(room, requesterId);
+}
+
+export function goToPreviousVideo(room: Room, requesterId: string): MediaSource | null {
+  if (!canGoToPreviousVideo(room, requesterId)) return null;
+  const previous = room.videoHistory.pop()!;
+  applyPlayback(
+    room,
+    { source: previous, isPlaying: previous.type !== "external", positionSeconds: 0, durationSeconds: null },
+    false
+  );
+  return previous;
 }
 
 export function updateRoomSettings(
@@ -589,5 +618,6 @@ export function roomToPublicState(room: Room) {
     participants: Array.from(room.participants.values()),
     playback: { ...room.playback, positionSeconds: currentPlaybackPosition(room.playback) },
     buffering: bufferingState(room),
+    hasPreviousVideo: room.videoHistory.length > 0,
   };
 }

@@ -35,6 +35,7 @@ import {
   PauseIcon,
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
+  BackwardIcon,
 } from "react-native-heroicons/solid";
 import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
 import { MicOff, Hourglass, Crown, RotateCcw, RotateCw } from "lucide-react-native";
@@ -71,6 +72,7 @@ export type IconName =
   | "pin"
   | "crown"
   | "fastForward"
+  | "fastBackward"
   | "phone"
   | "kicked"
   | "reply"
@@ -122,6 +124,7 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   check: CheckIcon,
   pin: MapPinIcon,
   fastForward: ForwardIcon,
+  fastBackward: BackwardIcon,
   phone: PhoneIcon,
   kicked: ArrowRightOnRectangleIcon,
   reply: ArrowUturnLeftIcon,

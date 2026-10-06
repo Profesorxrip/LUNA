@@ -87,6 +87,10 @@ export interface RoomState {
   participants: Participant[];
   playback: PlaybackState;
   buffering: BufferingState;
+  // Bu odada "onceki video" ikonuyla donulebilecek bir kayit var mi (bkz.
+  // server/src/rooms.ts videoHistory) - sadece host icin anlamli, misafirler
+  // bu true olsa bile emit edemez (sunucu tekrar kontrol eder).
+  hasPreviousVideo: boolean;
 }
 
 export interface ChatMessage {

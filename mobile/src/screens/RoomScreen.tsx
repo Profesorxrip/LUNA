@@ -528,6 +528,14 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     socket.emit("playback:ended");
   }
 
+  // "Onceki video" - bu odada daha once oynatilmis bir kaynaga doner (bkz.
+  // server/src/rooms.ts videoHistory) - vote modu dahil her modda, sadece host.
+  const canGoToPreviousVideo = isHost && room.hasPreviousVideo;
+  function goToPreviousVideo() {
+    if (!canGoToPreviousVideo) return;
+    socket.emit("room:previousVideo", {}, () => {});
+  }
+
   function shareRoom() {
     Share.share({ message: `LUNA'da "${room.title}" odama katil! Kod: ${room.code}` }).catch(() => {});
   }
@@ -739,6 +747,8 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                   onToggleLike={toggleLike}
                   onPlayPause={togglePlayPause}
                   onSkip={skipBy}
+                  showSkipPrevious={canGoToPreviousVideo}
+                  onSkipPrevious={goToPreviousVideo}
                   showSkipNext={canSkipToNext}
                   onSkipNext={skipToNext}
                   onSettings={() => setSettingsVisible(true)}

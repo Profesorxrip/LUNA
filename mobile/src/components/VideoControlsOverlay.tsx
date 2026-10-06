@@ -9,6 +9,8 @@ interface Props {
   onToggleLike: () => void;
   onPlayPause: () => void;
   onSkip: (deltaSeconds: number) => void;
+  showSkipPrevious: boolean;
+  onSkipPrevious: () => void;
   showSkipNext: boolean;
   onSkipNext: () => void;
   onSettings: () => void;
@@ -29,6 +31,8 @@ export default function VideoControlsOverlay({
   onToggleLike,
   onPlayPause,
   onSkip,
+  showSkipPrevious,
+  onSkipPrevious,
   showSkipNext,
   onSkipNext,
   onSettings,
@@ -68,6 +72,11 @@ export default function VideoControlsOverlay({
       {visible && (
         <>
           <View style={styles.topRow}>
+            {showSkipPrevious && (
+              <TouchableOpacity style={styles.smallIconTouch} onPress={onSkipPrevious} hitSlop={10}>
+                <Icon name="fastBackward" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.smallIconTouch} onPress={onToggleLike} hitSlop={10}>
               <Icon name={liked ? "heart" : "heartOutline"} size={20} color={liked ? "#E34848" : "#FFFFFF"} />
             </TouchableOpacity>
