@@ -4,6 +4,7 @@ import cors from "cors";
 import http from "http";
 import { randomUUID } from "crypto";
 import { Server, Socket } from "socket.io";
+import { getFaviconBadge } from "./faviconBadge";
 import {
   createRoom,
   getRoom,
@@ -104,6 +105,18 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/health", (_req, res) => res.json({ ok: true, supabase: isSupabaseConfigured() }));
+
+// "Web" ile girilip markali bir platformla eslesmeyen genel siteler icin -
+// sitenin kendi favicon'unu ceker, digerleri gibi beyaz "hayalet" siluete
+// cevirip dondurur (bkz. faviconBadge.ts, mobile/src/utils/media.ts).
+app.get("/favicon-badge", async (req, res) => {
+  const domain = String(req.query.domain || "");
+  const buffer = await getFaviconBadge(domain);
+  if (!buffer) return res.status(404).end();
+  res.set("Content-Type", "image/png");
+  res.set("Cache-Control", "public, max-age=86400");
+  res.send(buffer);
+});
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });

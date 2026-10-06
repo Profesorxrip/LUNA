@@ -2,39 +2,16 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, StyleProp, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import { PublicRoomSummary, MediaSource } from "../services/socket";
+import { PublicRoomSummary } from "../services/socket";
 import { theme } from "../theme";
 import PlatformBadge from "./PlatformBadge";
 import AdultBadge from "./AdultBadge";
-import { PlatformKey } from "./PlatformLogo";
-import { EXTERNAL_PLATFORMS } from "../utils/media";
+import { badgeInfoForSource } from "../utils/media";
 
 function sourceIcon(type: string): string {
   if (type === "hls" || type === "mp4") return "🎬";
   if (type === "external") return "🔗";
   return "▶";
-}
-
-// "https://www.netflix.com" -> "netflix.com" - URL polyfiline bagli kalmadan
-// basit bir alan adi karsilastirmasi icin.
-function bareDomain(url: string): string {
-  return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
-}
-
-// Kartin kapak resminde sag ust rozet icin - kaynagin hangi platforma ait
-// oldugunu bulur (harici platformlar url'e gore eslestirilir).
-function platformKeyForSource(source: MediaSource | null): PlatformKey | null {
-  if (!source) return null;
-  if (source.type === "youtube") return "youtube";
-  if (source.type === "external") {
-    const match = EXTERNAL_PLATFORMS.find((p) => bareDomain(source.url).includes(bareDomain(p.url)));
-    // Markali bir platformla eslesmeyen harici linkler ("Web" secenegiyle
-    // yapistirilan genel sayfalar) icin kure rozeti dusuyoruz.
-    return match?.logo ?? "web";
-  }
-  // .mp4/.m3u8 direkt linkleri de "Web" secenegiyle yapistiriliyor.
-  if (source.type === "hls" || source.type === "mp4") return "web";
-  return null;
 }
 
 const AVATAR_COLORS = ["#3A2F22", "#1F3D24", "#2E4A2F", "#4A3B22"];
@@ -52,7 +29,7 @@ interface Props {
  * "su an acik odasi") ayni kart gerekirse BURADAN kullanilir, kopyalanmaz -
  * boylece ikisi her zaman birebir ayni gorunur. */
 export default function RoomCard({ room, friendIds = new Set(), onPress, onLongPress, onOpenParticipant, style }: Props) {
-  const platformKey = platformKeyForSource(room.source);
+  const badgeInfo = badgeInfoForSource(room.source);
   return (
     <TouchableOpacity style={[styles.card, style]} onPress={onPress} onLongPress={onLongPress} delayLongPress={350}>
       {room.source?.coverUrl ? (
@@ -70,9 +47,9 @@ export default function RoomCard({ room, friendIds = new Set(), onPress, onLongP
       {room.isAdult && (
         <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
       )}
-      {platformKey && (
+      {badgeInfo && (
         <View style={styles.platformBadge} pointerEvents="none">
-          <PlatformBadge platform={platformKey} size={26} />
+          <PlatformBadge platform={badgeInfo.key} faviconUrl={badgeInfo.faviconUrl} size={26} />
         </View>
       )}
       {room.isAdult && (

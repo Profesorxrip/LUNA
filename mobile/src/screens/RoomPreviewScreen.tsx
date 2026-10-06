@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
-import { getSocket, PublicRoomSummary, RoomParticipantDetail, MediaSource, PrivacyLevel } from "../services/socket";
+import { getSocket, PublicRoomSummary, RoomParticipantDetail, PrivacyLevel } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
@@ -9,32 +9,13 @@ import LoadingView from "../components/LoadingView";
 import PlatformBadge from "../components/PlatformBadge";
 import AdultBadge from "../components/AdultBadge";
 import CountryFlag from "../components/CountryFlag";
-import { PlatformKey } from "../components/PlatformLogo";
-import { EXTERNAL_PLATFORMS } from "../utils/media";
+import { badgeInfoForSource } from "../utils/media";
 
 interface Props {
   room: PublicRoomSummary;
   onBack: () => void;
   onJoin: () => void;
   onOpenParticipant: (peer: { userId: string; name: string; handle?: string }) => void;
-}
-
-function bareDomain(url: string): string {
-  return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
-}
-
-function platformInfo(source: MediaSource | null): { key: PlatformKey; label: string } | null {
-  if (!source) return null;
-  if (source.type === "youtube") return { key: "youtube", label: "YouTube" };
-  if (source.type === "external") {
-    const match = EXTERNAL_PLATFORMS.find((p) => bareDomain(source.url).includes(bareDomain(p.url)));
-    // Markali bir platformla eslesmeyen harici linkler ("Web" secenegiyle
-    // yapistirilan genel sayfalar) icin kure rozeti dusuyoruz.
-    return match ? { key: match.logo, label: match.label } : { key: "web", label: "Web" };
-  }
-  // .mp4/.m3u8 direkt linkleri de "Web" secenegiyle yapistiriliyor.
-  if (source.type === "hls" || source.type === "mp4") return { key: "web", label: "Web" };
-  return null;
 }
 
 const AVATAR_COLORS = ["#3A2F22", "#1F3D24", "#2E4A2F", "#4A3B22"];
@@ -83,7 +64,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
     return () => clearInterval(timer);
   }, [room.isPlaying, hasEnded, hasDuration]);
 
-  const platform = platformInfo(room.source);
+  const platform = badgeInfoForSource(room.source);
   const isExternal = room.source?.type === "external";
   const statusText = hasEnded ? "Bitti" : room.isPlaying ? "Oynatılıyor" : "Duraklatıldı";
 
@@ -116,7 +97,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
         </View>
         {platform && (
           <View style={styles.platformBadge}>
-            <PlatformBadge platform={platform.key} size={30} />
+            <PlatformBadge platform={platform.key} faviconUrl={platform.faviconUrl} size={30} />
           </View>
         )}
         {room.isAdult && (
