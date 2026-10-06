@@ -57,6 +57,11 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
   // friends:list - kasten sadeleştirildi) sadece bu ekranda, bu oturumda
   // gonderilenleri hatirliyoruz; buton kum saatine donup iptal edilebiliyor.
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+  // Engeli kaldirinca satir hemen kaybolmuyor - "arkadaslik istegi gonder"
+  // ikonuna donup, sekme degistirilip geri donulene (ya da son zamanlarda/
+  // arkadaslara gecilene) kadar orada kaliyor; o an refresh() gercek
+  // (artik engelli olmayan) listeyi getirip satiri dogal olarak kaldiriyor.
+  const [unblockedIds, setUnblockedIds] = useState<Set<string>>(new Set());
 
   const refresh = useCallback(() => {
     socket.emit("friends:list", {}, (res: any) => {
@@ -120,10 +125,21 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
   }
 
   function unblock(userId: string) {
-    showAlert("Engeli Kaldır", "Bu kişinin engelini kaldırmak istiyor musun?", [
-      { text: "Vazgeç", style: "cancel" },
-      { text: "Engeli Kaldır", onPress: () => socket.emit("friend:unblock", { userId }, () => refresh()) },
+    showAlert("Engeli Kaldır", "Bu kişinin engelini kaldırmak istediğinize emin misiniz?", [
+      { text: "Hayır", style: "cancel" },
+      {
+        text: "Evet",
+        onPress: () =>
+          socket.emit("friend:unblock", { userId }, () => {
+            setUnblockedIds((prev) => new Set(prev).add(userId));
+          }),
+      },
     ]);
+  }
+
+  function selectTab(next: Tab) {
+    setTab(next);
+    refresh();
   }
 
   const query = search.trim().toLowerCase();
@@ -250,9 +266,19 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
                 <Text style={styles.rowName}>{item.name}</Text>
                 <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
               </View>
-              <TouchableOpacity onPress={() => unblock(item.userId)} hitSlop={8}>
-                <Icon name="personBlock" size={26} color={MUTED} />
-              </TouchableOpacity>
+              {sentRequests.has(item.userId) ? (
+                <TouchableOpacity onPress={() => cancelSentRequest(item.userId)} hitSlop={8}>
+                  <Icon name="hourglass" size={22} color={MUTED} />
+                </TouchableOpacity>
+              ) : unblockedIds.has(item.userId) ? (
+                <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
+                  <Icon name="invite" size={26} color={ACCENT} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={() => unblock(item.userId)} hitSlop={8}>
+                  <Icon name="personBlock" size={26} color={MUTED} />
+                </TouchableOpacity>
+              )}
             </View>
           )}
         />
@@ -260,15 +286,15 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
 
       <View style={styles.tabBarWrap}>
         <View style={styles.tabBar}>
-          <TouchableOpacity style={styles.tabItem} onPress={() => setTab("friends")}>
+          <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("friends")}>
             <Icon name="people" size={24} color={tab === "friends" ? TEXT : MUTED} />
             <Text style={[styles.tabLabel, tab === "friends" && styles.tabLabelActive]}>Arkadaşlar</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tabItem} onPress={() => setTab("recent")}>
+          <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("recent")}>
             <Icon name="clock" size={24} color={tab === "recent" ? TEXT : MUTED} />
             <Text style={[styles.tabLabel, tab === "recent" && styles.tabLabelActive]}>Son Zamanlarda</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tabItem} onPress={() => setTab("blocked")}>
+          <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>
             <Icon name="personBlock" size={24} color={tab === "blocked" ? TEXT : MUTED} />
             <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
           </TouchableOpacity>
