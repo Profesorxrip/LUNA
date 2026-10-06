@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   requestsBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
-  backdrop: { flex: 1, backgroundColor: BG, justifyContent: "flex-end" },
+  backdrop: { flex: 1, backgroundColor: "#0A0A0A", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: BG,
     borderTopLeftRadius: 16,
