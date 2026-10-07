@@ -1127,6 +1127,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           inviteMode
           excludeUserIds={room.participants.map((p) => p.userId).filter((id): id is string => Boolean(id))}
           onSendInvites={sendRoomInvites}
+          onShareRoom={shareRoom}
         />
       </Modal>
       <RoomSettingsSheet

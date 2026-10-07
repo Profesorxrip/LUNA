@@ -21,6 +21,10 @@ interface Props {
   inviteMode?: boolean;
   excludeUserIds?: string[];
   onSendInvites?: (userIds: string[]) => void;
+  // inviteMode'da "Engellendi" sekmesinin yerini alir - engellenen birine
+  // zaten davet atilamadigi icin o slotta artik oda linkini/uygulamalari
+  // paylasan native paylasim sayfasini acar (bkz. RoomScreen.tsx shareRoom).
+  onShareRoom?: () => void;
 }
 
 type Tab = "friends" | "recent" | "blocked";
@@ -58,6 +62,7 @@ export default function FriendsScreen({
   inviteMode = false,
   excludeUserIds = [],
   onSendInvites,
+  onShareRoom,
 }: Props) {
   const socket = getSocket();
   const [tab, setTab] = useState<Tab>("friends");
@@ -394,10 +399,20 @@ export default function FriendsScreen({
             <Icon name="clock" size={24} color={tab === "recent" ? TEXT : MUTED} />
             <Text style={[styles.tabLabel, tab === "recent" && styles.tabLabelActive]}>Son Zamanlarda</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>
-            <Icon name="personBlock" size={24} color={tab === "blocked" ? TEXT : MUTED} />
-            <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
-          </TouchableOpacity>
+          {inviteMode ? (
+            // Engellenen birine zaten davet atilamadigi icin bu slotta artik
+            // oda linkini/uygulamalari paylasan native paylasim sayfasi var -
+            // bir sekme DEGIL, dogrudan bir eylem (bkz. RoomScreen.tsx shareRoom).
+            <TouchableOpacity style={styles.tabItem} onPress={onShareRoom}>
+              <Icon name="share" size={24} color={MUTED} />
+              <Text style={styles.tabLabel}>Paylaş</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>
+              <Icon name="personBlock" size={24} color={tab === "blocked" ? TEXT : MUTED} />
+              <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
