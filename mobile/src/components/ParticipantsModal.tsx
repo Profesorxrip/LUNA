@@ -41,19 +41,27 @@ export default function ParticipantsModal({
               const isSelf = item.socketId === mySocketId;
               return (
                 <View style={styles.row}>
-                  <Avatar name={item.name} avatarUrl={item.avatarUrl} size={40} />
+                  <View style={styles.avatarWrap}>
+                    <Avatar name={item.name} avatarUrl={item.avatarUrl} size={40} />
+                    {item.isHost && (
+                      <View style={styles.hostBadge}>
+                        <Icon name="crown" size={14} color="#FFD700" />
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.name} numberOfLines={1}>
-                    {item.isHost ? "👑 " : ""}
                     {item.name}
                   </Text>
-                  {/* Katilimcinin mikrofonunu zorla sustur/ac - SADECE host
-                      gorur, host kendi satirinda bu ikonu goremez (kendini
-                      bu yoldan susturamaz, bkz. server/src/rooms.ts
-                      setParticipantMuted). */}
-                  {isHost && !item.isHost && (
+                  {/* Katilimcinin mikrofon durumu - HERKES gorur (susturulup
+                      susturulmadigini bilsin diye), ama tiklayip degistirme
+                      SADECE host'a ozel (bkz. server/src/rooms.ts
+                      setParticipantMuted - host kendini susturamaz, o yuzden
+                      kendi satirinda hic gosterilmiyor). */}
+                  {!item.isHost && (
                     <TouchableOpacity
                       style={styles.micBtn}
-                      onPress={() => onMuteParticipant(item.socketId, !item.muted)}
+                      onPress={() => isHost && onMuteParticipant(item.socketId, !item.muted)}
+                      disabled={!isHost}
                       hitSlop={8}
                     >
                       <Icon name={item.muted ? "micOff" : "mic"} size={20} color={item.muted ? theme.danger : theme.textMuted} />
@@ -81,19 +89,30 @@ export default function ParticipantsModal({
 
 const styles = StyleSheet.create({
   // Katilimcilar paneli artik Rave'deki gibi sagdan acilan, TAM YUKSEKLIKTE
-  // bir kutu - ekranin genisliginin ~%38'ini kapliyor.
+  // bir kutu - ekranin genisliginin ~%45'ini kapliyor.
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", flexDirection: "row", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: theme.surface,
     borderTopLeftRadius: 16,
     borderBottomLeftRadius: 16,
     padding: 20,
-    width: "38%",
+    width: "45%",
     height: "100%",
   },
   list: { flex: 1 },
   title: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 12 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
+  avatarWrap: { position: "relative" },
+  // Lider rozeti - emoji yerine profil fotografinin TAM USTUNE binen
+  // (negatif top ile) kucuk bir taç ikonu.
+  hostBadge: {
+    position: "absolute",
+    top: -8,
+    alignSelf: "center",
+    backgroundColor: theme.surface,
+    borderRadius: 8,
+    padding: 1,
+  },
   name: { color: theme.text, fontSize: 14, flex: 1 },
   micBtn: { padding: 4 },
   actions: { flexDirection: "row", gap: 10 },
