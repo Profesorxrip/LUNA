@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   // (negatif top ile) kucuk bir taç ikonu.
   hostBadge: {
     position: "absolute",
-    top: -6,
+    top: -14,
     left: 0,
     right: 0,
     alignItems: "center",
