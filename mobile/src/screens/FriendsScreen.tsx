@@ -223,9 +223,16 @@ export default function FriendsScreen({
           </TouchableOpacity>
         )}
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
-        <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
-          <Icon name={inviteMode ? "chevronLeft" : "close"} size={30} color={TEXT} />
-        </TouchableOpacity>
+        {inviteMode ? (
+          // Davet modunda kapatma ikonu yok - SADECE cihazin kendi geri
+          // tusuyla/hareketiyle kapanir (bkz. RoomScreen.tsx'teki Modal'in
+          // onRequestClose'u, Android donanim geri tusunu zaten yakalar).
+          <View style={styles.iconTouch} />
+        ) : (
+          <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
+            <Icon name="close" size={30} color={TEXT} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.searchRow}>

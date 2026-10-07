@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Linking, Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
+import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import Icon from "./Icon";
 import { showAlert } from "./CustomAlert";
 
@@ -66,13 +67,13 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
       <View style={styles.appsRow}>
         <TouchableOpacity style={styles.appButton} onPress={openWhatsapp}>
           <View style={[styles.appIconCircle, { backgroundColor: "#25D366" }]}>
-            <Icon name="chatBubble" size={26} color="#FFFFFF" />
+            <FontAwesome5 name="whatsapp" size={26} color="#FFFFFF" />
           </View>
           <Text style={styles.appLabel}>WhatsApp</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.appButton} onPress={openTelegram}>
           <View style={[styles.appIconCircle, { backgroundColor: "#229ED9" }]}>
-            <Icon name="send" size={24} color="#FFFFFF" />
+            <FontAwesome5 name="telegram-plane" size={24} color="#FFFFFF" />
           </View>
           <Text style={styles.appLabel}>Telegram</Text>
         </TouchableOpacity>
