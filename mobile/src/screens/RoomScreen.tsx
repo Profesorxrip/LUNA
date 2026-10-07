@@ -8,7 +8,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Share,
   Image,
   Animated,
   PanResponder,
@@ -608,10 +607,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     socket.emit("room:previousVideo", {}, () => {});
   }
 
-  function shareRoom() {
-    Share.share({ message: `LUNA'da "${room.title}" odama katil! Kod: ${room.code}` }).catch(() => {});
-  }
-
   // Davet et ekraninda (FriendsScreen inviteMode) isaretlenip "Davet At"a
   // basilan arkadaslara, zaten var olan ama eskiden hic client'tan
   // cagrilmayan "room:invite" uc noktasiyla tek tek davet gonderir.
@@ -1106,21 +1101,16 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
             <Icon name="send" size={30} color={theme.accentBright} />
           </TouchableOpacity>
         ) : (
-          // Yazmiyorken: paylas/etiket/galeri/harita ikonlari gorunur - davet
-          // (arkadas ekle) ikonu artik burada degil, Katilimcilar panelinin
-          // alt barinda (bkz. ParticipantsModal.tsx onInvite).
+          // Yazmiyorken: etiket/galeri ikonlari gorunur - paylas ikonu
+          // kaldirildi, harita (dunya) ikonu artik burada degil, Katilimcilar
+          // panelinin alt barinda, davet ikonunun solunda (bkz.
+          // ParticipantsModal.tsx onShowMap/onInvite).
           <View style={styles.actionGroup}>
-            <TouchableOpacity style={styles.iconTouchSm} onPress={shareRoom} hitSlop={4}>
-              <Icon name="share" size={30} color="#FFFFFF" />
-            </TouchableOpacity>
             <TouchableOpacity style={styles.iconTouchSm} onPress={insertMention} hitSlop={4}>
               <Icon name="mention" size={30} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconTouchSm} onPress={pickImage} hitSlop={4}>
               <Icon name="image" size={30} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconTouchSm} onPress={showMap} hitSlop={4}>
-              <Icon name="globe" size={30} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         )}
@@ -1161,6 +1151,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         hostMicOpen={room.micOpenToAll}
         onToggleOwnMic={handleMicPress}
         topOffset={topBarHeight}
+        onShowMap={() => {
+          setParticipantsVisible(false);
+          showMap();
+        }}
         onInvite={() => setInviteFriendsVisible(true)}
         friendIds={friendIds}
       />
