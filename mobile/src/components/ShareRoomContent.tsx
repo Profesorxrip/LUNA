@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Linking, Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
+import { LinearGradient } from "expo-linear-gradient";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Icon from "./Icon";
 import { showAlert } from "./CustomAlert";
 
@@ -49,6 +51,22 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
     Share.share({ message: inviteText }).catch(() => {});
   }
 
+  // Instagram'in DM/hikaye paylasimini METIN ile ONCEDEN doldurabilecek
+  // resmi bir URL semasi yok (sadece fotograf/hikaye icin var) - bu yuzden
+  // davet metnini kopyalayip uygulamayi aciyoruz, kullanici bir sohbete
+  // yapistiriyor (Instagram'in kendi kisitlamasi, LUNA'nin degil).
+  function openInstagram() {
+    Clipboard.setStringAsync(inviteText);
+    Linking.openURL("instagram://").catch(() => Linking.openURL("https://instagram.com").catch(() => {}));
+    showAlert("Kopyalandı", "Davet metni kopyalandı - Instagram'da bir sohbete yapıştırabilirsin.");
+  }
+
+  function openX() {
+    Linking.openURL(`https://twitter.com/intent/tweet?text=${encodeURIComponent(inviteText)}`).catch(() =>
+      showAlert("Açılamadı", "X açılamadı.")
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.linkBox}>
@@ -67,19 +85,36 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
       <View style={styles.appsRow}>
         <TouchableOpacity style={styles.appButton} onPress={openWhatsapp}>
           <View style={[styles.appIconCircle, { backgroundColor: "#25D366" }]}>
-            <FontAwesome5 name="whatsapp" size={26} color="#FFFFFF" />
+            <FontAwesome5 name="whatsapp" size={22} color="#FFFFFF" />
           </View>
           <Text style={styles.appLabel}>WhatsApp</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.appButton} onPress={openTelegram}>
           <View style={[styles.appIconCircle, { backgroundColor: "#229ED9" }]}>
-            <FontAwesome5 name="telegram-plane" size={24} color="#FFFFFF" />
+            <FontAwesome5 name="telegram-plane" size={22} color="#FFFFFF" />
           </View>
           <Text style={styles.appLabel}>Telegram</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.appButton} onPress={openInstagram}>
+          <LinearGradient
+            colors={["#F9CE34", "#EE2A7B", "#6228D7"]}
+            start={{ x: 0, y: 1 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.appIconCircle}
+          >
+            <FontAwesome5 name="instagram" size={22} color="#FFFFFF" />
+          </LinearGradient>
+          <Text style={styles.appLabel}>Instagram</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.appButton} onPress={openX}>
+          <View style={[styles.appIconCircle, { backgroundColor: "#2A2A2E" }]}>
+            <FontAwesome6 name="x-twitter" size={20} color="#FFFFFF" />
+          </View>
+          <Text style={styles.appLabel}>X</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.appButton} onPress={openSystemShare}>
           <View style={[styles.appIconCircle, { backgroundColor: "#2A2A2E" }]}>
-            <Icon name="shareBox" size={24} color={TEXT} />
+            <Icon name="shareBox" size={22} color={TEXT} />
           </View>
           <Text style={styles.appLabel}>Diğer</Text>
         </TouchableOpacity>
@@ -112,8 +147,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sectionLabel: { color: MUTED, fontSize: 12, fontWeight: "600", marginTop: 28, marginBottom: 14 },
-  appsRow: { flexDirection: "row", gap: 24 },
-  appButton: { alignItems: "center", gap: 6 },
-  appIconCircle: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+  appsRow: { flexDirection: "row", flexWrap: "wrap", gap: 16, rowGap: 20 },
+  appButton: { alignItems: "center", gap: 6, width: 56 },
+  appIconCircle: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   appLabel: { color: TEXT, fontSize: 12, fontWeight: "600" },
 });
