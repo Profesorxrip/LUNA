@@ -58,9 +58,16 @@ export default function ParticipantsModal({
                       </View>
                     )}
                   </View>
-                  <Text style={styles.name} numberOfLines={1}>
-                    {item.name}
-                  </Text>
+                  <View style={styles.nameWrap}>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    {!!item.handle && (
+                      <Text style={styles.handle} numberOfLines={1}>
+                        @{item.handle}
+                      </Text>
+                    )}
+                  </View>
                   {/* Mikrofon durumu - HERKES gorur (kim susturulmus/liderin
                       mikrofonu acik mi bilsin diye). Tiklayip degistirmek ise
                       HER ZAMAN o mikrofonun "sahibine" ozel: liderin kendi
@@ -135,7 +142,9 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: "center",
   },
-  name: { color: theme.text, fontSize: 14, flex: 1 },
+  nameWrap: { flex: 1 },
+  name: { color: theme.text, fontSize: 14 },
+  handle: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
   micBtn: { padding: 4 },
   actions: { flexDirection: "row", gap: 10 },
   actionText: { color: theme.info, fontSize: 12 },

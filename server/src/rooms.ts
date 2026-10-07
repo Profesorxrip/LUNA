@@ -19,6 +19,9 @@ export interface Participant {
   // oda durumu (room:state) her degistiginde tekrar DB'ye gitmeden senkron
   // yayinlanabilsin diye (bkz. index.ts room:create / room:join).
   avatarUrl?: string | null;
+  // Katilim anindaki profil sorgusuyla doldurulur (bkz. avatarUrl) -
+  // Katilimcilar panelinde isim altinda @handle gosterebilmek icin.
+  handle?: string | null;
   // Oda haritasinda ("Haritayi Goster") gosterilecek GERCEK GPS konumu -
   // SADECE katilimci kendi Ayarlar'indaki "Konumu Gizle"yi KAPATIP
   // paylasmayi secerse dolar (bkz. index.ts "room:location"), hicbir yerde
@@ -159,7 +162,8 @@ export function createRoom(
   isAdult?: boolean,
   // Host'un (Konumu Gizle kapaliysa IP'den tespit edilen) ili - "Yakindakiler"
   // icin (bkz. hostCity aciklamasi).
-  hostCity?: string | null
+  hostCity?: string | null,
+  hostHandle?: string | null
 ): Room {
   let code = generateRoomCode();
   while (rooms.has(code)) code = generateRoomCode(); // cakisma ihtimaline karsi
@@ -187,6 +191,7 @@ export function createRoom(
           muted: false,
           userId: hostUserId ?? null,
           avatarUrl: hostAvatarUrl ?? null,
+          handle: hostHandle ?? null,
           joinedAtMs: Date.now(),
         },
       ],
@@ -358,7 +363,8 @@ export function joinRoom(
   socketId: string,
   name: string,
   userId?: string | null,
-  avatarUrl?: string | null
+  avatarUrl?: string | null,
+  handle?: string | null
 ): Room | null {
   const room = getRoom(code);
   if (!room) return null;
@@ -369,6 +375,7 @@ export function joinRoom(
     muted: false,
     userId: userId ?? null,
     avatarUrl: avatarUrl ?? null,
+    handle: handle ?? null,
     joinedAtMs: Date.now(),
   });
   return room;

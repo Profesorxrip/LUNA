@@ -830,7 +830,8 @@ io.on("connection", (socket: Socket) => {
         hostProfile?.avatarUrl ?? null,
         hostProfile?.defaultAutoTranslate ?? false,
         undefined,
-        myCity
+        myCity,
+        hostProfile?.handle ?? null
       );
       currentRoomCode = room.code;
       socket.join(room.code);
@@ -908,8 +909,9 @@ io.on("connection", (socket: Socket) => {
       }
     }
 
-    const joinAvatarUrl = myUserId && myDb ? (await getPublicProfile(myDb, myUserId))?.avatarUrl ?? null : null;
-    const room = joinRoom(code, socket.id, name || myName || "Misafir", myUserId, joinAvatarUrl);
+    const joinProfile = myUserId && myDb ? await getPublicProfile(myDb, myUserId) : null;
+    const joinAvatarUrl = joinProfile?.avatarUrl ?? null;
+    const room = joinRoom(code, socket.id, name || myName || "Misafir", myUserId, joinAvatarUrl, joinProfile?.handle ?? null);
     if (!room) {
       ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
       return;

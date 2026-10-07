@@ -22,6 +22,7 @@ export interface Participant {
   muted: boolean;
   userId?: string | null;
   avatarUrl?: string | null;
+  handle?: string | null;
   // Oda haritasi icin - sadece "Konumu Gizle" kapali olup paylasmayi
   // SECEN katilimcilarda dolu (bkz. RoomMapSheet.tsx).
   location?: { lat: number; lng: number } | null;
