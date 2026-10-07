@@ -130,10 +130,14 @@ export interface ChatMessage {
    * (ikonlu, kalin isimli) bir sistem mesaji ciziyor. */
   kind?: "nowPlaying" | "kicked" | "settings" | "joined";
   title?: string; // nowPlaying
+  // nowPlaying - buyuk ikon/aciklama secimi icin (bkz. RoomScreen.tsx
+  // NOW_PLAYING_META) - "picked"/"previous" kisiye ozel (byName dolu),
+  // "vote"/"queue"/"autoplay" sistem kaynakli (byName yok).
+  nowPlayingReason?: "picked" | "previous" | "vote" | "queue" | "autoplay";
   targetName?: string; // kicked, joined
   targetAvatarUrl?: string | null; // joined
-  byName?: string; // kicked, settings
-  byAvatarUrl?: string | null; // settings
+  byName?: string; // kicked, settings, nowPlaying
+  byAvatarUrl?: string | null; // settings, nowPlaying
   settingLabel?: string; // settings - orn. "Gizlilik"
   settingValue?: string; // settings - orn. "Açık"
   // settings - buyuk ikonu secebilmek icin ham anahtar/deger (settingLabel/

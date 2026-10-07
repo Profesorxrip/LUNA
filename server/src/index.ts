@@ -270,6 +270,7 @@ function resolvePollAndBroadcast(code: string) {
       system: true,
       kind: "nowPlaying",
       title,
+      nowPlayingReason: "vote",
       text: `Oylama bitti: simdi ${title} oynatiliyor`,
       ts: Date.now(),
     });
@@ -293,6 +294,7 @@ async function advancePastCurrentVideo(room: Room, roomCode: string): Promise<vo
         system: true,
         kind: "nowPlaying",
         title,
+        nowPlayingReason: "queue",
         text: `Simdi ${title} oynatiliyor`,
         ts: Date.now(),
       });
@@ -311,6 +313,7 @@ async function advancePastCurrentVideo(room: Room, roomCode: string): Promise<vo
       system: true,
       kind: "nowPlaying",
       title,
+      nowPlayingReason: "queue",
       text: `Simdi ${title} oynatiliyor`,
       ts: Date.now(),
     });
@@ -333,6 +336,7 @@ async function advancePastCurrentVideo(room: Room, roomCode: string): Promise<vo
       system: true,
       kind: "nowPlaying",
       title,
+      nowPlayingReason: "autoplay",
       text: `Simdi ${title} oynatiliyor`,
       ts: Date.now(),
     });
@@ -1009,10 +1013,15 @@ io.on("connection", (socket: Socket) => {
         // mesaji dusuyor - istemci "kind: nowPlaying" ile kalp butonu da ekliyor.
         if (update.source) {
           const title = update.source.label || update.source.type;
+          const byName = room.participants.get(socket.id)?.name || myName;
+          const byAvatarUrl = room.participants.get(socket.id)?.avatarUrl ?? null;
           io.to(currentRoomCode).emit("room:chat", {
             system: true,
             kind: "nowPlaying",
             title,
+            byName,
+            byAvatarUrl,
+            nowPlayingReason: "picked",
             text: `Simdi ${title} oynatiliyor`,
             ts: Date.now(),
           });
@@ -1039,6 +1048,9 @@ io.on("connection", (socket: Socket) => {
       system: true,
       kind: "nowPlaying",
       title,
+      byName: room.participants.get(socket.id)?.name || myName,
+      byAvatarUrl: room.participants.get(socket.id)?.avatarUrl ?? null,
+      nowPlayingReason: "previous",
       text: `Simdi ${title} oynatiliyor`,
       ts: Date.now(),
     });
@@ -1059,12 +1071,16 @@ io.on("connection", (socket: Socket) => {
     broadcastRoom(currentRoomCode);
     if (result === "now") broadcastRoomsList();
     const byName = room.participants.get(socket.id)?.name || myName;
+    const byAvatarUrl = room.participants.get(socket.id)?.avatarUrl ?? null;
     const title = source.label || source.type;
     if (result === "now") {
       io.to(currentRoomCode).emit("room:chat", {
         system: true,
         kind: "nowPlaying",
         title,
+        byName,
+        byAvatarUrl,
+        nowPlayingReason: "picked",
         text: `Simdi ${title} oynatiliyor`,
         ts: Date.now(),
       });

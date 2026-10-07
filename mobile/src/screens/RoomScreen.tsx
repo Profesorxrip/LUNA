@@ -218,6 +218,16 @@ function settingsCardIcon(item: ChatMessage): IconName {
   return "settings";
 }
 
+// "nowPlaying" bildiri kartindaki buyuk ikonu ve aciklama metnini
+// server'in gonderdigi nowPlayingReason'a gore secer.
+const NOW_PLAYING_META: Record<NonNullable<ChatMessage["nowPlayingReason"]>, { icon: IconName; desc: (byName?: string) => string }> = {
+  picked: { icon: "play", desc: (byName) => (byName ? `${byName} seçti` : "Seçildi") },
+  previous: { icon: "play", desc: (byName) => (byName ? `${byName} önceki videoya döndü` : "Önceki videoya dönüldü") },
+  vote: { icon: "check", desc: () => "Oylama sonucu" },
+  queue: { icon: "play", desc: () => "Sıradaki video" },
+  autoplay: { icon: "fastForward", desc: () => "Otomatik oynatılıyor" },
+};
+
 export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const socket = getSocket();
   const { width: windowWidth } = useWindowDimensions();
@@ -1007,7 +1017,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           <RoomQuickCards
             isHost={isHost}
             privacy={room.privacy}
-            playbackMode={room.playbackMode}
             onChangePrivacy={changePrivacy}
             friends={friends}
             sentIds={quickInviteSentIds}
@@ -1042,14 +1051,28 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
               </View>
             </View>
           ) : item.kind === "nowPlaying" ? (
-            <View style={styles.nowPlayingRow}>
-              <Text style={styles.nowPlayingText} numberOfLines={1}>
-                Şimdi <Text style={styles.nowPlayingTitle}>{item.title}</Text> oynatılıyor
-              </Text>
-              <TouchableOpacity onPress={() => sendReaction("❤️")} hitSlop={8}>
-                <Text style={styles.nowPlayingHeart}>♡</Text>
-              </TouchableOpacity>
-            </View>
+            (() => {
+              const meta = NOW_PLAYING_META[item.nowPlayingReason || "picked"];
+              return (
+                <View style={styles.settingsCard}>
+                  {!!item.byName && <Avatar name={item.byName} avatarUrl={item.byAvatarUrl} size={36} />}
+                  <View style={styles.settingsIconWrap}>
+                    <Icon name={meta.icon} size={26} color={theme.accent} />
+                  </View>
+                  <View style={styles.settingsTextCol}>
+                    <Text style={styles.settingsValue} numberOfLines={1}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.settingsDesc} numberOfLines={1}>
+                      {meta.desc(item.byName)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => sendReaction("❤️")} hitSlop={8}>
+                    <Icon name="heartOutline" size={20} color={theme.danger} />
+                  </TouchableOpacity>
+                </View>
+              );
+            })()
           ) : item.kind === "kicked" ? (
             <View style={styles.eventRow}>
               <Icon name="kicked" size={16} color={theme.textMuted} />
@@ -1417,16 +1440,6 @@ const styles = StyleSheet.create({
   replyBarText: { flex: 1 },
   replyBarFrom: { color: theme.accent, fontSize: 12, fontWeight: "700" },
   replyBarBody: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
-  nowPlayingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 4,
-  },
-  nowPlayingText: { color: theme.textMuted, fontSize: 12, fontWeight: "600", flexShrink: 1 },
-  nowPlayingTitle: { color: theme.text, fontWeight: "700" },
-  nowPlayingHeart: { color: theme.danger, fontSize: 16 },
   eventRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 4 },
   eventText: { color: theme.textMuted, fontSize: 12, flexShrink: 1 },
   eventBold: { color: theme.text, fontWeight: "700" },
