@@ -37,6 +37,7 @@ import {
   ArrowsPointingInIcon,
   BackwardIcon,
   SpeakerWaveIcon,
+  SpeakerXMarkIcon,
 } from "react-native-heroicons/solid";
 import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
 import { MicOff, Hourglass, Crown, RotateCcw, RotateCw } from "lucide-react-native";
@@ -84,7 +85,8 @@ export type IconName =
   | "rotateCw"
   | "expand"
   | "collapse"
-  | "volume";
+  | "volume"
+  | "volumeOff";
 
 interface Props {
   name: IconName;
@@ -128,6 +130,7 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   fastForward: ForwardIcon,
   fastBackward: BackwardIcon,
   volume: SpeakerWaveIcon,
+  volumeOff: SpeakerXMarkIcon,
   phone: PhoneIcon,
   kicked: ArrowRightOnRectangleIcon,
   reply: ArrowUturnLeftIcon,

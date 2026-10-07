@@ -30,6 +30,11 @@ interface Props {
   onVideoVolumeChange: (v: number) => void;
 }
 
+// Kaydirici tam sola cekilince dokunma hassasiyeti yuzunden TAM 0 yerine
+// 0.00x gibi degerler de gelebiliyor - ikon degisimini "kapali" GORUNEN her
+// durumda tetiklemek icin kucuk bir esik kullaniyoruz.
+const VOLUME_MUTE_THRESHOLD = 0.02;
+
 const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
   { key: "open", icon: "globe", label: "AÇIK" },
   { key: "nearby", icon: "pin", label: "YAKINDAKİLER" },
@@ -169,7 +174,7 @@ export default function RoomSettingsSheet({
             </TouchableOpacity>
 
             <View style={styles.volumeRow}>
-              <Icon name="mic" size={18} color={theme.textMuted} />
+              <Icon name={voiceVolume <= VOLUME_MUTE_THRESHOLD ? "micOff" : "mic"} size={18} color={theme.textMuted} />
               <View style={styles.volumeSlider}>
                 <SimpleSlider value={voiceVolume} onValueChange={onVoiceVolumeChange} />
               </View>
@@ -181,7 +186,7 @@ export default function RoomSettingsSheet({
             {/* Video/medya sesi - sesli sohbet cubugunun hemen altinda, AYNI
                 gorsel stil - tek fark sagda "ayril" degil sabit bir ikon. */}
             <View style={styles.volumeRow}>
-              <Icon name="volume" size={18} color={theme.textMuted} />
+              <Icon name={videoVolume <= VOLUME_MUTE_THRESHOLD ? "volumeOff" : "volume"} size={18} color={theme.textMuted} />
               <View style={styles.volumeSlider}>
                 <SimpleSlider value={videoVolume} onValueChange={onVideoVolumeChange} />
               </View>
