@@ -604,6 +604,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: "#1E1A17",
   },
+  // Web onizlemesindeki varsayilan odak cercevesini (beyaz kare) kapatiyor -
+  // gercek Android/iOS'ta zaten yok, sadece tarayici davranisi.
   input: {
     flex: 1,
     color: TEXT,
@@ -612,7 +614,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-  },
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
   inputActions: { flexDirection: "row", gap: 14 },
   menuOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   menuCard: {
@@ -637,7 +641,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#1E1A17",
   },
-  searchInput: { flex: 1, color: TEXT, fontSize: 13 },
+  searchInput: { flex: 1, color: TEXT, fontSize: 13, outlineWidth: 0, outlineStyle: "none" } as any,
   expiryBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -693,7 +697,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     padding: 12,
     textAlignVertical: "top",
-  },
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
   reportSubmitBtn: {
     width: "100%",
     backgroundColor: ACCENT,

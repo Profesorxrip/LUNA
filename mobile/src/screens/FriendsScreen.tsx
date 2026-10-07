@@ -505,7 +505,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "#141210",
   },
-  searchInput: { flex: 1, color: TEXT, fontSize: 14 },
+  // Web onizlemesindeki varsayilan odak cercevesini (beyaz kare) kapatiyor -
+  // gercek Android/iOS'ta zaten yok, sadece tarayici davranisi.
+  searchInput: { flex: 1, color: TEXT, fontSize: 14, outlineWidth: 0, outlineStyle: "none" } as any,
   requestsButton: {
     width: 42,
     height: 42,

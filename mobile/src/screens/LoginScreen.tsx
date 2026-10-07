@@ -99,7 +99,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
     marginBottom: 12,
-  },
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
   primaryButton: {
     backgroundColor: theme.accent,
     borderRadius: 10,
