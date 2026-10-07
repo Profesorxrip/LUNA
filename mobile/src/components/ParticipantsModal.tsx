@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   // Ilk satirin lider rozeti (negatif top ile ustte tasan) listenin kendi
   // ust sinirinda KESILMESIN diye ufak bir bosluk birakiyoruz.
-  listContent: { paddingTop: 6 },
+  listContent: { paddingTop: 10 },
   title: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 12 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
   avatarWrap: { position: "relative" },
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   // (negatif top ile) kucuk bir taç ikonu.
   hostBadge: {
     position: "absolute",
-    top: -9,
+    top: -14,
     left: 0,
     right: 0,
     alignItems: "center",
