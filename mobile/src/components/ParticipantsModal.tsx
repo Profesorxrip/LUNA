@@ -13,6 +13,11 @@ interface Props {
   onKick: (targetSocketId: string) => void;
   onMakeLeader: (targetSocketId: string) => void;
   onMuteParticipant: (targetSocketId: string, muted: boolean) => void;
+  // Liderin kendi mikrofonu su an acik mi (bkz. RoomScreen.tsx
+  // room.micOpenToAll) - HERKES gorur, ama tiklayip degistirmek (kendi
+  // mikrofonunu acip kapatmak) SADECE liderin kendisine ozel.
+  hostMicOpen: boolean;
+  onToggleOwnMic: () => void;
 }
 
 /** Rave'deki ust bardaki "3" rozetli katilimci ikonuna basinca acilan liste -
@@ -26,6 +31,8 @@ export default function ParticipantsModal({
   onKick,
   onMakeLeader,
   onMuteParticipant,
+  hostMicOpen,
+  onToggleOwnMic,
 }: Props) {
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -52,12 +59,23 @@ export default function ParticipantsModal({
                   <Text style={styles.name} numberOfLines={1}>
                     {item.name}
                   </Text>
-                  {/* Katilimcinin mikrofon durumu - HERKES gorur (susturulup
-                      susturulmadigini bilsin diye), ama tiklayip degistirme
-                      SADECE host'a ozel (bkz. server/src/rooms.ts
-                      setParticipantMuted - host kendini susturamaz, o yuzden
-                      kendi satirinda hic gosterilmiyor). */}
-                  {!item.isHost && (
+                  {/* Mikrofon durumu - HERKES gorur (kim susturulmus/liderin
+                      mikrofonu acik mi bilsin diye). Tiklayip degistirmek ise
+                      HER ZAMAN o mikrofonun "sahibine" ozel: liderin kendi
+                      satirinda SADECE lider kendisi degistirebilir (bkz.
+                      RoomScreen.tsx handleMicPress), diger katilimcilarin
+                      satirinda SADECE lider degistirebilir (bkz.
+                      server/src/rooms.ts setParticipantMuted). */}
+                  {item.isHost ? (
+                    <TouchableOpacity
+                      style={styles.micBtn}
+                      onPress={() => isSelf && onToggleOwnMic()}
+                      disabled={!isSelf}
+                      hitSlop={8}
+                    >
+                      <Icon name={hostMicOpen ? "mic" : "micOff"} size={20} color={hostMicOpen ? theme.textMuted : theme.danger} />
+                    </TouchableOpacity>
+                  ) : (
                     <TouchableOpacity
                       style={styles.micBtn}
                       onPress={() => isHost && onMuteParticipant(item.socketId, !item.muted)}

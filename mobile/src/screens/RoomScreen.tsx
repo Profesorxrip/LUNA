@@ -1079,6 +1079,8 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onKick={kick}
         onMakeLeader={makeLeader}
         onMuteParticipant={muteParticipant}
+        hostMicOpen={room.micOpenToAll}
+        onToggleOwnMic={handleMicPress}
       />
       <RoomSettingsSheet
         visible={settingsVisible}
