@@ -1044,11 +1044,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
             <TouchableOpacity style={styles.iconTouchSm} onPress={pickImage} hitSlop={4}>
               <Icon name="image" size={30} color="#FFFFFF" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconTouchSm} onPress={shareRoom} hitSlop={4}>
-              <Icon name="invite" size={30} color="#FFFFFF" />
-            </TouchableOpacity>
             <TouchableOpacity style={styles.iconTouchSm} onPress={showMap} hitSlop={4}>
               <Icon name="globe" size={30} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconTouchSm} onPress={shareRoom} hitSlop={4}>
+              <Icon name="invite" size={30} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         )}

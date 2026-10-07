@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   content: { flex: 1, padding: 20 },
   // Alt bar - sonradan doldurulacak bos yer tutucu.
   bottomBar: {
-    height: 56,
+    height: 44,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.08)",
   },
