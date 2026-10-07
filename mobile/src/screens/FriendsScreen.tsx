@@ -336,21 +336,24 @@ export default function FriendsScreen({
                     <Text style={styles.rowHandle}>{relativeTime(item.lastTogetherMs)} önce aynı odadaydınız</Text>
                   </View>
                 </TouchableOpacity>
-                {inviteMode ? (
-                  <TouchableOpacity onPress={() => toggleSelect(item.userId)} hitSlop={8}>
-                    <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                      {isSelected && <Icon name="check" size={20} color="#04140D" />}
-                    </View>
-                  </TouchableOpacity>
-                ) : sentRequests.has(item.userId) ? (
-                  <TouchableOpacity onPress={() => cancelSentRequest(item.userId)} hitSlop={8}>
-                    <Icon name="hourglass" size={22} color={MUTED} />
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
-                    <Icon name="invite" size={26} color={ACCENT} />
-                  </TouchableOpacity>
-                )}
+                <View style={styles.rowActions}>
+                  {sentRequests.has(item.userId) ? (
+                    <TouchableOpacity onPress={() => cancelSentRequest(item.userId)} hitSlop={8}>
+                      <Icon name="hourglass" size={22} color={MUTED} />
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
+                      <Icon name="invite" size={26} color={ACCENT} />
+                    </TouchableOpacity>
+                  )}
+                  {inviteMode && (
+                    <TouchableOpacity onPress={() => toggleSelect(item.userId)} hitSlop={8}>
+                      <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                        {isSelected && <Icon name="check" size={20} color="#04140D" />}
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
             );
           }}
@@ -588,6 +591,9 @@ const styles = StyleSheet.create({
   tabItem: { alignItems: "center", paddingHorizontal: 14, gap: 3 },
   tabLabel: { color: MUTED, fontSize: 10, fontWeight: "600" },
   tabLabelActive: { color: TEXT },
+  // Son Zamanlarda satirinda arkadaslik istegi butonu + (davet modunda)
+  // onay kutusu yan yana - istek butonu HER ZAMAN solda.
+  rowActions: { flexDirection: "row", alignItems: "center", gap: 14 },
   // Davet modu (inviteMode) - satirin saginda isaretlenebilen onay kutusu
   // ve secim yapilinca beliren alt bar (bkz. RoomScreen.tsx onInvite).
   checkbox: {
