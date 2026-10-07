@@ -226,16 +226,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#1C1C1E",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 30,
     maxHeight: "78%",
   },
-  header: { color: theme.textMuted, fontSize: 12, fontWeight: "700", letterSpacing: 1, marginBottom: 8 },
+  // DIKKAT: yatay padding artik "sheet"te DEGIL, her satirin KENDI
+  // stilinde - boylece asagidaki ayirici cizgiler (borderTopWidth) sheet'in
+  // TAM kenarina kadar uzaniyor, sadece icerik (yazi/ikon) ortalanmis kaliyor.
+  header: { color: theme.textMuted, fontSize: 12, fontWeight: "700", letterSpacing: 1, marginBottom: 8, paddingHorizontal: 20 },
   row: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 16,
+    paddingHorizontal: 20,
     borderTopWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
     gap: 10,
@@ -248,6 +251,7 @@ const styles = StyleSheet.create({
   optionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    paddingHorizontal: 20,
     paddingBottom: 16,
   },
   optionItem: { alignItems: "center", width: 70, gap: 6 },
@@ -257,6 +261,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     paddingVertical: 16,
+    paddingHorizontal: 20,
     borderTopWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
   },
@@ -266,6 +271,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 16,
+    paddingHorizontal: 20,
     borderTopWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
   },
