@@ -29,7 +29,7 @@ import ReactionsOverlay, { ReactionsOverlayHandle } from "../components/Reaction
 import VideoControlsOverlay from "../components/VideoControlsOverlay";
 import VideoSeekBar from "../components/VideoSeekBar";
 import ParticipantsModal from "../components/ParticipantsModal";
-import InviteFriendsSheet from "../components/InviteFriendsSheet";
+import FriendsScreen from "./FriendsScreen";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
@@ -587,6 +587,30 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     Share.share({ message: `LUNA'da "${room.title}" odama katil! Kod: ${room.code}` }).catch(() => {});
   }
 
+  // Davet et ekraninda (FriendsScreen inviteMode) isaretlenip "Davet At"a
+  // basilan arkadaslara, zaten var olan ama eskiden hic client'tan
+  // cagrilmayan "room:invite" uc noktasiyla tek tek davet gonderir.
+  function sendRoomInvites(userIds: string[]) {
+    if (userIds.length === 0) return;
+    let remaining = userIds.length;
+    let failed = 0;
+    userIds.forEach((toUserId) => {
+      socket.emit("room:invite", { toUserId }, (res: any) => {
+        if (!res?.ok) failed++;
+        remaining--;
+        if (remaining === 0) {
+          setInviteFriendsVisible(false);
+          showAlert(
+            failed === 0 ? "Davet gönderildi" : "Bazıları gönderilemedi",
+            failed === 0
+              ? `${userIds.length} kişiye davet gönderildi.`
+              : `${userIds.length - failed}/${userIds.length} kişiye davet gönderildi.`
+          );
+        }
+      });
+    });
+  }
+
   function changePrivacy(privacy: PrivacyLevel) {
     socket.emit("room:settings", { privacy }, () => {});
   }
@@ -1092,11 +1116,19 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         topOffset={topBarHeight}
         onInvite={() => setInviteFriendsVisible(true)}
       />
-      <InviteFriendsSheet
-        visible={inviteFriendsVisible}
-        onClose={() => setInviteFriendsVisible(false)}
-        participants={room.participants}
-      />
+      {/* Davet et - Discover'daki sag ustteki arkadaslar ikonuyla ACILAN AYNI
+          FriendsScreen, sadece inviteMode acik (bkz. FriendsScreen.tsx). */}
+      <Modal visible={inviteFriendsVisible} animationType="slide" onRequestClose={() => setInviteFriendsVisible(false)}>
+        <FriendsScreen
+          onBack={() => setInviteFriendsVisible(false)}
+          onOpenSettings={() => {}}
+          onOpenDM={() => {}}
+          onOpenParticipant={() => {}}
+          inviteMode
+          excludeUserIds={room.participants.map((p) => p.userId).filter((id): id is string => Boolean(id))}
+          onSendInvites={sendRoomInvites}
+        />
+      </Modal>
       <RoomSettingsSheet
         visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}

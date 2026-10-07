@@ -12,6 +12,15 @@ interface Props {
   onOpenSettings: () => void;
   onOpenDM: (peer: DMPeer) => void;
   onOpenParticipant: (peer: { userId: string; name: string; handle?: string }) => void;
+  // Oda icindeki Katilimcilar panelinin davet ikonundan acildiginda true -
+  // "Arkadaslar" sekmesindeki satirlar DM yerine coklu secim (tik) ile
+  // calisir, en az bir kisi secilince altta "Davet At" butonu belirir (bkz.
+  // RoomScreen.tsx/ParticipantsModal.tsx onInvite, server/src/index.ts
+  // "room:invite"). Sekmeler/istekler ayni ekranda kalir, sadece bu mod
+  // Arkadaslar sekmesine zorlar (davet SADECE gercek arkadaslara gider).
+  inviteMode?: boolean;
+  excludeUserIds?: string[];
+  onSendInvites?: (userIds: string[]) => void;
 }
 
 type Tab = "friends" | "recent" | "blocked";
@@ -41,9 +50,18 @@ function relativeTime(ts: number): string {
  * Zamanlarda / Engellendi) bir liste - LUNA'nin siyah/yesil temasiyla.
  * Bekleyen arkadaslik istekleri burada degil, arama cubugunun yanindaki
  * "Istekler" butonuyla acilan ayri bir sheet'te (bkz. asagisi). */
-export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpenParticipant }: Props) {
+export default function FriendsScreen({
+  onBack,
+  onOpenSettings,
+  onOpenDM,
+  onOpenParticipant,
+  inviteMode = false,
+  excludeUserIds = [],
+  onSendInvites,
+}: Props) {
   const socket = getSocket();
   const [tab, setTab] = useState<Tab>("friends");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [friends, setFriends] = useState<FriendUser[]>([]);
   const [incoming, setIncoming] = useState<FriendUser[]>([]);
@@ -142,11 +160,20 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
     refresh();
   }
 
+  function toggleSelect(userId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  }
+
   const query = search.trim().toLowerCase();
   const filterList = <T extends { name: string; userId: string }>(list: T[]) =>
     query ? list.filter((u) => u.name.toLowerCase().includes(query) || u.userId.toLowerCase().includes(query)) : list;
 
-  const visibleFriends = filterList(friends);
+  const visibleFriends = filterList(friends).filter((f) => !inviteMode || !excludeUserIds.includes(f.userId));
   const visibleBlocked = filterList(blocked);
   const visibleRecentRoommates = filterList(recentRoommates);
 
@@ -191,17 +218,22 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
           ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>Henüz arkadaşın yok.</Text>}
           renderItem={({ item }) => {
             const preview = previews[item.userId];
+            const isSelected = selected.has(item.userId);
             return (
               <TouchableOpacity
                 style={styles.row}
-                onPress={() => onOpenDM({ userId: item.userId, name: item.name, handle: toHandle(item.name) })}
+                onPress={() =>
+                  inviteMode
+                    ? toggleSelect(item.userId)
+                    : onOpenDM({ userId: item.userId, name: item.name, handle: toHandle(item.name) })
+                }
               >
                 <View style={styles.avatar}>
                   <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
                 </View>
                 <View style={styles.rowText}>
                   <Text style={styles.rowName}>{item.name}</Text>
-                  {preview ? (
+                  {preview && !inviteMode ? (
                     <Text style={styles.rowPreview} numberOfLines={1}>
                       {preview.text} · {relativeTime(preview.createdAt)}
                     </Text>
@@ -209,6 +241,11 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
                     <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
                   )}
                 </View>
+                {inviteMode && (
+                  <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                    {isSelected && <Icon name="check" size={16} color="#04140D" />}
+                  </View>
+                )}
               </TouchableOpacity>
             );
           }}
@@ -284,22 +321,32 @@ export default function FriendsScreen({ onBack, onOpenSettings, onOpenDM, onOpen
         />
       )}
 
-      <View style={styles.tabBarWrap}>
-        <View style={styles.tabBar}>
-          <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("friends")}>
-            <Icon name="people" size={24} color={tab === "friends" ? TEXT : MUTED} />
-            <Text style={[styles.tabLabel, tab === "friends" && styles.tabLabelActive]}>Arkadaşlar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("recent")}>
-            <Icon name="clock" size={24} color={tab === "recent" ? TEXT : MUTED} />
-            <Text style={[styles.tabLabel, tab === "recent" && styles.tabLabelActive]}>Son Zamanlarda</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>
-            <Icon name="personBlock" size={24} color={tab === "blocked" ? TEXT : MUTED} />
-            <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
-          </TouchableOpacity>
+      {inviteMode ? (
+        selected.size > 0 && (
+          <View style={styles.inviteBar}>
+            <TouchableOpacity style={styles.inviteButton} onPress={() => onSendInvites?.(Array.from(selected))}>
+              <Text style={styles.inviteButtonText}>Davet At ({selected.size})</Text>
+            </TouchableOpacity>
+          </View>
+        )
+      ) : (
+        <View style={styles.tabBarWrap}>
+          <View style={styles.tabBar}>
+            <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("friends")}>
+              <Icon name="people" size={24} color={tab === "friends" ? TEXT : MUTED} />
+              <Text style={[styles.tabLabel, tab === "friends" && styles.tabLabelActive]}>Arkadaşlar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("recent")}>
+              <Icon name="clock" size={24} color={tab === "recent" ? TEXT : MUTED} />
+              <Text style={[styles.tabLabel, tab === "recent" && styles.tabLabelActive]}>Son Zamanlarda</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>
+              <Icon name="personBlock" size={24} color={tab === "blocked" ? TEXT : MUTED} />
+              <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      )}
 
       <Modal visible={requestsVisible} animationType="fade" transparent onRequestClose={() => setRequestsVisible(false)}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setRequestsVisible(false)}>
@@ -438,4 +485,34 @@ const styles = StyleSheet.create({
   tabItem: { alignItems: "center", paddingHorizontal: 14, gap: 3 },
   tabLabel: { color: MUTED, fontSize: 10, fontWeight: "600" },
   tabLabelActive: { color: TEXT },
+  // Davet modu (inviteMode) - satirin saginda isaretlenebilen onay kutusu
+  // ve secim yapilinca beliren alt bar (bkz. RoomScreen.tsx onInvite).
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: MUTED,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: { backgroundColor: ACCENT, borderColor: ACCENT },
+  inviteBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 16,
+    paddingBottom: 34,
+    backgroundColor: BG,
+    borderTopWidth: 1,
+    borderTopColor: "#26262B",
+  },
+  inviteButton: {
+    backgroundColor: ACCENT,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  inviteButtonText: { color: "#04140D", fontSize: 16, fontWeight: "700" },
 });
