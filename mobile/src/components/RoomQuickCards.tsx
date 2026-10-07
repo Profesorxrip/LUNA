@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import type { PrivacyLevel, FriendUser } from "../services/socket";
 import Avatar from "./Avatar";
@@ -26,16 +25,14 @@ const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = 
 ];
 
 /** Oda yeni acildiginda sohbetin en ustunde (bkz. RoomScreen.tsx chat
- * FlatList ListHeaderComponent) beliren, "bildiri karti" ile ayni gorsel
- * dilde iki hizli kart: gizlilik secimi (sadece lider) ve arkadaslari tek
- * dokunusla davet etme. Her biri bagimsiz kapatilabilir, odadan cikip
- * girilirse (RoomScreen yeniden mount olur) tekrar gorunur. */
+ * FlatList ListHeaderComponent) beliren, digerleriyle (bkz. RoomScreen.tsx
+ * eventRow/nowPlayingRow) AYNI "bildiri karti" ailesinden iki kart: gizlilik
+ * secimi (sadece lider) ve arkadaslari tek dokunusla davet etme. Kapatma
+ * tusu YOK - mesajlar aktikca zaten yukarida kalip sohbet gecmisine karisir,
+ * ayrica kalici bir kapatma durumu tutmaya gerek yok. */
 export default function RoomQuickCards({ isHost, privacy, onChangePrivacy, friends, sentIds, onInviteFriend }: Props) {
-  const [privacyDismissed, setPrivacyDismissed] = useState(false);
-  const [inviteDismissed, setInviteDismissed] = useState(false);
-
-  const showPrivacy = isHost && !privacyDismissed;
-  const showInvite = !inviteDismissed && friends.length > 0;
+  const showPrivacy = isHost;
+  const showInvite = friends.length > 0;
 
   if (!showPrivacy && !showInvite) return null;
 
@@ -43,12 +40,7 @@ export default function RoomQuickCards({ isHost, privacy, onChangePrivacy, frien
     <View style={styles.wrap}>
       {showPrivacy && (
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Oda Gizliliği</Text>
-            <TouchableOpacity onPress={() => setPrivacyDismissed(true)} hitSlop={8}>
-              <Icon name="close" size={16} color={theme.textMuted} />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.cardTitle}>Oda Gizliliği</Text>
           <View style={styles.privacyRow}>
             {PRIVACY_OPTIONS.map((opt) => {
               const active = opt.key === privacy;
@@ -71,12 +63,7 @@ export default function RoomQuickCards({ isHost, privacy, onChangePrivacy, frien
 
       {showInvite && (
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Arkadaşlarını Davet Et</Text>
-            <TouchableOpacity onPress={() => setInviteDismissed(true)} hitSlop={8}>
-              <Icon name="close" size={16} color={theme.textMuted} />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.cardTitle}>Arkadaşlarını Davet Et</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inviteRow}>
             {friends.map((f) => {
               const sent = sentIds.has(f.userId);
@@ -107,16 +94,19 @@ export default function RoomQuickCards({ isHost, privacy, onChangePrivacy, frien
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 10, marginBottom: 14 },
+  // RoomScreen.tsx'teki chatContent'in paddingHorizontal:12'sini negatif
+  // margin ile iptal edip kartlari ekranin gercek sol/sag kenarina kadar
+  // yasliyor ("tam yasla", kart ustte/altta ince bir cizgiyle ayrilir).
+  wrap: { marginHorizontal: -12, marginBottom: 10 },
   card: {
     backgroundColor: theme.surface,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
     borderColor: theme.border,
-    padding: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
-  cardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  cardTitle: { color: theme.text, fontSize: 13, fontWeight: "700" },
+  cardTitle: { color: theme.text, fontSize: 13, fontWeight: "700", marginBottom: 10 },
   privacyRow: { flexDirection: "row", justifyContent: "space-between" },
   privacyOption: {
     flex: 1,
