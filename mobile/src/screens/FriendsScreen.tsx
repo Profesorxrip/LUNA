@@ -299,7 +299,7 @@ export default function FriendsScreen({
                 </View>
                 {inviteMode && (
                   <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                    {isSelected && <Icon name="check" size={16} color="#04140D" />}
+                    {isSelected && <Icon name="check" size={20} color="#04140D" />}
                   </View>
                 )}
               </TouchableOpacity>
@@ -339,7 +339,7 @@ export default function FriendsScreen({
                 {inviteMode ? (
                   <TouchableOpacity onPress={() => toggleSelect(item.userId)} hitSlop={8}>
                     <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                      {isSelected && <Icon name="check" size={16} color="#04140D" />}
+                      {isSelected && <Icon name="check" size={20} color="#04140D" />}
                     </View>
                   </TouchableOpacity>
                 ) : sentRequests.has(item.userId) ? (
@@ -377,7 +377,7 @@ export default function FriendsScreen({
                 {inviteMode ? (
                   <TouchableOpacity onPress={() => toggleSelect(item.userId)} hitSlop={8}>
                     <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                      {isSelected && <Icon name="check" size={16} color="#04140D" />}
+                      {isSelected && <Icon name="check" size={20} color="#04140D" />}
                     </View>
                   </TouchableOpacity>
                 ) : sentRequests.has(item.userId) ? (
@@ -591,9 +591,9 @@ const styles = StyleSheet.create({
   // Davet modu (inviteMode) - satirin saginda isaretlenebilen onay kutusu
   // ve secim yapilinca beliren alt bar (bkz. RoomScreen.tsx onInvite).
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 2,
     borderColor: MUTED,
     alignItems: "center",
