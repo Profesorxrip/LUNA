@@ -21,13 +21,13 @@ interface Props {
   participants: Participant[];
 }
 
-/** Katilimcilar panelindeki davet ikonuna basinca acilir - Arkadaslar
- * ekranindaki ("discover ekranindaki sag ustteki arkadaslar ikonu") ayni
- * gorsel sistemi kullanir (bkz. FriendsScreen.tsx), ama satirlarin saginda
- * tek tek isaretlenebilen bir onay kutusu var - en az bir kisi
- * isaretlenince altta "Davet At" butonu belirir. Gonderim zaten var olan
- * ama hic client'tan cagrilmayan "room:invite" uc noktasini kullanir
- * (bkz. server/src/index.ts). */
+/** Katilimcilar panelindeki davet ikonuna basinca acilir - Discover'daki
+ * sag ustteki arkadaslar ikonuna basinca acilan FriendsScreen ile AYNI
+ * TAM EKRAN gorunum (kart/sheet DEGIL - bkz. kullanicinin "kart degil ekran
+ * olucaktı" duzeltmesi), ama satirlarin saginda tek tek isaretlenebilen bir
+ * onay kutusu var - en az bir kisi isaretlenince altta "Davet At" butonu
+ * belirir. Gonderim zaten var olan ama hic client'tan cagrilmayan
+ * "room:invite" uc noktasini kullanir (bkz. server/src/index.ts). */
 export default function InviteFriendsSheet({ visible, onClose, participants }: Props) {
   const socket = getSocket();
   const [friends, setFriends] = useState<FriendUser[]>([]);
@@ -82,58 +82,67 @@ export default function InviteFriendsSheet({ visible, onClose, participants }: P
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
-          <Text style={styles.title}>Arkadaşlarını Davet Et</Text>
-          <FlatList
-            data={invitable}
-            keyExtractor={(f) => f.userId}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-              loading ? <LoadingView /> : <Text style={styles.emptyText}>Davet edilebilecek arkadaşın yok.</Text>
-            }
-            renderItem={({ item }) => {
-              const isSelected = selected.has(item.userId);
-              return (
-                <TouchableOpacity style={styles.row} onPress={() => toggle(item.userId)} activeOpacity={0.7}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-                  </View>
-                  <View style={styles.rowText}>
-                    <Text style={styles.rowName}>{item.name}</Text>
-                    <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
-                  </View>
-                  <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                    {isSelected && <Icon name="check" size={16} color="#04140D" />}
-                  </View>
-                </TouchableOpacity>
-              );
-            }}
-          />
-          {selected.size > 0 && (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.iconTouch} onPress={onClose} hitSlop={8}>
+            <Icon name="close" size={30} color={TEXT} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Arkadaşlarını Davet Et</Text>
+          <View style={styles.iconTouch} />
+        </View>
+
+        <FlatList
+          data={invitable}
+          keyExtractor={(f) => f.userId}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            loading ? <LoadingView /> : <Text style={styles.emptyText}>Davet edilebilecek arkadaşın yok.</Text>
+          }
+          renderItem={({ item }) => {
+            const isSelected = selected.has(item.userId);
+            return (
+              <TouchableOpacity style={styles.row} onPress={() => toggle(item.userId)} activeOpacity={0.7}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowName}>{item.name}</Text>
+                  <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
+                </View>
+                <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                  {isSelected && <Icon name="check" size={16} color="#04140D" />}
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+        />
+
+        {selected.size > 0 && (
+          <View style={styles.inviteBar}>
             <TouchableOpacity style={styles.inviteButton} onPress={sendInvites} disabled={sending}>
               <Text style={styles.inviteButtonText}>Davet At ({selected.size})</Text>
             </TouchableOpacity>
-          )}
-        </TouchableOpacity>
-      </TouchableOpacity>
+          </View>
+        )}
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  sheet: {
-    backgroundColor: BG,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 20,
-    width: "100%",
-    height: "70%",
+  screen: { flex: 1, backgroundColor: BG },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 12,
   },
-  title: { color: TEXT, fontSize: 16, fontWeight: "700", marginBottom: 12 },
-  listContent: { paddingBottom: 20 },
+  iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
+  headerTitle: { color: TEXT, fontSize: 16, fontWeight: "700" },
+  listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   emptyText: { color: MUTED, textAlign: "center", marginTop: 60, fontSize: 14 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
   avatar: {
@@ -158,12 +167,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkboxChecked: { backgroundColor: ACCENT, borderColor: ACCENT },
+  inviteBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 16,
+    paddingBottom: 34,
+    backgroundColor: BG,
+    borderTopWidth: 1,
+    borderTopColor: "#26262B",
+  },
   inviteButton: {
     backgroundColor: ACCENT,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: "center",
-    marginTop: 12,
   },
   inviteButtonText: { color: "#04140D", fontSize: 16, fontWeight: "700" },
 });
