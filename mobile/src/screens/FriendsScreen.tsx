@@ -5,6 +5,7 @@ import { theme } from "../theme";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
+import ShareRoomContent from "../components/ShareRoomContent";
 import { DMPeer } from "./DMScreen";
 
 interface Props {
@@ -21,13 +22,14 @@ interface Props {
   inviteMode?: boolean;
   excludeUserIds?: string[];
   onSendInvites?: (userIds: string[]) => void;
-  // inviteMode'da "Engellendi" sekmesinin yerini alir - engellenen birine
-  // zaten davet atilamadigi icin o slotta artik oda linkini/uygulamalari
-  // paylasan native paylasim sayfasini acar (bkz. RoomScreen.tsx shareRoom).
-  onShareRoom?: () => void;
+  // inviteMode'da "Engellendi" sekmesinin YERINI ALAN "Paylas" sekmesinin
+  // icerigi (ShareRoomContent) icin gerekli - AYRI bir ekran ACMAZ, digerleri
+  // gibi ayni sekme cubugunun altinda gosterilir (bkz. RoomScreen.tsx).
+  roomCode?: string;
+  roomTitle?: string;
 }
 
-type Tab = "friends" | "recent" | "blocked";
+type Tab = "friends" | "recent" | "blocked" | "share";
 
 const ACCENT = "#0EA5E9";
 const BG = "#000000";
@@ -62,7 +64,8 @@ export default function FriendsScreen({
   inviteMode = false,
   excludeUserIds = [],
   onSendInvites,
-  onShareRoom,
+  roomCode,
+  roomTitle,
 }: Props) {
   const socket = getSocket();
   const [tab, setTab] = useState<Tab>("friends");
@@ -162,7 +165,8 @@ export default function FriendsScreen({
 
   function selectTab(next: Tab) {
     setTab(next);
-    refresh();
+    // "Paylas" bir liste degil - arkadas/istek verisini tekrar cekmeye gerek yok.
+    if (next !== "share") refresh();
   }
 
   function toggleSelect(userId: string) {
@@ -190,7 +194,9 @@ export default function FriendsScreen({
       ? visibleFriends.map((f) => f.userId)
       : tab === "recent"
       ? visibleRecentRoommates.map((f) => f.userId)
-      : visibleBlocked.map((f) => f.userId);
+      : tab === "blocked"
+      ? visibleBlocked.map((f) => f.userId)
+      : [];
   const allCurrentTabSelected = currentTabIds.length > 0 && currentTabIds.every((id) => selected.has(id));
 
   function toggleSelectAllCurrentTab() {
@@ -228,7 +234,7 @@ export default function FriendsScreen({
             placeholderTextColor={MUTED}
           />
         </View>
-        {inviteMode ? (
+        {inviteMode && tab !== "share" ? (
           <TouchableOpacity
             style={[styles.selectAllButton, allCurrentTabSelected && styles.selectAllButtonActive]}
             onPress={toggleSelectAllCurrentTab}
@@ -236,7 +242,7 @@ export default function FriendsScreen({
           >
             <Text style={[styles.selectAllText, allCurrentTabSelected && styles.selectAllTextActive]}>Tümü</Text>
           </TouchableOpacity>
-        ) : (
+        ) : !inviteMode ? (
           <TouchableOpacity style={styles.requestsButton} onPress={() => setRequestsVisible(true)} hitSlop={8}>
             <Icon name="bell" size={20} color={TEXT} />
             {incoming.length > 0 && (
@@ -245,7 +251,7 @@ export default function FriendsScreen({
               </View>
             )}
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
 
       {tab === "friends" && (
@@ -381,6 +387,8 @@ export default function FriendsScreen({
         />
       )}
 
+      {tab === "share" && !!roomCode && !!roomTitle && <ShareRoomContent roomCode={roomCode} roomTitle={roomTitle} />}
+
       {inviteMode && selected.size > 0 && (
         <View style={styles.inviteBar}>
           <TouchableOpacity style={styles.inviteButton} onPress={() => onSendInvites?.(Array.from(selected))}>
@@ -401,11 +409,11 @@ export default function FriendsScreen({
           </TouchableOpacity>
           {inviteMode ? (
             // Engellenen birine zaten davet atilamadigi icin bu slotta artik
-            // oda linkini/uygulamalari paylasan native paylasim sayfasi var -
-            // bir sekme DEGIL, dogrudan bir eylem (bkz. RoomScreen.tsx shareRoom).
-            <TouchableOpacity style={styles.tabItem} onPress={onShareRoom}>
-              <Icon name="shareBox" size={24} color={MUTED} />
-              <Text style={styles.tabLabel}>Paylaş</Text>
+            // oda linkini/uygulamalari gosteren bir sekme var - digerleri
+            // gibi (bkz. ShareRoomContent.tsx, AYRI bir ekran ACMAZ).
+            <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("share")}>
+              <Icon name="shareBox" size={24} color={tab === "share" ? TEXT : MUTED} />
+              <Text style={[styles.tabLabel, tab === "share" && styles.tabLabelActive]}>Paylaş</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>

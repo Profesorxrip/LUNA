@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { Linking } from "react-native";
 import { NavigationContainer, RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { createNativeStackNavigator, NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { showAlert } from "../components/CustomAlert";
 import DiscoverScreen from "../screens/DiscoverScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import PremiumScreen from "../screens/PremiumScreen";
@@ -41,6 +43,32 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 function DiscoverRoute() {
   const navigation = useNavigation<Nav>();
+
+  // Paylasilan oda linkine ("luna://room/KOD") tiklanip uygulama acilinca -
+  // soguk baslangicta (getInitialURL) ve uygulama zaten acikken (addEventListener
+  // "url") ayni sekilde calisir. Kod gecerliyse odaya otomatik katilir (bkz.
+  // ShareRoomScreen.tsx'teki link, DiscoverScreen.tsx joinByCode ile AYNI
+  // "room:join" cagrisi).
+  useEffect(() => {
+    function handleDeepLink(url: string) {
+      const match = url.match(/room\/([A-Za-z0-9]+)/);
+      if (!match) return;
+      const code = match[1].toUpperCase();
+      getSocket().emit("room:join", { code }, (res: any) => {
+        if (res.ok) {
+          navigation.reset({ index: 1, routes: [{ name: "Discover" }, { name: "Room", params: { room: res.room } }] });
+        } else {
+          showAlert("Odaya katılınamadı", res?.error || "Bu link artık geçerli değil.");
+        }
+      });
+    }
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    });
+    const subscription = Linking.addEventListener("url", ({ url }) => handleDeepLink(url));
+    return () => subscription.remove();
+  }, [navigation]);
+
   return (
     <DiscoverScreen
       onJoinRoom={(room) =>

@@ -30,7 +30,6 @@ import VideoControlsOverlay from "../components/VideoControlsOverlay";
 import VideoSeekBar from "../components/VideoSeekBar";
 import ParticipantsModal from "../components/ParticipantsModal";
 import FriendsScreen from "./FriendsScreen";
-import ShareRoomScreen from "../components/ShareRoomScreen";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
@@ -224,7 +223,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // duzenine gore degistigi icin olculup burada tutuluyor.
   const [topBarHeight, setTopBarHeight] = useState(0);
   const [inviteFriendsVisible, setInviteFriendsVisible] = useState(false);
-  const [shareRoomVisible, setShareRoomVisible] = useState(false);
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
@@ -1129,15 +1127,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           inviteMode
           excludeUserIds={room.participants.map((p) => p.userId).filter((id): id is string => Boolean(id))}
           onSendInvites={sendRoomInvites}
-          onShareRoom={() => setShareRoomVisible(true)}
+          roomCode={room.code}
+          roomTitle={room.title}
         />
       </Modal>
-      <ShareRoomScreen
-        visible={shareRoomVisible}
-        onClose={() => setShareRoomVisible(false)}
-        roomCode={room.code}
-        roomTitle={room.title}
-      />
       <RoomSettingsSheet
         visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
