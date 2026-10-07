@@ -107,13 +107,13 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
           <Text style={styles.appLabel}>Instagram</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.appButton} onPress={openX}>
-          <View style={[styles.appIconCircle, { backgroundColor: "#2A2A2E" }]}>
+          <View style={[styles.appIconCircle, styles.appIconDark]}>
             <FontAwesome6 name="x-twitter" size={20} color="#FFFFFF" />
           </View>
           <Text style={styles.appLabel}>X</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.appButton} onPress={openSystemShare}>
-          <View style={[styles.appIconCircle, { backgroundColor: "#2A2A2E" }]}>
+          <View style={[styles.appIconCircle, styles.appIconDark]}>
             <Icon name="shareBox" size={22} color={TEXT} />
           </View>
           <Text style={styles.appLabel}>Diğer</Text>
@@ -147,8 +147,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sectionLabel: { color: MUTED, fontSize: 12, fontWeight: "600", marginTop: 28, marginBottom: 14 },
-  appsRow: { flexDirection: "row", flexWrap: "wrap", gap: 16, rowGap: 20 },
-  appButton: { alignItems: "center", gap: 6, width: 56 },
-  appIconCircle: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  // Ekranin solundan sagina kadar yayilsin diye - "Diger" boylece en sagda kalir.
+  appsRow: { flexDirection: "row", justifyContent: "space-between" },
+  appButton: { alignItems: "center", gap: 6 },
+  // Telefonun kendi uygulama ikonlari gibi YUVARLAK degil, kose yumusatilmis
+  // kare ("squircle").
+  appIconCircle: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  // Siyaha yakin butonlar (X, Diger) saf siyah arka planda kaybolmasin diye
+  // ince beyaz bir cerceve.
+  appIconDark: { backgroundColor: "#2A2A2E", borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" },
   appLabel: { color: TEXT, fontSize: 12, fontWeight: "600" },
 });
