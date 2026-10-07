@@ -16,6 +16,7 @@ import {
   updatePlayback,
   updateRoomSettings,
   setHostMicOpen,
+  setParticipantMuted,
   voteSkipAdultContent,
   proposeSource,
   startVideoEndedPoll,
@@ -1477,8 +1478,30 @@ io.on("connection", (socket: Socket) => {
     // Zaten sesli sohbete baglanmis olan (host haric) katilimcilarin CANLI
     // LiveKit iznini de guncelliyoruz - aksi halde kilit sadece YENI
     // baglananlar icin gecerli olurdu (bkz. livekit.ts syncVoicePermissions).
-    const nonHostSocketIds = Array.from(room.participants.keys()).filter((id) => id !== room.hostSocketId);
-    syncVoicePermissions(currentRoomCode, nonHostSocketIds, open).catch(() => {});
+    // Host'un AYRICA zorla sustugu biri (participant.muted) varsa, oda
+    // geneli acilsa bile o kisi YINE false kalmali.
+    const updates = Array.from(room.participants.entries())
+      .filter(([sid]) => sid !== room.hostSocketId)
+      .map(([sid, p]) => ({ socketId: sid, canPublish: open && !p.muted }));
+    syncVoicePermissions(currentRoomCode, updates).catch(() => {});
+  });
+
+  // Host, Katilimcilar panelindeki mikrofon ikonuyla BELIRLI bir katilimciyi
+  // zorla susturur/geri acar - oda "Ses" kilidinden (micOpenToAll) BAGIMSIZ.
+  // Host kendini bu yoldan susturamaz (bkz. rooms.ts setParticipantMuted).
+  socket.on("room:muteParticipant", ({ targetSocketId, muted }: { targetSocketId: string; muted: boolean }, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    if (!isNonEmptyString(targetSocketId, 100) || !isBoolean(muted)) return ack?.({ ok: false, error: "Gecersiz istek." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    const applied = setParticipantMuted(room, socket.id, targetSocketId, muted);
+    if (!applied) return ack?.({ ok: false, error: "Bu islemi sadece lider yapabilir." });
+    ack?.({ ok: true });
+    broadcastRoom(currentRoomCode);
+    // Hedefin CANLI LiveKit iznini guncelle - susturuluyorsa HER ZAMAN
+    // false, geri aciliyorsa oda genel politikasina (micOpenToAll) doner.
+    const canPublish = !muted && room.micOpenToAll;
+    syncVoicePermissions(currentRoomCode, [{ socketId: targetSocketId, canPublish }]).catch(() => {});
   });
 
   socket.on("voice:token", async (_data, ack) => {
@@ -1487,8 +1510,9 @@ io.on("connection", (socket: Socket) => {
     const participant = room?.participants.get(socket.id);
     // Host'un mikrofonu kapaliysa (bkz. rooms.ts micOpenToAll) SADECE host
     // mikrofon yayinlayabilir - digerleri sadece dinleyebilir (canSubscribe
-    // hep true kalir, sadece canPublish kisitlanir).
-    const canPublish = !room || isHost(room, socket.id) || room.micOpenToAll;
+    // hep true kalir, sadece canPublish kisitlanir). Host'un AYRICA zorla
+    // sustugu biriyse (participant.muted) oda geneli acik olsa bile false.
+    const canPublish = !room || isHost(room, socket.id) || (room.micOpenToAll && !participant?.muted);
     try {
       const token = await createVoiceToken(currentRoomCode, participant?.name || "Misafir", socket.id, canPublish);
       ack?.({ ok: true, token, livekitUrl: process.env.LIVEKIT_URL || "", canPublish });

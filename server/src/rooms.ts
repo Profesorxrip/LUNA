@@ -8,6 +8,9 @@ export interface Participant {
   socketId: string;
   name: string;
   isHost: boolean;
+  // Host bu katilimciyi ZORLA susturdu mu (bkz. index.ts
+  // "room:muteParticipant", setParticipantMuted) - oda "Ses" kilidi acik
+  // olsa bile bu kisi mikrofonunu acamaz, SADECE host geri acabilir.
   muted: boolean;
   // Sadece gercek girisi yapmis (Supabase) kullanicilarda dolu - Discover
   // kartinda "bu arkadasin" rozetini gosterebilmek icin.
@@ -599,6 +602,19 @@ export function setHostMicOpen(room: Room, requesterId: string, open: boolean): 
   if (!isHost(room, requesterId)) return false;
   if (room.micOpenToAll === open) return false;
   room.micOpenToAll = open;
+  return true;
+}
+
+/** Host, Katilimcilar panelindeki mikrofon ikonuyla BELIRLI bir katilimciyi
+ * zorla susturur/geri acar - oda "Ses" kilidinden (micOpenToAll) BAGIMSIZ,
+ * ona OZEL bir kisitlama (bkz. index.ts "room:muteParticipant"). Host
+ * kendini bu yoldan susturamaz. */
+export function setParticipantMuted(room: Room, requesterId: string, targetSocketId: string, muted: boolean): boolean {
+  if (!isHost(room, requesterId)) return false;
+  if (targetSocketId === room.hostSocketId) return false;
+  const participant = room.participants.get(targetSocketId);
+  if (!participant || participant.muted === muted) return false;
+  participant.muted = muted;
   return true;
 }
 

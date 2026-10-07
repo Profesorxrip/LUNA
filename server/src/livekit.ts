@@ -37,18 +37,22 @@ export async function createVoiceToken(roomCode: string, participantName: string
   return at.toJwt();
 }
 
-/** Host "Herkes mikrofon acabilsin" ayarini degistirdiginde, ZATEN sesli
- * sohbete baglanmis olanlarin CANLI iznini de gunceller - aksi halde
+/** Host "Herkes mikrofon acabilsin" ayarini (ya da belirli bir katilimciyi
+ * zorla susturmayi, bkz. "room:muteParticipant") degistirdiginde, ZATEN
+ * sesli sohbete baglanmis olanlarin CANLI iznini de gunceller - aksi halde
  * token'daki eski izin baglanti kesilene kadar (6 saat) gecerli kalirdi.
- * LiveKit yapilandirilmamissa (gelistirme ortami) sessizce atlanir - bu oda
- * ayari LiveKit olmadan da calismaya devam eder (sadece token asamasinda
- * etkili olur). Her katilimci icin ayri ayri "best effort" denenir - biri
- * sesli sohbete hic baglanmamissa LiveKit'in donecegi hata yoksayilir. */
-export async function syncVoicePermissions(roomCode: string, socketIds: string[], canPublish: boolean): Promise<void> {
+ * Her katilimci FARKLI bir canPublish degeri alabilir (ornegin oda geneli
+ * acikken host'un ayrica sustugu biri false kalmali) - bu yuzden tek bir
+ * ortak deger yerine katilimci basina liste aliyoruz. LiveKit
+ * yapilandirilmamissa (gelistirme ortami) sessizce atlanir - bu ozellikler
+ * LiveKit olmadan da calismaya devam eder (sadece token asamasinda etkili
+ * olur). Her katilimci icin ayri ayri "best effort" denenir - biri sesli
+ * sohbete hic baglanmamissa LiveKit'in donecegi hata yoksayilir. */
+export async function syncVoicePermissions(roomCode: string, updates: { socketId: string; canPublish: boolean }[]): Promise<void> {
   if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_URL) return;
   const client = new RoomServiceClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
   const roomName = livekitRoomName(roomCode);
   await Promise.allSettled(
-    socketIds.map((identity) => client.updateParticipant(roomName, identity, { permission: { canPublish } }))
+    updates.map(({ socketId, canPublish }) => client.updateParticipant(roomName, socketId, { permission: { canPublish } }))
   );
 }

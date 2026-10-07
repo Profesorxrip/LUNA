@@ -724,6 +724,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     socket.emit("host:transfer", { targetSocketId }, () => {});
   }
 
+  function muteParticipant(targetSocketId: string, muted: boolean) {
+    socket.emit("room:muteParticipant", { targetSocketId, muted }, () => {});
+  }
+
   function leave() {
     socket.emit("room:leave");
     voice.leave();
@@ -735,15 +739,19 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // host kapatirsa/sesli sohbetten ayrilirsa (Ses: Kapali) SADECE host
   // acabilir (bkz. useVoiceChat.ts join'in startMuted parametresi,
   // livekit.ts canPublish). Mikrofonu KAPATMAK her zaman serbest, sadece
-  // ACMAK kisitlanir.
-  const canOpenMic = isHost || room.micOpenToAll;
+  // ACMAK kisitlanir. AYRICA host beni Katilimcilar panelinden ozel olarak
+  // susturmus olabilir (me?.muted) - bu, oda geneli acik olsa bile gecerli.
+  const canOpenMic = isHost || (room.micOpenToAll && !me?.muted);
   function handleMicPress() {
     if (!voice.connected) {
       voice.join(!canOpenMic);
       return;
     }
     if (voice.muted && !canOpenMic) {
-      showAlert("Mikrofon kilitli", "Bu odada sadece lider mikrofonunu acabilir.");
+      showAlert(
+        "Mikrofon kilitli",
+        me?.muted ? "Lider seni susturdu." : "Bu odada sadece lider mikrofonunu acabilir."
+      );
       return;
     }
     voice.toggleMute();
@@ -1070,6 +1078,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         isHost={isHost}
         onKick={kick}
         onMakeLeader={makeLeader}
+        onMuteParticipant={muteParticipant}
       />
       <RoomSettingsSheet
         visible={settingsVisible}
