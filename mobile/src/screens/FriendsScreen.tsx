@@ -500,15 +500,18 @@ const styles = StyleSheet.create({
   // zamanlarda/engellenenler kismi yok" duzeltmesi).
   inviteBar: {
     position: "absolute",
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
     bottom: 104,
-  },
-  inviteButton: {
-    backgroundColor: ACCENT,
-    borderRadius: 10,
-    paddingVertical: 14,
     alignItems: "center",
   },
-  inviteButtonText: { color: "#04140D", fontSize: 16, fontWeight: "700" },
+  // tabBar'daki (asagidaki) yuzen hap/pill sekliyle AYNI, sadece daha kucuk.
+  inviteButton: {
+    backgroundColor: ACCENT,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  inviteButtonText: { color: "#04140D", fontSize: 13, fontWeight: "700" },
 });
