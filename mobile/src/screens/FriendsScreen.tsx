@@ -321,32 +321,30 @@ export default function FriendsScreen({
         />
       )}
 
-      {inviteMode ? (
-        selected.size > 0 && (
-          <View style={styles.inviteBar}>
-            <TouchableOpacity style={styles.inviteButton} onPress={() => onSendInvites?.(Array.from(selected))}>
-              <Text style={styles.inviteButtonText}>Davet At ({selected.size})</Text>
-            </TouchableOpacity>
-          </View>
-        )
-      ) : (
-        <View style={styles.tabBarWrap}>
-          <View style={styles.tabBar}>
-            <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("friends")}>
-              <Icon name="people" size={24} color={tab === "friends" ? TEXT : MUTED} />
-              <Text style={[styles.tabLabel, tab === "friends" && styles.tabLabelActive]}>Arkadaşlar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("recent")}>
-              <Icon name="clock" size={24} color={tab === "recent" ? TEXT : MUTED} />
-              <Text style={[styles.tabLabel, tab === "recent" && styles.tabLabelActive]}>Son Zamanlarda</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>
-              <Icon name="personBlock" size={24} color={tab === "blocked" ? TEXT : MUTED} />
-              <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
-            </TouchableOpacity>
-          </View>
+      {inviteMode && selected.size > 0 && (
+        <View style={styles.inviteBar}>
+          <TouchableOpacity style={styles.inviteButton} onPress={() => onSendInvites?.(Array.from(selected))}>
+            <Text style={styles.inviteButtonText}>Davet At ({selected.size})</Text>
+          </TouchableOpacity>
         </View>
       )}
+
+      <View style={styles.tabBarWrap}>
+        <View style={styles.tabBar}>
+          <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("friends")}>
+            <Icon name="people" size={24} color={tab === "friends" ? TEXT : MUTED} />
+            <Text style={[styles.tabLabel, tab === "friends" && styles.tabLabelActive]}>Arkadaşlar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("recent")}>
+            <Icon name="clock" size={24} color={tab === "recent" ? TEXT : MUTED} />
+            <Text style={[styles.tabLabel, tab === "recent" && styles.tabLabelActive]}>Son Zamanlarda</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>
+            <Icon name="personBlock" size={24} color={tab === "blocked" ? TEXT : MUTED} />
+            <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <Modal visible={requestsVisible} animationType="fade" transparent onRequestClose={() => setRequestsVisible(false)}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setRequestsVisible(false)}>
@@ -497,16 +495,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkboxChecked: { backgroundColor: ACCENT, borderColor: ACCENT },
+  // Alt sekme cubugunun (tabBarWrap, bottom:34) HEMEN USTUNDE yuzer -
+  // sekmeler her zaman gorunur kalsin diye (bkz. kullanicinin "son
+  // zamanlarda/engellenenler kismi yok" duzeltmesi).
   inviteBar: {
     position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: 16,
-    paddingBottom: 34,
-    backgroundColor: BG,
-    borderTopWidth: 1,
-    borderTopColor: "#26262B",
+    left: 16,
+    right: 16,
+    bottom: 104,
   },
   inviteButton: {
     backgroundColor: ACCENT,
