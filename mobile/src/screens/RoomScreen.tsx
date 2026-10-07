@@ -21,7 +21,7 @@ import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
-import type { MediaSource, DMReply } from "../services/socket";
+import type { MediaSource, DMReply, FriendUser } from "../services/socket";
 import { supabase } from "../services/supabase";
 import MediaPlayer, { MediaPlayerHandle } from "../components/MediaPlayer";
 import MediaPickerSheet from "../components/MediaPickerSheet";
@@ -34,6 +34,7 @@ import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
 import RoomMapSheet from "../components/RoomMapSheet";
+import RoomQuickCards from "../components/RoomQuickCards";
 import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
@@ -232,6 +233,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // ayirt edebilmek icin kendi arkadas listemizi (userId'ler) bir kere cekip
   // tutuyoruz (bkz. ParticipantsModal.tsx isFriend, Avatar.tsx).
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
+  // RoomQuickCards.tsx'teki "Arkadaslarini Davet Et" karti icin tam liste
+  // (isim/avatar) gerekiyor, friendIds sadece id tutuyor.
+  const [friends, setFriends] = useState<FriendUser[]>([]);
+  // Hizli davet kartinda tik SADECE sunucu "room:invite" ack'inde basarili
+  // dedikten sonra isaretlensin diye (bkz. RoomQuickCards.tsx sentIds).
+  const [quickInviteSentIds, setQuickInviteSentIds] = useState<Set<string>>(new Set());
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
@@ -306,7 +313,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 
   useEffect(() => {
     socket.emit("friends:list", {}, (res: any) => {
-      if (res?.ok) setFriendIds(new Set(res.friends.map((f: { userId: string }) => f.userId)));
+      if (res?.ok) {
+        setFriendIds(new Set(res.friends.map((f: { userId: string }) => f.userId)));
+        setFriends(res.friends);
+      }
     });
   }, []);
 
@@ -623,6 +633,16 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           );
         }
       });
+    });
+  }
+
+  // RoomQuickCards.tsx "Arkadaslarini Davet Et" - tek dokunusla, sessizce
+  // (buyuk "Davet At" alert'i olmadan) gonderir, tik SADECE basarili ack'te
+  // isaretlenir (bkz. quickInviteSentIds).
+  function quickInviteFriend(userId: string) {
+    socket.emit("room:invite", { toUserId: userId }, (res: any) => {
+      if (res?.ok) setQuickInviteSentIds((prev) => new Set(prev).add(userId));
+      else showAlert("Gönderilemedi", "Davet gönderilemedi.");
     });
   }
 
@@ -975,6 +995,16 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       <FlatList
         style={styles.chatList}
         contentContainerStyle={styles.chatContent}
+        ListHeaderComponent={
+          <RoomQuickCards
+            isHost={isHost}
+            privacy={room.privacy}
+            onChangePrivacy={changePrivacy}
+            friends={friends}
+            sentIds={quickInviteSentIds}
+            onInviteFriend={quickInviteFriend}
+          />
+        }
         data={messages}
         keyExtractor={(_, i) => String(i)}
         renderItem={({ item, index }) => {
