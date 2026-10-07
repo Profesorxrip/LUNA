@@ -54,7 +54,7 @@ export default function ParticipantsModal({
                     <Avatar name={item.name} avatarUrl={item.avatarUrl} size={40} />
                     {item.isHost && (
                       <View style={styles.hostBadge}>
-                        <CrownBadge size={34} color={theme.accent} />
+                        <CrownBadge size={20} color={theme.accent} />
                       </View>
                     )}
                   </View>
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   // CrownBadge.tsx) profil fotografinin TAM USTUNE (negatif top ile) oturur.
   hostBadge: {
     position: "absolute",
-    top: -20,
+    top: -15,
     left: 0,
     right: 0,
     alignItems: "center",
