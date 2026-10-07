@@ -29,6 +29,7 @@ import ReactionsOverlay, { ReactionsOverlayHandle } from "../components/Reaction
 import VideoControlsOverlay from "../components/VideoControlsOverlay";
 import VideoSeekBar from "../components/VideoSeekBar";
 import ParticipantsModal from "../components/ParticipantsModal";
+import InviteFriendsSheet from "../components/InviteFriendsSheet";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
@@ -221,6 +222,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // ALTINDAN baslasin diye - gercek yukseklik cihaza/masaustu-telefon
   // duzenine gore degistigi icin olculup burada tutuluyor.
   const [topBarHeight, setTopBarHeight] = useState(0);
+  const [inviteFriendsVisible, setInviteFriendsVisible] = useState(false);
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
@@ -1088,7 +1090,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         hostMicOpen={room.micOpenToAll}
         onToggleOwnMic={handleMicPress}
         topOffset={topBarHeight}
-        onInvite={shareRoom}
+        onInvite={() => setInviteFriendsVisible(true)}
+      />
+      <InviteFriendsSheet
+        visible={inviteFriendsVisible}
+        onClose={() => setInviteFriendsVisible(false)}
+        participants={room.participants}
       />
       <RoomSettingsSheet
         visible={settingsVisible}
