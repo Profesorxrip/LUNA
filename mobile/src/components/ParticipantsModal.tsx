@@ -26,6 +26,10 @@ interface Props {
   // Davet (arkadas ekle) - eskiden mesaj alanindaki ikon cubugundaydi,
   // artik panelin alt barinda (bkz. RoomScreen.tsx shareRoom).
   onInvite: () => void;
+  // Discover'daki oda kartlarindaki mavi "arkadas halkasi" ile AYNI - bu
+  // odada gercek arkadasimiz olan katilimcilarin avatarinda gosterilir
+  // (bkz. Avatar.tsx isFriend, RoomScreen.tsx friendIds).
+  friendIds: Set<string>;
 }
 
 /** Rave'deki ust bardaki "3" rozetli katilimci ikonuna basinca acilan liste -
@@ -43,6 +47,7 @@ export default function ParticipantsModal({
   onToggleOwnMic,
   topOffset,
   onInvite,
+  friendIds,
 }: Props) {
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -61,7 +66,12 @@ export default function ParticipantsModal({
               return (
                 <View style={styles.row}>
                   <View style={styles.avatarWrap}>
-                    <Avatar name={item.name} avatarUrl={item.avatarUrl} size={40} />
+                    <Avatar
+                      name={item.name}
+                      avatarUrl={item.avatarUrl}
+                      size={40}
+                      isFriend={Boolean(item.userId && friendIds.has(item.userId))}
+                    />
                     {item.isHost && (
                       <View style={styles.hostBadge}>
                         <CrownBadge size={20} color={theme.accent} />

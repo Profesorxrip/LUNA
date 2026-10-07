@@ -63,6 +63,10 @@ interface ChatBubbleRowProps {
   groupedWithPrev: boolean;
   onReply: () => void;
   onDoubleTap: () => void;
+  // Discover'daki mavi "arkadas halkasi" ile AYNI - bu mesaji gonderen
+  // gercek arkadasimizsa true (bkz. Avatar.tsx isFriend, RoomScreen.tsx
+  // friendIds).
+  isFriend: boolean;
 }
 
 /** Sohbet mesaji satiri - kendi mesajimizi SAGDAN SOLA, baskasinin mesajini
@@ -75,7 +79,7 @@ interface ChatBubbleRowProps {
  * doldurup tasdigi icin ustten baslamaya devam ediyor. Bu sayede react-
  * native-web'de desteklenmeyen onTextLayout'a bagli kalinmiyor ve native'de
  * de ilk render'da dogru pozisyonla cikiyor - sonradan "ziplama" olmuyor. */
-function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap }: ChatBubbleRowProps) {
+function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, isFriend }: ChatBubbleRowProps) {
   const { i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
@@ -164,12 +168,12 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap }: C
             )}
             {reactionBadges}
           </View>
-          {!groupedWithPrev && <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} />}
+          {!groupedWithPrev && <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} isFriend={isFriend} />}
         </>
       ) : (
         <>
           {!groupedWithPrev ? (
-            <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} />
+            <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} isFriend={isFriend} />
           ) : (
             <View style={styles.avatarSpacer} />
           )}
@@ -223,6 +227,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // duzenine gore degistigi icin olculup burada tutuluyor.
   const [topBarHeight, setTopBarHeight] = useState(0);
   const [inviteFriendsVisible, setInviteFriendsVisible] = useState(false);
+  // Discover'daki oda kartlarinda kullanilan mavi "arkadas halkasi" ile AYNI -
+  // katilimcilar panelinde/sohbet avatarlarinda gercek arkadaslarimizi
+  // ayirt edebilmek icin kendi arkadas listemizi (userId'ler) bir kere cekip
+  // tutuyoruz (bkz. ParticipantsModal.tsx isFriend, Avatar.tsx).
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
@@ -292,6 +301,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           if (profile?.default_reaction_emoji) setQuickReactionEmoji(profile.default_reaction_emoji);
           setMyHideAdultContent(profile?.hide_adult_content === true);
         });
+    });
+  }, []);
+
+  useEffect(() => {
+    socket.emit("friends:list", {}, (res: any) => {
+      if (res?.ok) setFriendIds(new Set(res.friends.map((f: { userId: string }) => f.userId)));
     });
   }, []);
 
@@ -968,6 +983,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           // devaminda sadece metin aliniyor.
           const prev = messages[index - 1];
           const groupedWithPrev = !!prev && !prev.system && !item.system && prev.fromSocketId === item.fromSocketId;
+          const senderUserId = room.participants.find((p) => p.socketId === item.fromSocketId)?.userId;
           return !item.system ? (
             <ChatBubbleRow
               item={item}
@@ -975,6 +991,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
               groupedWithPrev={groupedWithPrev}
               onReply={() => startReply(item)}
               onDoubleTap={() => reactToMessage(item)}
+              isFriend={Boolean(senderUserId && friendIds.has(senderUserId))}
             />
           ) : item.kind === "joined" ? (
             <View style={styles.messageRow}>
@@ -1115,6 +1132,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onToggleOwnMic={handleMicPress}
         topOffset={topBarHeight}
         onInvite={() => setInviteFriendsVisible(true)}
+        friendIds={friendIds}
       />
       {/* Davet et - Discover'daki sag ustteki arkadaslar ikonuyla ACILAN AYNI
           FriendsScreen, sadece inviteMode acik (bkz. FriendsScreen.tsx). */}
