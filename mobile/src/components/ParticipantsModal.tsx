@@ -23,6 +23,9 @@ interface Props {
   // UZERINE binmesin, hemen altindan baslasin diye (bkz. RoomScreen.tsx
   // topBarHeight - gercek yukseklik cihaza gore degistigi icin olculur).
   topOffset: number;
+  // Davet (arkadas ekle) - eskiden mesaj alanindaki ikon cubugundaydi,
+  // artik panelin alt barinda (bkz. RoomScreen.tsx shareRoom).
+  onInvite: () => void;
 }
 
 /** Rave'deki ust bardaki "3" rozetli katilimci ikonuna basinca acilan liste -
@@ -39,6 +42,7 @@ export default function ParticipantsModal({
   hostMicOpen,
   onToggleOwnMic,
   topOffset,
+  onInvite,
 }: Props) {
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -115,8 +119,14 @@ export default function ParticipantsModal({
               }}
             />
           </View>
-          {/* Alt bar - icerigi sonradan eklenecek (su an bos bir yer tutucu). */}
-          <View style={styles.bottomBar} />
+          {/* Alt bar - mesaj alanindaki alt barla AYNI seviyede (bkz.
+              RoomScreen.tsx styles.bottomBar) - davet ikonu artik burada,
+              en sagda. */}
+          <View style={styles.bottomBar}>
+            <TouchableOpacity style={styles.inviteBtn} onPress={onInvite} hitSlop={4}>
+              <Icon name="invite" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -137,12 +147,18 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface,
   },
   content: { flex: 1, padding: 20 },
-  // Alt bar - sonradan doldurulacak bos yer tutucu.
+  // Alt bar - mesaj alanindaki alt barla (RoomScreen.tsx styles.bottomBar)
+  // AYNI yukseklik/dolgu degerleri, davet ikonu en saga yaslanir.
   bottomBar: {
-    height: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
+    borderTopColor: theme.border,
   },
+  inviteBtn: { width: 30, height: 38, justifyContent: "center", alignItems: "center" },
   list: { flex: 1 },
   // Ilk satirin lider rozeti (negatif top ile ustte tasan) listenin kendi
   // ust sinirinda KESILMESIN diye ufak bir bosluk birakiyoruz.

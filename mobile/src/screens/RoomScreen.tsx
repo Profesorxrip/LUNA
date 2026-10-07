@@ -1033,7 +1033,9 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
             <Icon name="send" size={30} color={theme.accentBright} />
           </TouchableOpacity>
         ) : (
-          // Yazmiyorken: paylas/etiket/galeri/davet/harita ikonlari gorunur.
+          // Yazmiyorken: paylas/etiket/galeri/harita ikonlari gorunur - davet
+          // (arkadas ekle) ikonu artik burada degil, Katilimcilar panelinin
+          // alt barinda (bkz. ParticipantsModal.tsx onInvite).
           <View style={styles.actionGroup}>
             <TouchableOpacity style={styles.iconTouchSm} onPress={shareRoom} hitSlop={4}>
               <Icon name="share" size={30} color="#FFFFFF" />
@@ -1046,9 +1048,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconTouchSm} onPress={showMap} hitSlop={4}>
               <Icon name="globe" size={30} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconTouchSm} onPress={shareRoom} hitSlop={4}>
-              <Icon name="invite" size={30} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         )}
@@ -1089,6 +1088,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         hostMicOpen={room.micOpenToAll}
         onToggleOwnMic={handleMicPress}
         topOffset={topBarHeight}
+        onInvite={shareRoom}
       />
       <RoomSettingsSheet
         visible={settingsVisible}
