@@ -331,7 +331,7 @@ export default function FriendsScreen({
                     <Text style={styles.rowName}>{item.name}</Text>
                     <Text style={styles.rowHandle} numberOfLines={1}>
                       {item.handle ? `@${item.handle} · ` : ""}
-                      {relativeTime(item.lastTogetherMs)} önce aynı odadaydınız
+                      {relativeTime(item.lastTogetherMs)} önce
                     </Text>
                   </View>
                 </TouchableOpacity>
