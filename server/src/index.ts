@@ -1109,14 +1109,18 @@ io.on("connection", (socket: Socket) => {
       // Rave'deki gibi: bir ayar degistiginde sohbet akisina ozel ikonlu
       // (disli) bir sistem mesaji dusuyor (bkz. RoomScreen.tsx "settings" render dali).
       const byName = room.participants.get(socket.id)?.name || myName;
+      const byAvatarUrl = room.participants.get(socket.id)?.avatarUrl ?? null;
       if (updates.privacy) {
         const value = PRIVACY_LABEL[updates.privacy];
         io.to(currentRoomCode).emit("room:chat", {
           system: true,
           kind: "settings",
           byName,
+          byAvatarUrl,
           settingLabel: "Gizlilik",
           settingValue: value,
+          settingKey: "privacy",
+          settingRawValue: updates.privacy,
           text: `${byName} gizliligi "${value}" yapti.`,
           ts: Date.now(),
         });
@@ -1127,36 +1131,18 @@ io.on("connection", (socket: Socket) => {
           system: true,
           kind: "settings",
           byName,
+          byAvatarUrl,
           settingLabel: "Oynatma modu",
           settingValue: value,
+          settingKey: "playbackMode",
+          settingRawValue: updates.playbackMode,
           text: `${byName} oynatma modunu "${value}" yapti.`,
           ts: Date.now(),
         });
       }
-      if (updates.autoTranslateChat !== undefined) {
-        const value = updates.autoTranslateChat ? "Açık" : "Kapalı";
-        io.to(currentRoomCode).emit("room:chat", {
-          system: true,
-          kind: "settings",
-          byName,
-          settingLabel: "Sohbet çevirisi",
-          settingValue: value,
-          text: `${byName} sohbet cevirisini "${value}" yapti.`,
-          ts: Date.now(),
-        });
-      }
-      if (updates.isAdult !== undefined) {
-        const value = updates.isAdult ? "Açık" : "Kapalı";
-        io.to(currentRoomCode).emit("room:chat", {
-          system: true,
-          kind: "settings",
-          byName,
-          settingLabel: "18+ içerik",
-          settingValue: value,
-          text: `${byName} 18+ icerik isaretini "${value}" yapti.`,
-          ts: Date.now(),
-        });
-      }
+      // "Sohbet cevirisi" ve "18+ icerik" kisiye ozel/tercih niteliginde
+      // ayarlar - bu yuzden diger ikisinin (gizlilik, oynatma modu) aksine
+      // herkese gorunen bir bildiri karti DUSMUYOR, sessizce uygulanir.
     }
   );
 

@@ -133,8 +133,15 @@ export interface ChatMessage {
   targetName?: string; // kicked, joined
   targetAvatarUrl?: string | null; // joined
   byName?: string; // kicked, settings
+  byAvatarUrl?: string | null; // settings
   settingLabel?: string; // settings - orn. "Gizlilik"
   settingValue?: string; // settings - orn. "Açık"
+  // settings - buyuk ikonu secebilmek icin ham anahtar/deger (settingLabel/
+  // settingValue zaten kullanicIya gosterilen Turkce metinler, ikon eslemesi
+  // icin guvenilir degiller). Sohbet cevirisi/18+ icerik gibi kisiye ozel
+  // ayarlar icin bildiri kartı dusmedigi icin bu ikisi burada yer almiyor.
+  settingKey?: "privacy" | "playbackMode";
+  settingRawValue?: string;
 }
 
 export interface ReactionEvent {

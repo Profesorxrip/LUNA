@@ -1,13 +1,14 @@
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
-import type { PrivacyLevel, FriendUser } from "../services/socket";
+import type { PrivacyLevel, PlaybackMode, FriendUser } from "../services/socket";
 import Avatar from "./Avatar";
 import Icon, { IconName } from "./Icon";
 import { theme } from "../theme";
 
 interface Props {
+  privacy: PrivacyLevel;
+  playbackMode: PlaybackMode;
   // Gizlilik karti SADECE lidere gosterilir (degistirebilen tek kisi o).
   isHost: boolean;
-  privacy: PrivacyLevel;
   onChangePrivacy: (p: PrivacyLevel) => void;
   friends: FriendUser[];
   // Sunucu gercekten "gonderildi" diyene kadar tik isaretlenmesin diye bu
@@ -17,12 +18,23 @@ interface Props {
   onInviteFriend: (userId: string) => void;
 }
 
-const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
+// RoomScreen.tsx'teki "settings" bildiri kartinda da (buyuk ikon secimi
+// icin) kullanilir.
+export const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
   { key: "open", icon: "globe", label: "Açık" },
   { key: "nearby", icon: "pin", label: "Yakındakiler" },
   { key: "friends", icon: "people", label: "Arkadaşlar" },
   { key: "invite", icon: "invite", label: "Davetli" },
 ];
+
+// RoomSettingsSheet.tsx'teki PLAYBACK_OPTIONS ile ayni secenekler, burada
+// tek satirlik bilgi rozeti icin kisa etiketlerle (bkz. infoRow).
+export const PLAYBACK_INFO: Record<PlaybackMode, { icon: IconName; label: string }> = {
+  leader: { icon: "crown", label: "Liderin Seçimi" },
+  playOnly: { icon: "play", label: "Sadece Oynat" },
+  autoplay: { icon: "fastForward", label: "Otomatik Oynat" },
+  vote: { icon: "check", label: "Haydi Oylayalım" },
+};
 
 /** Oda yeni acildiginda sohbetin en ustunde (bkz. RoomScreen.tsx chat
  * FlatList ListHeaderComponent) beliren, digerleriyle (bkz. RoomScreen.tsx
@@ -30,14 +42,24 @@ const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = 
  * secimi (sadece lider) ve arkadaslari tek dokunusla davet etme. Kapatma
  * tusu YOK - mesajlar aktikca zaten yukarida kalip sohbet gecmisine karisir,
  * ayrica kalici bir kapatma durumu tutmaya gerek yok. */
-export default function RoomQuickCards({ isHost, privacy, onChangePrivacy, friends, sentIds, onInviteFriend }: Props) {
+export default function RoomQuickCards({ isHost, privacy, playbackMode, onChangePrivacy, friends, sentIds, onInviteFriend }: Props) {
   const showPrivacy = isHost;
   const showInvite = friends.length > 0;
-
-  if (!showPrivacy && !showInvite) return null;
+  const privacyInfo = PRIVACY_OPTIONS.find((o) => o.key === privacy)!;
+  const playbackInfo = PLAYBACK_INFO[playbackMode];
 
   return (
     <View style={styles.wrap}>
+      {/* Oda bilgisi - herkese gorunur, salt bilgi amacli (degistirilemez) -
+          "X katildi" gibi diger bildiri satirlariyla AYNI sade stil. */}
+      <View style={styles.infoRow}>
+        <Icon name={privacyInfo.icon} size={14} color={theme.textMuted} />
+        <Text style={styles.infoText}>{privacyInfo.label}</Text>
+        <Text style={styles.infoDot}>·</Text>
+        <Icon name={playbackInfo.icon} size={14} color={theme.textMuted} />
+        <Text style={styles.infoText}>{playbackInfo.label}</Text>
+      </View>
+
       {showPrivacy && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Oda Gizliliği</Text>
@@ -98,6 +120,17 @@ const styles = StyleSheet.create({
   // margin ile iptal edip kartlari ekranin gercek sol/sag kenarina kadar
   // yasliyor ("tam yasla", kart ustte/altta ince bir cizgiyle ayrilir).
   wrap: { marginHorizontal: -12, marginBottom: 10 },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderColor: theme.border,
+  },
+  infoText: { color: theme.textMuted, fontSize: 12, fontWeight: "600" },
+  infoDot: { color: theme.textMuted, fontSize: 12 },
   card: {
     backgroundColor: theme.surface,
     borderTopWidth: 1,

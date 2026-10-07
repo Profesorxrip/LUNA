@@ -33,9 +33,9 @@ import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
 import RoomMapSheet from "../components/RoomMapSheet";
-import RoomQuickCards from "../components/RoomQuickCards";
+import RoomQuickCards, { PRIVACY_OPTIONS, PLAYBACK_INFO } from "../components/RoomQuickCards";
 import Avatar from "../components/Avatar";
-import Icon from "../components/Icon";
+import Icon, { IconName } from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import { isHideLocationEnabled } from "../utils/locationSettings";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
@@ -203,6 +203,19 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, isF
       )}
     </Animated.View>
   );
+}
+
+// "settings" bildiri kartindaki buyuk ikonu, server'in gonderdigi ham
+// settingKey/settingRawValue'ya gore secer (bkz. RoomQuickCards.tsx
+// PRIVACY_OPTIONS/PLAYBACK_INFO - ayni eslemeler, ikisi de tek yerde).
+function settingsCardIcon(item: ChatMessage): IconName {
+  if (item.settingKey === "privacy") {
+    return PRIVACY_OPTIONS.find((o) => o.key === item.settingRawValue)?.icon || "globe";
+  }
+  if (item.settingKey === "playbackMode") {
+    return PLAYBACK_INFO[item.settingRawValue as keyof typeof PLAYBACK_INFO]?.icon || "crown";
+  }
+  return "settings";
 }
 
 export default function RoomScreen({ initialRoom, onLeave }: Props) {
@@ -994,6 +1007,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           <RoomQuickCards
             isHost={isHost}
             privacy={room.privacy}
+            playbackMode={room.playbackMode}
             onChangePrivacy={changePrivacy}
             friends={friends}
             sentIds={quickInviteSentIds}
@@ -1045,11 +1059,19 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
               </Text>
             </View>
           ) : item.kind === "settings" ? (
-            <View style={styles.eventRow}>
-              <Icon name="settings" size={14} color={theme.textMuted} />
-              <Text style={styles.eventText} numberOfLines={1}>
-                <Text style={styles.eventBold}>{item.byName}</Text> {item.settingLabel}: {item.settingValue}
-              </Text>
+            <View style={styles.settingsCard}>
+              <Avatar name={item.byName || "?"} avatarUrl={item.byAvatarUrl} size={36} />
+              <View style={styles.settingsIconWrap}>
+                <Icon name={settingsCardIcon(item)} size={26} color={theme.accent} />
+              </View>
+              <View style={styles.settingsTextCol}>
+                <Text style={styles.settingsValue} numberOfLines={1}>
+                  {item.settingValue}
+                </Text>
+                <Text style={styles.settingsDesc} numberOfLines={1}>
+                  {item.settingLabel} · <Text style={styles.eventBold}>{item.byName}</Text> değiştirdi
+                </Text>
+              </View>
             </View>
           ) : (
             <Text style={styles.systemMsg}>{item.text}</Text>
@@ -1408,6 +1430,26 @@ const styles = StyleSheet.create({
   eventRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 4 },
   eventText: { color: theme.textMuted, fontSize: 12, flexShrink: 1 },
   eventBold: { color: theme.text, fontWeight: "700" },
+  // "settings" bildiri karti - RoomQuickCards.tsx'teki kartlarla AYNI
+  // ailede: ekranin tam sol/sag kenarina yaslanir (chatContent'in
+  // paddingHorizontal:12'si negatif margin ile iptal edilir), kose
+  // yuvarlamasi yok, kim degistirdiyse onun avatari + buyuk bir ikon.
+  settingsCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: -12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: theme.surface,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: theme.border,
+  },
+  settingsIconWrap: { width: 36, alignItems: "center" },
+  settingsTextCol: { flex: 1 },
+  settingsValue: { color: theme.text, fontSize: 16, fontWeight: "700" },
+  settingsDesc: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
   bottomBar: {
     flexDirection: "row",
     alignItems: "center",
