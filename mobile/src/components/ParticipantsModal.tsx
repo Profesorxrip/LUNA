@@ -19,6 +19,10 @@ interface Props {
   // mikrofonunu acip kapatmak) SADECE liderin kendisine ozel.
   hostMicOpen: boolean;
   onToggleOwnMic: () => void;
+  // Panel ust barin (X/ayarlar/logo/ara/katilimci ikonlarinin oldugu satir)
+  // UZERINE binmesin, hemen altindan baslasin diye (bkz. RoomScreen.tsx
+  // topBarHeight - gercek yukseklik cihaza gore degistigi icin olculur).
+  topOffset: number;
 }
 
 /** Rave'deki ust bardaki "3" rozetli katilimci ikonuna basinca acilan liste -
@@ -34,19 +38,21 @@ export default function ParticipantsModal({
   onMuteParticipant,
   hostMicOpen,
   onToggleOwnMic,
+  topOffset,
 }: Props) {
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
-          <Text style={styles.title}>Katilimcilar ({participants.length})</Text>
+        <TouchableOpacity activeOpacity={1} style={[styles.sheet, { top: topOffset }]} onPress={() => {}}>
+          <View style={styles.content}>
+            <Text style={styles.title}>Katilimcilar ({participants.length})</Text>
 
-          <FlatList
-            style={styles.list}
-            contentContainerStyle={styles.listContent}
-            data={participants}
-            keyExtractor={(p) => p.socketId}
-            renderItem={({ item }) => {
+            <FlatList
+              style={styles.list}
+              contentContainerStyle={styles.listContent}
+              data={participants}
+              keyExtractor={(p) => p.socketId}
+              renderItem={({ item }) => {
               const isSelf = item.socketId === mySocketId;
               return (
                 <View style={styles.row}>
@@ -106,8 +112,11 @@ export default function ParticipantsModal({
                   )}
                 </View>
               );
-            }}
-          />
+              }}
+            />
+          </View>
+          {/* Alt bar - icerigi sonradan eklenecek (su an bos bir yer tutucu). */}
+          <View style={styles.bottomBar} />
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -115,16 +124,24 @@ export default function ParticipantsModal({
 }
 
 const styles = StyleSheet.create({
-  // Katilimcilar paneli artik Rave'deki gibi sagdan acilan, TAM YUKSEKLIKTE
-  // bir kutu - ekranin genisliginin ~%60'ini kapliyor.
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", flexDirection: "row", justifyContent: "flex-end" },
+  // Katilimcilar paneli artik Rave'deki gibi sagdan acilan bir kutu -
+  // ekranin genisliginin ~%60'ini kapliyor, ust bardan baslayip ekranin
+  // altina kadar uzaniyor (top: topOffset, inline style ile verilir).
+  // Koseler SIVRI - hicbir yerde yuvarlatma yok.
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)" },
   sheet: {
-    backgroundColor: theme.surface,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
-    padding: 20,
+    position: "absolute",
+    right: 0,
+    bottom: 0,
     width: "60%",
-    height: "100%",
+    backgroundColor: theme.surface,
+  },
+  content: { flex: 1, padding: 20 },
+  // Alt bar - sonradan doldurulacak bos yer tutucu.
+  bottomBar: {
+    height: 56,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
   },
   list: { flex: 1 },
   // Ilk satirin lider rozeti (negatif top ile ustte tasan) listenin kendi

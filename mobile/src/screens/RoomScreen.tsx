@@ -217,6 +217,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [mapVisible, setMapVisible] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [participantsVisible, setParticipantsVisible] = useState(false);
+  // Katilimcilar paneli (Modal, kendi ayri agacinda render edilir) ust barin
+  // ALTINDAN baslasin diye - gercek yukseklik cihaza/masaustu-telefon
+  // duzenine gore degistigi icin olculup burada tutuluyor.
+  const [topBarHeight, setTopBarHeight] = useState(0);
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
@@ -796,7 +800,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {/* Ust bar (Rave'deki X / ayarlar / logo / ara / katilimci duzeni) - medya
           alaninin uzerine binmez, kendi satirinda durur, video tam altinda baslar */}
-      <View style={[styles.topBar, isDesktop && styles.topBarDesktop]}>
+      <View
+        style={[styles.topBar, isDesktop && styles.topBarDesktop]}
+        onLayout={(e) => setTopBarHeight(e.nativeEvent.layout.height)}
+      >
         <TouchableOpacity style={styles.iconTouch} onPress={() => setLeaveConfirmVisible(true)} hitSlop={8}>
           <Icon name="close" size={30} color={theme.text} />
         </TouchableOpacity>
@@ -1081,6 +1088,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onMuteParticipant={muteParticipant}
         hostMicOpen={room.micOpenToAll}
         onToggleOwnMic={handleMicPress}
+        topOffset={topBarHeight}
       />
       <RoomSettingsSheet
         visible={settingsVisible}
