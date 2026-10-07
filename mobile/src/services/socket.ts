@@ -195,6 +195,7 @@ export type FriendStatus = "none" | "outgoing" | "incoming" | "friends" | "block
 export interface FriendUser {
   userId: string;
   name: string;
+  handle: string | null;
 }
 
 // Arkadaslar ekrani "Son Zamanlarda" sekmesi - arkadas olsun olmasin, son
@@ -203,6 +204,7 @@ export interface FriendUser {
 export interface RecentRoommate {
   userId: string;
   name: string;
+  handle: string | null;
   lastTogetherMs: number;
 }
 

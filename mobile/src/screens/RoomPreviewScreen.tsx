@@ -4,6 +4,7 @@ import { BlurView } from "expo-blur";
 import { getSocket, PublicRoomSummary, RoomParticipantDetail, PrivacyLevel } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
+import CrownBadge from "../components/CrownBadge";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import PlatformBadge from "../components/PlatformBadge";
@@ -152,18 +153,22 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
             disabled={!item.userId}
             onPress={() => item.userId && onOpenParticipant({ userId: item.userId, name: item.name, handle: item.handle || undefined })}
           >
-            {item.avatarUrl ? (
-              <Image source={{ uri: item.avatarUrl }} style={styles.participantAvatar} />
-            ) : (
-              <View style={[styles.participantAvatar, styles.participantAvatarFallback, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
-                <Text style={styles.participantAvatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
+            <View style={styles.avatarWrap}>
+              {item.avatarUrl ? (
+                <Image source={{ uri: item.avatarUrl }} style={styles.participantAvatar} />
+              ) : (
+                <View style={[styles.participantAvatar, styles.participantAvatarFallback, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
+                  <Text style={styles.participantAvatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
+              {item.isHost && (
+                <View style={styles.hostBadge}>
+                  <CrownBadge size={20} color={theme.accent} />
+                </View>
+              )}
+            </View>
             <View style={styles.participantInfo}>
-              <Text style={styles.participantName}>
-                {item.isHost ? "👑 " : ""}
-                {item.name}
-              </Text>
+              <Text style={styles.participantName}>{item.name}</Text>
               {item.handle && <Text style={styles.participantHandle}>@{item.handle}</Text>}
             </View>
             <CountryFlag country={item.country} size={22} />
@@ -215,8 +220,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
   },
+  avatarWrap: { position: "relative" },
   participantAvatar: { width: 48, height: 48, borderRadius: 24 },
   participantAvatarFallback: { alignItems: "center", justifyContent: "center" },
+  // Lider rozeti - CrownBadge.tsx, profil fotografinin TAM USTUNE (negatif top ile) oturur.
+  hostBadge: { position: "absolute", top: -16, left: 0, right: 0, alignItems: "center" },
   participantAvatarInitial: { color: theme.accent, fontSize: 18, fontWeight: "700" },
   participantInfo: { flex: 1 },
   participantName: { color: theme.text, fontSize: 15, fontWeight: "600" },

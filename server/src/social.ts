@@ -5,14 +5,7 @@ export type FriendStatus = "none" | "outgoing" | "incoming" | "friends" | "block
 export interface FriendUser {
   userId: string;
   name: string;
-}
-
-async function namesFor(db: SupabaseClient, ids: string[]): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
-  if (ids.length === 0) return map;
-  const { data } = await db.from("profiles").select("id,name").in("id", ids);
-  for (const row of data || []) map.set(row.id, row.name || "Kullanici");
-  return map;
+  handle: string | null;
 }
 
 export async function getFriendStatus(db: SupabaseClient, otherUserId: string): Promise<FriendStatus> {
@@ -52,23 +45,24 @@ export async function listFriends(db: SupabaseClient, myUserId: string): Promise
     .select("user_a,user_b")
     .or(`user_a.eq.${myUserId},user_b.eq.${myUserId}`);
   const otherIds = (rows || []).map((r) => (r.user_a === myUserId ? r.user_b : r.user_a));
-  const names = await namesFor(db, otherIds);
-  return otherIds.map((id) => ({ userId: id, name: names.get(id) || "Kullanici" }));
+  const profiles = await profilesFor(db, otherIds);
+  return otherIds.map((id) => ({ userId: id, name: profiles.get(id)?.name || "Kullanici", handle: profiles.get(id)?.handle ?? null }));
 }
 
 export async function listIncoming(
   db: SupabaseClient,
   myUserId: string
-): Promise<{ userId: string; name: string; createdAt: number }[]> {
+): Promise<{ userId: string; name: string; handle: string | null; createdAt: number }[]> {
   const { data: rows } = await db
     .from("friend_requests")
     .select("from_user,created_at")
     .eq("to_user", myUserId);
   const ids = (rows || []).map((r) => r.from_user);
-  const names = await namesFor(db, ids);
+  const profiles = await profilesFor(db, ids);
   return (rows || []).map((r) => ({
     userId: r.from_user,
-    name: names.get(r.from_user) || "Kullanici",
+    name: profiles.get(r.from_user)?.name || "Kullanici",
+    handle: profiles.get(r.from_user)?.handle ?? null,
     createdAt: new Date(r.created_at).getTime(),
   }));
 }
@@ -76,16 +70,17 @@ export async function listIncoming(
 export async function listOutgoing(
   db: SupabaseClient,
   myUserId: string
-): Promise<{ userId: string; name: string; createdAt: number }[]> {
+): Promise<{ userId: string; name: string; handle: string | null; createdAt: number }[]> {
   const { data: rows } = await db
     .from("friend_requests")
     .select("to_user,created_at")
     .eq("from_user", myUserId);
   const ids = (rows || []).map((r) => r.to_user);
-  const names = await namesFor(db, ids);
+  const profiles = await profilesFor(db, ids);
   return (rows || []).map((r) => ({
     userId: r.to_user,
-    name: names.get(r.to_user) || "Kullanici",
+    name: profiles.get(r.to_user)?.name || "Kullanici",
+    handle: profiles.get(r.to_user)?.handle ?? null,
     createdAt: new Date(r.created_at).getTime(),
   }));
 }
@@ -93,8 +88,8 @@ export async function listOutgoing(
 export async function listBlocked(db: SupabaseClient, myUserId: string): Promise<FriendUser[]> {
   const { data: rows } = await db.from("blocks").select("blocked").eq("blocker", myUserId);
   const ids = (rows || []).map((r) => r.blocked);
-  const names = await namesFor(db, ids);
-  return ids.map((id) => ({ userId: id, name: names.get(id) || "Kullanici" }));
+  const profiles = await profilesFor(db, ids);
+  return ids.map((id) => ({ userId: id, name: profiles.get(id)?.name || "Kullanici", handle: profiles.get(id)?.handle ?? null }));
 }
 
 export async function setUserName(db: SupabaseClient, userId: string, name: string): Promise<void> {

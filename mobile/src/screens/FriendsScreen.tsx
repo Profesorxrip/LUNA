@@ -36,10 +36,6 @@ const BG = "#000000";
 const TEXT = "#F5F0E6";
 const MUTED = "#9A8F80";
 
-function toHandle(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, "");
-}
-
 function relativeTime(ts: number): string {
   const diffMs = Date.now() - ts;
   const min = Math.floor(diffMs / 60000);
@@ -281,7 +277,7 @@ export default function FriendsScreen({
                 onPress={() =>
                   inviteMode
                     ? toggleSelect(item.userId)
-                    : onOpenDM({ userId: item.userId, name: item.name, handle: toHandle(item.name) })
+                    : onOpenDM({ userId: item.userId, name: item.name, handle: item.handle ?? undefined })
                 }
               >
                 <View style={styles.avatar}>
@@ -294,7 +290,7 @@ export default function FriendsScreen({
                       {preview.text} · {relativeTime(preview.createdAt)}
                     </Text>
                   ) : (
-                    <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
+                    !!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>
                   )}
                 </View>
                 {inviteMode && (
@@ -325,7 +321,7 @@ export default function FriendsScreen({
                   onPress={() =>
                     inviteMode
                       ? toggleSelect(item.userId)
-                      : onOpenParticipant({ userId: item.userId, name: item.name, handle: toHandle(item.name) })
+                      : onOpenParticipant({ userId: item.userId, name: item.name, handle: item.handle ?? undefined })
                   }
                 >
                   <View style={styles.avatar}>
@@ -333,7 +329,10 @@ export default function FriendsScreen({
                   </View>
                   <View style={styles.rowText}>
                     <Text style={styles.rowName}>{item.name}</Text>
-                    <Text style={styles.rowHandle}>{relativeTime(item.lastTogetherMs)} önce aynı odadaydınız</Text>
+                    <Text style={styles.rowHandle} numberOfLines={1}>
+                      {item.handle ? `@${item.handle} · ` : ""}
+                      {relativeTime(item.lastTogetherMs)} önce aynı odadaydınız
+                    </Text>
                   </View>
                 </TouchableOpacity>
                 <View style={styles.rowActions}>
@@ -375,7 +374,7 @@ export default function FriendsScreen({
                 </View>
                 <View style={styles.rowText}>
                   <Text style={styles.rowName}>{item.name}</Text>
-                  <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
+                  {!!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>}
                 </View>
                 {inviteMode ? (
                   <TouchableOpacity onPress={() => toggleSelect(item.userId)} hitSlop={8}>
@@ -455,7 +454,7 @@ export default function FriendsScreen({
                   </View>
                   <View style={styles.rowText}>
                     <Text style={styles.rowName}>{item.name}</Text>
-                    <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
+                    {!!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>}
                   </View>
                   <View style={styles.requestActions}>
                     <TouchableOpacity onPress={() => decline(item.userId)} hitSlop={8}>
