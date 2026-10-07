@@ -107,7 +107,7 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
           <Text style={styles.appLabel}>Instagram</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.appButton} onPress={openX}>
-          <View style={[styles.appIconCircle, styles.appIconDark]}>
+          <View style={[styles.appIconCircle, styles.appIconBlack]}>
             <FontAwesome6 name="x-twitter" size={20} color="#FFFFFF" />
           </View>
           <Text style={styles.appLabel}>X</Text>
@@ -156,5 +156,9 @@ const styles = StyleSheet.create({
   // Siyaha yakin butonlar (X, Diger) saf siyah arka planda kaybolmasin diye
   // ince beyaz bir cerceve.
   appIconDark: { backgroundColor: "#2A2A2E", borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" },
+  // X'in gercek marka rengi saf siyah - ekran da siyah oldugu icin ayirt
+  // edilebilsin diye SADECE ince beyaz cerceve ekleniyor, arka plan gri
+  // DEGIL (bkz. kullanicinin duzeltmesi).
+  appIconBlack: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" },
   appLabel: { color: TEXT, fontSize: 12, fontWeight: "600" },
 });
