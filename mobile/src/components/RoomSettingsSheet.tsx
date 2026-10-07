@@ -21,8 +21,13 @@ interface Props {
   micMuted: boolean;
   onMicPress: () => void;
   onLeaveVoice: () => void;
-  volume: number;
-  onVolumeChange: (v: number) => void;
+  // Sesli sohbetteki diger katilimcilarin sesi (mikrofon/telefon ikonlari
+  // arasindaki cubuk).
+  voiceVolume: number;
+  onVoiceVolumeChange: (v: number) => void;
+  // Su an izlenen videonun/medyanin sesi - ayri bir cubuk (bkz. RoomScreen.tsx).
+  videoVolume: number;
+  onVideoVolumeChange: (v: number) => void;
 }
 
 const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
@@ -72,8 +77,10 @@ export default function RoomSettingsSheet({
   micMuted,
   onMicPress,
   onLeaveVoice,
-  volume,
-  onVolumeChange,
+  voiceVolume,
+  onVoiceVolumeChange,
+  videoVolume,
+  onVideoVolumeChange,
 }: Props) {
   const [expanded, setExpanded] = useState<"privacy" | "playback" | null>(null);
 
@@ -164,11 +171,21 @@ export default function RoomSettingsSheet({
             <View style={styles.volumeRow}>
               <Icon name="mic" size={18} color={theme.textMuted} />
               <View style={styles.volumeSlider}>
-                <SimpleSlider value={volume} onValueChange={onVolumeChange} />
+                <SimpleSlider value={voiceVolume} onValueChange={onVoiceVolumeChange} />
               </View>
               <TouchableOpacity onPress={onLeaveVoice} hitSlop={8}>
                 <Icon name="phone" size={22} color={micConnected ? theme.danger : theme.textMuted} />
               </TouchableOpacity>
+            </View>
+
+            {/* Video/medya sesi - sesli sohbet cubugunun hemen altinda, AYNI
+                gorsel stil - tek fark sagda "ayril" degil sabit bir ikon. */}
+            <View style={styles.volumeRow}>
+              <Icon name="volume" size={18} color={theme.textMuted} />
+              <View style={styles.volumeSlider}>
+                <SimpleSlider value={videoVolume} onValueChange={onVideoVolumeChange} />
+              </View>
+              <Icon name="play" size={18} color={theme.textMuted} />
             </View>
 
             <View style={styles.translateRow}>

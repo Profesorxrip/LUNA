@@ -8,6 +8,8 @@ export interface YouTubePlayerHandle {
   seekTo: (seconds: number) => void;
   loadVideo: (videoId: string, startSeconds?: number) => void;
   getCurrentTime: () => Promise<number>;
+  // volume: 0..1 - YouTube IFrame API 0-100 bekledigi icin icerde *100 yapilir.
+  setVolume: (volume: number) => void;
 }
 
 interface Props {
@@ -71,6 +73,7 @@ const PLAYER_HTML = `
       if (msg.type === 'pause') player.pauseVideo();
       if (msg.type === 'seekTo') player.seekTo(msg.seconds, true);
       if (msg.type === 'loadVideo') player.loadVideoById(msg.videoId, msg.startSeconds || 0);
+      if (msg.type === 'setVolume') player.setVolume(msg.volume);
       if (msg.type === 'getCurrentTime') {
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'currentTime', requestId: msg.requestId, currentTime: player.getCurrentTime(),
@@ -95,6 +98,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onState
     pause: () => postToPlayer({ type: "pause" }),
     seekTo: (seconds: number) => postToPlayer({ type: "seekTo", seconds }),
     loadVideo: (id: string, startSeconds = 0) => postToPlayer({ type: "loadVideo", videoId: id, startSeconds }),
+    setVolume: (volume: number) => postToPlayer({ type: "setVolume", volume: Math.round(volume * 100) }),
     getCurrentTime: () =>
       new Promise<number>((resolve) => {
         const requestId = Math.random().toString(36).slice(2);

@@ -218,7 +218,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [participantsVisible, setParticipantsVisible] = useState(false);
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [volume, setVolume] = useState(1);
+  // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
+  const [voiceVolume, setVoiceVolume] = useState(1);
+  // Su an izlenen videonun/medyanin sesi - "external" kaynaklarda (DRM'li
+  // platformlar) gercek bir oynaticimiz olmadigi icin etkisiz kalir.
+  const [videoVolume, setVideoVolume] = useState(1);
   // Su an izlenen video "begenilmis" mi - sunucunun dondurdugu eventId,
   // begeniyi geri almak (room:unlike) icin saklaniyor. Oda kodu/video
   // degisince (asagidaki useEffect) sifirlanir - eski videonun begenisi
@@ -571,10 +575,22 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     socket.emit("room:settings", { isAdult }, () => {});
   }
 
-  function handleVolumeChange(v: number) {
-    setVolume(v);
+  function handleVoiceVolumeChange(v: number) {
+    setVoiceVolume(v);
     voice.setRemoteVolume(v);
   }
+
+  function handleVideoVolumeChange(v: number) {
+    setVideoVolume(v);
+    playerRef.current?.setVolume(v);
+  }
+
+  // Yeni bir video yuklendiginde oynatici kendi varsayilan sesiyle (tam ses)
+  // basliyor - kullanicinin secmis oldugu video sesini HER yeni kaynakta
+  // tekrar uyguluyoruz.
+  useEffect(() => {
+    playerRef.current?.setVolume(videoVolume);
+  }, [room.playback.source?.url]);
 
   function castVote(proposalId: string) {
     socket.emit("room:vote", { proposalId }, () => {});
@@ -1028,8 +1044,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         micMuted={voice.muted}
         onMicPress={handleMicPress}
         onLeaveVoice={voice.leave}
-        volume={volume}
-        onVolumeChange={handleVolumeChange}
+        voiceVolume={voiceVolume}
+        onVoiceVolumeChange={handleVoiceVolumeChange}
+        videoVolume={videoVolume}
+        onVideoVolumeChange={handleVideoVolumeChange}
       />
 
       {leaveConfirmVisible && (

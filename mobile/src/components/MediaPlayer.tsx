@@ -15,6 +15,9 @@ export interface MediaPlayerHandle {
   seekTo: (seconds: number) => void;
   loadVideo: (url: string, startSeconds?: number) => void;
   getCurrentTime: () => Promise<number>;
+  // volume: 0..1 - "external" (DRM'li) kaynaklarda gercek bir oynaticimiz
+  // olmadigi icin no-op (bkz. asagidaki "external" render dali).
+  setVolume: (volume: number) => void;
 }
 
 interface Props {
@@ -39,6 +42,7 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChang
       if (source?.type === "youtube") return (await youtubeRef.current?.getCurrentTime()) ?? 0;
       return hlsRef.current?.getCurrentTime() ?? 0;
     },
+    setVolume: (volume) => (source?.type === "youtube" ? youtubeRef.current?.setVolume(volume) : hlsRef.current?.setVolume(volume)),
   }));
 
   if (!source) {
