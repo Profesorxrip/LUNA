@@ -53,7 +53,7 @@ export default function ParticipantsModal({
                     <Avatar name={item.name} avatarUrl={item.avatarUrl} size={40} />
                     {item.isHost && (
                       <View style={styles.hostBadge}>
-                        <Icon name="crown" size={14} color={theme.accent} />
+                        <Icon name="crown" size={18} color={theme.accent} />
                       </View>
                     )}
                   </View>
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   // Ilk satirin lider rozeti (negatif top ile ustte tasan) listenin kendi
   // ust sinirinda KESILMESIN diye ufak bir bosluk birakiyoruz.
-  listContent: { paddingTop: 10 },
+  listContent: { paddingTop: 12 },
   title: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 12 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
   avatarWrap: { position: "relative" },
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   // (negatif top ile) kucuk bir taç ikonu.
   hostBadge: {
     position: "absolute",
-    top: -14,
+    top: -18,
     left: 0,
     right: 0,
     alignItems: "center",
