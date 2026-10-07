@@ -196,6 +196,7 @@ export interface FriendUser {
   userId: string;
   name: string;
   handle: string | null;
+  avatarUrl: string | null;
 }
 
 // Arkadaslar ekrani "Son Zamanlarda" sekmesi - arkadas olsun olmasin, son
@@ -205,6 +206,7 @@ export interface RecentRoommate {
   userId: string;
   name: string;
   handle: string | null;
+  avatarUrl: string | null;
   lastTogetherMs: number;
 }
 

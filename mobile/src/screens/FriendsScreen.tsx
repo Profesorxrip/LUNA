@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, Modal } from "react-native";
 import { getSocket, FriendUser, RecentRoommate, DMMessage } from "../services/socket";
 import { theme } from "../theme";
+import Avatar from "../components/Avatar";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
@@ -84,6 +85,9 @@ export default function FriendsScreen({
   // arkadaslara gecilene) kadar orada kaliyor; o an refresh() gercek
   // (artik engelli olmayan) listeyi getirip satiri dogal olarak kaldiriyor.
   const [unblockedIds, setUnblockedIds] = useState<Set<string>>(new Set());
+  // "Son Zamanlarda" sekmesindeki kisi GERCEKTEN arkadasimiz da olabilir -
+  // o satirda da mavi "arkadas halkasi" (bkz. Avatar.tsx isFriend) gorunsun.
+  const friendIds = useMemo(() => new Set(friends.map((f) => f.userId)), [friends]);
 
   const refresh = useCallback(() => {
     socket.emit("friends:list", {}, (res: any) => {
@@ -280,9 +284,7 @@ export default function FriendsScreen({
                     : onOpenDM({ userId: item.userId, name: item.name, handle: item.handle ?? undefined })
                 }
               >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-                </View>
+                <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} isFriend />
                 <View style={styles.rowText}>
                   <Text style={styles.rowName}>{item.name}</Text>
                   {preview && !inviteMode ? (
@@ -324,9 +326,7 @@ export default function FriendsScreen({
                       : onOpenParticipant({ userId: item.userId, name: item.name, handle: item.handle ?? undefined })
                   }
                 >
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-                  </View>
+                  <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} isFriend={friendIds.has(item.userId)} />
                   <View style={styles.rowText}>
                     <Text style={styles.rowName}>{item.name}</Text>
                     <Text style={styles.rowHandle} numberOfLines={1}>
@@ -369,9 +369,7 @@ export default function FriendsScreen({
             const isSelected = selected.has(item.userId);
             return (
               <View style={styles.row}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-                </View>
+                <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} />
                 <View style={styles.rowText}>
                   <Text style={styles.rowName}>{item.name}</Text>
                   {!!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>}
@@ -449,9 +447,7 @@ export default function FriendsScreen({
               ListEmptyComponent={<Text style={styles.emptyText}>Bekleyen arkadaşlık isteği yok.</Text>}
               renderItem={({ item }) => (
                 <View style={styles.row}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-                  </View>
+                  <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} />
                   <View style={styles.rowText}>
                     <Text style={styles.rowName}>{item.name}</Text>
                     {!!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>}
@@ -564,15 +560,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   rowMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#3A2F22",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarInitial: { color: ACCENT, fontSize: 18, fontWeight: "700" },
   rowText: { flex: 1 },
   rowName: { color: TEXT, fontSize: 14, fontWeight: "700" },
   rowHandle: { color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },

@@ -6,6 +6,7 @@ export interface FriendUser {
   userId: string;
   name: string;
   handle: string | null;
+  avatarUrl: string | null;
 }
 
 export async function getFriendStatus(db: SupabaseClient, otherUserId: string): Promise<FriendStatus> {
@@ -46,13 +47,18 @@ export async function listFriends(db: SupabaseClient, myUserId: string): Promise
     .or(`user_a.eq.${myUserId},user_b.eq.${myUserId}`);
   const otherIds = (rows || []).map((r) => (r.user_a === myUserId ? r.user_b : r.user_a));
   const profiles = await profilesFor(db, otherIds);
-  return otherIds.map((id) => ({ userId: id, name: profiles.get(id)?.name || "Kullanici", handle: profiles.get(id)?.handle ?? null }));
+  return otherIds.map((id) => ({
+    userId: id,
+    name: profiles.get(id)?.name || "Kullanici",
+    handle: profiles.get(id)?.handle ?? null,
+    avatarUrl: profiles.get(id)?.avatarUrl ?? null,
+  }));
 }
 
 export async function listIncoming(
   db: SupabaseClient,
   myUserId: string
-): Promise<{ userId: string; name: string; handle: string | null; createdAt: number }[]> {
+): Promise<{ userId: string; name: string; handle: string | null; avatarUrl: string | null; createdAt: number }[]> {
   const { data: rows } = await db
     .from("friend_requests")
     .select("from_user,created_at")
@@ -63,6 +69,7 @@ export async function listIncoming(
     userId: r.from_user,
     name: profiles.get(r.from_user)?.name || "Kullanici",
     handle: profiles.get(r.from_user)?.handle ?? null,
+    avatarUrl: profiles.get(r.from_user)?.avatarUrl ?? null,
     createdAt: new Date(r.created_at).getTime(),
   }));
 }
@@ -70,7 +77,7 @@ export async function listIncoming(
 export async function listOutgoing(
   db: SupabaseClient,
   myUserId: string
-): Promise<{ userId: string; name: string; handle: string | null; createdAt: number }[]> {
+): Promise<{ userId: string; name: string; handle: string | null; avatarUrl: string | null; createdAt: number }[]> {
   const { data: rows } = await db
     .from("friend_requests")
     .select("to_user,created_at")
@@ -81,6 +88,7 @@ export async function listOutgoing(
     userId: r.to_user,
     name: profiles.get(r.to_user)?.name || "Kullanici",
     handle: profiles.get(r.to_user)?.handle ?? null,
+    avatarUrl: profiles.get(r.to_user)?.avatarUrl ?? null,
     createdAt: new Date(r.created_at).getTime(),
   }));
 }
@@ -89,7 +97,12 @@ export async function listBlocked(db: SupabaseClient, myUserId: string): Promise
   const { data: rows } = await db.from("blocks").select("blocked").eq("blocker", myUserId);
   const ids = (rows || []).map((r) => r.blocked);
   const profiles = await profilesFor(db, ids);
-  return ids.map((id) => ({ userId: id, name: profiles.get(id)?.name || "Kullanici", handle: profiles.get(id)?.handle ?? null }));
+  return ids.map((id) => ({
+    userId: id,
+    name: profiles.get(id)?.name || "Kullanici",
+    handle: profiles.get(id)?.handle ?? null,
+    avatarUrl: profiles.get(id)?.avatarUrl ?? null,
+  }));
 }
 
 export async function setUserName(db: SupabaseClient, userId: string, name: string): Promise<void> {

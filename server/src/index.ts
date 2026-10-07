@@ -165,29 +165,36 @@ const pendingInvites = new Map<string, Map<string, { invitedAtMs: number; fromNa
 // "son birlikte olduk" bilgisi karsilikli guncellenir. pendingInvites gibi
 // Supabase'e YAZILMIYOR - oda verisi zaten kalici degil, sunucu yeniden
 // baslayinca sifirlanmasi kabul edilebilir.
-const recentRoommates = new Map<string, Map<string, { name: string; handle: string | null; lastTogetherMs: number }>>();
-
-function recordTogether(aUserId: string, aName: string, aHandle: string | null, bUserId: string, bName: string, bHandle: string | null) {
-  const now = Date.now();
-  let aMap = recentRoommates.get(aUserId);
-  if (!aMap) {
-    aMap = new Map();
-    recentRoommates.set(aUserId, aMap);
-  }
-  aMap.set(bUserId, { name: bName, handle: bHandle, lastTogetherMs: now });
-  let bMap = recentRoommates.get(bUserId);
-  if (!bMap) {
-    bMap = new Map();
-    recentRoommates.set(bUserId, bMap);
-  }
-  bMap.set(aUserId, { name: aName, handle: aHandle, lastTogetherMs: now });
+interface RoommateIdentity {
+  userId: string;
+  name: string;
+  handle: string | null;
+  avatarUrl: string | null;
 }
 
-function recentRoommatesFor(userId: string): { userId: string; name: string; handle: string | null; lastTogetherMs: number }[] {
+const recentRoommates = new Map<string, Map<string, { name: string; handle: string | null; avatarUrl: string | null; lastTogetherMs: number }>>();
+
+function recordTogether(a: RoommateIdentity, b: RoommateIdentity) {
+  const now = Date.now();
+  let aMap = recentRoommates.get(a.userId);
+  if (!aMap) {
+    aMap = new Map();
+    recentRoommates.set(a.userId, aMap);
+  }
+  aMap.set(b.userId, { name: b.name, handle: b.handle, avatarUrl: b.avatarUrl, lastTogetherMs: now });
+  let bMap = recentRoommates.get(b.userId);
+  if (!bMap) {
+    bMap = new Map();
+    recentRoommates.set(b.userId, bMap);
+  }
+  bMap.set(a.userId, { name: a.name, handle: a.handle, avatarUrl: a.avatarUrl, lastTogetherMs: now });
+}
+
+function recentRoommatesFor(userId: string): { userId: string; name: string; handle: string | null; avatarUrl: string | null; lastTogetherMs: number }[] {
   const mates = recentRoommates.get(userId);
   if (!mates) return [];
   return Array.from(mates.entries())
-    .map(([mateId, info]) => ({ userId: mateId, name: info.name, handle: info.handle, lastTogetherMs: info.lastTogetherMs }))
+    .map(([mateId, info]) => ({ userId: mateId, name: info.name, handle: info.handle, avatarUrl: info.avatarUrl, lastTogetherMs: info.lastTogetherMs }))
     .sort((a, b) => b.lastTogetherMs - a.lastTogetherMs);
 }
 
@@ -921,7 +928,10 @@ io.on("connection", (socket: Socket) => {
     if (myUserId) {
       for (const p of room.participants.values()) {
         if (p.socketId !== socket.id && p.userId && p.userId !== myUserId) {
-          recordTogether(myUserId, myName, joinProfile?.handle ?? null, p.userId, p.name, p.handle ?? null);
+          recordTogether(
+            { userId: myUserId, name: myName, handle: joinProfile?.handle ?? null, avatarUrl: joinAvatarUrl },
+            { userId: p.userId, name: p.name, handle: p.handle ?? null, avatarUrl: p.avatarUrl ?? null }
+          );
         }
       }
     }
