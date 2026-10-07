@@ -60,6 +60,7 @@ export default function ParticipantsModal({ visible, onClose, participants, mySo
           </TouchableOpacity>
 
           <FlatList
+            style={styles.list}
             data={participants}
             keyExtractor={(p) => p.socketId}
             renderItem={({ item }) => (
@@ -95,6 +96,7 @@ export default function ParticipantsModal({ visible, onClose, participants, mySo
               <Text style={styles.emptyText}>Davet edebileceğin (odada olmayan) arkadaşın yok.</Text>
             ) : (
               <FlatList
+                style={styles.list}
                 data={inviteCandidates}
                 keyExtractor={(f) => f.userId}
                 renderItem={({ item }) => (
@@ -116,8 +118,18 @@ export default function ParticipantsModal({ visible, onClose, participants, mySo
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", padding: 24 },
-  sheet: { backgroundColor: theme.surface, borderRadius: 16, padding: 20, maxHeight: "70%" },
+  // Katilimcilar paneli artik Rave'deki gibi sagdan acilan, TAM YUKSEKLIKTE
+  // bir kutu - ekranin genisliginin ~%38'ini kapliyor.
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", flexDirection: "row", justifyContent: "flex-end" },
+  sheet: {
+    backgroundColor: theme.surface,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+    padding: 20,
+    width: "38%",
+    height: "100%",
+  },
+  list: { flex: 1 },
   title: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 12 },
   inviteRow: {
     flexDirection: "row",
