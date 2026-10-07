@@ -2,6 +2,7 @@ import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from "react
 import type { Participant } from "../services/socket";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
+import CrownBadge from "./CrownBadge";
 import { theme } from "../theme";
 
 interface Props {
@@ -53,7 +54,7 @@ export default function ParticipantsModal({
                     <Avatar name={item.name} avatarUrl={item.avatarUrl} size={40} />
                     {item.isHost && (
                       <View style={styles.hostBadge}>
-                        <Icon name="crown" size={18} color={theme.accent} />
+                        <CrownBadge size={34} color={theme.accent} />
                       </View>
                     )}
                   </View>
@@ -121,15 +122,15 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   // Ilk satirin lider rozeti (negatif top ile ustte tasan) listenin kendi
   // ust sinirinda KESILMESIN diye ufak bir bosluk birakiyoruz.
-  listContent: { paddingTop: 12 },
+  listContent: { paddingTop: 14 },
   title: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 12 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
   avatarWrap: { position: "relative" },
-  // Lider rozeti - emoji yerine profil fotografinin TAM USTUNE binen
-  // (negatif top ile) kucuk bir taç ikonu.
+  // Lider rozeti - ozel cizilmis, kenarlari asagi kivrilan taç (bkz.
+  // CrownBadge.tsx) profil fotografinin TAM USTUNE (negatif top ile) oturur.
   hostBadge: {
     position: "absolute",
-    top: -18,
+    top: -20,
     left: 0,
     right: 0,
     alignItems: "center",
