@@ -89,14 +89,14 @@ export default function ParticipantsModal({
 
 const styles = StyleSheet.create({
   // Katilimcilar paneli artik Rave'deki gibi sagdan acilan, TAM YUKSEKLIKTE
-  // bir kutu - ekranin genisliginin ~%45'ini kapliyor.
+  // bir kutu - ekranin genisliginin ~%60'ini kapliyor.
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", flexDirection: "row", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: theme.surface,
     borderTopLeftRadius: 16,
     borderBottomLeftRadius: 16,
     padding: 20,
-    width: "45%",
+    width: "60%",
     height: "100%",
   },
   list: { flex: 1 },
