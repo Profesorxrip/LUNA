@@ -61,6 +61,14 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
     showAlert("Kopyalandı", "Davet metni kopyalandı - Instagram'da bir sohbete yapıştırabilirsin.");
   }
 
+  // TikTok'un da (Instagram gibi) metni onceden doldurabilecek resmi bir
+  // paylasim semasi yok - davet metnini kopyalayip uygulamayi aciyoruz.
+  function openTikTok() {
+    Clipboard.setStringAsync(inviteText);
+    Linking.openURL("tiktok://").catch(() => Linking.openURL("https://www.tiktok.com").catch(() => {}));
+    showAlert("Kopyalandı", "Davet metni kopyalandı - TikTok'ta bir sohbete yapıştırabilirsin.");
+  }
+
   function openX() {
     Linking.openURL(`https://twitter.com/intent/tweet?text=${encodeURIComponent(inviteText)}`).catch(() =>
       showAlert("Açılamadı", "X açılamadı.")
@@ -105,6 +113,12 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
             <FontAwesome5 name="instagram" size={22} color="#FFFFFF" />
           </LinearGradient>
           <Text style={styles.appLabel}>Instagram</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.appButton} onPress={openTikTok}>
+          <View style={[styles.appIconCircle, styles.appIconBlack]}>
+            <FontAwesome6 name="tiktok" size={20} color="#FFFFFF" />
+          </View>
+          <Text style={styles.appLabel}>TikTok</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.appButton} onPress={openX}>
           <View style={[styles.appIconCircle, styles.appIconBlack]}>
