@@ -177,6 +177,29 @@ export default function FriendsScreen({
   const visibleBlocked = filterList(blocked);
   const visibleRecentRoommates = filterList(recentRoommates);
 
+  // "Tumu" - SADECE o an acik olan sekmedeki (Arkadaslar/Son Zamanlarda/
+  // Engellendi) kisileri isaretler/kaldirir - digerindeki secimlere
+  // dokunmaz, boylece farkli sekmelerden ayri ayri secilenler birikebilir.
+  const currentTabIds =
+    tab === "friends"
+      ? visibleFriends.map((f) => f.userId)
+      : tab === "recent"
+      ? visibleRecentRoommates.map((f) => f.userId)
+      : visibleBlocked.map((f) => f.userId);
+  const allCurrentTabSelected = currentTabIds.length > 0 && currentTabIds.every((id) => selected.has(id));
+
+  function toggleSelectAllCurrentTab() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allCurrentTabSelected) {
+        currentTabIds.forEach((id) => next.delete(id));
+      } else {
+        currentTabIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -200,14 +223,24 @@ export default function FriendsScreen({
             placeholderTextColor={MUTED}
           />
         </View>
-        <TouchableOpacity style={styles.requestsButton} onPress={() => setRequestsVisible(true)} hitSlop={8}>
-          <Icon name="bell" size={20} color={TEXT} />
-          {incoming.length > 0 && (
-            <View style={styles.requestsBadge}>
-              <Text style={styles.requestsBadgeText}>{incoming.length}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        {inviteMode ? (
+          <TouchableOpacity
+            style={[styles.selectAllButton, allCurrentTabSelected && styles.selectAllButtonActive]}
+            onPress={toggleSelectAllCurrentTab}
+            hitSlop={8}
+          >
+            <Text style={[styles.selectAllText, allCurrentTabSelected && styles.selectAllTextActive]}>Tümü</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.requestsButton} onPress={() => setRequestsVisible(true)} hitSlop={8}>
+            <Icon name="bell" size={20} color={TEXT} />
+            {incoming.length > 0 && (
+              <View style={styles.requestsBadge}>
+                <Text style={styles.requestsBadgeText}>{incoming.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {tab === "friends" && (
@@ -260,31 +293,44 @@ export default function FriendsScreen({
           ListEmptyComponent={
             loading ? <LoadingView /> : <Text style={styles.emptyText}>Son zamanlarda aynı odaya girdiğin kimse yok.</Text>
           }
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <TouchableOpacity
-                style={styles.rowMain}
-                onPress={() => onOpenParticipant({ userId: item.userId, name: item.name, handle: toHandle(item.name) })}
-              >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-                </View>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowName}>{item.name}</Text>
-                  <Text style={styles.rowHandle}>{relativeTime(item.lastTogetherMs)} önce aynı odadaydınız</Text>
-                </View>
-              </TouchableOpacity>
-              {sentRequests.has(item.userId) ? (
-                <TouchableOpacity onPress={() => cancelSentRequest(item.userId)} hitSlop={8}>
-                  <Icon name="hourglass" size={22} color={MUTED} />
+          renderItem={({ item }) => {
+            const isSelected = selected.has(item.userId);
+            return (
+              <View style={styles.row}>
+                <TouchableOpacity
+                  style={styles.rowMain}
+                  onPress={() =>
+                    inviteMode
+                      ? toggleSelect(item.userId)
+                      : onOpenParticipant({ userId: item.userId, name: item.name, handle: toHandle(item.name) })
+                  }
+                >
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.rowText}>
+                    <Text style={styles.rowName}>{item.name}</Text>
+                    <Text style={styles.rowHandle}>{relativeTime(item.lastTogetherMs)} önce aynı odadaydınız</Text>
+                  </View>
                 </TouchableOpacity>
-              ) : (
-                <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
-                  <Icon name="invite" size={26} color={ACCENT} />
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+                {inviteMode ? (
+                  <TouchableOpacity onPress={() => toggleSelect(item.userId)} hitSlop={8}>
+                    <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                      {isSelected && <Icon name="check" size={16} color="#04140D" />}
+                    </View>
+                  </TouchableOpacity>
+                ) : sentRequests.has(item.userId) ? (
+                  <TouchableOpacity onPress={() => cancelSentRequest(item.userId)} hitSlop={8}>
+                    <Icon name="hourglass" size={22} color={MUTED} />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
+                    <Icon name="invite" size={26} color={ACCENT} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          }}
         />
       )}
 
@@ -294,30 +340,39 @@ export default function FriendsScreen({
           keyExtractor={(f) => f.userId}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>Engellenen kimse yok.</Text>}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
+          renderItem={({ item }) => {
+            const isSelected = selected.has(item.userId);
+            return (
+              <View style={styles.row}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowName}>{item.name}</Text>
+                  <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
+                </View>
+                {inviteMode ? (
+                  <TouchableOpacity onPress={() => toggleSelect(item.userId)} hitSlop={8}>
+                    <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                      {isSelected && <Icon name="check" size={16} color="#04140D" />}
+                    </View>
+                  </TouchableOpacity>
+                ) : sentRequests.has(item.userId) ? (
+                  <TouchableOpacity onPress={() => cancelSentRequest(item.userId)} hitSlop={8}>
+                    <Icon name="hourglass" size={22} color={MUTED} />
+                  </TouchableOpacity>
+                ) : unblockedIds.has(item.userId) ? (
+                  <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
+                    <Icon name="invite" size={26} color={ACCENT} />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={() => unblock(item.userId)} hitSlop={8}>
+                    <Icon name="personBlock" size={26} color={MUTED} />
+                  </TouchableOpacity>
+                )}
               </View>
-              <View style={styles.rowText}>
-                <Text style={styles.rowName}>{item.name}</Text>
-                <Text style={styles.rowHandle}>@{toHandle(item.name)}</Text>
-              </View>
-              {sentRequests.has(item.userId) ? (
-                <TouchableOpacity onPress={() => cancelSentRequest(item.userId)} hitSlop={8}>
-                  <Icon name="hourglass" size={22} color={MUTED} />
-                </TouchableOpacity>
-              ) : unblockedIds.has(item.userId) ? (
-                <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
-                  <Icon name="invite" size={26} color={ACCENT} />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity onPress={() => unblock(item.userId)} hitSlop={8}>
-                  <Icon name="personBlock" size={26} color={MUTED} />
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+            );
+          }}
         />
       )}
 
@@ -437,6 +492,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   requestsBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
+  // Davet modunda zil yerine - o an acik sekmedeki herkesi tek seferde
+  // isaretler/kaldirir (bkz. toggleSelectAllCurrentTab).
+  selectAllButton: {
+    height: 42,
+    paddingHorizontal: 16,
+    borderRadius: 21,
+    backgroundColor: "#141210",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectAllButtonActive: { backgroundColor: ACCENT },
+  selectAllText: { color: TEXT, fontSize: 13, fontWeight: "700" },
+  selectAllTextActive: { color: "#04140D" },
   backdrop: { flex: 1, backgroundColor: "#0A0A0A", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: BG,
@@ -508,10 +576,10 @@ const styles = StyleSheet.create({
   // tabBar'daki (asagidaki) yuzen hap/pill sekliyle AYNI, sadece daha kucuk.
   inviteButton: {
     backgroundColor: ACCENT,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
+    borderRadius: 24,
+    paddingVertical: 11,
+    paddingHorizontal: 28,
     alignItems: "center",
   },
-  inviteButtonText: { color: "#04140D", fontSize: 13, fontWeight: "700" },
+  inviteButtonText: { color: "#04140D", fontSize: 14, fontWeight: "700" },
 });
