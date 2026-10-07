@@ -16,6 +16,7 @@ import {
   updatePlayback,
   updateRoomSettings,
   setHostMicOpen,
+  voteSkipAdultContent,
   proposeSource,
   startVideoEndedPoll,
   castVote,
@@ -37,6 +38,7 @@ import {
   PrivacyLevel,
   PlaybackMode,
   POLL_DURATION_MS,
+  Room,
 } from "./rooms";
 import { createVoiceToken, syncVoicePermissions } from "./livekit";
 import {
@@ -261,6 +263,69 @@ function resolvePollAndBroadcast(code: string) {
       kind: "nowPlaying",
       title,
       text: `Oylama bitti: simdi ${title} oynatiliyor`,
+      ts: Date.now(),
+    });
+  }
+}
+
+/** Video "bittiginde" yapilmasi gereken TEK ortak mantik - bu, DOGAL bitisten
+ * (bkz. "playback:ended") YA DA yeterli "Atla" oyu toplanmasindan (bkz.
+ * "room:voteSkipAdult") GELEBILIR, ikisi de AYNI sekilde islenir. Playback
+ * moduna gore sıradaki videoya/oylamaya geciyor - "Liderin Secimi" modunda
+ * hicbir sey yapmiyor (sadece host video secebilir). */
+async function advancePastCurrentVideo(room: Room, roomCode: string): Promise<void> {
+  if (room.playbackMode === "vote") {
+    if (room.poll) return;
+    const queued = advanceQueue(room);
+    if (queued) {
+      broadcastRoom(roomCode);
+      broadcastRoomsList();
+      const title = queued.label || queued.type;
+      io.to(roomCode).emit("room:chat", {
+        system: true,
+        kind: "nowPlaying",
+        title,
+        text: `Simdi ${title} oynatiliyor`,
+        ts: Date.now(),
+      });
+      return;
+    }
+    startVideoEndedPoll(room);
+    pollTimers.set(roomCode, setTimeout(() => resolvePollAndBroadcast(roomCode), POLL_DURATION_MS));
+    broadcastRoom(roomCode);
+  } else if (room.playbackMode === "playOnly") {
+    const next = advanceQueue(room);
+    if (!next) return;
+    broadcastRoom(roomCode);
+    broadcastRoomsList();
+    const title = next.label || next.type;
+    io.to(roomCode).emit("room:chat", {
+      system: true,
+      kind: "nowPlaying",
+      title,
+      text: `Simdi ${title} oynatiliyor`,
+      ts: Date.now(),
+    });
+  } else if (room.playbackMode === "autoplay") {
+    const current = room.playback.source;
+    if (!current || current.type !== "youtube") return;
+    const excludeIds = playedYoutubeIdsInRoom(room);
+    const next = await pickNextAutoplayVideo(current.url, excludeIds);
+    if (!next) return;
+    // Ayni "ended" icin baska bir event araya girip odayi degistirmis
+    // olabilir (ornegin host odadan ayrildi) - async bekleme sonrasi oda
+    // hala ayni modda/durumda mi diye TEKRAR kontrol ediyoruz.
+    const freshRoom = getRoom(roomCode);
+    if (!freshRoom || freshRoom.playbackMode !== "autoplay" || freshRoom.playback.source?.url !== current.url) return;
+    applyAutoplayNext(freshRoom, { type: "youtube", url: next.videoId, label: next.title || "YouTube Videosu" });
+    broadcastRoom(roomCode);
+    broadcastRoomsList();
+    const title = next.title || "YouTube Videosu";
+    io.to(roomCode).emit("room:chat", {
+      system: true,
+      kind: "nowPlaying",
+      title,
+      text: `Simdi ${title} oynatiliyor`,
       ts: Date.now(),
     });
   }
@@ -1107,78 +1172,36 @@ io.on("connection", (socket: Socket) => {
     }
   });
 
-  // Video dogal olarak bittiginde (sadece host'un oynaticisindan gelir):
-  // "Haydi Oylayalim" modundaysak, ONCEKI oylamadan kuyrukta bekleyen bir
-  // video varsa (bkz. rooms.ts resolvePoll - oylamayi kaybeden adaylar oy
-  // sirasina gore kuyruga girer) once onu oynatiyoruz; kuyruk BOSSA yeni bir
-  // "sirada ne olsun" penceresi aciyoruz - herkesin ekraninda medya secme
-  // ekrani otomatik acilacak (bkz. RoomScreen.tsx room.poll useEffect'i).
-  // "Sadece Oynat" modundaysak kuyrukta bekleyen bir sonraki video varsa
-  // otomatik oynatiyoruz (bkz. rooms.ts advanceQueue). "Otomatik Oynat"
-  // modundaysak VE video YouTube ise, YouTube'un GERCEK ilgili video
-  // onerisine otomatik geciyoruz (bkz. youtubeRelated.ts) - baska hicbir
-  // platformun "ilgili" verisine erisimimiz olmadigi icin (Netflix/
-  // Disney+/Web vb. bizim icin kapali kutu bir web sitesi) o durumlarda
-  // hicbir sey yapmiyoruz.
+  // Video dogal olarak bittiginde (sadece host'un oynaticisindan gelir) -
+  // "Atla" oyuyla atlanmasiyla (bkz. "room:voteSkipAdult") AYNI ortak
+  // mantigi (bkz. advancePastCurrentVideo) isletir.
   socket.on("playback:ended", async () => {
     if (!currentRoomCode) return;
     const room = getRoom(currentRoomCode);
     if (!room || !isHost(room, socket.id)) return;
-    if (room.playbackMode === "vote") {
-      if (room.poll) return;
-      const queued = advanceQueue(room);
-      if (queued) {
-        broadcastRoom(currentRoomCode);
-        broadcastRoomsList();
-        const title = queued.label || queued.type;
-        io.to(currentRoomCode).emit("room:chat", {
-          system: true,
-          kind: "nowPlaying",
-          title,
-          text: `Simdi ${title} oynatiliyor`,
-          ts: Date.now(),
-        });
-        return;
-      }
-      startVideoEndedPoll(room);
-      pollTimers.set(currentRoomCode, setTimeout(() => resolvePollAndBroadcast(currentRoomCode!), POLL_DURATION_MS));
-      broadcastRoom(currentRoomCode);
-    } else if (room.playbackMode === "playOnly") {
-      const next = advanceQueue(room);
-      if (!next) return;
-      broadcastRoom(currentRoomCode);
-      broadcastRoomsList();
-      const title = next.label || next.type;
-      io.to(currentRoomCode).emit("room:chat", {
-        system: true,
-        kind: "nowPlaying",
-        title,
-        text: `Simdi ${title} oynatiliyor`,
-        ts: Date.now(),
-      });
-    } else if (room.playbackMode === "autoplay") {
-      const current = room.playback.source;
-      if (!current || current.type !== "youtube") return;
-      const excludeIds = playedYoutubeIdsInRoom(room);
-      const next = await pickNextAutoplayVideo(current.url, excludeIds);
-      if (!next) return;
-      // Ayni "ended" icin baska bir event araya girip odayi degistirmis
-      // olabilir (ornegin host odadan ayrildi) - async bekleme sonrasi oda
-      // hala ayni modda/durumda mi diye TEKRAR kontrol ediyoruz.
-      const freshRoom = getRoom(currentRoomCode);
-      if (!freshRoom || freshRoom.playbackMode !== "autoplay" || freshRoom.playback.source?.url !== current.url) return;
-      applyAutoplayNext(freshRoom, { type: "youtube", url: next.videoId, label: next.title || "YouTube Videosu" });
-      broadcastRoom(currentRoomCode);
-      broadcastRoomsList();
-      const title = next.title || "YouTube Videosu";
-      io.to(currentRoomCode).emit("room:chat", {
-        system: true,
-        kind: "nowPlaying",
-        title,
-        text: `Simdi ${title} oynatiliyor`,
-        ts: Date.now(),
-      });
-    }
+    await advancePastCurrentVideo(room, currentRoomCode);
+  });
+
+  // "+18 icerik" isaretli bir odada, kendi tercihinde "Yetiskin Icerigini
+  // Gizle" acik olan bir katilimci videoyu KENDI ekraninda bulanik gorur
+  // (bkz. RoomScreen.tsx) ve "Atla" diyebilir - bu bir OY'dur. Odadaki TUM
+  // katilimcilarin (sadece gizleyenler degil) yarisindan FAZLASI oy verince
+  // video GERCEKTEN atlanir - dogal bitis ile AYNI mantik islenir (bkz.
+  // advancePastCurrentVideo). "Liderin Secimi" modunda bu ozellik hic
+  // calismaz - sadece lider karar verebilir.
+  socket.on("room:voteSkipAdult", async (_data, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    // Sadece GERCEKTEN "Yetiskin Icerigini Gizle" tercihi acik olanlar oy
+    // verebilir - istemci zaten bu durumda olmayanlara butonu gostermiyor,
+    // ama sunucu tarafinda da dogrulamadan gecmiyoruz.
+    if (!myHideAdultContent) return ack?.({ ok: false, error: "Bu ozellik senin icin gecerli degil." });
+    const result = voteSkipAdultContent(room, socket.id);
+    if (!result) return ack?.({ ok: false, error: "Bu ozellik bu modda/odada kullanilamaz." });
+    ack?.({ ok: true, count: result.count, total: result.total });
+    broadcastRoom(currentRoomCode);
+    if (result.skipped) await advancePastCurrentVideo(room, currentRoomCode);
   });
 
   socket.on("room:vote", ({ proposalId }: { proposalId: string }, ack) => {

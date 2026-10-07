@@ -97,6 +97,9 @@ export interface RoomState {
   // true ise sesli sohbette HERKES mikrofonunu acabilir; false ise SADECE
   // host acabilir (bkz. server/src/rooms.ts micOpenToAll).
   micOpenToAll: boolean;
+  // "+18 icerik" icin su ana kadar toplanan "Atla" oy sayisi (bkz.
+  // RoomScreen.tsx adultBlurActive, server/src/rooms.ts voteSkipAdultContent).
+  adultSkipVoteCount: number;
 }
 
 export interface ChatMessage {

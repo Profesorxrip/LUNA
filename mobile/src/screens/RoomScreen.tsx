@@ -16,6 +16,7 @@ import {
   Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -234,6 +235,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
   // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
+  // Ayarlar ekranindaki "Yetiskin Icerigini Gizle" tercihim - "+18 icerik"
+  // isaretli bir odada video KENDI ekranimda bulanik gorunsun mu, "Atla"
+  // oyu verebileyim mi diye (bkz. asagidaki adultBlurActive).
+  const [myHideAdultContent, setMyHideAdultContent] = useState(false);
 
   const playerRef = useRef<MediaPlayerHandle>(null);
   const reactionsRef = useRef<ReactionsOverlayHandle>(null);
@@ -251,6 +256,22 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const canPickMedia = isHost || room.playbackMode === "vote" || room.playbackMode === "playOnly";
   const syncable =
     room.playback.source?.type === "youtube" || room.playback.source?.type === "hls" || room.playback.source?.type === "mp4";
+  // Oda "+18 icerik" isaretli VE ben kendi tercihimde "Yetiskin Icerigini
+  // Gizle"yi actiysam - video SADECE BENIM ekranimda bulanik gorunur (bkz.
+  // asagidaki BlurView). "Liderin Secimi" modunda "Atla" oyu islevsiz (sadece
+  // lider video secebilir), o yuzden buton orada gosterilmiyor.
+  const adultBlurActive = room.isAdult && myHideAdultContent;
+  const canVoteSkipAdult = adultBlurActive && room.playbackMode !== "leader";
+  const [votedSkipAdult, setVotedSkipAdult] = useState(false);
+  useEffect(() => {
+    setVotedSkipAdult(false);
+  }, [room.playback.source?.url]);
+  function voteSkipAdult() {
+    if (votedSkipAdult) return;
+    socket.emit("room:voteSkipAdult", {}, (res: any) => {
+      if (res?.ok) setVotedSkipAdult(true);
+    });
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -258,11 +279,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       if (!userId) return;
       supabase
         .from("profiles")
-        .select("default_reaction_emoji")
+        .select("default_reaction_emoji,hide_adult_content")
         .eq("id", userId)
         .maybeSingle()
         .then(({ data: profile }) => {
           if (profile?.default_reaction_emoji) setQuickReactionEmoji(profile.default_reaction_emoji);
+          setMyHideAdultContent(profile?.hide_adult_content === true);
         });
     });
   }, []);
@@ -818,6 +840,27 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                   onSettings={() => setSettingsVisible(true)}
                 />
               )}
+              {adultBlurActive && (
+                <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFill}>
+                  <View style={styles.adultBlurHint}>
+                    <Icon name="eyeOff" size={28} color="#FFFFFF" />
+                    <Text style={styles.adultBlurText}>+18 içerik</Text>
+                    {canVoteSkipAdult ? (
+                      <TouchableOpacity
+                        style={[styles.adultSkipBtn, votedSkipAdult && styles.adultSkipBtnDisabled]}
+                        onPress={voteSkipAdult}
+                        disabled={votedSkipAdult}
+                      >
+                        <Text style={styles.adultSkipBtnText}>
+                          {votedSkipAdult ? `Oy verildi (${room.adultSkipVoteCount}/${room.participants.length})` : "Atla"}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={styles.adultBlurSubtext}>Bu videoyu lider degistirebilir</Text>
+                    )}
+                  </View>
+                </BlurView>
+              )}
             </ReactionsOverlay>
 
             <LinearGradient colors={["transparent", theme.bg]} style={styles.bottomFade} pointerEvents="none" />
@@ -1073,6 +1116,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.bg },
   mediaSection: { position: "relative" },
   bottomFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 48 },
+  adultBlurHint: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
+  adultBlurText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  adultBlurSubtext: { color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" },
+  adultSkipBtn: { backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 24, marginTop: 4 },
+  adultSkipBtnDisabled: { backgroundColor: "rgba(255,255,255,0.2)" },
+  adultSkipBtnText: { color: "#04140D", fontWeight: "700", fontSize: 14 },
   topBar: {
     flexDirection: "row",
     alignItems: "center",

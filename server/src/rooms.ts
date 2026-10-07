@@ -131,6 +131,11 @@ export interface Room {
   // LiveKit token'inda (canPublish) hem zaten baglanmis olanlarin CANLI
   // izninde (bkz. livekit.ts syncVoicePermissions) uygulanir.
   micOpenToAll: boolean;
+  // "+18 icerik" isaretli bir odada, kendi tercihinde "Yetiskin Icerigini
+  // Gizle" acik olan katilimcilarin "Atla" dedigi (socketId) kumesi -
+  // SADECE su an oynayan videoya ozel, video degisince sifirlanir (bkz.
+  // applyPlayback). "Liderin Secimi" modunda hic kullanilmaz.
+  adultSkipVotes: Set<string>;
 }
 
 const rooms = new Map<string, Room>();
@@ -196,6 +201,7 @@ export function createRoom(
     videoHistory: [],
     videoQueue: [],
     micOpenToAll: false,
+    adultSkipVotes: new Set(),
   };
   rooms.set(code, room);
   return room;
@@ -469,6 +475,10 @@ function applyPlayback(room: Room, update: Partial<PlaybackState>, recordHistory
   if (recordHistory && update.source && room.playback.source && !sourcesMatch(room.playback.source, update.source)) {
     room.videoHistory.push(room.playback.source);
   }
+  // Yeni bir kaynak uygulanirken (video degisirken) "Atla" oylarini
+  // sifirliyoruz - bu oylar SADECE o an oynayan videoya ozel (bkz.
+  // voteSkipAdultContent).
+  if (update.source) room.adultSkipVotes.clear();
   room.playback = { ...room.playback, ...update, updatedAtMs: Date.now() };
   if (update.source?.label) room.title = update.source.label;
 }
@@ -592,6 +602,28 @@ export function setHostMicOpen(room: Room, requesterId: string, open: boolean): 
   return true;
 }
 
+export interface AdultSkipVoteResult {
+  count: number;
+  total: number;
+  skipped: boolean;
+}
+
+/** "+18 icerik" isaretli bir odada, kendi tercihinde "Yetiskin Icerigini
+ * Gizle" acik olan bir katilimci videoyu KENDI ekraninda bulanik gorur ve
+ * "Atla" diyebilir - bu bir OY'dur (bkz. index.ts "room:voteSkipAdult",
+ * caller zaten oy verenin GERCEKTEN bu tercihi actigini kontrol etmis
+ * olmali). Odadaki TUM katilimcilarin (sadece gizleyenler degil) yarisindan
+ * FAZLASI oy verince "skipped: true" doner - cagiran taraf bunu dogal bitis
+ * ile AYNI sekilde isler (bkz. advancePastCurrentVideo). "Liderin Secimi"
+ * modunda hic calismaz (null doner) - sadece lider karar verebilir. */
+export function voteSkipAdultContent(room: Room, voterSocketId: string): AdultSkipVoteResult | null {
+  if (!room.isAdult || room.playbackMode === "leader") return null;
+  room.adultSkipVotes.add(voterSocketId);
+  const count = room.adultSkipVotes.size;
+  const total = room.participants.size;
+  return { count, total, skipped: count > total / 2 };
+}
+
 // Rave'deki gibi: video dogal olarak bitince herkese 10 saniyelik bir
 // "sirada ne olsun" penceresi aciliyor.
 export const POLL_DURATION_MS = 10_000;
@@ -704,5 +736,8 @@ export function roomToPublicState(room: Room) {
     // sıraya girdigini gorebilmesi icin (bkz. MediaPickerSheet/RoomScreen).
     videoQueue: room.videoQueue,
     micOpenToAll: room.micOpenToAll,
+    // "+18 icerik" icin "Atla" oy sayisi - kimlerin oy verdigini DEGIL,
+    // sadece sayiyi paylasiyoruz (bkz. RoomScreen.tsx, voteSkipAdultContent).
+    adultSkipVoteCount: room.adultSkipVotes.size,
   };
 }
