@@ -42,6 +42,7 @@ export default function ParticipantsModal({
 
           <FlatList
             style={styles.list}
+            contentContainerStyle={styles.listContent}
             data={participants}
             keyExtractor={(p) => p.socketId}
             renderItem={({ item }) => {
@@ -118,6 +119,9 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   list: { flex: 1 },
+  // Ilk satirin lider rozeti (negatif top ile ustte tasan) listenin kendi
+  // ust sinirinda KESILMESIN diye ufak bir bosluk birakiyoruz.
+  listContent: { paddingTop: 6 },
   title: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 12 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
   avatarWrap: { position: "relative" },
@@ -125,7 +129,7 @@ const styles = StyleSheet.create({
   // (negatif top ile) kucuk bir taç ikonu.
   hostBadge: {
     position: "absolute",
-    top: -14,
+    top: -9,
     left: 0,
     right: 0,
     alignItems: "center",
