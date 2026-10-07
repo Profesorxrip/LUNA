@@ -11,6 +11,7 @@ import {
   PhotoIcon,
   UserPlusIcon,
   ShareIcon,
+  ArrowUpOnSquareIcon,
   GlobeAltIcon,
   PencilIcon,
   ChevronRightIcon,
@@ -55,6 +56,7 @@ export type IconName =
   | "image"
   | "invite"
   | "share"
+  | "shareBox"
   | "globe"
   | "edit"
   | "chevronRight"
@@ -111,6 +113,11 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   image: PhotoIcon,
   invite: UserPlusIcon,
   share: ShareIcon,
+  // Discover ekranindaki (UsersIcon/ClockIcon gibi DOLU/simetrik) sekme
+  // ikonlarinin yaninda ShareIcon (3 noktali "ag" glyph'i) cok ince/dagili
+  // kaliyordu - bunun yerine klasik, dolu ve simetrik paylasim kutusu
+  // (bkz. FriendsScreen.tsx "Paylas" sekme ogesi).
+  shareBox: ArrowUpOnSquareIcon,
   globe: GlobeAltIcon,
   edit: PencilIcon,
   chevronRight: ChevronRightIcon,

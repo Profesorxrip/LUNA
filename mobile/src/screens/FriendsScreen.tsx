@@ -404,7 +404,7 @@ export default function FriendsScreen({
             // oda linkini/uygulamalari paylasan native paylasim sayfasi var -
             // bir sekme DEGIL, dogrudan bir eylem (bkz. RoomScreen.tsx shareRoom).
             <TouchableOpacity style={styles.tabItem} onPress={onShareRoom}>
-              <Icon name="share" size={24} color={MUTED} />
+              <Icon name="shareBox" size={24} color={MUTED} />
               <Text style={styles.tabLabel}>Paylaş</Text>
             </TouchableOpacity>
           ) : (
