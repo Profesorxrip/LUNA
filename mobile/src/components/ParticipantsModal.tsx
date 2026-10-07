@@ -52,7 +52,7 @@ export default function ParticipantsModal({
                     <Avatar name={item.name} avatarUrl={item.avatarUrl} size={40} />
                     {item.isHost && (
                       <View style={styles.hostBadge}>
-                        <Icon name="crown" size={14} color="#FFD700" />
+                        <Icon name="crown" size={14} color={theme.accent} />
                       </View>
                     )}
                   </View>
@@ -125,11 +125,10 @@ const styles = StyleSheet.create({
   // (negatif top ile) kucuk bir taç ikonu.
   hostBadge: {
     position: "absolute",
-    top: -8,
-    alignSelf: "center",
-    backgroundColor: theme.surface,
-    borderRadius: 8,
-    padding: 1,
+    top: -6,
+    left: 0,
+    right: 0,
+    alignItems: "center",
   },
   name: { color: theme.text, fontSize: 14, flex: 1 },
   micBtn: { padding: 4 },
