@@ -50,6 +50,11 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
   // handleEnded hep ilk render'daki "leader" degerini gorurdu).
   const callbacksRef = useRef({ onStateChange, onBuffering, onDuration, onEnded });
   callbacksRef.current = { onStateChange, onBuffering, onDuration, onEnded };
+  // "moov" atomu dosyanin SONUNDA olan (faststart olmayan) mp4'lerde
+  // tarayici suresi "readyToPlay" anina kadar cozemeyebilir - bu yuzden
+  // sureyi sadece o tek gecisde degil, her timeUpdate tik'inde de kontrol
+  // edip degistiginde (0'dan gecerli bir degere) bildiriyoruz.
+  const lastDurationRef = useRef(0);
 
   useEffect(() => {
     const playingSub = player.addListener("playingChange", (e) => {
@@ -58,7 +63,16 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
     const statusSub = player.addListener("statusChange", (e) => {
       // "loading" durumu = tamponlaniyor (buffering).
       callbacksRef.current.onBuffering?.(e.status === "loading");
-      if (e.status === "readyToPlay" && player.duration > 0) callbacksRef.current.onDuration?.(player.duration);
+      if (e.status === "readyToPlay" && player.duration > 0 && player.duration !== lastDurationRef.current) {
+        lastDurationRef.current = player.duration;
+        callbacksRef.current.onDuration?.(player.duration);
+      }
+    });
+    const timeSub = player.addListener("timeUpdate", () => {
+      if (player.duration > 0 && player.duration !== lastDurationRef.current) {
+        lastDurationRef.current = player.duration;
+        callbacksRef.current.onDuration?.(player.duration);
+      }
     });
     // Video dogal olarak sonuna geldiginde (loop=false) tetiklenir.
     const endSub = player.addListener("playToEnd", () => {
@@ -67,6 +81,7 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
     return () => {
       playingSub.remove();
       statusSub.remove();
+      timeSub.remove();
       endSub.remove();
     };
   }, [player]);

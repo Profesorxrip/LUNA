@@ -1,9 +1,7 @@
 import { useRef, useState } from "react";
 import { PanResponder, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { BlurView } from "expo-blur";
 import Icon from "./Icon";
 import Avatar from "./Avatar";
-import PlatformBadge from "./PlatformBadge";
 import { badgeInfoForSource } from "../utils/media";
 import type { MediaSource } from "../services/socket";
 import { theme } from "../theme";
@@ -34,9 +32,11 @@ function formatTime(totalSeconds: number): string {
 }
 
 /** Videonun hemen altinda, Rave'deki kompakt "su an oynatiliyor" bariyla
- * AYNI bilgileri tasiyan tek, seffaf/blurlu bir kutucuk: lideri avatari,
- * video basligi, kanal adi (varsa) + platform adi, ince bir ilerletme
- * cubugu ve tam ekran butonu. VideoSeekBar.tsx'in yerine gecer. */
+ * AYNI dizilim: lideri avatari EN SOLDA, bar boyunca dikey ortalanmis -
+ * saginda ustte video basligi + "Kanal (Platform)" + tam ekran butonu,
+ * altinda ilerletme cubugu (avatarin ALTINDAN degil, SAGINDAN baslar).
+ * Yuvarlak koseli, hafif seffaf, kenarlardan bosluklu bir kutucuk.
+ * VideoSeekBar.tsx'in yerine gecer. */
 export default function NowPlayingBar({
   source,
   positionSeconds,
@@ -76,72 +76,81 @@ export default function NowPlayingBar({
 
   const displaySeconds = dragFraction !== null ? dragFraction * duration : positionSeconds;
   const badge = badgeInfoForSource(source);
+  // Rave'deki gibi TEK satir: "Kanal (Platform)" - kanal adi yoksa (YouTube
+  // disindaki kaynaklar) sadece "(Platform)" kalir.
+  const subtitle = source?.channelName && badge?.label
+    ? `${source.channelName} (${badge.label})`
+    : source?.channelName || (badge?.label ? `(${badge.label})` : "");
 
   return (
-    <BlurView intensity={40} tint="dark" style={styles.wrap}>
-      <View style={styles.topRow}>
-        <Avatar name={hostName} avatarUrl={hostAvatarUrl} size={30} />
+    <View style={styles.wrap}>
+      <Avatar name={hostName} avatarUrl={hostAvatarUrl} size={38} />
+      <View style={styles.rightCol}>
         <View style={styles.infoCol}>
           <Text style={styles.title} numberOfLines={1}>
             {source?.label || "—"}
           </Text>
-          <View style={styles.subtitleRow}>
-            {!!source?.channelName && (
-              <Text style={styles.subtitle} numberOfLines={1}>
-                {source.channelName}
-                {!!badge?.label && " · "}
-              </Text>
-            )}
-            {!!badge && (badge.key || badge.faviconUrl) && <PlatformBadge platform={badge.key} faviconUrl={badge.faviconUrl} size={11} />}
-            {!!badge?.label && (
-              <Text style={styles.subtitle} numberOfLines={1}>
-                {badge.label}
-              </Text>
-            )}
-          </View>
+          {!!subtitle && (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          )}
         </View>
-        <TouchableOpacity onPress={onToggleFullscreen} hitSlop={10} style={styles.fullscreenTouch}>
-          <Icon name={isFullscreen ? "collapse" : "expand"} size={16} color={theme.text} />
-        </TouchableOpacity>
-      </View>
 
-      <View style={styles.seekRow}>
-        <Text style={styles.time}>{formatTime(displaySeconds)}</Text>
-        <View
-          style={styles.track}
-          onLayout={(e) => {
-            barWidthRef.current = e.nativeEvent.layout.width;
-          }}
-          {...(canSeek ? panResponder.panHandlers : {})}
-        >
-          <View style={styles.trackBg} />
-          <View style={[styles.trackFill, { width: `${fraction * 100}%` }]} />
-          {canSeek && <View style={[styles.thumb, { left: `${fraction * 100}%` }]} />}
+        <View style={styles.seekRow}>
+          <Text style={styles.time}>{formatTime(displaySeconds)}</Text>
+          <View
+            style={styles.track}
+            onLayout={(e) => {
+              barWidthRef.current = e.nativeEvent.layout.width;
+            }}
+            {...(canSeek ? panResponder.panHandlers : {})}
+          >
+            <View style={styles.trackBg} />
+            <View style={[styles.trackFill, { width: `${fraction * 100}%` }]} />
+            {canSeek && <View style={[styles.thumb, { left: `${fraction * 100}%` }]} />}
+          </View>
+          <Text style={styles.time}>{duration > 0 ? formatTime(duration) : "--:--"}</Text>
         </View>
-        <Text style={styles.time}>{duration > 0 ? formatTime(duration) : "--:--"}</Text>
       </View>
-    </BlurView>
+      {/* wrap'in dogrudan cocugu - alignItems:"center" sayesinde rightCol'un
+          (baslik+ilerletme cubugu) TAM ortasina, Rave'deki gibi bar
+          boyunca dikey ortalanmis olarak oturur. */}
+      <TouchableOpacity onPress={onToggleFullscreen} hitSlop={8} style={styles.fullscreenTouch}>
+        <Icon name={isFullscreen ? "collapse" : "expand"} size={16} color={theme.text} />
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // FriendsScreen.tsx'teki alt sekme cubuguyla (tabBar) BIREBIR AYNI
+  // "hap" cercevesi (borderRadius:30, ayni arkaplan rengi/opakligi) -
+  // sadece bu barin icerigine gore sagasola uzatilmis hali.
   wrap: {
+    flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: 10,
     marginVertical: 8,
-    borderRadius: 14,
-    overflow: "hidden",
-    backgroundColor: "rgba(20,20,24,0.45)",
+    borderRadius: 30,
+    backgroundColor: "rgba(20,18,16,0.95)",
     paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingVertical: 5,
   },
-  topRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  infoCol: { flex: 1 },
-  title: { color: theme.text, fontSize: 13, fontWeight: "700" },
-  subtitleRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 1 },
-  subtitle: { color: theme.textMuted, fontSize: 11, fontWeight: "600" },
-  fullscreenTouch: { padding: 4 },
-  seekRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+  rightCol: { flex: 1, gap: 3, marginLeft: 10 },
+  infoCol: {},
+  title: { color: theme.text, fontSize: 12, fontWeight: "700" },
+  subtitle: { color: theme.textMuted, fontSize: 10, fontWeight: "600", marginTop: 1 },
+  fullscreenTouch: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginLeft: 4,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  seekRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   time: { color: theme.textMuted, fontSize: 10, fontWeight: "600", minWidth: 32 },
   track: { flex: 1, height: 16, justifyContent: "center" },
   trackBg: { height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.2)" },
