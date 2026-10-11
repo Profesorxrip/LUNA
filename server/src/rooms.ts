@@ -80,6 +80,7 @@ export interface MediaSource {
   url: string;
   label?: string; // orn. "Netflix" - harici platformlarda gosterim icin
   coverUrl?: string; // host'un yapistirdigi kapak gorseli linki - Kesif kartinda gosterilir
+  channelName?: string; // YouTube oEmbed'den gelen kanal adi (bkz. mobile/src/utils/youtube.ts)
 }
 
 export interface PlaybackState {

@@ -40,6 +40,10 @@ export interface MediaSource {
   url: string;
   label?: string;
   coverUrl?: string; // orn. Netflix/harici icerikte host'un yapistirdigi kapak gorseli linki
+  // YouTube oEmbed'den gelen kanal adi (bkz. utils/youtube.ts) - video
+  // altindaki kompakt "su an oynatiliyor" barinda baslik altinda gosterilir
+  // (bkz. NowPlayingBar.tsx). Diger kaynak turlerinde dolmaz.
+  channelName?: string;
 }
 
 export interface PlaybackState {

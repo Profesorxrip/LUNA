@@ -7,7 +7,7 @@ import type { MediaSource } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
 import { EXTERNAL_PLATFORMS } from "../utils/media";
-import { extractYouTubeId, fetchYouTubeTitle } from "../utils/youtube";
+import { extractYouTubeId, fetchYouTubeMeta } from "../utils/youtube";
 import PlatformLogo from "./PlatformLogo";
 import Icon from "./Icon";
 import { showAlert } from "./CustomAlert";
@@ -133,9 +133,9 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     if (!videoId || videoId === detectedVideoRef.current) return;
     detectedVideoRef.current = videoId;
     setLoadingTitle(true);
-    const title = await fetchYouTubeTitle(videoId);
+    const meta = await fetchYouTubeMeta(videoId);
     setLoadingTitle(false);
-    onSelect({ type: "youtube", url: videoId, label: title || "YouTube Videosu" });
+    onSelect({ type: "youtube", url: videoId, label: meta.title || "YouTube Videosu", channelName: meta.channelName || undefined });
     handleClose();
   }
 

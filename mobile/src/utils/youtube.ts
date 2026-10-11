@@ -24,21 +24,30 @@ export function extractYouTubeId(input: string): string | null {
   return null;
 }
 
-/** Video ID'sinden gercek YouTube video basligini, resmi oEmbed servisi
- * uzerinden (API anahtari gerektirmez) ceker. Odanin/kartin ismi olarak
- * kullanilir - istek basarisiz olursa (internet yok, video kaldirilmis vb.)
- * null doner ve cagiran taraf bir yedek isim kullanir. */
-export async function fetchYouTubeTitle(videoId: string): Promise<string | null> {
+export interface YouTubeMeta {
+  title: string | null;
+  channelName: string | null;
+}
+
+/** Video ID'sinden gercek YouTube video basligini VE kanal adini, resmi
+ * oEmbed servisi uzerinden (API anahtari gerektirmez) ceker. Baslik odanin/
+ * kartin ismi, kanal adi da NowPlayingBar.tsx'teki kompakt bardaki alt
+ * satir icin kullanilir - istek basarisiz olursa (internet yok, video
+ * kaldirilmis vb.) ikisi de null doner, cagiran taraf yedek deger kullanir. */
+export async function fetchYouTubeMeta(videoId: string): Promise<YouTubeMeta> {
   try {
     const res = await fetch(
       `https://www.youtube.com/oembed?url=${encodeURIComponent(
         `https://www.youtube.com/watch?v=${videoId}`
       )}&format=json`
     );
-    if (!res.ok) return null;
+    if (!res.ok) return { title: null, channelName: null };
     const data = await res.json();
-    return typeof data.title === "string" ? data.title : null;
+    return {
+      title: typeof data.title === "string" ? data.title : null,
+      channelName: typeof data.author_name === "string" ? data.author_name : null,
+    };
   } catch {
-    return null;
+    return { title: null, channelName: null };
   }
 }

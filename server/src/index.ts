@@ -103,7 +103,8 @@ function isValidMediaSource(value: unknown): value is MediaSource {
     isOneOf(s.type, SOURCE_TYPES) &&
     isNonEmptyString(s.url, 2000) &&
     isOptionalString(s.label, 200) &&
-    isOptionalString(s.coverUrl, 2000)
+    isOptionalString(s.coverUrl, 2000) &&
+    isOptionalString(s.channelName, 200)
   );
 }
 

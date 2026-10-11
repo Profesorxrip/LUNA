@@ -26,7 +26,7 @@ import MediaPlayer, { MediaPlayerHandle } from "../components/MediaPlayer";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import ReactionsOverlay, { ReactionsOverlayHandle } from "../components/ReactionsOverlay";
 import VideoControlsOverlay from "../components/VideoControlsOverlay";
-import VideoSeekBar from "../components/VideoSeekBar";
+import NowPlayingBar from "../components/NowPlayingBar";
 import ParticipantsModal from "../components/ParticipantsModal";
 import FriendsScreen from "./FriendsScreen";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
@@ -300,6 +300,9 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const canPickMedia = isHost || room.playbackMode === "vote" || room.playbackMode === "playOnly";
   const syncable =
     room.playback.source?.type === "youtube" || room.playback.source?.type === "hls" || room.playback.source?.type === "mp4";
+  // NowPlayingBar.tsx'teki avatar icin - su anki video icin kalici bir "kim
+  // sectiyi" bilgimiz olmadigindan (bkz. backlog), liderin kendisi kullanilir.
+  const hostParticipant = room.participants.find((p) => p.isHost);
   // Oda "+18 icerik" isaretli VE ben kendi tercihimde "Yetiskin Icerigini
   // Gizle"yi actiysam - video SADECE BENIM ekranimda bulanik gorunur (bkz.
   // asagidaki BlurView). "Liderin Secimi" modunda "Atla" oyu islevsiz (sadece
@@ -927,7 +930,8 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                   onToggleLike={toggleLike}
                   onPlayPause={togglePlayPause}
                   onSkip={skipBy}
-                  showSkipPrevious={canGoToPreviousVideo}
+                  showSkipPrevious={isHost}
+                  hasPreviousVideo={room.hasPreviousVideo}
                   onSkipPrevious={goToPreviousVideo}
                   showSkipNext={canSkipToNext}
                   onSkipNext={skipToNext}
@@ -961,13 +965,16 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           </View>
 
           {syncable && (
-            <VideoSeekBar
+            <NowPlayingBar
+              source={room.playback.source}
               positionSeconds={displayPosition}
               durationSeconds={room.playback.durationSeconds ?? null}
               canSeek={canControlTransport}
               onSeek={seekTo}
               isFullscreen={fullscreenVideo}
               onToggleFullscreen={toggleFullscreenVideo}
+              hostName={hostParticipant?.name || "Lider"}
+              hostAvatarUrl={hostParticipant?.avatarUrl}
             />
           )}
 

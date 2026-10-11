@@ -9,7 +9,11 @@ interface Props {
   onToggleLike: () => void;
   onPlayPause: () => void;
   onSkip: (deltaSeconds: number) => void;
+  // Onceki videoya don - SADECE lidere gorunur (showSkipPrevious), ama
+  // gorunse bile gercekten donulecek bir video yoksa (ilk videoysa)
+  // GIZLENMEZ, soluk renkte ve dokunulamaz gosterilir (hasPreviousVideo).
   showSkipPrevious: boolean;
+  hasPreviousVideo: boolean;
   onSkipPrevious: () => void;
   showSkipNext: boolean;
   onSkipNext: () => void;
@@ -21,9 +25,9 @@ const AUTO_HIDE_MS = 3000;
 /** Rave'deki gibi videonun UZERINE binen kontroller - normalde gizli,
  * videoya dokununca belirip, OYNATILIYORKEN birkac saniye sonra kendiliginden
  * kayboluyor (duraklatilmisken SABIT kalir - aksi halde devam ettirecek
- * buton gorunmez olurdu). Begeni (ve "vote" modunda sadece host icin
- * "sıradakine gec") de ayni katmanda, Rave'deki gibi - ikisi de transport
- * kontrolu OLMASA bile (begeni herkese acik) ayni gorunup/gizlenen sette. */
+ * buton gorunmez olurdu). Ust satirda soldan saga: onceki video (sadece
+ * lider), begeni (herkese acik), sıradakine gec (sadece lider) - ucu de
+ * transport kontrolu OLMASA bile ayni gorunup/gizlenen sette. */
 export default function VideoControlsOverlay({
   isPlaying,
   canControlTransport,
@@ -32,6 +36,7 @@ export default function VideoControlsOverlay({
   onPlayPause,
   onSkip,
   showSkipPrevious,
+  hasPreviousVideo,
   onSkipPrevious,
   showSkipNext,
   onSkipNext,
@@ -73,8 +78,13 @@ export default function VideoControlsOverlay({
         <>
           <View style={styles.topRow}>
             {showSkipPrevious && (
-              <TouchableOpacity style={styles.smallIconTouch} onPress={onSkipPrevious} hitSlop={10}>
-                <Icon name="fastBackward" size={18} color="#FFFFFF" />
+              <TouchableOpacity
+                style={styles.smallIconTouch}
+                onPress={onSkipPrevious}
+                disabled={!hasPreviousVideo}
+                hitSlop={10}
+              >
+                <Icon name="fastBackward" size={18} color={hasPreviousVideo ? "#FFFFFF" : "rgba(255,255,255,0.35)"} />
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.smallIconTouch} onPress={onToggleLike} hitSlop={10}>
