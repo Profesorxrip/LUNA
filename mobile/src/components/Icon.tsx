@@ -43,7 +43,7 @@ import {
   ClipboardDocumentIcon,
 } from "react-native-heroicons/solid";
 import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
-import { MicOff, Hourglass, Crown, RotateCcw, RotateCw } from "lucide-react-native";
+import { MicOff, Hourglass, Crown, RotateCcw, RotateCw, FastForward, Rewind } from "lucide-react-native";
 
 export type IconName =
   | "close"
@@ -79,6 +79,13 @@ export type IconName =
   | "crown"
   | "fastForward"
   | "fastBackward"
+  // Video kontrol panelindeki ("sıradakine geç"/"onceki video") ayri bir
+  // ikon ailesi - "fastForward"/"fastBackward" (Heroicons solid, otomatik
+  // oynat modu ikonu vb. yerlerde kullaniliyor) ile KARISTIRMA, bu ikisi
+  // lucide'nin outline/cizgi "FastForward"/"Rewind" glyph'leri (kullanicinin
+  // gonderdigi referans gorsele gore).
+  | "skipForward"
+  | "skipBack"
   | "phone"
   | "kicked"
   | "reply"
@@ -160,6 +167,8 @@ const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: num
   crown: Crown,
   rotateCcw: RotateCcw,
   rotateCw: RotateCw,
+  skipForward: FastForward,
+  skipBack: Rewind,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {

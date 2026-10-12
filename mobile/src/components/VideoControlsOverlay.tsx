@@ -111,7 +111,7 @@ export default function VideoControlsOverlay({
                 disabled={!hasPreviousVideo}
                 hitSlop={10}
               >
-                <Icon name="fastBackward" size={18} color={hasPreviousVideo ? "#FFFFFF" : "rgba(255,255,255,0.35)"} />
+                <Icon name="skipBack" size={18} color={hasPreviousVideo ? "#FFFFFF" : "rgba(255,255,255,0.35)"} />
                 {showVoteBadges && !!previousVoteCount && (
                   <View style={styles.voteBadge}>
                     <Text style={styles.voteBadgeText}>{previousVoteCount}</Text>
@@ -124,7 +124,7 @@ export default function VideoControlsOverlay({
             </TouchableOpacity>
             {showSkipNext && (
               <TouchableOpacity style={styles.smallIconTouch} onPress={onSkipNext} hitSlop={10}>
-                <Icon name="fastForward" size={18} color="#FFFFFF" />
+                <Icon name="skipForward" size={18} color="#FFFFFF" />
                 {showVoteBadges && !!nextVoteCount && (
                   <View style={styles.voteBadge}>
                     <Text style={styles.voteBadgeText}>{nextVoteCount}</Text>
