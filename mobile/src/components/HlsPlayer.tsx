@@ -116,8 +116,14 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
     <View style={[styles.container, fullscreen && styles.containerFullscreen]}>
       {/* nativeControls=false - artik RoomScreen'deki ozel VideoControlsOverlay
           kullaniliyor (Rave'deki gibi) - iki ayri kontrol seti ust uste
-          gorunmesin diye. */}
-      <VideoView style={styles.video} player={player} nativeControls={false} contentFit="contain" />
+          gorunmesin diye.
+          surfaceType="textureView" - Android'de varsayilan "surfaceView"
+          kendi native katmaninda cizildigi icin VideoControlsOverlay/
+          NowPlayingBar gibi UZERINE binen View'ler (ozellikle tam ekran
+          yatay modda) gorunmeyebiliyordu - expo-video'nun kendi
+          dokumantasyonu ("overlapping video views") bu TAM senaryo icin
+          textureView'i oneriyor. */}
+      <VideoView style={styles.video} player={player} nativeControls={false} contentFit="contain" surfaceType="textureView" />
     </View>
   );
 });
