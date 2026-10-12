@@ -1514,7 +1514,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
-    backgroundColor: theme.surface,
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   adultBlurHint: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
