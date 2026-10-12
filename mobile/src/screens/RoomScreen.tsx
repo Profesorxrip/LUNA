@@ -14,7 +14,6 @@ import {
   useWindowDimensions,
   Modal,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
@@ -1148,10 +1147,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
               )}
             </ReactionsOverlay>
 
-            {!fullscreenVideo && (
-              <LinearGradient colors={["transparent", theme.bg]} style={styles.bottomFade} pointerEvents="none" />
-            )}
-
             {/* NowPlayingBar artik HER MODDA (tam ekran da, normal da) videonun
                 ALTINDA ayri bir satir degil, videonun KENDISININ uzerine binen,
                 kontrol butonlarinin (ortadaki -10/oynat/+10) ALTINDA kalan bir
@@ -1496,7 +1491,6 @@ const styles = StyleSheet.create({
   // Tam ekran yatay modda bu View (video + kontroller) flex:1 ile roomBody'nin
   // (ust bar gizliyken TUM ekranin) kalan butun yuksekligini kaplar.
   mediaSectionFullscreen: { flex: 1 },
-  bottomFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 48 },
   nowPlayingBarOverlay: { position: "absolute", left: 0, right: 0, bottom: 0 },
   videoHandleBar: {
     alignItems: "center",
