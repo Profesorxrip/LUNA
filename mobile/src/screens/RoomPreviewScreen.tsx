@@ -10,7 +10,7 @@ import LoadingView from "../components/LoadingView";
 import PlatformBadge from "../components/PlatformBadge";
 import AdultBadge from "../components/AdultBadge";
 import CountryFlag from "../components/CountryFlag";
-import { badgeInfoForSource } from "../utils/media";
+import { badgeInfoForSource, coverUrlForSource } from "../utils/media";
 
 interface Props {
   room: PublicRoomSummary;
@@ -66,6 +66,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
   }, [room.isPlaying, hasEnded, hasDuration]);
 
   const platform = badgeInfoForSource(room.source);
+  const coverUrl = coverUrlForSource(room.source);
   const isExternal = room.source?.type === "external";
   const statusText = hasEnded ? "Bitti" : room.isPlaying ? "Oynatılıyor" : "Duraklatıldı";
 
@@ -85,10 +86,8 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
       </View>
 
       <TouchableOpacity style={styles.coverWrap} activeOpacity={0.9} onPress={onJoin}>
-        {room.source?.coverUrl ? (
-          <Image source={{ uri: room.source.coverUrl }} style={styles.cover} />
-        ) : room.source?.type === "youtube" ? (
-          <Image source={{ uri: `https://img.youtube.com/vi/${room.source.url}/hqdefault.jpg` }} style={styles.cover} />
+        {coverUrl ? (
+          <Image source={{ uri: coverUrl }} style={styles.cover} />
         ) : (
           <View style={[styles.cover, styles.coverPlaceholder]} />
         )}

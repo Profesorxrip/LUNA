@@ -36,6 +36,8 @@ import ChatImageBubble from "../components/ChatImageBubble";
 import RoomMapSheet from "../components/RoomMapSheet";
 import RoomQuickCards, { PRIVACY_OPTIONS, PLAYBACK_INFO } from "../components/RoomQuickCards";
 import Avatar from "../components/Avatar";
+import AdultBadge from "../components/AdultBadge";
+import { coverUrlForSource } from "../utils/media";
 import Icon, { IconName } from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import { isHideLocationEnabled } from "../utils/locationSettings";
@@ -340,6 +342,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // lider video secebilir), o yuzden buton orada gosterilmiyor.
   const adultBlurActive = room.isAdult && myHideAdultContent;
   const canVoteSkipAdult = adultBlurActive && room.playbackMode !== "leader";
+  // Discover karti/oda onizlemesiyle (RoomCard.tsx/RoomPreviewScreen.tsx)
+  // AYNI kapak gorseli - canli videoyu bulanıklastirmak yerine (performansli
+  // degil, hareket eden kareler bulanıklıkla bile sizabiliyor) sabit kapak
+  // resmini bulanıklastiriyoruz.
+  const adultCoverUrl = coverUrlForSource(room.playback.source);
   const [votedSkipAdult, setVotedSkipAdult] = useState(false);
   useEffect(() => {
     setVotedSkipAdult(false);
@@ -1161,10 +1168,20 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 />
               )}
               {adultBlurActive && (
-                <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFill}>
-                  <View style={styles.adultBlurHint}>
-                    <Icon name="eyeOff" size={28} color="#FFFFFF" />
-                    <Text style={styles.adultBlurText}>+18 içerik</Text>
+                <View style={StyleSheet.absoluteFill}>
+                  {/* Canli videoyu degil, Discover karti/oda onizlemesiyle
+                      (RoomCard.tsx/RoomPreviewScreen.tsx) AYNI sabit kapak
+                      resmini bulanıklastiriyoruz - hareketli bir goruntu
+                      bulanıklıkla bile kare kare sizdirabilir, sabit bir
+                      kapak resmi daha guvenli VE daha az kaynak tuketir. */}
+                  {adultCoverUrl ? (
+                    <Image source={{ uri: adultCoverUrl }} style={StyleSheet.absoluteFill} />
+                  ) : (
+                    <View style={[StyleSheet.absoluteFill, styles.adultBlurFallbackBg]} />
+                  )}
+                  <BlurView intensity={90} tint="dark" style={styles.adultBlurHint}>
+                    <AdultBadge size={44} />
+                    <Text style={styles.adultBlurText}>Bu video +18 içerik barındırıyor</Text>
                     {canVoteSkipAdult ? (
                       <TouchableOpacity
                         style={[styles.adultSkipBtn, votedSkipAdult && styles.adultSkipBtnDisabled]}
@@ -1174,12 +1191,13 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                         <Text style={styles.adultSkipBtnText}>
                           {votedSkipAdult ? `Oy verildi (${room.adultSkipVoteCount}/${room.participants.length})` : "Atla"}
                         </Text>
+                        {!votedSkipAdult && <Icon name="skipForward" size={14} color="#04140D" />}
                       </TouchableOpacity>
                     ) : (
                       <Text style={styles.adultBlurSubtext}>Bu videoyu lider degistirebilir</Text>
                     )}
-                  </View>
-                </BlurView>
+                  </BlurView>
+                </View>
               )}
             </ReactionsOverlay>
 
@@ -1540,10 +1558,30 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
-  adultBlurHint: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
-  adultBlurText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  adultBlurFallbackBg: { backgroundColor: theme.surface },
+  adultBlurHint: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 16,
+  },
+  adultBlurText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700", textAlign: "center" },
   adultBlurSubtext: { color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" },
-  adultSkipBtn: { backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 24, marginTop: 4 },
+  adultSkipBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: theme.accent,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    marginTop: 4,
+  },
   adultSkipBtnDisabled: { backgroundColor: "rgba(255,255,255,0.2)" },
   adultSkipBtnText: { color: "#04140D", fontWeight: "700", fontSize: 14 },
   topBar: {

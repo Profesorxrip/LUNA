@@ -36,6 +36,18 @@ export interface SourceBadgeInfo {
   faviconUrl?: string;
 }
 
+/** Bir kaynagin kapak gorseli - varsa host'un yapistirdigi coverUrl (orn.
+ * Netflix/harici icerik), yoksa YouTube icin video ID'sinden turetilen
+ * resmi thumbnail, digerlerinde (mp4/hls/external) kapak kavrami yok -
+ * null doner. RoomCard.tsx, RoomPreviewScreen.tsx ve RoomScreen.tsx'teki
+ * +18 bulaniklastirma overlay'i AYNI TEK fonksiyonu kullanir. */
+export function coverUrlForSource(source: MediaSource | null): string | null {
+  if (!source) return null;
+  if (source.coverUrl) return source.coverUrl;
+  if (source.type === "youtube") return `https://img.youtube.com/vi/${source.url}/hqdefault.jpg`;
+  return null;
+}
+
 /** Discover karti / oda onizlemesindeki sag ust rozet icin kaynagin hangi
  * platforma ait oldugunu bulur (bkz. RoomCard.tsx, RoomPreviewScreen.tsx -
  * ikisi de bu TEK fonksiyonu kullanir, kod tekrari yapmazlar). */

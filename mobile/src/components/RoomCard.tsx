@@ -6,7 +6,7 @@ import { PublicRoomSummary } from "../services/socket";
 import { theme } from "../theme";
 import PlatformBadge from "./PlatformBadge";
 import AdultBadge from "./AdultBadge";
-import { badgeInfoForSource } from "../utils/media";
+import { badgeInfoForSource, coverUrlForSource } from "../utils/media";
 
 function sourceIcon(type: string): string {
   if (type === "hls" || type === "mp4") return "🎬";
@@ -30,12 +30,11 @@ interface Props {
  * boylece ikisi her zaman birebir ayni gorunur. */
 export default function RoomCard({ room, friendIds = new Set(), onPress, onLongPress, onOpenParticipant, style }: Props) {
   const badgeInfo = badgeInfoForSource(room.source);
+  const coverUrl = coverUrlForSource(room.source);
   return (
     <TouchableOpacity style={[styles.card, style]} onPress={onPress} onLongPress={onLongPress} delayLongPress={350}>
-      {room.source?.coverUrl ? (
-        <Image source={{ uri: room.source.coverUrl }} style={styles.thumbnail} />
-      ) : room.source?.type === "youtube" ? (
-        <Image source={{ uri: `https://img.youtube.com/vi/${room.source.url}/hqdefault.jpg` }} style={styles.thumbnail} />
+      {coverUrl ? (
+        <Image source={{ uri: coverUrl }} style={styles.thumbnail} />
       ) : (
         <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
           <Text style={styles.thumbnailPlaceholderText}>{room.source ? sourceIcon(room.source.type) : "▶"}</Text>
