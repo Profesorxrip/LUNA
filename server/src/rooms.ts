@@ -143,6 +143,12 @@ export interface Room {
   // SADECE su an oynayan videoya ozel, video degisince sifirlanir (bkz.
   // applyPlayback). "Liderin Secimi" modunda hic kullanilmaz.
   adultSkipVotes: Set<string>;
+  // "Liderin Secimi" DISINDAKI modlarda "sıradakine geç"/"onceki video"
+  // butonlarina verilen oylar (socketId kumesi) - bir kisi ayni anda sadece
+  // BIR yone oy verebilir (zit yone basarsa oyu oraya tasinir, bkz.
+  // voteSkipToNext/voteGoToPrevious). Video degisince ikisi de sifirlanir.
+  nextVideoVotes: Set<string>;
+  previousVideoVotes: Set<string>;
 }
 
 const rooms = new Map<string, Room>();
@@ -211,6 +217,8 @@ export function createRoom(
     videoQueue: [],
     micOpenToAll: false,
     adultSkipVotes: new Set(),
+    nextVideoVotes: new Set(),
+    previousVideoVotes: new Set(),
   };
   rooms.set(code, room);
   return room;
@@ -491,7 +499,11 @@ function applyPlayback(room: Room, update: Partial<PlaybackState>, recordHistory
   // Yeni bir kaynak uygulanirken (video degisirken) "Atla" oylarini
   // sifirliyoruz - bu oylar SADECE o an oynayan videoya ozel (bkz.
   // voteSkipAdultContent).
-  if (update.source) room.adultSkipVotes.clear();
+  if (update.source) {
+    room.adultSkipVotes.clear();
+    room.nextVideoVotes.clear();
+    room.previousVideoVotes.clear();
+  }
   room.playback = { ...room.playback, ...update, updatedAtMs: Date.now() };
   if (update.source?.label) room.title = update.source.label;
 }
@@ -510,15 +522,24 @@ export function updatePlayback(
   return true;
 }
 
-// "Onceki video" - sadece host, ve odada gercekten daha once oynatilmis bir
-// video varsa kullanilabilir (vote modunda bile - bu, oylamadan BAGIMSIZ bir
-// "geri don" eylemi, yeni bir secim/oy degil).
+// "Onceki video" - "Liderin Secimi" modunda sadece lidere ozel, DOGRUDAN
+// (oylamasiz) bir eylem. Diger modlarda artik COGUNLUK oyuyla tetiklenir
+// (bkz. voteGoToPrevious) - bu yuzden bu fonksiyon SADECE "leader" modunda
+// bir sey yapar, digerlerinde (host olsa bile) null doner.
 export function canGoToPreviousVideo(room: Room, requesterId: string): boolean {
-  return room.videoHistory.length > 0 && isHost(room, requesterId);
+  return room.videoHistory.length > 0 && room.playbackMode === "leader" && isHost(room, requesterId);
 }
 
 export function goToPreviousVideo(room: Room, requesterId: string): MediaSource | null {
   if (!canGoToPreviousVideo(room, requesterId)) return null;
+  return applyGoToPreviousVideo(room);
+}
+
+// Yetki kontrolu YAPMADAN dogrudan uygular - goToPreviousVideo'nun kendisi
+// (yetkiyi az once dogruladi) YA DA cogunluk oyu gecince voteGoToPrevious
+// (index.ts "room:voteGoToPrevious") tarafindan cagrilir.
+function applyGoToPreviousVideo(room: Room): MediaSource | null {
+  if (room.videoHistory.length === 0) return null;
   const previous = room.videoHistory.pop()!;
   applyPlayback(
     room,
@@ -526,6 +547,46 @@ export function goToPreviousVideo(room: Room, requesterId: string): MediaSource 
     false
   );
   return previous;
+}
+
+export interface SkipVoteResult {
+  count: number;
+  total: number;
+  passed: boolean;
+}
+
+/** "Sıradakine geç" - "Liderin Secimi" DISINDAKI modlarda bu artik bir OY:
+ * odadaki katilimcilarin yarisindan FAZLASI ayni anda bu yonde birikince
+ * "passed: true" doner - cagiran taraf (index.ts "room:voteSkipNext")
+ * bunu dogal bitis ile AYNI sekilde isler (bkz. advancePastCurrentVideo).
+ * Zit yone ("onceki video") daha once oy verilmisse o oy burada IPTAL olur
+ * - ayni kisi ayni anda iki zit yone oy veremez. "Liderin Secimi" modunda
+ * hic calismaz (null doner) - orada sadece lider dogrudan karar verir. */
+export function voteSkipToNext(room: Room, voterSocketId: string): SkipVoteResult | null {
+  if (room.playbackMode === "leader") return null;
+  room.previousVideoVotes.delete(voterSocketId);
+  room.nextVideoVotes.add(voterSocketId);
+  const count = room.nextVideoVotes.size;
+  const total = room.participants.size;
+  return { count, total, passed: count > total / 2 };
+}
+
+/** "Onceki video" - AYNI cogunluk oyu mantigi, ters yonde. Donulecek bir
+ * video yoksa (videoHistory bos) ya da "Liderin Secimi" modundaysa hic oy
+ * kabul etmez (null doner). */
+export function voteGoToPrevious(room: Room, voterSocketId: string): SkipVoteResult | null {
+  if (room.playbackMode === "leader" || room.videoHistory.length === 0) return null;
+  room.nextVideoVotes.delete(voterSocketId);
+  room.previousVideoVotes.add(voterSocketId);
+  const count = room.previousVideoVotes.size;
+  const total = room.participants.size;
+  return { count, total, passed: count > total / 2 };
+}
+
+/** Cogunluk oyu gecince (bkz. voteGoToPrevious) yetki kontrolu OLMADAN
+ * dogrudan uygular - index.ts "room:voteGoToPrevious" tarafindan cagrilir. */
+export function applyVotedGoToPrevious(room: Room): MediaSource | null {
+  return applyGoToPreviousVideo(room);
 }
 
 /** "Sadece Oynat" modunda video SECIMI artik host'a ozel degil - HERKES
@@ -765,5 +826,9 @@ export function roomToPublicState(room: Room) {
     // "+18 icerik" icin "Atla" oy sayisi - kimlerin oy verdigini DEGIL,
     // sadece sayiyi paylasiyoruz (bkz. RoomScreen.tsx, voteSkipAdultContent).
     adultSkipVoteCount: room.adultSkipVotes.size,
+    // "sıradakine geç"/"onceki video" icin cogunluk oyu sayaclari (bkz.
+    // voteSkipToNext/voteGoToPrevious) - "Liderin Secimi" modunda hep 0 gelir.
+    nextVideoVoteCount: room.nextVideoVotes.size,
+    previousVideoVoteCount: room.previousVideoVotes.size,
   };
 }

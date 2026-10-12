@@ -23,6 +23,9 @@ import {
   castVote,
   resolvePoll,
   goToPreviousVideo,
+  voteSkipToNext,
+  voteGoToPrevious,
+  applyVotedGoToPrevious,
   canEnqueueSource,
   enqueueSource,
   advanceQueue,
@@ -1051,6 +1054,45 @@ io.on("connection", (socket: Socket) => {
       title,
       byName: room.participants.get(socket.id)?.name || myName,
       byAvatarUrl: room.participants.get(socket.id)?.avatarUrl ?? null,
+      nowPlayingReason: "previous",
+      text: `Simdi ${title} oynatiliyor`,
+      ts: Date.now(),
+    });
+  });
+
+  // "Liderin Secimi" DISINDAKI modlarda "sıradakine geç" artik bir COGUNLUK
+  // OYU - bkz. rooms.ts voteSkipToNext. Yarisindan fazlasi birikince dogal
+  // bitis ile AYNI ortak mantigi (advancePastCurrentVideo) isletir.
+  socket.on("room:voteSkipNext", async (_data, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    const result = voteSkipToNext(room, socket.id);
+    if (!result) return ack?.({ ok: false, error: "Bu modda oylama yok." });
+    ack?.({ ok: true, count: result.count, total: result.total });
+    broadcastRoom(currentRoomCode);
+    if (result.passed) await advancePastCurrentVideo(room, currentRoomCode);
+  });
+
+  // AYNI cogunluk oyu mantigi, ters yonde - bkz. rooms.ts voteGoToPrevious.
+  socket.on("room:voteGoToPrevious", (_data, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    const result = voteGoToPrevious(room, socket.id);
+    if (!result) return ack?.({ ok: false, error: "Donulecek video yok." });
+    ack?.({ ok: true, count: result.count, total: result.total });
+    broadcastRoom(currentRoomCode);
+    if (!result.passed) return;
+    const previous = applyVotedGoToPrevious(room);
+    if (!previous) return;
+    broadcastRoom(currentRoomCode);
+    broadcastRoomsList();
+    const title = previous.label || previous.type;
+    io.to(currentRoomCode).emit("room:chat", {
+      system: true,
+      kind: "nowPlaying",
+      title,
       nowPlayingReason: "previous",
       text: `Simdi ${title} oynatiliyor`,
       ts: Date.now(),

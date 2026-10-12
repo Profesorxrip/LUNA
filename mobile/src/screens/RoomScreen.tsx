@@ -623,33 +623,43 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     };
   }, []);
 
-  // "Sıradakine gec" - her playback modunda kalbin saginda gorunur (host
-  // icin). "vote"/"autoplay" modundaysa video dogal olarak bitmeden
-  // sunucudaki otomatik gecisi ERKEN tetikler (sunucuda zaten
-  // "playback:ended" ile BIREBIR ayni islem - autoplay'de kaynak YouTube
-  // degilse sunucu sessizce hicbir sey yapmaz, cunku baska platformlarda
-  // "sıradaki" diye bir seyimiz yok). Diger modlarda (lider/sadece oynat)
-  // oylama/otomatik gecis kavrami olmadigi icin dogrudan video secme
-  // ekranini acar - zaten o modlarda sadece lider secebiliyor.
-  const canSkipToNext = isHost;
+  // "Sıradakine gec" / "Onceki video" - "Liderin Secimi" modunda SADECE
+  // lidere ozel (dogrudan, oylamasiz), DIGER butun modlarda (vote/sadece
+  // oynat/otomatik oynat) artik HERKESE acik bir COGUNLUK OYU: kim hangi
+  // yone basarsa o yone 1 oy ekler (zit yone verilmis onceki oyu iptal
+  // eder), katilimcilarin yarisindan FAZLASI ayni yonde birikince sunucu
+  // gercekten o eylemi uygular (bkz. server/src/rooms.ts voteSkipToNext/
+  // voteGoToPrevious, index.ts "room:voteSkipNext"/"room:voteGoToPrevious").
+  // Video degisince kendi oyum sifirlaniyor (yeni video icin yeniden
+  // oylanabilsin diye).
+  const showSkipControls = room.playbackMode !== "leader" || isHost;
+  const [skipVoteDirection, setSkipVoteDirection] = useState<"next" | "previous" | null>(null);
+  useEffect(() => {
+    setSkipVoteDirection(null);
+  }, [room.playback.source?.url]);
+
   function skipToNext() {
-    if (!isHost) return;
-    if (room.playbackMode === "vote") {
-      if (room.poll) return; // oylama zaten acik, tekrar tetiklemeye gerek yok
-      socket.emit("playback:ended");
-    } else if (room.playbackMode === "autoplay") {
-      socket.emit("playback:ended");
-    } else {
+    if (room.playbackMode === "leader") {
+      if (!isHost) return;
       openMediaPicker();
+      return;
     }
+    if (skipVoteDirection === "next") return; // zaten bu yone oy verdim
+    socket.emit("room:voteSkipNext", {}, (res: any) => {
+      if (res?.ok) setSkipVoteDirection("next");
+    });
   }
 
-  // "Onceki video" - bu odada daha once oynatilmis bir kaynaga doner (bkz.
-  // server/src/rooms.ts videoHistory) - vote modu dahil her modda, sadece host.
-  const canGoToPreviousVideo = isHost && room.hasPreviousVideo;
   function goToPreviousVideo() {
-    if (!canGoToPreviousVideo) return;
-    socket.emit("room:previousVideo", {}, () => {});
+    if (room.playbackMode === "leader") {
+      if (!isHost || !room.hasPreviousVideo) return;
+      socket.emit("room:previousVideo", {}, () => {});
+      return;
+    }
+    if (!room.hasPreviousVideo || skipVoteDirection === "previous") return;
+    socket.emit("room:voteGoToPrevious", {}, (res: any) => {
+      if (res?.ok) setSkipVoteDirection("previous");
+    });
   }
 
   // Davet et ekraninda (FriendsScreen inviteMode) isaretlenip "Davet At"a
@@ -955,11 +965,14 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                   onToggleLike={toggleLike}
                   onPlayPause={togglePlayPause}
                   onSkip={skipBy}
-                  showSkipPrevious={isHost}
+                  showSkipPrevious={showSkipControls}
                   hasPreviousVideo={room.hasPreviousVideo}
                   onSkipPrevious={goToPreviousVideo}
-                  showSkipNext={canSkipToNext}
+                  showSkipNext={showSkipControls}
                   onSkipNext={skipToNext}
+                  showVoteBadges={room.playbackMode !== "leader"}
+                  nextVoteCount={room.nextVideoVoteCount}
+                  previousVoteCount={room.previousVideoVoteCount}
                   onSettings={() => setSettingsVisible(true)}
                   showMic={fullscreenVideo}
                   micConnected={voice.connected}

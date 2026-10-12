@@ -93,9 +93,15 @@ export interface RoomState {
   playback: PlaybackState;
   buffering: BufferingState;
   // Bu odada "onceki video" ikonuyla donulebilecek bir kayit var mi (bkz.
-  // server/src/rooms.ts videoHistory) - sadece host icin anlamli, misafirler
-  // bu true olsa bile emit edemez (sunucu tekrar kontrol eder).
+  // server/src/rooms.ts videoHistory) - "Liderin Secimi" disinda butonu
+  // HERKES gorur, ama bu false'ken yine de soluk/dokunulamaz kalir.
   hasPreviousVideo: boolean;
+  // "Liderin Secimi" DISINDAKI modlarda "sıradakine geç"/"onceki video"
+  // butonlarina su ana kadar verilen oy sayisi (bkz. rooms.ts
+  // voteSkipToNext/voteGoToPrevious) - katilimcilarin yarisindan fazlasi
+  // ayni yonde birikince sunucu eylemi gercekten uygular.
+  nextVideoVoteCount: number;
+  previousVideoVoteCount: number;
   // "Sadece Oynat" modunda beklemede olan videolar (bkz. server/src/rooms.ts
   // enqueueSource/advanceQueue) - diger modlarda hep bos dizi gelir.
   videoQueue: MediaSource[];

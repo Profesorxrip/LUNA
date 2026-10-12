@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "./Icon";
+import { theme } from "../theme";
 
 interface Props {
   isPlaying: boolean;
@@ -17,6 +18,13 @@ interface Props {
   onSkipPrevious: () => void;
   showSkipNext: boolean;
   onSkipNext: () => void;
+  // "Liderin Secimi" DISINDAKI modlarda bu iki buton artik bir COGUNLUK
+  // OYU (bkz. RoomScreen.tsx skipToNext/goToPreviousVideo) - showVoteBadges
+  // true'yken butonlarin kosesinde kac kisinin o yonde oy verdigini
+  // gosteren kucuk bir rozet belirir (0 oyda rozet gizli).
+  showVoteBadges?: boolean;
+  nextVoteCount?: number;
+  previousVoteCount?: number;
   onSettings: () => void;
   // Tam ekran yatay modda alt bar (mikrofon dahil) gizlendigi icin mikrofon
   // kontrolu buraya, ayarlar cark ikonunun SOLUNA, onunla AYNI boyutta
@@ -34,9 +42,11 @@ const AUTO_HIDE_MS = 3000;
 /** Rave'deki gibi videonun UZERINE binen kontroller - normalde gizli,
  * videoya dokununca belirip, OYNATILIYORKEN birkac saniye sonra kendiliginden
  * kayboluyor (duraklatilmisken SABIT kalir - aksi halde devam ettirecek
- * buton gorunmez olurdu). Ust satirda soldan saga: onceki video (sadece
- * lider), begeni (herkese acik), sıradakine gec (sadece lider) - ucu de
- * transport kontrolu OLMASA bile ayni gorunup/gizlenen sette. */
+ * buton gorunmez olurdu). Ust satirda soldan saga: onceki video, begeni
+ * (herkese acik), sıradakine gec - ucu de transport kontrolu OLMASA bile
+ * ayni gorunup/gizlenen sette. Onceki/sıradaki butonlari "Liderin Secimi"
+ * modunda sadece lidere gorunur ve dogrudan calisir, DIGER modlarda
+ * HERKESE gorunur ve birer COGUNLUK OYUDUR (bkz. showVoteBadges). */
 export default function VideoControlsOverlay({
   isPlaying,
   canControlTransport,
@@ -49,6 +59,9 @@ export default function VideoControlsOverlay({
   onSkipPrevious,
   showSkipNext,
   onSkipNext,
+  showVoteBadges,
+  nextVoteCount,
+  previousVoteCount,
   onSettings,
   showMic,
   micConnected,
@@ -99,6 +112,11 @@ export default function VideoControlsOverlay({
                 hitSlop={10}
               >
                 <Icon name="fastBackward" size={18} color={hasPreviousVideo ? "#FFFFFF" : "rgba(255,255,255,0.35)"} />
+                {showVoteBadges && !!previousVoteCount && (
+                  <View style={styles.voteBadge}>
+                    <Text style={styles.voteBadgeText}>{previousVoteCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.smallIconTouch} onPress={onToggleLike} hitSlop={10}>
@@ -107,6 +125,11 @@ export default function VideoControlsOverlay({
             {showSkipNext && (
               <TouchableOpacity style={styles.smallIconTouch} onPress={onSkipNext} hitSlop={10}>
                 <Icon name="fastForward" size={18} color="#FFFFFF" />
+                {showVoteBadges && !!nextVoteCount && (
+                  <View style={styles.voteBadge}>
+                    <Text style={styles.voteBadgeText}>{nextVoteCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             )}
           </View>
@@ -159,6 +182,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  voteBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    backgroundColor: theme.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  voteBadgeText: { color: "#04140D", fontSize: 9, fontWeight: "800" },
   centerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 28 },
   skipTouch: { alignItems: "center", justifyContent: "center" },
   skipLabel: { position: "absolute", color: "#FFFFFF", fontSize: 9, fontWeight: "700", top: 10 },
