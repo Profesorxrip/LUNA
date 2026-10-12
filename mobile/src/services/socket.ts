@@ -52,6 +52,9 @@ export interface PlaybackState {
   positionSeconds: number;
   updatedAtMs: number;
   durationSeconds?: number | null;
+  // Video kalitesi/altyazi/dublaj gibi KISISEL degil - oda genelinde TEK bir
+  // ortak hiz, sadece lider degistirebilir (bkz. VideoSettingsSheet.tsx).
+  playbackRate: number;
 }
 
 export interface BufferingState {

@@ -26,6 +26,7 @@ import {
   voteSkipToNext,
   voteGoToPrevious,
   applyVotedGoToPrevious,
+  setPlaybackRate,
   canEnqueueSource,
   enqueueSource,
   advanceQueue,
@@ -1033,6 +1034,20 @@ io.on("connection", (socket: Socket) => {
       }
     }
   );
+
+  // Video Ayarlari sayfasindaki "Oynatma hizi" - video kalitesi/altyazi/
+  // dublaj gibi KISISEL degil, SADECE lider degistirebilir ve HERKESE
+  // broadcast edilir (bkz. rooms.ts setPlaybackRate aciklamasi).
+  socket.on("playback:setRate", (data: { rate: number }, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    if (!isFiniteNumber(data?.rate, 0.25, 4)) return ack?.({ ok: false, error: "Gecersiz hiz." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    const applied = setPlaybackRate(room, socket.id, data.rate);
+    if (!applied) return ack?.({ ok: false, error: "Sadece lider oynatma hizini degistirebilir." });
+    ack?.({ ok: true });
+    broadcastRoom(currentRoomCode);
+  });
 
   // Rave'deki gibi, videonun ustundeki overlay'de kalbin SOLUNDAKI "onceki
   // video" ikonu - bu odada daha once oynatilmis bir onceki kaynaga doner

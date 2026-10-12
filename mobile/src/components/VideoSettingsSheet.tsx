@@ -11,6 +11,11 @@ interface Props {
   source: MediaSource | null;
   videoHidden: boolean;
   onToggleHideVideo: () => void;
+  // Video kalitesi/altyazi/dublaj'in aksine oynatma hizi KISISEL DEGIL -
+  // odadaki herkesin ekraninda AYNI olmasi gerekir (aksi halde senkron
+  // zamanla kayar) - bu yuzden SADECE lider degistirebilir, digerleri
+  // mevcut degeri gorur ama soluk/dokunulamaz kalir.
+  canChangeSpeed: boolean;
   playbackRate: number;
   onChangePlaybackRate: (rate: number) => void;
   videoQuality: string;
@@ -35,17 +40,21 @@ function formatSpeed(rate: number): string {
 
 /** Rave'deki video kontrol panelinin SAG USTUNDEKI cark ile acilan, oda
  * ayarlarindan (üst bar carki, bkz. RoomSettingsSheet) TAMAMEN AYRI kucuk
- * panel - burasi oda/herkese ait degil, SADECE benim o anki izleme
- * tercihlerim (video gizleme, hiz, kalite, altyazi) - hicbiri sunucuya
- * gonderilmez, diger katilimcilari etkilemez. Kalite/altyazi SADECE
- * YouTube kaynaklarda calisir (IFrame API) - diger turlerde (mp4/hls/
- * external) satirlar soluk/dokunulamaz gorunur. */
+ * panel. Video gizleme/ayrintilar/kalite/altyazi/dublaj HERKESIN kendi
+ * ekrani icin ayri ayri secebildigi KISISEL tercihler - hicbiri sunucuya
+ * gonderilmez. TEK istisna "oynatma hizi": bu oda genelinde ortak olmali
+ * (herkes farkli hizda izlerse senkron bozulur), bu yuzden SADECE lider
+ * degistirebilir (canChangeSpeed). Kalite/altyazi SADECE YouTube
+ * kaynaklarda calisir (IFrame API), dublaj ise YouTube'un herkese acik
+ * API'sinde HIC yok - diger turlerde/dublajda satirlar soluk/dokunulamaz
+ * gorunur. */
 export default function VideoSettingsSheet({
   visible,
   onClose,
   source,
   videoHidden,
   onToggleHideVideo,
+  canChangeSpeed,
   playbackRate,
   onChangePlaybackRate,
   videoQuality,
@@ -93,14 +102,16 @@ export default function VideoSettingsSheet({
               </View>
             )}
 
-            <TouchableOpacity style={styles.row} onPress={() => toggle("speed")}>
-              <Text style={styles.rowLabel}>Oynatma hızı</Text>
+            <TouchableOpacity style={styles.row} onPress={() => canChangeSpeed && toggle("speed")} disabled={!canChangeSpeed}>
+              <Text style={[styles.rowLabel, !canChangeSpeed && styles.rowLabelDisabled]}>Oynatma hızı</Text>
               <View style={styles.rowValue}>
-                <Text style={styles.rowValueText}>{formatSpeed(playbackRate)}</Text>
-                <Icon name={expanded === "speed" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />
+                <Text style={[styles.rowValueText, !canChangeSpeed && styles.rowLabelDisabled]}>{formatSpeed(playbackRate)}</Text>
+                {canChangeSpeed && (
+                  <Icon name={expanded === "speed" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />
+                )}
               </View>
             </TouchableOpacity>
-            {expanded === "speed" && (
+            {expanded === "speed" && canChangeSpeed && (
               <View style={styles.optionsRow}>
                 {SPEED_OPTIONS.map((rate) => (
                   <TouchableOpacity
@@ -148,6 +159,16 @@ export default function VideoSettingsSheet({
               <Text style={[styles.rowValueText, !isYoutube && styles.rowLabelDisabled]}>
                 {!isYoutube ? "Kullanılamıyor" : subtitlesEnabled ? "Açık" : "Kapalı"}
               </Text>
+            </TouchableOpacity>
+
+            {/* Dublaj (farkli dil sesi secimi) - kalite/altyazi gibi KISISEL
+                olmasi gerekse de YouTube'un herkese acik IFrame API'si su an
+                dublaj/ikinci ses parcasi secimini DISARIYA ACMIYOR - bu yuzden
+                yanlis bir "calisiyor" izlenimi vermemek icin HER zaman
+                "Kullanılamıyor" gosteriliyor (bkz. RoomScreen.tsx yorumlari). */}
+            <TouchableOpacity style={styles.row} disabled>
+              <Text style={[styles.rowLabel, styles.rowLabelDisabled]}>Dublaj</Text>
+              <Text style={[styles.rowValueText, styles.rowLabelDisabled]}>Kullanılamıyor</Text>
             </TouchableOpacity>
           </ScrollView>
         </TouchableOpacity>

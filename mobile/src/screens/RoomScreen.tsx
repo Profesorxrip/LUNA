@@ -266,11 +266,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   // Video kontrol panelinin SAG USTUNDEKI cark (üst bardakinden AYRI) - bu
-  // sadece BENIM kisisel izleme tercihlerim, sunucuya gitmez, kimseyi
-  // etkilemez (bkz. VideoSettingsSheet.tsx).
+  // tercihlerin COGU (gizle/ayrintilar/kalite/altyazi) sadece BENIM kisisel
+  // izleme tercihim, sunucuya gitmez, kimseyi etkilemez. TEK istisna
+  // "oynatma hizi" - o oda genelinde ortak ve SADECE lider degistirebilir
+  // (bkz. room.playback.playbackRate, VideoSettingsSheet.tsx).
   const [videoSettingsVisible, setVideoSettingsVisible] = useState(false);
   const [videoHidden, setVideoHidden] = useState(false);
-  const [playbackRate, setPlaybackRateState] = useState(1);
   const [videoQuality, setVideoQualityState] = useState("default");
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(false);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
@@ -402,7 +403,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     const timer = setInterval(async () => {
       const current = roomRef.current;
       if (!current.playback.source || !current.playback.isPlaying || current.buffering.anyoneBuffering) return;
-      const elapsed = (Date.now() - current.playback.updatedAtMs) / 1000;
+      const elapsed = ((Date.now() - current.playback.updatedAtMs) / 1000) * current.playback.playbackRate;
       const expected = current.playback.positionSeconds + elapsed;
       const actual = await playerRef.current?.getCurrentTime();
       if (actual !== undefined && Math.abs(actual - expected) > DRIFT_TOLERANCE_SECONDS) {
@@ -603,13 +604,13 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         setDisplayPosition(room.playback.positionSeconds);
         return;
       }
-      const elapsed = (Date.now() - room.playback.updatedAtMs) / 1000;
+      const elapsed = ((Date.now() - room.playback.updatedAtMs) / 1000) * room.playback.playbackRate;
       setDisplayPosition(room.playback.positionSeconds + elapsed);
     }
     tick();
     const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
-  }, [room.playback.positionSeconds, room.playback.isPlaying, room.playback.updatedAtMs]);
+  }, [room.playback.positionSeconds, room.playback.isPlaying, room.playback.updatedAtMs, room.playback.playbackRate]);
 
   // Tam ekrana girince telefon SAGA da SOLA da (hangisine cevrilirse) yatay
   // kalsin diye LANDSCAPE (tek bir yon degil) kilitliyoruz - cikinca dikeye
@@ -634,25 +635,32 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 
   // Video Ayarlari sayfasindaki ("sağ üstteki çark") kisisel tercihler -
   // "videoyu gizle" yeni video gelince otomatik tekrar GOSTERILIR (yeni
-  // videoyu kacirmayalim diye), ama hiz/kalite/altyazi tercihi KORUNUR ve
-  // yeni oynatici orneginde (YouTube yeniden yuklenince, HLS replaceAsync
+  // videoyu kacirmayalim diye), kalite/altyazi tercihi KORUNUR ve yeni
+  // oynatici orneginde (YouTube yeniden yuklenince, HLS replaceAsync
   // sonrasi) YENIDEN uygulanir - aksi halde her video degisiminde sifirlanirdi.
   useEffect(() => {
     setVideoHidden(false);
   }, [room.playback.source?.url]);
   useEffect(() => {
-    if (playbackRate !== 1) playerRef.current?.setPlaybackRate(playbackRate);
     if (videoQuality !== "default") playerRef.current?.setQuality(videoQuality);
     if (subtitlesEnabled) playerRef.current?.setSubtitlesEnabled(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room.playback.source?.url]);
 
+  // Oynatma hizi herkesin ekraninda AYNI olmali (kalite/altyazinin aksine) -
+  // sunucudan gelen room.playback.playbackRate degistikce (lider degistirince
+  // YA DA yeni bir video "normal" hizla basladiginda) HERKESIN oynaticisina
+  // uygulanir, kisisel bir state TUTULMAZ.
+  useEffect(() => {
+    playerRef.current?.setPlaybackRate(room.playback.playbackRate);
+  }, [room.playback.playbackRate, room.playback.source?.url]);
+
   function toggleHideVideo() {
     setVideoHidden((v) => !v);
   }
   function changePlaybackRate(rate: number) {
-    setPlaybackRateState(rate);
-    playerRef.current?.setPlaybackRate(rate);
+    if (!isHost) return;
+    socket.emit("playback:setRate", { rate }, () => {});
   }
   function changeVideoQuality(quality: string) {
     setVideoQualityState(quality);
@@ -1370,7 +1378,8 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         source={room.playback.source}
         videoHidden={videoHidden}
         onToggleHideVideo={toggleHideVideo}
-        playbackRate={playbackRate}
+        canChangeSpeed={isHost}
+        playbackRate={room.playback.playbackRate}
         onChangePlaybackRate={changePlaybackRate}
         videoQuality={videoQuality}
         onChangeVideoQuality={changeVideoQuality}

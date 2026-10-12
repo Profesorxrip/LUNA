@@ -91,6 +91,11 @@ export interface PlaybackState {
   // Video oynaticidan (YouTube/HLS) ogrenilir - external (DRM'li) kaynaklarda
   // hep null kalir, cunku o platformlarin gercek suresi bizde bilinmez.
   durationSeconds?: number | null;
+  // Oynatma hizi (0.5x/1x/2x vb.) - video kalitesi/altyazi/dublaj gibi
+  // KISISEL degil, odanin TEK bir ortak hizi olmali (aksi halde katilimcilar
+  // birbirinden zamanla kayar) - bu yuzden SADECE lider degistirebilir (bkz.
+  // setPlaybackRate) ve HERKESE broadcast edilir. Varsayilan 1 (normal hiz).
+  playbackRate: number;
 }
 
 export interface Room {
@@ -208,6 +213,7 @@ export function createRoom(
       isPlaying: options.source.type !== "external",
       positionSeconds: 0,
       updatedAtMs: Date.now(),
+      playbackRate: 1,
     },
     createdAtMs: Date.now(),
     bufferingSocketIds: new Set(),
@@ -503,6 +509,9 @@ function applyPlayback(room: Room, update: Partial<PlaybackState>, recordHistory
     room.adultSkipVotes.clear();
     room.nextVideoVotes.clear();
     room.previousVideoVotes.clear();
+    // Yeni video "normal" hizda baslasin - bir onceki videoda 2x izleniyor
+    // olmasi yeni secilen videoyu da sessizce 2x baslatmasin diye.
+    room.playback.playbackRate = 1;
   }
   room.playback = { ...room.playback, ...update, updatedAtMs: Date.now() };
   if (update.source?.label) room.title = update.source.label;
@@ -800,8 +809,21 @@ function serializePoll(room: Room) {
  * bir sync event'i beklemeden yeni katilanlarin dogru yerden baslamasi icin. */
 export function currentPlaybackPosition(playback: PlaybackState): number {
   if (!playback.isPlaying) return playback.positionSeconds;
-  const elapsed = (Date.now() - playback.updatedAtMs) / 1000;
+  const elapsed = ((Date.now() - playback.updatedAtMs) / 1000) * playback.playbackRate;
   return playback.positionSeconds + elapsed;
+}
+
+/** Oynatma hizini degistirir - SADECE lider. Once mevcut pozisyonu ESKI
+ * hizla "dondurup" (positionSeconds/updatedAtMs'i simdiki ana sabitleyip)
+ * sonra yeni hizi uyguluyoruz - aksi halde currentPlaybackPosition bir
+ * sonraki hesaplamada son guncellemeden beri gecen TUM sureyi yanlislikla
+ * YENI hizla yeniden yorumlar, video konumunda ani bir sicramaya yol acardi. */
+export function setPlaybackRate(room: Room, requesterId: string, rate: number): boolean {
+  if (!isHost(room, requesterId)) return false;
+  room.playback.positionSeconds = currentPlaybackPosition(room.playback);
+  room.playback.updatedAtMs = Date.now();
+  room.playback.playbackRate = rate;
+  return true;
 }
 
 export function roomToPublicState(room: Room) {
