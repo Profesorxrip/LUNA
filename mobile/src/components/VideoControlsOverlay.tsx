@@ -10,13 +10,14 @@ interface Props {
   onToggleLike: () => void;
   onPlayPause: () => void;
   onSkip: (deltaSeconds: number) => void;
-  // Onceki videoya don - SADECE lidere gorunur (showSkipPrevious), ama
-  // gorunse bile gercekten donulecek bir video yoksa (ilk videoysa)
-  // GIZLENMEZ, soluk renkte ve dokunulamaz gosterilir (hasPreviousVideo).
-  showSkipPrevious: boolean;
+  // Onceki video / sıradakine gec butonlari artik HER modda HERKESE
+  // gorunur - ama "Liderin Secimi" modunda lider DISINDAKI katilimcilar
+  // icin canSkip false gelir: butonlar GIZLENMEZ, soluk renkte ve
+  // dokunulamaz gosterilir (digerlerinde, "onceki video"nun gercekten
+  // donulecek bir video olmamasi durumuyla AYNI muamele).
+  canSkip: boolean;
   hasPreviousVideo: boolean;
   onSkipPrevious: () => void;
-  showSkipNext: boolean;
   onSkipNext: () => void;
   // "Liderin Secimi" DISINDAKI modlarda bu iki buton artik bir COGUNLUK
   // OYU (bkz. RoomScreen.tsx skipToNext/goToPreviousVideo) - showVoteBadges
@@ -44,9 +45,10 @@ const AUTO_HIDE_MS = 3000;
  * kayboluyor (duraklatilmisken SABIT kalir - aksi halde devam ettirecek
  * buton gorunmez olurdu). Ust satirda soldan saga: onceki video, begeni
  * (herkese acik), sıradakine gec - ucu de transport kontrolu OLMASA bile
- * ayni gorunup/gizlenen sette. Onceki/sıradaki butonlari "Liderin Secimi"
- * modunda sadece lidere gorunur ve dogrudan calisir, DIGER modlarda
- * HERKESE gorunur ve birer COGUNLUK OYUDUR (bkz. showVoteBadges). */
+ * ayni gorunup/gizlenen sette. Onceki/sıradaki butonlari ARTIK HER MODDA
+ * HERKESE gorunur - "Liderin Secimi" modunda lider DISINDAKI katilimcilar
+ * icin sadece soluk/dokunulamaz kalir (canSkip=false), DIGER modlarda
+ * HERKES basabilir ve birer COGUNLUK OYUDUR (bkz. showVoteBadges). */
 export default function VideoControlsOverlay({
   isPlaying,
   canControlTransport,
@@ -54,10 +56,9 @@ export default function VideoControlsOverlay({
   onToggleLike,
   onPlayPause,
   onSkip,
-  showSkipPrevious,
+  canSkip,
   hasPreviousVideo,
   onSkipPrevious,
-  showSkipNext,
   onSkipNext,
   showVoteBadges,
   nextVoteCount,
@@ -104,34 +105,30 @@ export default function VideoControlsOverlay({
       {visible && (
         <>
           <View style={styles.topRow}>
-            {showSkipPrevious && (
-              <TouchableOpacity
-                style={styles.smallIconTouch}
-                onPress={onSkipPrevious}
-                disabled={!hasPreviousVideo}
-                hitSlop={10}
-              >
-                <Icon name="skipBack" size={18} color={hasPreviousVideo ? "#FFFFFF" : "rgba(255,255,255,0.35)"} />
-                {showVoteBadges && !!previousVoteCount && (
-                  <View style={styles.voteBadge}>
-                    <Text style={styles.voteBadgeText}>{previousVoteCount}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={styles.smallIconTouch}
+              onPress={onSkipPrevious}
+              disabled={!canSkip || !hasPreviousVideo}
+              hitSlop={10}
+            >
+              <Icon name="skipBack" size={18} color={canSkip && hasPreviousVideo ? "#FFFFFF" : "rgba(255,255,255,0.35)"} />
+              {showVoteBadges && !!previousVoteCount && (
+                <View style={styles.voteBadge}>
+                  <Text style={styles.voteBadgeText}>{previousVoteCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity style={styles.smallIconTouch} onPress={onToggleLike} hitSlop={10}>
               <Icon name={liked ? "heart" : "heartOutline"} size={20} color={liked ? "#E34848" : "#FFFFFF"} />
             </TouchableOpacity>
-            {showSkipNext && (
-              <TouchableOpacity style={styles.smallIconTouch} onPress={onSkipNext} hitSlop={10}>
-                <Icon name="skipForward" size={18} color="#FFFFFF" />
-                {showVoteBadges && !!nextVoteCount && (
-                  <View style={styles.voteBadge}>
-                    <Text style={styles.voteBadgeText}>{nextVoteCount}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.smallIconTouch} onPress={onSkipNext} disabled={!canSkip} hitSlop={10}>
+              <Icon name="skipForward" size={18} color={canSkip ? "#FFFFFF" : "rgba(255,255,255,0.35)"} />
+              {showVoteBadges && !!nextVoteCount && (
+                <View style={styles.voteBadge}>
+                  <Text style={styles.voteBadgeText}>{nextVoteCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
 
           <View style={styles.topRightRow}>

@@ -631,8 +631,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // gercekten o eylemi uygular (bkz. server/src/rooms.ts voteSkipToNext/
   // voteGoToPrevious, index.ts "room:voteSkipNext"/"room:voteGoToPrevious").
   // Video degisince kendi oyum sifirlaniyor (yeni video icin yeniden
-  // oylanabilsin diye).
-  const showSkipControls = room.playbackMode !== "leader" || isHost;
+  // oylanabilsin diye). Butonlar ARTIK HER MODDA HERKESE GORUNUR -
+  // "Liderin Secimi" modunda lider DISINDAKILER icin sadece soluk/
+  // dokunulamaz kalir (gorunmez OLMAZ, bkz. VideoControlsOverlay canSkip).
+  const canSkip = room.playbackMode !== "leader" || isHost;
   const [skipVoteDirection, setSkipVoteDirection] = useState<"next" | "previous" | null>(null);
   useEffect(() => {
     setSkipVoteDirection(null);
@@ -965,10 +967,9 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                   onToggleLike={toggleLike}
                   onPlayPause={togglePlayPause}
                   onSkip={skipBy}
-                  showSkipPrevious={showSkipControls}
+                  canSkip={canSkip}
                   hasPreviousVideo={room.hasPreviousVideo}
                   onSkipPrevious={goToPreviousVideo}
-                  showSkipNext={showSkipControls}
                   onSkipNext={skipToNext}
                   showVoteBadges={room.playbackMode !== "leader"}
                   nextVoteCount={room.nextVideoVoteCount}
