@@ -147,16 +147,16 @@ export default function VideoControlsOverlay({
           </View>
 
           {canControlTransport && (
-            <View style={[styles.centerRow, styles.frame]}>
+            <View style={styles.centerRow}>
               <TouchableOpacity style={styles.skipTouch} onPress={() => onSkip(-10)} hitSlop={10}>
-                <Icon name="rotateCcw" size={26} color="#FFFFFF" />
+                <Icon name="rotateCcw" size={22} color="#FFFFFF" />
                 <Text style={styles.skipLabel}>10</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.playTouch} onPress={onPlayPause} hitSlop={10}>
                 <Icon name={isPlaying ? "pause" : "play"} size={30} color="#FFFFFF" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.skipTouch} onPress={() => onSkip(10)} hitSlop={10}>
-                <Icon name="rotateCw" size={26} color="#FFFFFF" />
+                <Icon name="rotateCw" size={22} color="#FFFFFF" />
                 <Text style={styles.skipLabel}>10</Text>
               </TouchableOpacity>
             </View>
@@ -208,8 +208,17 @@ const styles = StyleSheet.create({
   },
   voteBadgeText: { color: "#04140D", fontSize: 9, fontWeight: "800" },
   centerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 28 },
-  skipTouch: { alignItems: "center", justifyContent: "center" },
-  skipLabel: { position: "absolute", color: "#FFFFFF", fontSize: 9, fontWeight: "700", top: 10 },
+  // Ayarlar carkiyla (smallIconTouch) AYNI mantik - tek bir cerceve yerine
+  // her butonun kendi tekli, dairesel arka plani var.
+  skipTouch: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skipLabel: { position: "absolute", color: "#FFFFFF", fontSize: 9, fontWeight: "700", top: 24 },
   playTouch: {
     width: 56,
     height: 56,
