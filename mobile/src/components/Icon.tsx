@@ -43,7 +43,8 @@ import {
   ClipboardDocumentIcon,
 } from "react-native-heroicons/solid";
 import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
-import { MicOff, Hourglass, Crown, RotateCcw, RotateCw, FastForward, Rewind } from "lucide-react-native";
+import { MicOff, Hourglass, Crown, RotateCcw, RotateCw } from "lucide-react-native";
+import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 
 export type IconName =
   | "close"
@@ -82,8 +83,9 @@ export type IconName =
   // Video kontrol panelindeki ("sıradakine geç"/"onceki video") ayri bir
   // ikon ailesi - "fastForward"/"fastBackward" (Heroicons solid, otomatik
   // oynat modu ikonu vb. yerlerde kullaniliyor) ile KARISTIRMA, bu ikisi
-  // lucide'nin outline/cizgi "FastForward"/"Rewind" glyph'leri (kullanicinin
-  // gonderdigi referans gorsele gore).
+  // kullanicinin gonderdigi referans gorselden potrace ile BIREBIR izlenmis
+  // ozel bir sekil (bkz. SkipIcons.tsx) - hazir bir ikon kutuphanesi glyph'i
+  // DEGIL.
   | "skipForward"
   | "skipBack"
   | "phone"
@@ -167,8 +169,13 @@ const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: num
   crown: Crown,
   rotateCcw: RotateCcw,
   rotateCw: RotateCw,
-  skipForward: FastForward,
-  skipBack: Rewind,
+};
+
+// Hazir kutuphanelerde olmayan, kullanicinin kendi gorselinden birebir
+// izlenmis ozel ikonlar (bkz. SkipIcons.tsx).
+const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
+  skipForward: SkipForwardIcon,
+  skipBack: SkipBackIcon,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
@@ -176,5 +183,7 @@ export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
   if (HeroGlyph) return <HeroGlyph size={size} color={color} />;
   const LucideGlyph = LUCIDE_FALLBACK[name];
   if (LucideGlyph) return <LucideGlyph size={size} color={color} strokeWidth={2.2} />;
+  const CustomGlyph = CUSTOM[name];
+  if (CustomGlyph) return <CustomGlyph size={size} color={color} />;
   return null;
 }
