@@ -27,6 +27,10 @@ interface Props {
   onDuration?: (seconds: number) => void;
   onEnded?: () => void;
   fullscreen?: boolean;
+  // Bu SPESIFIK videonun GERCEKTEN altyazi track'i var mi - VideoSettingsSheet
+  // "Altyazılar" satirini sadece bu true oldugunda gosterebilsin diye
+  // (bkz. asagidaki onApiChange/captions tracklist sorgusu).
+  onCaptionsAvailabilityChange?: (available: boolean) => void;
 }
 
 // YouTube IFrame API'sini yukleyip play/pause/seekTo komutlarini
@@ -53,6 +57,16 @@ const PLAYER_HTML = `
         events: {
           onReady: function () {
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'duration', seconds: player.getDuration() }));
+            // Altyazi modulunu SESSIZCE yukluyoruz - bu bir track'i GOSTERMEZ,
+            // sadece onApiChange'in tracklist'i sorgulayabilmesi icin gerekli
+            // (bkz. onApiChange asagida).
+            player.loadModule('captions');
+          },
+          onApiChange: function () {
+            try {
+              var tracks = player.getOption('captions', 'tracklist') || [];
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'captionsAvailable', available: tracks.length > 0 }));
+            } catch (e) {}
           },
           onStateChange: function (e) {
             if (e.data === YT.PlayerState.BUFFERING) {
@@ -81,7 +95,13 @@ const PLAYER_HTML = `
       if (msg.type === 'play') player.playVideo();
       if (msg.type === 'pause') player.pauseVideo();
       if (msg.type === 'seekTo') player.seekTo(msg.seconds, true);
-      if (msg.type === 'loadVideo') player.loadVideoById(msg.videoId, msg.startSeconds || 0);
+      if (msg.type === 'loadVideo') {
+        player.loadVideoById(msg.videoId, msg.startSeconds || 0);
+        // Yeni video - eski videonun altyazi durumunu hemen temizleyip
+        // yeni video icin tekrar sorguluyoruz (bkz. onApiChange).
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'captionsAvailable', available: false }));
+        player.loadModule('captions');
+      }
       if (msg.type === 'setVolume') player.setVolume(msg.volume);
       if (msg.type === 'setPlaybackRate') player.setPlaybackRate(msg.rate);
       if (msg.type === 'setQuality') player.setPlaybackQuality(msg.quality);
@@ -100,7 +120,8 @@ const PLAYER_HTML = `
 </html>
 `;
 
-const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onStateChange, onBuffering, onDuration, onEnded, fullscreen }, ref) => {
+const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
+  ({ videoId, onStateChange, onBuffering, onDuration, onEnded, fullscreen, onCaptionsAvailabilityChange }, ref) => {
   const webviewRef = useRef<WebView>(null);
   const pendingRequests = useRef(new Map<string, (time: number) => void>());
 
@@ -157,6 +178,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onState
             if (data.seconds > 0) onDuration?.(data.seconds);
           } else if (data.type === "ended") {
             onEnded?.();
+          } else if (data.type === "captionsAvailable") {
+            onCaptionsAvailabilityChange?.(data.available);
           }
         } catch {
           // yoksay - beklenmeyen mesaj formati
@@ -167,7 +190,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onState
       }}
     />
   );
-});
+  }
+);
 
 export default YouTubePlayer;
 

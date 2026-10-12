@@ -37,9 +37,14 @@ interface Props {
   // Tam ekran yatay moddaysa (bkz. RoomScreen) sabit 16:9 kutu yerine
   // verilen TUM alani (artik ekranin tamami) doldurur.
   fullscreen?: boolean;
+  // Su an oynayan videonun GERCEKTEN altyazisi var mi - sadece YouTube
+  // kaynaklarda anlamli (bkz. YouTubePlayer.tsx onApiChange/captions
+  // tracklist sorgusu), hls/mp4'te hic cagrilmaz (orada zaten hep false).
+  onSubtitlesAvailabilityChange?: (available: boolean) => void;
 }
 
-const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChange, onBuffering, onDuration, onEnded, fullscreen }, ref) => {
+const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(
+  ({ source, onStateChange, onBuffering, onDuration, onEnded, fullscreen, onSubtitlesAvailabilityChange }, ref) => {
   const youtubeRef = useRef<YouTubePlayerHandle>(null);
   const hlsRef = useRef<HlsPlayerHandle>(null);
 
@@ -98,6 +103,7 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChang
         onDuration={onDuration}
         onEnded={onEnded}
         fullscreen={fullscreen}
+        onCaptionsAvailabilityChange={onSubtitlesAvailabilityChange}
       />
     );
   }
@@ -114,7 +120,8 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChang
       fullscreen={fullscreen}
     />
   );
-});
+  }
+);
 
 const styles = StyleSheet.create({
   placeholder: {

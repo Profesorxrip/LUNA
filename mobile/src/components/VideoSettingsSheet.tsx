@@ -22,6 +22,11 @@ interface Props {
   onChangeVideoQuality: (quality: string) => void;
   subtitlesEnabled: boolean;
   onToggleSubtitles: () => void;
+  // Su an oynayan videonun GERCEKTEN altyazi track'i var mi (bkz.
+  // RoomScreen.tsx/YouTubePlayer.tsx onCaptionsAvailabilityChange) -
+  // subtitlesEnabled bir TERCIH, bu ise videonun kendi durumu: false'ken
+  // "Altyazılar" satiri "Kullanılamıyor" gosterir, acilamaz.
+  subtitlesAvailable: boolean;
 }
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -44,10 +49,16 @@ function formatSpeed(rate: number): string {
  * ekrani icin ayri ayri secebildigi KISISEL tercihler - hicbiri sunucuya
  * gonderilmez. TEK istisna "oynatma hizi": bu oda genelinde ortak olmali
  * (herkes farkli hizda izlerse senkron bozulur), bu yuzden SADECE lider
- * degistirebilir (canChangeSpeed). Kalite/altyazi SADECE YouTube
- * kaynaklarda calisir (IFrame API), dublaj ise YouTube'un herkese acik
- * API'sinde HIC yok - diger turlerde/dublajda satirlar soluk/dokunulamaz
- * gorunur. */
+ * degistirebilir (canChangeSpeed). Video ayrintilari/kalite SADECE YouTube
+ * kaynaklarda GERCEKTEN anlamli veri/secenek oldugu icin (IFrame API) o
+ * satirlar mp4/hls gibi diger turlerde hic GORUNMUYOR ("Kullanılamıyor"
+ * yazan soluk bir satir yerine). Altyazilar bundan biraz farkli: YouTube'da
+ * satir HER ZAMAN gorunur ama SADECE o SPESIFIK videonun gercekten altyazi
+ * track'i varsa (subtitlesAvailable, bkz. onCaptionsAvailabilityChange)
+ * acilabilir - yoksa "Kullanılamıyor" gosterip soluk/dokunulamaz kalir,
+ * mp4/hls'te zaten hic gorunmez. Dublaj ise YouTube'un herkese acik
+ * API'sinde HIC yok, bu yuzden HER zaman (turden bagimsiz) soluk/
+ * dokunulamaz gorunur. */
 export default function VideoSettingsSheet({
   visible,
   onClose,
@@ -61,6 +72,7 @@ export default function VideoSettingsSheet({
   onChangeVideoQuality,
   subtitlesEnabled,
   onToggleSubtitles,
+  subtitlesAvailable,
 }: Props) {
   const [expanded, setExpanded] = useState<"details" | "speed" | "quality" | null>(null);
   const isYoutube = source?.type === "youtube";
@@ -89,17 +101,27 @@ export default function VideoSettingsSheet({
               <Icon name="chevronLeft" size={16} color={theme.textMuted} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.row} onPress={() => toggle("details")}>
-              <Text style={styles.rowLabel}>Video ayrıntıları</Text>
-              <Icon name={expanded === "details" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />
-            </TouchableOpacity>
-            {expanded === "details" && (
-              <View style={styles.detailsBox}>
-                <DetailLine label="Başlık" value={source?.label || "—"} />
-                <DetailLine label="Platform" value={badge?.label || "Web"} />
-                {!!source?.channelName && <DetailLine label="Kanal" value={source.channelName} />}
-                <DetailLine label="Tür" value={source?.type || "—"} />
-              </View>
+            {/* mp4/hls (dogrudan dosya linki) kaynaklarda "Baslik" alanimiz
+                videonun KENDI paylastigi gercek bir baslik degil, sadece
+                linkten tahmin edilen alan adi (bkz. MediaPickerSheet.tsx
+                handleWebUrlSubmit) - yaniltici "ayrinti" gostermemek icin bu
+                satir SADECE gercek baslik/kanal bilgisi paylasan YouTube'da
+                gorunur. */}
+            {isYoutube && (
+              <>
+                <TouchableOpacity style={styles.row} onPress={() => toggle("details")}>
+                  <Text style={styles.rowLabel}>Video ayrıntıları</Text>
+                  <Icon name={expanded === "details" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />
+                </TouchableOpacity>
+                {expanded === "details" && (
+                  <View style={styles.detailsBox}>
+                    <DetailLine label="Başlık" value={source?.label || "—"} />
+                    <DetailLine label="Platform" value={badge?.label || "Web"} />
+                    {!!source?.channelName && <DetailLine label="Kanal" value={source.channelName} />}
+                    <DetailLine label="Tür" value={source?.type || "—"} />
+                  </View>
+                )}
+              </>
             )}
 
             <TouchableOpacity style={styles.row} onPress={() => canChangeSpeed && toggle("speed")} disabled={!canChangeSpeed}>
@@ -128,38 +150,48 @@ export default function VideoSettingsSheet({
               </View>
             )}
 
-            <TouchableOpacity style={styles.row} onPress={() => isYoutube && toggle("quality")} disabled={!isYoutube}>
-              <Text style={[styles.rowLabel, !isYoutube && styles.rowLabelDisabled]}>Video kalitesi</Text>
-              <View style={styles.rowValue}>
-                <Text style={[styles.rowValueText, !isYoutube && styles.rowLabelDisabled]}>
-                  {isYoutube ? currentQualityLabel : "Kullanılamıyor"}
-                </Text>
-                {isYoutube && <Icon name={expanded === "quality" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
-              </View>
-            </TouchableOpacity>
-            {expanded === "quality" && isYoutube && (
-              <View style={styles.optionsRow}>
-                {QUALITY_OPTIONS.map((opt) => (
-                  <TouchableOpacity
-                    key={opt.key}
-                    style={styles.speedOption}
-                    onPress={() => {
-                      onChangeVideoQuality(opt.key);
-                      setExpanded(null);
-                    }}
-                  >
-                    <Text style={[styles.speedOptionText, opt.key === videoQuality && { color: theme.accent }]}>{opt.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+            {/* Kalite/altyazi secimi SADECE YouTube'un IFrame API'sinde var -
+                mp4/hls'te gosterilecek gercek bir secenek olmadigi icin
+                "Kullanılamıyor" yazan soluk bir satir yerine satirin KENDISI
+                gizleniyor (bkz. yukaridaki "Video ayrıntıları" ile ayni mantik). */}
+            {isYoutube && (
+              <>
+                <TouchableOpacity style={styles.row} onPress={() => toggle("quality")}>
+                  <Text style={styles.rowLabel}>Video kalitesi</Text>
+                  <View style={styles.rowValue}>
+                    <Text style={styles.rowValueText}>{currentQualityLabel}</Text>
+                    <Icon name={expanded === "quality" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />
+                  </View>
+                </TouchableOpacity>
+                {expanded === "quality" && (
+                  <View style={styles.optionsRow}>
+                    {QUALITY_OPTIONS.map((opt) => (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={styles.speedOption}
+                        onPress={() => {
+                          onChangeVideoQuality(opt.key);
+                          setExpanded(null);
+                        }}
+                      >
+                        <Text style={[styles.speedOptionText, opt.key === videoQuality && { color: theme.accent }]}>{opt.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
-            <TouchableOpacity style={styles.row} onPress={() => isYoutube && onToggleSubtitles()} disabled={!isYoutube}>
-              <Text style={[styles.rowLabel, !isYoutube && styles.rowLabelDisabled]}>Altyazılar</Text>
-              <Text style={[styles.rowValueText, !isYoutube && styles.rowLabelDisabled]}>
-                {!isYoutube ? "Kullanılamıyor" : subtitlesEnabled ? "Açık" : "Kapalı"}
-              </Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.row}
+                  onPress={() => subtitlesAvailable && onToggleSubtitles()}
+                  disabled={!subtitlesAvailable}
+                >
+                  <Text style={[styles.rowLabel, !subtitlesAvailable && styles.rowLabelDisabled]}>Altyazılar</Text>
+                  <Text style={[styles.rowValueText, !subtitlesAvailable && styles.rowLabelDisabled]}>
+                    {!subtitlesAvailable ? "Kullanılamıyor" : subtitlesEnabled ? "Açık" : "Kapalı"}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
 
             {/* Dublaj (farkli dil sesi secimi) - kalite/altyazi gibi KISISEL
                 olmasi gerekse de YouTube'un herkese acik IFrame API'si su an

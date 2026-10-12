@@ -278,6 +278,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [videoNaturalHeight, setVideoNaturalHeight] = useState<number | null>(null);
   const [videoQuality, setVideoQualityState] = useState("default");
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(false);
+  // Su an oynayan videonun GERCEKTEN altyazisi var mi - tercih (subtitlesEnabled)
+  // DEGIL, videonun kendi durumu (bkz. MediaPlayer.tsx/YouTubePlayer.tsx
+  // onCaptionsAvailabilityChange) - VideoSettingsSheet "Altyazılar" satirini
+  // bu false'ken "Kullanılamıyor" gosterir.
+  const [subtitlesAvailable, setSubtitlesAvailable] = useState(false);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
   const [voiceVolume, setVoiceVolume] = useState(1);
   // Su an izlenen videonun/medyanin sesi - "external" kaynaklarda (DRM'li
@@ -644,6 +649,9 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // sonrasi) YENIDEN uygulanir - aksi halde her video degisiminde sifirlanirdi.
   useEffect(() => {
     setVideoHidden(false);
+    // Yeni video - eskisinin altyazi durumu gecerli degil, YouTubePlayer
+    // kendi videosu icin GERCEK durumu tekrar bildirene kadar "yok" varsay.
+    setSubtitlesAvailable(false);
   }, [room.playback.source?.url]);
   useEffect(() => {
     if (videoQuality !== "default") playerRef.current?.setQuality(videoQuality);
@@ -1108,6 +1116,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 onDuration={handleDuration}
                 onEnded={handleEnded}
                 fullscreen={fullscreenVideo}
+                onSubtitlesAvailabilityChange={setSubtitlesAvailable}
               />
               {syncable && !videoHidden && (
                 <VideoControlsOverlay
@@ -1472,6 +1481,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onChangeVideoQuality={changeVideoQuality}
         subtitlesEnabled={subtitlesEnabled}
         onToggleSubtitles={toggleSubtitles}
+        subtitlesAvailable={subtitlesAvailable}
       />
 
       {leaveConfirmVisible && (
