@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "rgba(20,18,16,0.95)",
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 2,
   },
   smallIconTouch: {
     width: 32,
@@ -218,7 +218,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  skipLabel: { position: "absolute", color: "#FFFFFF", fontSize: 9, fontWeight: "700", top: 24 },
+  skipLabel: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "700",
+    textAlign: "center",
+    lineHeight: 44,
+  },
   playTouch: {
     width: 56,
     height: 56,
