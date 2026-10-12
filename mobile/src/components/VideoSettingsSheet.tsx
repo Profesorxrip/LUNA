@@ -34,6 +34,12 @@ interface Props {
   dubTracks: string[];
   selectedDubIndex: number;
   onChangeDubTrack: (index: number) => void;
+  // SADECE hls/mp4'te gelir - su an oynayan video track'inin GERCEK
+  // cozunurlugu (bkz. HlsPlayer.tsx). expo-video'da kalite KULLANICI
+  // TARAFINDAN SECILEMEZ (videoTrack salt-okunur, secim adaptif/otomatik) -
+  // bu yuzden YouTube'daki gibi bir secim listesi degil, sadece bilgi
+  // amacli (dokunulamaz) bir satir olarak gosterilir.
+  videoResolution: { width: number; height: number } | null;
 }
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -56,17 +62,19 @@ function formatSpeed(rate: number): string {
  * ekrani icin ayri ayri secebildigi KISISEL tercihler - hicbiri sunucuya
  * gonderilmez. TEK istisna "oynatma hizi": bu oda genelinde ortak olmali
  * (herkes farkli hizda izlerse senkron bozulur), bu yuzden SADECE lider
- * degistirebilir (canChangeSpeed). Video ayrintilari/kalite SADECE YouTube
- * kaynaklarda GERCEKTEN anlamli veri/secenek oldugu icin (IFrame API) o
- * satirlar mp4/hls gibi diger turlerde hic GORUNMUYOR ("Kullanılamıyor"
- * yazan soluk bir satir yerine). Altyazilar bundan biraz farkli: YouTube'da
- * satir HER ZAMAN gorunur ama SADECE o SPESIFIK videonun gercekten altyazi
- * track'i varsa (subtitlesAvailable, bkz. onCaptionsAvailabilityChange)
- * acilabilir - yoksa "Kullanılamıyor" gosterip soluk/dokunulamaz kalir,
- * mp4/hls'te zaten hic gorunmez. Dublaj da altyazi gibi "o SPESIFIK
- * videoda gercekten var mi" sorusuna bakar (dubTracks bos mu degil mi) -
- * tek fark, bu bilginin BELGELENMEMIS bir YouTube API'sinden (multiaudio
- * modulu) gelmesi; calismazsa sessizce "Kullanılamıyor" kalir. */
+ * degistirebilir (canChangeSpeed). Video ayrintilari artik hem YouTube'da
+ * (Baslik/Kanal GERCEK, oEmbed'ten) hem hls/mp4'te (Platform/Tur GERCEK,
+ * bkz. badgeInfoForSource) gorunur - Baslik/Kanal SADECE YouTube'da
+ * gosterilir (hls/mp4'te bu bilgi yok, yaniltici olmasin diye satir
+ * atlanir). Video kalitesi iki FARKLI mantikla calisir: YouTube'da
+ * kullanicinin SECEBILDIGI bir liste (IFrame API), hls/mp4'te ise
+ * expo-video'da videoTrack SALT-OKUNUR oldugu icin (secim adaptif/otomatik)
+ * sadece su anki GERCEK cozunurlugu gosteren, dokunulamaz bir bilgi satiri.
+ * Altyazilar/Dublaj her iki turde de GERCEK veriye (subtitlesAvailable/
+ * dubTracks) bakar - YouTube'da captions tracklist'i/BELGELENMEMIS
+ * multiaudio modulunden, hls/mp4'te expo-video'nun RESMI
+ * availableSubtitleTracks/availableAudioTracks'inden gelir - hicbiri yoksa
+ * satirlar "Kullanılamıyor" gosterip soluk/dokunulamaz kalir. */
 export default function VideoSettingsSheet({
   visible,
   onClose,
@@ -84,9 +92,11 @@ export default function VideoSettingsSheet({
   dubTracks,
   selectedDubIndex,
   onChangeDubTrack,
+  videoResolution,
 }: Props) {
   const [expanded, setExpanded] = useState<"details" | "speed" | "quality" | "dub" | null>(null);
   const isYoutube = source?.type === "youtube";
+  const isHlsOrMp4 = source?.type === "hls" || source?.type === "mp4";
   const badge = badgeInfoForSource(source);
   const currentQualityLabel = QUALITY_OPTIONS.find((o) => o.key === videoQuality)?.label || "Otomatik";
   const hasDub = dubTracks.length > 0;
@@ -116,10 +126,11 @@ export default function VideoSettingsSheet({
             {/* mp4/hls (dogrudan dosya linki) kaynaklarda "Baslik" alanimiz
                 videonun KENDI paylastigi gercek bir baslik degil, sadece
                 linkten tahmin edilen alan adi (bkz. MediaPickerSheet.tsx
-                handleWebUrlSubmit) - yaniltici "ayrinti" gostermemek icin bu
-                satir SADECE gercek baslik/kanal bilgisi paylasan YouTube'da
-                gorunur. */}
-            {isYoutube && (
+                handleWebUrlSubmit) - yaniltici olmasin diye SADECE o satir
+                atlanir. Platform/Tur ise artik hls/mp4'te de GERCEK (bkz.
+                badgeInfoForSource'taki alan adi eslestirmesi) - bu yuzden
+                satirin TAMAMI degil, sadece Baslik/Kanal YouTube'a ozel. */}
+            {(isYoutube || isHlsOrMp4) && (
               <>
                 <TouchableOpacity style={styles.row} onPress={() => toggle("details")}>
                   <Text style={styles.rowLabel}>Video ayrıntıları</Text>
@@ -127,9 +138,9 @@ export default function VideoSettingsSheet({
                 </TouchableOpacity>
                 {expanded === "details" && (
                   <View style={styles.detailsBox}>
-                    <DetailLine label="Başlık" value={source?.label || "—"} />
+                    {isYoutube && <DetailLine label="Başlık" value={source?.label || "—"} />}
                     <DetailLine label="Platform" value={badge?.label || "Web"} />
-                    {!!source?.channelName && <DetailLine label="Kanal" value={source.channelName} />}
+                    {isYoutube && !!source?.channelName && <DetailLine label="Kanal" value={source.channelName} />}
                     <DetailLine label="Tür" value={source?.type || "—"} />
                   </View>
                 )}
@@ -162,10 +173,10 @@ export default function VideoSettingsSheet({
               </View>
             )}
 
-            {/* Kalite/altyazi secimi SADECE YouTube'un IFrame API'sinde var -
-                mp4/hls'te gosterilecek gercek bir secenek olmadigi icin
-                "Kullanılamıyor" yazan soluk bir satir yerine satirin KENDISI
-                gizleniyor (bkz. yukaridaki "Video ayrıntıları" ile ayni mantik). */}
+            {/* Video kalitesi YouTube'da SECILEBILIR bir liste (IFrame API) -
+                hls/mp4'te ise expo-video'da videoTrack SALT-OKUNUR oldugu
+                icin (secim adaptif/otomatik, kullanici degistiremez) sadece
+                su anki GERCEK cozunurlugu gosteren, dokunulamaz bir satir. */}
             {isYoutube && (
               <>
                 <TouchableOpacity style={styles.row} onPress={() => toggle("quality")}>
@@ -191,24 +202,36 @@ export default function VideoSettingsSheet({
                     ))}
                   </View>
                 )}
-
-                <TouchableOpacity
-                  style={styles.row}
-                  onPress={() => subtitlesAvailable && onToggleSubtitles()}
-                  disabled={!subtitlesAvailable}
-                >
-                  <Text style={[styles.rowLabel, !subtitlesAvailable && styles.rowLabelDisabled]}>Altyazılar</Text>
-                  <Text style={[styles.rowValueText, !subtitlesAvailable && styles.rowLabelDisabled]}>
-                    {!subtitlesAvailable ? "Kullanılamıyor" : subtitlesEnabled ? "Açık" : "Kapalı"}
-                  </Text>
-                </TouchableOpacity>
               </>
             )}
+            {isHlsOrMp4 && videoResolution && (
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>Video kalitesi</Text>
+                <Text style={styles.rowValueText}>{videoResolution.height}p</Text>
+              </View>
+            )}
 
-            {/* Dublaj (farkli dil sesi secimi) - BELGELENMEMIS bir YouTube
-                API'si uzerinden deneniyor (bkz. yukaridaki doc-comment),
-                bu yuzden mp4/hls/external'de de gosterip "hasDub" false
-                oldugu icin hep "Kullanılamıyor" kalmasi zararsiz. */}
+            {/* Altyazilar her iki turde de AYNI satir - sadece bu SPESIFIK
+                videoda gercekten bir track varsa (subtitlesAvailable)
+                acilabilir, yoksa "Kullanılamıyor" gosterip dokunulamaz kalir. */}
+            {(isYoutube || isHlsOrMp4) && (
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => subtitlesAvailable && onToggleSubtitles()}
+                disabled={!subtitlesAvailable}
+              >
+                <Text style={[styles.rowLabel, !subtitlesAvailable && styles.rowLabelDisabled]}>Altyazılar</Text>
+                <Text style={[styles.rowValueText, !subtitlesAvailable && styles.rowLabelDisabled]}>
+                  {!subtitlesAvailable ? "Kullanılamıyor" : subtitlesEnabled ? "Açık" : "Kapalı"}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Dublaj (farkli dil sesi secimi) - YouTube'da BELGELENMEMIS,
+                hls/mp4'te expo-video'nun RESMI audioTrack API'si (bkz.
+                yukaridaki doc-comment). external/kaynaksiz durumda da
+                gosterip "hasDub" false oldugu icin hep "Kullanılamıyor"
+                kalmasi zararsiz - ayri bir kosulla gizlemeye gerek yok. */}
             <TouchableOpacity style={styles.row} onPress={() => hasDub && toggle("dub")} disabled={!hasDub}>
               <Text style={[styles.rowLabel, !hasDub && styles.rowLabelDisabled]}>Dublaj</Text>
               <View style={styles.rowValue}>

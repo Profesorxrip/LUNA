@@ -42,15 +42,17 @@ export interface SourceBadgeInfo {
 export function badgeInfoForSource(source: MediaSource | null): SourceBadgeInfo | null {
   if (!source) return null;
   if (source.type === "youtube") return { key: "youtube", label: "YouTube" };
-  if (source.type === "external") {
+  if (source.type === "external" || source.type === "hls" || source.type === "mp4") {
+    // .mp4/.m3u8 direkt linkleri de "external" gibi GERCEK alan adi
+    // eslestirmesinden geciyor artik (onceden hep sabit "Web" yaziyordu) -
+    // bir CDN/alt alan adi bilinen bir platforma aitse (orn. bir yayinci
+    // kendi mp4'unu kendi alan adindan sunuyorsa) o platform gosterilir,
+    // degilse sitenin KENDI gercek favicon'u/alan adi gosterilir.
     const domain = bareDomain(source.url);
     const match = EXTERNAL_PLATFORMS.find((p) => domain.includes(bareDomain(p.url)));
     if (match) return { key: match.logo, label: match.label };
     return { key: null, label: domain, faviconUrl: `${SERVER_URL}/favicon-badge?domain=${encodeURIComponent(domain)}` };
   }
-  // .mp4/.m3u8 direkt linkleri de "Web" secenegiyle yapistiriliyor - bunlar
-  // bir "site" degil doğrudan video dosyasi, favicon kavrami yok.
-  if (source.type === "hls" || source.type === "mp4") return { key: "web", label: "Web" };
   return null;
 }
 

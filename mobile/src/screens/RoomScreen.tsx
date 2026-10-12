@@ -289,6 +289,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // gosterir, bu kullanicinin fark edecegi bir hata degildir.
   const [dubTracks, setDubTracks] = useState<string[]>([]);
   const [selectedDubIndex, setSelectedDubIndex] = useState(0);
+  // SADECE hls/mp4'te gelir - su an oynayan video track'inin GERCEK
+  // cozunurlugu (bkz. HlsPlayer.tsx onVideoResolutionChange). YouTube'da hep
+  // null kalir, orada zaten kendi secilebilir kalite listesi var.
+  const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
   const [voiceVolume, setVoiceVolume] = useState(1);
   // Su an izlenen videonun/medyanin sesi - "external" kaynaklarda (DRM'li
@@ -660,6 +664,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     setSubtitlesAvailable(false);
     setDubTracks([]);
     setSelectedDubIndex(0);
+    setVideoResolution(null);
   }, [room.playback.source?.url]);
   useEffect(() => {
     if (videoQuality !== "default") playerRef.current?.setQuality(videoQuality);
@@ -1130,6 +1135,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 fullscreen={fullscreenVideo}
                 onSubtitlesAvailabilityChange={setSubtitlesAvailable}
                 onDubTracksChange={setDubTracks}
+                onVideoResolutionChange={setVideoResolution}
               />
               {syncable && !videoHidden && (
                 <VideoControlsOverlay
@@ -1498,6 +1504,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         dubTracks={dubTracks}
         selectedDubIndex={selectedDubIndex}
         onChangeDubTrack={changeDubTrack}
+        videoResolution={videoResolution}
       />
 
       {leaveConfirmVisible && (
