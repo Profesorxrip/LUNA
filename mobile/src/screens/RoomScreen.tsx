@@ -19,6 +19,7 @@ import { BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
 import type { MediaSource, DMReply, FriendUser } from "../services/socket";
 import { supabase } from "../services/supabase";
@@ -600,9 +601,26 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     return () => clearInterval(timer);
   }, [room.playback.positionSeconds, room.playback.isPlaying, room.playback.updatedAtMs]);
 
+  // Tam ekrana girince telefon SAGA da SOLA da (hangisine cevrilirse) yatay
+  // kalsin diye LANDSCAPE (tek bir yon degil) kilitliyoruz - cikinca dikeye
+  // geri donuyor. Web'de (ve orientation API'si olmayan cihazlarda) sessizce
+  // no-op gecer, catch ile yutulur - ekran zaten CSS ile yatay gibi davranacak.
   function toggleFullscreenVideo() {
-    setFullscreenVideo((v) => !v);
+    setFullscreenVideo((v) => {
+      const next = !v;
+      if (next) ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
+      else ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+      return next;
+    });
   }
+
+  // Oda ekranindan tam ekran acikken ayrilirsa (geri tusu, sohbetten cikis
+  // vb.) telefon yatay kilitli kalmasin diye unmount'ta guvenlik agi.
+  useEffect(() => {
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    };
+  }, []);
 
   // "Sıradakine gec" - her playback modunda kalbin saginda gorunur (host
   // icin). "vote"/"autoplay" modundaysa video dogal olarak bitmeden
@@ -881,7 +899,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {/* Ust bar (Rave'deki X / ayarlar / logo / ara / katilimci duzeni) - medya
-          alaninin uzerine binmez, kendi satirinda durur, video tam altinda baslar */}
+          alaninin uzerine binmez, kendi satirinda durur, video tam altinda baslar.
+          Tam ekran yatay modda TAMAMEN gizlenir - video butun ekrani kaplar,
+          geri cikis NowPlayingBar'daki tam ekran ikonundan olur. */}
+      {!fullscreenVideo && (
       <View
         style={[styles.topBar, isDesktop && styles.topBarDesktop]}
         onLayout={(e) => setTopBarHeight(e.nativeEvent.layout.height)}
@@ -903,6 +924,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           </View>
         </TouchableOpacity>
       </View>
+      )}
 
       {/* PC'de (DESKTOP_BREAKPOINT ustu genislik) video solda buyuk, sohbet
           saginda sabit genislikte DAIMA ACIK bir panel olarak yan yana durur -
@@ -911,9 +933,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
           ekstra stil alir, mobilde gorunum ESKISI GIBI kalir). */}
       <View style={[styles.roomBody, isDesktop && styles.roomBodyDesktop]}>
         <View style={[isDesktop && styles.videoColDesktop, fullscreenVideo && styles.videoColFullscreen]}>
-          {/* Medya alani - ust barin hemen altinda, ustune binmeden */}
-          <View style={styles.mediaSection}>
-            <ReactionsOverlay ref={reactionsRef}>
+          {/* Medya alani - ust barin hemen altinda, ustune binmeden. Tam ekran
+              yatay modda flex:1 ile TUM ekrani kaplar (bkz. mediaSectionFullscreen). */}
+          <View style={[styles.mediaSection, fullscreenVideo && styles.mediaSectionFullscreen]}>
+            <ReactionsOverlay ref={reactionsRef} fullscreen={fullscreenVideo}>
               <MediaPlayer
                 ref={playerRef}
                 source={room.playback.source}
@@ -921,6 +944,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 onBuffering={handleBuffering}
                 onDuration={handleDuration}
                 onEnded={handleEnded}
+                fullscreen={fullscreenVideo}
               />
               {syncable && (
                 <VideoControlsOverlay
@@ -961,10 +985,31 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
               )}
             </ReactionsOverlay>
 
-            <LinearGradient colors={["transparent", theme.bg]} style={styles.bottomFade} pointerEvents="none" />
+            {!fullscreenVideo && (
+              <LinearGradient colors={["transparent", theme.bg]} style={styles.bottomFade} pointerEvents="none" />
+            )}
+
+            {/* Tam ekran yatay modda NowPlayingBar artik videonun ALTINDA ayri
+                bir satir degil, videonun uzerine binen bir alt overlay - normal
+                moddaki ayni bar, sadece konumu absolute/bottom'a aliniyor. */}
+            {syncable && fullscreenVideo && (
+              <View style={styles.nowPlayingBarFullscreenOverlay}>
+                <NowPlayingBar
+                  source={room.playback.source}
+                  positionSeconds={displayPosition}
+                  durationSeconds={room.playback.durationSeconds ?? null}
+                  canSeek={canControlTransport}
+                  onSeek={seekTo}
+                  isFullscreen={fullscreenVideo}
+                  onToggleFullscreen={toggleFullscreenVideo}
+                  hostName={hostParticipant?.name || "Lider"}
+                  hostAvatarUrl={hostParticipant?.avatarUrl}
+                />
+              </View>
+            )}
           </View>
 
-          {syncable && (
+          {syncable && !fullscreenVideo && (
             <NowPlayingBar
               source={room.playback.source}
               positionSeconds={displayPosition}
@@ -1269,7 +1314,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.bg },
   mediaSection: { position: "relative" },
+  // Tam ekran yatay modda bu View (video + kontroller) flex:1 ile roomBody'nin
+  // (ust bar gizliyken TUM ekranin) kalan butun yuksekligini kaplar.
+  mediaSectionFullscreen: { flex: 1 },
   bottomFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 48 },
+  nowPlayingBarFullscreenOverlay: { position: "absolute", left: 0, right: 0, bottom: 0 },
   adultBlurHint: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
   adultBlurText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   adultBlurSubtext: { color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" },

@@ -18,7 +18,7 @@ interface FloatingReaction {
  * katman cizer. Gonderme kontrolu disaridan (RoomScreen'deki alt bar) `ref`
  * uzerinden `sendReaction(emoji)` cagrilarak yapilir - boylece emoji secim
  * satiri Rave'deki gibi mesaj kutusunun yanina yerlestirilebilir. */
-const ReactionsOverlay = forwardRef<ReactionsOverlayHandle, { children: ReactNode }>(({ children }, ref) => {
+const ReactionsOverlay = forwardRef<ReactionsOverlayHandle, { children: ReactNode; fullscreen?: boolean }>(({ children, fullscreen }, ref) => {
   const [floating, setFloating] = useState<FloatingReaction[]>([]);
   const idRef = useRef(0);
 
@@ -51,7 +51,7 @@ const ReactionsOverlay = forwardRef<ReactionsOverlayHandle, { children: ReactNod
   }));
 
   return (
-    <View style={styles.mediaWrap}>
+    <View style={[styles.mediaWrap, fullscreen && styles.mediaWrapFullscreen]}>
       {children}
       <View style={styles.overlay} pointerEvents="none">
         {floating.map((f) => (
@@ -79,6 +79,7 @@ const ReactionsOverlay = forwardRef<ReactionsOverlayHandle, { children: ReactNod
 
 const styles = StyleSheet.create({
   mediaWrap: { position: "relative" },
+  mediaWrapFullscreen: { flex: 1 },
   overlay: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
   floatingEmoji: { position: "absolute", bottom: 10, fontSize: 28 },
 });

@@ -26,9 +26,12 @@ interface Props {
   onBuffering?: (isBuffering: boolean) => void;
   onDuration?: (seconds: number) => void;
   onEnded?: () => void;
+  // Tam ekran yatay moddaysa (bkz. RoomScreen) sabit 16:9 kutu yerine
+  // verilen TUM alani (artik ekranin tamami) doldurur.
+  fullscreen?: boolean;
 }
 
-const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChange, onBuffering, onDuration, onEnded }, ref) => {
+const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChange, onBuffering, onDuration, onEnded, fullscreen }, ref) => {
   const youtubeRef = useRef<YouTubePlayerHandle>(null);
   const hlsRef = useRef<HlsPlayerHandle>(null);
 
@@ -47,7 +50,7 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChang
 
   if (!source) {
     return (
-      <View style={styles.placeholder}>
+      <View style={[styles.placeholder, fullscreen && styles.placeholderFullscreen]}>
         <Text style={styles.placeholderText}>Henuz bir medya secilmedi</Text>
       </View>
     );
@@ -55,7 +58,7 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChang
 
   if (source.type === "external") {
     return (
-      <View style={styles.placeholder}>
+      <View style={[styles.placeholder, fullscreen && styles.placeholderFullscreen]}>
         <Text style={styles.placeholderIcon}>🔗</Text>
         <Text style={styles.placeholderTitle}>{source.label || "Harici platform"}</Text>
         <Text style={styles.placeholderText}>
@@ -78,13 +81,22 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChang
         onBuffering={onBuffering}
         onDuration={onDuration}
         onEnded={onEnded}
+        fullscreen={fullscreen}
       />
     );
   }
 
   // hls / mp4
   return (
-    <HlsPlayer ref={hlsRef} url={source.url} onStateChange={onStateChange} onBuffering={onBuffering} onDuration={onDuration} onEnded={onEnded} />
+    <HlsPlayer
+      ref={hlsRef}
+      url={source.url}
+      onStateChange={onStateChange}
+      onBuffering={onBuffering}
+      onDuration={onDuration}
+      onEnded={onEnded}
+      fullscreen={fullscreen}
+    />
   );
 });
 
@@ -98,6 +110,7 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 8,
   },
+  placeholderFullscreen: { flex: 1, aspectRatio: undefined, height: "100%" },
   placeholderIcon: { fontSize: 32 },
   placeholderTitle: { color: theme.text, fontSize: 18, fontWeight: "700" },
   placeholderText: { color: theme.textMuted, fontSize: 13, textAlign: "center" },

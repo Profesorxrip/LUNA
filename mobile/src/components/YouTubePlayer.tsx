@@ -18,6 +18,7 @@ interface Props {
   onBuffering?: (isBuffering: boolean) => void;
   onDuration?: (seconds: number) => void;
   onEnded?: () => void;
+  fullscreen?: boolean;
 }
 
 // YouTube IFrame API'sini yukleyip play/pause/seekTo komutlarini
@@ -85,7 +86,7 @@ const PLAYER_HTML = `
 </html>
 `;
 
-const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onStateChange, onBuffering, onDuration, onEnded }, ref) => {
+const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onStateChange, onBuffering, onDuration, onEnded, fullscreen }, ref) => {
   const webviewRef = useRef<WebView>(null);
   const pendingRequests = useRef(new Map<string, (time: number) => void>());
 
@@ -118,7 +119,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onState
     <WebView<{}>
       ref={webviewRef}
       source={{ html: PLAYER_HTML }}
-      style={styles.webview}
+      style={[styles.webview, fullscreen && styles.webviewFullscreen]}
       javaScriptEnabled
       allowsInlineMediaPlayback
       mediaPlaybackRequiresUserAction={false}
@@ -155,4 +156,5 @@ export default YouTubePlayer;
 
 const styles = StyleSheet.create({
   webview: { width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000" },
+  webviewFullscreen: { flex: 1, aspectRatio: undefined },
 });

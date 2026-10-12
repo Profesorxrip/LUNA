@@ -21,9 +21,10 @@ interface Props {
   onBuffering?: (isBuffering: boolean) => void;
   onDuration?: (seconds: number) => void;
   onEnded?: () => void;
+  fullscreen?: boolean;
 }
 
-const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBuffering, onDuration, onEnded }, ref) => {
+const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBuffering, onDuration, onEnded, fullscreen }, ref) => {
   const player = useVideoPlayer(url, (p) => {
     p.loop = false;
     p.timeUpdateEventInterval = 1;
@@ -108,7 +109,7 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
   }));
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, fullscreen && styles.containerFullscreen]}>
       {/* nativeControls=false - artik RoomScreen'deki ozel VideoControlsOverlay
           kullaniliyor (Rave'deki gibi) - iki ayri kontrol seti ust uste
           gorunmesin diye. */}
@@ -119,6 +120,7 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
 
 const styles = StyleSheet.create({
   container: { width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000" },
+  containerFullscreen: { flex: 1, aspectRatio: undefined },
   video: { width: "100%", height: "100%" },
 });
 
