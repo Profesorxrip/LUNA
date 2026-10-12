@@ -13,6 +13,7 @@ export interface HlsPlayerHandle {
   loadVideo: (url: string, startSeconds?: number) => void;
   getCurrentTime: () => number;
   setVolume: (volume: number) => void;
+  setPlaybackRate: (rate: number) => void;
 }
 
 interface Props {
@@ -105,6 +106,9 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(({ url, onStateChange, onBu
     getCurrentTime: () => player.currentTime,
     setVolume: (volume: number) => {
       player.volume = volume;
+    },
+    setPlaybackRate: (rate: number) => {
+      player.playbackRate = rate;
     },
   }));
 

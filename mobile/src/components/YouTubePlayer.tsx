@@ -10,6 +10,14 @@ export interface YouTubePlayerHandle {
   getCurrentTime: () => Promise<number>;
   // volume: 0..1 - YouTube IFrame API 0-100 bekledigi icin icerde *100 yapilir.
   setVolume: (volume: number) => void;
+  setPlaybackRate: (rate: number) => void;
+  // quality: "default"(Otomatik)/"hd1080"/"hd720"/"large"(480p)/"medium"(360p) -
+  // bkz. VideoSettingsSheet.tsx QUALITY_OPTIONS. YouTube, video icin o kalite
+  // mevcut degilse sessizce yoksayar (resmi IFrame API davranisi).
+  setQuality: (quality: string) => void;
+  // Videonun GERCEKTEN altyazisi yoksa hicbir gorsel etkisi olmaz (YouTube
+  // IFrame API'nin captions modulu boyle calisir) - bu bizim kontrolumuzde degil.
+  setSubtitlesEnabled: (enabled: boolean) => void;
 }
 
 interface Props {
@@ -75,6 +83,12 @@ const PLAYER_HTML = `
       if (msg.type === 'seekTo') player.seekTo(msg.seconds, true);
       if (msg.type === 'loadVideo') player.loadVideoById(msg.videoId, msg.startSeconds || 0);
       if (msg.type === 'setVolume') player.setVolume(msg.volume);
+      if (msg.type === 'setPlaybackRate') player.setPlaybackRate(msg.rate);
+      if (msg.type === 'setQuality') player.setPlaybackQuality(msg.quality);
+      if (msg.type === 'setSubtitles') {
+        if (msg.enabled) player.loadModule('captions');
+        else player.unloadModule('captions');
+      }
       if (msg.type === 'getCurrentTime') {
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'currentTime', requestId: msg.requestId, currentTime: player.getCurrentTime(),
@@ -100,6 +114,9 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(({ videoId, onState
     seekTo: (seconds: number) => postToPlayer({ type: "seekTo", seconds }),
     loadVideo: (id: string, startSeconds = 0) => postToPlayer({ type: "loadVideo", videoId: id, startSeconds }),
     setVolume: (volume: number) => postToPlayer({ type: "setVolume", volume: Math.round(volume * 100) }),
+    setPlaybackRate: (rate: number) => postToPlayer({ type: "setPlaybackRate", rate }),
+    setQuality: (quality: string) => postToPlayer({ type: "setQuality", quality }),
+    setSubtitlesEnabled: (enabled: boolean) => postToPlayer({ type: "setSubtitles", enabled }),
     getCurrentTime: () =>
       new Promise<number>((resolve) => {
         const requestId = Math.random().toString(36).slice(2);

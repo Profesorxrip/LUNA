@@ -31,6 +31,7 @@ import NowPlayingBar from "../components/NowPlayingBar";
 import ParticipantsModal from "../components/ParticipantsModal";
 import FriendsScreen from "./FriendsScreen";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
+import VideoSettingsSheet from "../components/VideoSettingsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
 import RoomMapSheet from "../components/RoomMapSheet";
@@ -264,6 +265,14 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   const [quickInviteSentIds, setQuickInviteSentIds] = useState<Set<string>>(new Set());
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  // Video kontrol panelinin SAG USTUNDEKI cark (üst bardakinden AYRI) - bu
+  // sadece BENIM kisisel izleme tercihlerim, sunucuya gitmez, kimseyi
+  // etkilemez (bkz. VideoSettingsSheet.tsx).
+  const [videoSettingsVisible, setVideoSettingsVisible] = useState(false);
+  const [videoHidden, setVideoHidden] = useState(false);
+  const [playbackRate, setPlaybackRateState] = useState(1);
+  const [videoQuality, setVideoQualityState] = useState("default");
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState(false);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
   const [voiceVolume, setVoiceVolume] = useState(1);
   // Su an izlenen videonun/medyanin sesi - "external" kaynaklarda (DRM'li
@@ -623,6 +632,40 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     };
   }, []);
 
+  // Video Ayarlari sayfasindaki ("sağ üstteki çark") kisisel tercihler -
+  // "videoyu gizle" yeni video gelince otomatik tekrar GOSTERILIR (yeni
+  // videoyu kacirmayalim diye), ama hiz/kalite/altyazi tercihi KORUNUR ve
+  // yeni oynatici orneginde (YouTube yeniden yuklenince, HLS replaceAsync
+  // sonrasi) YENIDEN uygulanir - aksi halde her video degisiminde sifirlanirdi.
+  useEffect(() => {
+    setVideoHidden(false);
+  }, [room.playback.source?.url]);
+  useEffect(() => {
+    if (playbackRate !== 1) playerRef.current?.setPlaybackRate(playbackRate);
+    if (videoQuality !== "default") playerRef.current?.setQuality(videoQuality);
+    if (subtitlesEnabled) playerRef.current?.setSubtitlesEnabled(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.playback.source?.url]);
+
+  function toggleHideVideo() {
+    setVideoHidden((v) => !v);
+  }
+  function changePlaybackRate(rate: number) {
+    setPlaybackRateState(rate);
+    playerRef.current?.setPlaybackRate(rate);
+  }
+  function changeVideoQuality(quality: string) {
+    setVideoQualityState(quality);
+    playerRef.current?.setQuality(quality);
+  }
+  function toggleSubtitles() {
+    setSubtitlesEnabled((v) => {
+      const next = !v;
+      playerRef.current?.setSubtitlesEnabled(next);
+      return next;
+    });
+  }
+
   // "Sıradakine gec" / "Onceki video" - "Liderin Secimi" modunda SADECE
   // lidere ozel (dogrudan, oylamasiz), DIGER butun modlarda (vote/sadece
   // oynat/otomatik oynat) artik HERKESE acik bir COGUNLUK OYU: kim hangi
@@ -959,7 +1002,16 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 onEnded={handleEnded}
                 fullscreen={fullscreenVideo}
               />
-              {syncable && (
+              {videoHidden && (
+                <View style={styles.videoHiddenCover}>
+                  <Icon name="eyeOff" size={28} color="#FFFFFF" />
+                  <Text style={styles.videoHiddenText}>Video gizlendi</Text>
+                  <TouchableOpacity style={styles.videoHiddenBtn} onPress={toggleHideVideo}>
+                    <Text style={styles.videoHiddenBtnText}>Videoyu Göster</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {syncable && !videoHidden && (
                 <VideoControlsOverlay
                   isPlaying={room.playback.isPlaying}
                   canControlTransport={canControlTransport}
@@ -974,7 +1026,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                   showVoteBadges={room.playbackMode !== "leader"}
                   nextVoteCount={room.nextVideoVoteCount}
                   previousVoteCount={room.previousVideoVoteCount}
-                  onSettings={() => setSettingsVisible(true)}
+                  onSettings={() => setVideoSettingsVisible(true)}
                   showMic={fullscreenVideo}
                   micConnected={voice.connected}
                   micMuted={voice.muted}
@@ -1312,6 +1364,20 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onVideoVolumeChange={handleVideoVolumeChange}
       />
 
+      <VideoSettingsSheet
+        visible={videoSettingsVisible}
+        onClose={() => setVideoSettingsVisible(false)}
+        source={room.playback.source}
+        videoHidden={videoHidden}
+        onToggleHideVideo={toggleHideVideo}
+        playbackRate={playbackRate}
+        onChangePlaybackRate={changePlaybackRate}
+        videoQuality={videoQuality}
+        onChangeVideoQuality={changeVideoQuality}
+        subtitlesEnabled={subtitlesEnabled}
+        onToggleSubtitles={toggleSubtitles}
+      />
+
       {leaveConfirmVisible && (
         <View style={styles.leaveOverlay}>
           <View style={styles.leaveCard}>
@@ -1339,6 +1405,20 @@ const styles = StyleSheet.create({
   mediaSectionFullscreen: { flex: 1 },
   bottomFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 48 },
   nowPlayingBarFullscreenOverlay: { position: "absolute", left: 0, right: 0, bottom: 0 },
+  videoHiddenCover: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  videoHiddenText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+  videoHiddenBtn: { backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 20, marginTop: 4 },
+  videoHiddenBtnText: { color: "#04140D", fontWeight: "700", fontSize: 13 },
   adultBlurHint: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
   adultBlurText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   adultBlurSubtext: { color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" },

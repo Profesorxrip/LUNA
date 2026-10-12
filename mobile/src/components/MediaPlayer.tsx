@@ -18,6 +18,14 @@ export interface MediaPlayerHandle {
   // volume: 0..1 - "external" (DRM'li) kaynaklarda gercek bir oynaticimiz
   // olmadigi icin no-op (bkz. asagidaki "external" render dali).
   setVolume: (volume: number) => void;
+  // Video Ayarlari sayfasindaki ("sağ üstteki çark") kisisel/yerel
+  // tercihler - sunucuya gonderilmez, diger katilimcilari ETKILEMEZ.
+  // setPlaybackRate hem YouTube hem HLS/mp4'te calisir. setQuality/
+  // setSubtitlesEnabled SADECE YouTube'da anlamli (bkz. YouTubePlayer.tsx) -
+  // diger kaynak turlerinde no-op.
+  setPlaybackRate: (rate: number) => void;
+  setQuality: (quality: string) => void;
+  setSubtitlesEnabled: (enabled: boolean) => void;
 }
 
 interface Props {
@@ -46,6 +54,14 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(({ source, onStateChang
       return hlsRef.current?.getCurrentTime() ?? 0;
     },
     setVolume: (volume) => (source?.type === "youtube" ? youtubeRef.current?.setVolume(volume) : hlsRef.current?.setVolume(volume)),
+    setPlaybackRate: (rate) =>
+      source?.type === "youtube" ? youtubeRef.current?.setPlaybackRate(rate) : hlsRef.current?.setPlaybackRate(rate),
+    setQuality: (quality) => {
+      if (source?.type === "youtube") youtubeRef.current?.setQuality(quality);
+    },
+    setSubtitlesEnabled: (enabled) => {
+      if (source?.type === "youtube") youtubeRef.current?.setSubtitlesEnabled(enabled);
+    },
   }));
 
   if (!source) {
