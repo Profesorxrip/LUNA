@@ -272,6 +272,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // (bkz. room.playback.playbackRate, VideoSettingsSheet.tsx).
   const [videoSettingsVisible, setVideoSettingsVisible] = useState(false);
   const [videoHidden, setVideoHidden] = useState(false);
+  // "Videoyu gizle" artik bir siyah ortu DEGIL, video alaninin kendisini
+  // YUKARI KAYDIRARAK (yuksekligini 0'a indirerek) yok etmesi - bkz.
+  // videoCollapseAnim/videoNaturalHeight asagida, toggleHideVideo.
+  const videoCollapseAnim = useRef(new Animated.Value(1)).current;
+  const [videoNaturalHeight, setVideoNaturalHeight] = useState<number | null>(null);
   const [videoQuality, setVideoQualityState] = useState("default");
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(false);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
@@ -656,7 +661,15 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   }, [room.playback.playbackRate, room.playback.source?.url]);
 
   function toggleHideVideo() {
-    setVideoHidden((v) => !v);
+    setVideoHidden((v) => {
+      const next = !v;
+      Animated.timing(videoCollapseAnim, {
+        toValue: next ? 0 : 1,
+        duration: 260,
+        useNativeDriver: false, // height animasyonu native driver'da desteklenmiyor
+      }).start();
+      return next;
+    });
   }
   function changePlaybackRate(rate: number) {
     if (!isHost) return;
@@ -998,8 +1011,26 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       <View style={[styles.roomBody, isDesktop && styles.roomBodyDesktop]}>
         <View style={[isDesktop && styles.videoColDesktop, fullscreenVideo && styles.videoColFullscreen]}>
           {/* Medya alani - ust barin hemen altinda, ustune binmeden. Tam ekran
-              yatay modda flex:1 ile TUM ekrani kaplar (bkz. mediaSectionFullscreen). */}
-          <View style={[styles.mediaSection, fullscreenVideo && styles.mediaSectionFullscreen]}>
+              yatay modda flex:1 ile TUM ekrani kaplar (bkz. mediaSectionFullscreen).
+              "Videoyu gizle" bu Animated.View'in yuksekligini 0'a indirip
+              alttaki icerigin (NowPlayingBar/sohbet) YUKARI KAYMASINI saglar -
+              video siyah bir ortuyle KAPATILMIYOR, alani KENDISI yok oluyor. */}
+          <Animated.View
+            style={
+              fullscreenVideo || videoNaturalHeight == null
+                ? undefined
+                : {
+                    height: videoCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, videoNaturalHeight] }),
+                    overflow: "hidden",
+                  }
+            }
+          >
+            <View
+              style={[styles.mediaSection, fullscreenVideo && styles.mediaSectionFullscreen]}
+              onLayout={(e) => {
+                if (!videoHidden) setVideoNaturalHeight(e.nativeEvent.layout.height);
+              }}
+            >
             <ReactionsOverlay ref={reactionsRef} fullscreen={fullscreenVideo}>
               <MediaPlayer
                 ref={playerRef}
@@ -1010,15 +1041,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 onEnded={handleEnded}
                 fullscreen={fullscreenVideo}
               />
-              {videoHidden && (
-                <View style={styles.videoHiddenCover}>
-                  <Icon name="eyeOff" size={28} color="#FFFFFF" />
-                  <Text style={styles.videoHiddenText}>Video gizlendi</Text>
-                  <TouchableOpacity style={styles.videoHiddenBtn} onPress={toggleHideVideo}>
-                    <Text style={styles.videoHiddenBtnText}>Videoyu Göster</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
               {syncable && !videoHidden && (
                 <VideoControlsOverlay
                   isPlaying={room.playback.isPlaying}
@@ -1087,7 +1109,20 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 />
               </View>
             )}
-          </View>
+            </View>
+          </Animated.View>
+
+          {/* Video yukari kayip kaybolunca, onu geri getirecek cark da
+              ONUNLA BIRLIKTE gizlenmis oluyordu - kullanici sikisip
+              kalmasin diye kalici, HIC collapse olmayan bir "goster"
+              satiri (bkz. toggleHideVideo, VideoSettingsSheet.tsx). */}
+          {videoHidden && !fullscreenVideo && (
+            <TouchableOpacity style={styles.videoHiddenBar} onPress={toggleHideVideo}>
+              <Icon name="eyeOff" size={16} color={theme.textMuted} />
+              <Text style={styles.videoHiddenBarText}>Video gizli</Text>
+              <Text style={styles.videoHiddenBarAction}>Göster</Text>
+            </TouchableOpacity>
+          )}
 
           {syncable && !fullscreenVideo && (
             <NowPlayingBar
@@ -1414,20 +1449,16 @@ const styles = StyleSheet.create({
   mediaSectionFullscreen: { flex: 1 },
   bottomFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 48 },
   nowPlayingBarFullscreenOverlay: { position: "absolute", left: 0, right: 0, bottom: 0 },
-  videoHiddenCover: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "#000000",
+  videoHiddenBar: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: theme.surface,
   },
-  videoHiddenText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
-  videoHiddenBtn: { backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 20, marginTop: 4 },
-  videoHiddenBtnText: { color: "#04140D", fontWeight: "700", fontSize: 13 },
+  videoHiddenBarText: { color: theme.textMuted, fontSize: 13, flex: 1 },
+  videoHiddenBarAction: { color: theme.accent, fontSize: 13, fontWeight: "700" },
   adultBlurHint: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
   adultBlurText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   adultBlurSubtext: { color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" },
