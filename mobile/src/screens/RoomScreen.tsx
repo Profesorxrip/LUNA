@@ -291,10 +291,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 
   const me = room.participants.find((p) => p.socketId === socket.id);
   const isHost = me?.isHost ?? false;
-  // PLAYBACK ayari "Sadece Oynat"/"Otomatik Oynat" ise herkes oynat/duraklat/
-  // sarabiliyor - video SECME yetkisi (openMediaPicker/selectSource'ta ayrica
-  // kontrol edilir) "vote" haric hep host'ta kalir.
-  const canControlTransport = isHost || room.playbackMode === "playOnly" || room.playbackMode === "autoplay";
+  // Oynat/duraklat/sarma/ilerletme cubugu HER modda sadece lidere ozel -
+  // video SECME yetkisi (openMediaPicker/selectSource'ta ayrica kontrol
+  // edilir) modlara gore degisebilir ("vote"/"playOnly"), ama oynatmanin
+  // KENDISI (transport) hep host'ta kalir.
+  const canControlTransport = isHost;
   // "Sadece Oynat" modunda HERKES video ekleyebilir (siraya girer, bkz.
   // selectSource) - "vote" modunda da herkes oneri sunabilir (oylamaya girer).
   // Diger modlarda (leader/autoplay) secim hala sadece host'a ozel.
@@ -960,6 +961,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                   showSkipNext={canSkipToNext}
                   onSkipNext={skipToNext}
                   onSettings={() => setSettingsVisible(true)}
+                  showMic={fullscreenVideo}
+                  micConnected={voice.connected}
+                  micMuted={voice.muted}
+                  onMicPress={handleMicPress}
+                  onMicLongPress={handleMicLongPress}
                 />
               )}
               {adultBlurActive && (

@@ -18,6 +18,15 @@ interface Props {
   showSkipNext: boolean;
   onSkipNext: () => void;
   onSettings: () => void;
+  // Tam ekran yatay modda alt bar (mikrofon dahil) gizlendigi icin mikrofon
+  // kontrolu buraya, ayarlar cark ikonunun SOLUNA, onunla AYNI boyutta
+  // (smallIconTouch) tasiniyor - normal (tam ekran olmayan) moddaysa
+  // gosterilmiyor, orada zaten alt bardaki buyuk mikrofon butonu var.
+  showMic?: boolean;
+  micConnected?: boolean;
+  micMuted?: boolean;
+  onMicPress?: () => void;
+  onMicLongPress?: () => void;
 }
 
 const AUTO_HIDE_MS = 3000;
@@ -41,6 +50,11 @@ export default function VideoControlsOverlay({
   showSkipNext,
   onSkipNext,
   onSettings,
+  showMic,
+  micConnected,
+  micMuted,
+  onMicPress,
+  onMicLongPress,
 }: Props) {
   const [visible, setVisible] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,6 +112,15 @@ export default function VideoControlsOverlay({
           </View>
 
           <View style={styles.topRightRow}>
+            {showMic && (
+              <TouchableOpacity style={styles.smallIconTouch} onPress={onMicPress} onLongPress={onMicLongPress} hitSlop={10}>
+                <Icon
+                  name={micConnected && micMuted ? "micOff" : "mic"}
+                  size={18}
+                  color={micConnected && micMuted ? "#E34848" : "#FFFFFF"}
+                />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.smallIconTouch} onPress={onSettings} hitSlop={10}>
               <Icon name="settings" size={18} color="#FFFFFF" />
             </TouchableOpacity>

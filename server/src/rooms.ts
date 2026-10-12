@@ -473,9 +473,11 @@ export function canSelectSource(room: Room, socketId: string): boolean {
   return isHost(room, socketId);
 }
 
+// Oynat/duraklat/sarma/ilerletme cubugu HER modda sadece lidere ozel (bkz.
+// mobile/src/screens/RoomScreen.tsx canControlTransport - istemci AYNI kurali
+// uyguluyor, burasi onu sunucu tarafinda da zorunlu kiliyor).
 export function canControlTransport(room: Room, socketId: string): boolean {
-  if (isHost(room, socketId)) return true;
-  return room.playbackMode === "playOnly" || room.playbackMode === "autoplay";
+  return isHost(room, socketId);
 }
 
 // Host kontrolu YAPMADAN dogrudan uygular - sadece bu dosya icindeki, zaten
