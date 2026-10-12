@@ -27,6 +27,13 @@ interface Props {
   // subtitlesEnabled bir TERCIH, bu ise videonun kendi durumu: false'ken
   // "Altyazılar" satiri "Kullanılamıyor" gosterir, acilamaz.
   subtitlesAvailable: boolean;
+  // Bu videoda GERCEKTEN birden fazla ses parcasi (dublaj) varsa dil
+  // etiketlerinin listesi - BELGELENMEMIS bir YouTube API'si uzerinden
+  // deneniyor (bkz. YouTubePlayer.tsx setDubTrack), bos ise "Dublaj" satiri
+  // "Kullanılamıyor" gosterir.
+  dubTracks: string[];
+  selectedDubIndex: number;
+  onChangeDubTrack: (index: number) => void;
 }
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -56,9 +63,10 @@ function formatSpeed(rate: number): string {
  * satir HER ZAMAN gorunur ama SADECE o SPESIFIK videonun gercekten altyazi
  * track'i varsa (subtitlesAvailable, bkz. onCaptionsAvailabilityChange)
  * acilabilir - yoksa "Kullanılamıyor" gosterip soluk/dokunulamaz kalir,
- * mp4/hls'te zaten hic gorunmez. Dublaj ise YouTube'un herkese acik
- * API'sinde HIC yok, bu yuzden HER zaman (turden bagimsiz) soluk/
- * dokunulamaz gorunur. */
+ * mp4/hls'te zaten hic gorunmez. Dublaj da altyazi gibi "o SPESIFIK
+ * videoda gercekten var mi" sorusuna bakar (dubTracks bos mu degil mi) -
+ * tek fark, bu bilginin BELGELENMEMIS bir YouTube API'sinden (multiaudio
+ * modulu) gelmesi; calismazsa sessizce "Kullanılamıyor" kalir. */
 export default function VideoSettingsSheet({
   visible,
   onClose,
@@ -73,13 +81,17 @@ export default function VideoSettingsSheet({
   subtitlesEnabled,
   onToggleSubtitles,
   subtitlesAvailable,
+  dubTracks,
+  selectedDubIndex,
+  onChangeDubTrack,
 }: Props) {
-  const [expanded, setExpanded] = useState<"details" | "speed" | "quality" | null>(null);
+  const [expanded, setExpanded] = useState<"details" | "speed" | "quality" | "dub" | null>(null);
   const isYoutube = source?.type === "youtube";
   const badge = badgeInfoForSource(source);
   const currentQualityLabel = QUALITY_OPTIONS.find((o) => o.key === videoQuality)?.label || "Otomatik";
+  const hasDub = dubTracks.length > 0;
 
-  function toggle(section: "details" | "speed" | "quality") {
+  function toggle(section: "details" | "speed" | "quality" | "dub") {
     setExpanded((cur) => (cur === section ? null : section));
   }
 
@@ -193,15 +205,35 @@ export default function VideoSettingsSheet({
               </>
             )}
 
-            {/* Dublaj (farkli dil sesi secimi) - kalite/altyazi gibi KISISEL
-                olmasi gerekse de YouTube'un herkese acik IFrame API'si su an
-                dublaj/ikinci ses parcasi secimini DISARIYA ACMIYOR - bu yuzden
-                yanlis bir "calisiyor" izlenimi vermemek icin HER zaman
-                "Kullanılamıyor" gosteriliyor (bkz. RoomScreen.tsx yorumlari). */}
-            <TouchableOpacity style={styles.row} disabled>
-              <Text style={[styles.rowLabel, styles.rowLabelDisabled]}>Dublaj</Text>
-              <Text style={[styles.rowValueText, styles.rowLabelDisabled]}>Kullanılamıyor</Text>
+            {/* Dublaj (farkli dil sesi secimi) - BELGELENMEMIS bir YouTube
+                API'si uzerinden deneniyor (bkz. yukaridaki doc-comment),
+                bu yuzden mp4/hls/external'de de gosterip "hasDub" false
+                oldugu icin hep "Kullanılamıyor" kalmasi zararsiz. */}
+            <TouchableOpacity style={styles.row} onPress={() => hasDub && toggle("dub")} disabled={!hasDub}>
+              <Text style={[styles.rowLabel, !hasDub && styles.rowLabelDisabled]}>Dublaj</Text>
+              <View style={styles.rowValue}>
+                <Text style={[styles.rowValueText, !hasDub && styles.rowLabelDisabled]}>
+                  {hasDub ? dubTracks[selectedDubIndex] || dubTracks[0] : "Kullanılamıyor"}
+                </Text>
+                {hasDub && <Icon name={expanded === "dub" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
+              </View>
             </TouchableOpacity>
+            {expanded === "dub" && hasDub && (
+              <View style={styles.optionsRow}>
+                {dubTracks.map((label, index) => (
+                  <TouchableOpacity
+                    key={`${label}-${index}`}
+                    style={styles.speedOption}
+                    onPress={() => {
+                      onChangeDubTrack(index);
+                      setExpanded(null);
+                    }}
+                  >
+                    <Text style={[styles.speedOptionText, index === selectedDubIndex && { color: theme.accent }]}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </ScrollView>
         </TouchableOpacity>
       </TouchableOpacity>

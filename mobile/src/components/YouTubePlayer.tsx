@@ -18,6 +18,12 @@ export interface YouTubePlayerHandle {
   // Videonun GERCEKTEN altyazisi yoksa hicbir gorsel etkisi olmaz (YouTube
   // IFrame API'nin captions modulu boyle calisir) - bu bizim kontrolumuzde degil.
   setSubtitlesEnabled: (enabled: boolean) => void;
+  // index: onDubTracksChange ile bildirilen listedeki sira. "multiaudio"
+  // modulu YouTube'un RESMI IFrame API dokumantasyonunda YOK - native
+  // uygulamadaki "Ses Parçası" ozelligiyle ayni sey ama BELGELENMEMIS bir
+  // ic modul uzerinden deneniyor (bkz. asagidaki onApiChange). Calismazsa
+  // sessizce hicbir etkisi olmaz.
+  setDubTrack: (index: number) => void;
 }
 
 interface Props {
@@ -31,6 +37,9 @@ interface Props {
   // "Altyazılar" satirini sadece bu true oldugunda gosterebilsin diye
   // (bkz. asagidaki onApiChange/captions tracklist sorgusu).
   onCaptionsAvailabilityChange?: (available: boolean) => void;
+  // Bu videoda gercekten BIRDEN FAZLA ses parcasi (dublaj) varsa dil
+  // etiketlerinin listesi - bkz. setDubTrack yorumu, BELGELENMEMIS API.
+  onDubTracksChange?: (labels: string[]) => void;
 }
 
 // YouTube IFrame API'sini yukleyip play/pause/seekTo komutlarini
@@ -46,6 +55,7 @@ const PLAYER_HTML = `
   <script src="https://www.youtube.com/iframe_api"></script>
   <script>
     var player;
+    var dubTracks = [];
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '100%',
@@ -61,11 +71,25 @@ const PLAYER_HTML = `
             // sadece onApiChange'in tracklist'i sorgulayabilmesi icin gerekli
             // (bkz. onApiChange asagida).
             player.loadModule('captions');
+            // "multiaudio" RESMI dokumante edilmemis bir modul - varsa
+            // (video gercekten birden fazla ses parcasiyla yuklenmisse)
+            // onApiChange'de tracklist doluyor, yoksa try/catch sessizce
+            // yutuyor ve dublaj hep "Kullanılamıyor" kaliyor.
+            try {
+              player.loadModule('multiaudio');
+            } catch (e) {}
           },
           onApiChange: function () {
             try {
               var tracks = player.getOption('captions', 'tracklist') || [];
               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'captionsAvailable', available: tracks.length > 0 }));
+            } catch (e) {}
+            try {
+              dubTracks = player.getOption('multiaudio', 'tracklist') || [];
+              var labels = dubTracks.map(function (t, i) {
+                return (t && (t.languageName || t.languageCode)) || ('Dil ' + (i + 1));
+              });
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'dubTracksAvailable', labels: labels }));
             } catch (e) {}
           },
           onStateChange: function (e) {
@@ -97,10 +121,20 @@ const PLAYER_HTML = `
       if (msg.type === 'seekTo') player.seekTo(msg.seconds, true);
       if (msg.type === 'loadVideo') {
         player.loadVideoById(msg.videoId, msg.startSeconds || 0);
-        // Yeni video - eski videonun altyazi durumunu hemen temizleyip
+        // Yeni video - eski videonun altyazi/dublaj durumunu hemen temizleyip
         // yeni video icin tekrar sorguluyoruz (bkz. onApiChange).
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'captionsAvailable', available: false }));
+        dubTracks = [];
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'dubTracksAvailable', labels: [] }));
         player.loadModule('captions');
+        try {
+          player.loadModule('multiaudio');
+        } catch (e) {}
+      }
+      if (msg.type === 'setDubTrack') {
+        try {
+          if (dubTracks[msg.index]) player.setOption('multiaudio', 'audioTrack', dubTracks[msg.index]);
+        } catch (e) {}
       }
       if (msg.type === 'setVolume') player.setVolume(msg.volume);
       if (msg.type === 'setPlaybackRate') player.setPlaybackRate(msg.rate);
@@ -121,7 +155,10 @@ const PLAYER_HTML = `
 `;
 
 const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
-  ({ videoId, onStateChange, onBuffering, onDuration, onEnded, fullscreen, onCaptionsAvailabilityChange }, ref) => {
+  (
+    { videoId, onStateChange, onBuffering, onDuration, onEnded, fullscreen, onCaptionsAvailabilityChange, onDubTracksChange },
+    ref
+  ) => {
   const webviewRef = useRef<WebView>(null);
   const pendingRequests = useRef(new Map<string, (time: number) => void>());
 
@@ -138,6 +175,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
     setPlaybackRate: (rate: number) => postToPlayer({ type: "setPlaybackRate", rate }),
     setQuality: (quality: string) => postToPlayer({ type: "setQuality", quality }),
     setSubtitlesEnabled: (enabled: boolean) => postToPlayer({ type: "setSubtitles", enabled }),
+    setDubTrack: (index: number) => postToPlayer({ type: "setDubTrack", index }),
     getCurrentTime: () =>
       new Promise<number>((resolve) => {
         const requestId = Math.random().toString(36).slice(2);
@@ -180,6 +218,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
             onEnded?.();
           } else if (data.type === "captionsAvailable") {
             onCaptionsAvailabilityChange?.(data.available);
+          } else if (data.type === "dubTracksAvailable") {
+            onDubTracksChange?.(data.labels);
           }
         } catch {
           // yoksay - beklenmeyen mesaj formati

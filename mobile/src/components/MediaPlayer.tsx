@@ -26,6 +26,9 @@ export interface MediaPlayerHandle {
   setPlaybackRate: (rate: number) => void;
   setQuality: (quality: string) => void;
   setSubtitlesEnabled: (enabled: boolean) => void;
+  // Sadece YouTube'da anlamli, BELGELENMEMIS bir API deneniyor (bkz.
+  // YouTubePlayer.tsx setDubTrack yorumu) - diger kaynak turlerinde no-op.
+  setDubTrack: (index: number) => void;
 }
 
 interface Props {
@@ -41,10 +44,17 @@ interface Props {
   // kaynaklarda anlamli (bkz. YouTubePlayer.tsx onApiChange/captions
   // tracklist sorgusu), hls/mp4'te hic cagrilmaz (orada zaten hep false).
   onSubtitlesAvailabilityChange?: (available: boolean) => void;
+  // Bu videoda gercekten birden fazla ses parcasi (dublaj) varsa dil
+  // etiketlerinin listesi - sadece YouTube'da gelir (bkz. yukaridaki
+  // setDubTrack yorumu).
+  onDubTracksChange?: (labels: string[]) => void;
 }
 
 const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(
-  ({ source, onStateChange, onBuffering, onDuration, onEnded, fullscreen, onSubtitlesAvailabilityChange }, ref) => {
+  (
+    { source, onStateChange, onBuffering, onDuration, onEnded, fullscreen, onSubtitlesAvailabilityChange, onDubTracksChange },
+    ref
+  ) => {
   const youtubeRef = useRef<YouTubePlayerHandle>(null);
   const hlsRef = useRef<HlsPlayerHandle>(null);
 
@@ -66,6 +76,9 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(
     },
     setSubtitlesEnabled: (enabled) => {
       if (source?.type === "youtube") youtubeRef.current?.setSubtitlesEnabled(enabled);
+    },
+    setDubTrack: (index) => {
+      if (source?.type === "youtube") youtubeRef.current?.setDubTrack(index);
     },
   }));
 
@@ -104,6 +117,7 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(
         onEnded={onEnded}
         fullscreen={fullscreen}
         onCaptionsAvailabilityChange={onSubtitlesAvailabilityChange}
+        onDubTracksChange={onDubTracksChange}
       />
     );
   }

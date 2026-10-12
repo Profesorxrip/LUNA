@@ -283,6 +283,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // onCaptionsAvailabilityChange) - VideoSettingsSheet "Altyazılar" satirini
   // bu false'ken "Kullanılamıyor" gosterir.
   const [subtitlesAvailable, setSubtitlesAvailable] = useState(false);
+  // Bu videoda GERCEKTEN birden fazla ses parcasi (dublaj) varsa dil
+  // etiketleri - BELGELENMEMIS bir YouTube API'si denendigi icin (bkz.
+  // YouTubePlayer.tsx setDubTrack) bos kalirsa Dublaj satiri "Kullanılamıyor"
+  // gosterir, bu kullanicinin fark edecegi bir hata degildir.
+  const [dubTracks, setDubTracks] = useState<string[]>([]);
+  const [selectedDubIndex, setSelectedDubIndex] = useState(0);
   // Sesli sohbetteki diger katilimcilarin sesi (LiveKit uzak ses parcalari).
   const [voiceVolume, setVoiceVolume] = useState(1);
   // Su an izlenen videonun/medyanin sesi - "external" kaynaklarda (DRM'li
@@ -649,9 +655,11 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // sonrasi) YENIDEN uygulanir - aksi halde her video degisiminde sifirlanirdi.
   useEffect(() => {
     setVideoHidden(false);
-    // Yeni video - eskisinin altyazi durumu gecerli degil, YouTubePlayer
+    // Yeni video - eskisinin altyazi/dublaj durumu gecerli degil, oynatici
     // kendi videosu icin GERCEK durumu tekrar bildirene kadar "yok" varsay.
     setSubtitlesAvailable(false);
+    setDubTracks([]);
+    setSelectedDubIndex(0);
   }, [room.playback.source?.url]);
   useEffect(() => {
     if (videoQuality !== "default") playerRef.current?.setQuality(videoQuality);
@@ -752,6 +760,10 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       playerRef.current?.setSubtitlesEnabled(next);
       return next;
     });
+  }
+  function changeDubTrack(index: number) {
+    setSelectedDubIndex(index);
+    playerRef.current?.setDubTrack(index);
   }
 
   // "Sıradakine gec" / "Onceki video" - "Liderin Secimi" modunda SADECE
@@ -1117,6 +1129,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                 onEnded={handleEnded}
                 fullscreen={fullscreenVideo}
                 onSubtitlesAvailabilityChange={setSubtitlesAvailable}
+                onDubTracksChange={setDubTracks}
               />
               {syncable && !videoHidden && (
                 <VideoControlsOverlay
@@ -1482,6 +1495,9 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         subtitlesEnabled={subtitlesEnabled}
         onToggleSubtitles={toggleSubtitles}
         subtitlesAvailable={subtitlesAvailable}
+        dubTracks={dubTracks}
+        selectedDubIndex={selectedDubIndex}
+        onChangeDubTrack={changeDubTrack}
       />
 
       {leaveConfirmVisible && (
