@@ -1191,7 +1191,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                         <Text style={styles.adultSkipBtnText}>
                           {votedSkipAdult ? `Oy verildi (${room.adultSkipVoteCount}/${room.participants.length})` : "Atla"}
                         </Text>
-                        {!votedSkipAdult && <Icon name="skipForward" size={14} color="#04140D" />}
+                        {!votedSkipAdult && <Icon name="skipForward" size={14} color="#FFFFFF" />}
                       </TouchableOpacity>
                     ) : (
                       <Text style={styles.adultBlurSubtext}>Bu videoyu lider degistirebilir</Text>
@@ -1572,18 +1572,20 @@ const styles = StyleSheet.create({
   },
   adultBlurText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700", textAlign: "center" },
   adultBlurSubtext: { color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" },
+  // Video kontrol panelindeki (VideoControlsOverlay.tsx "frame" stili) AYNI
+  // koyu gri/siyah hap cercevesi - rengi orada da burada da ayni kalsin diye.
   adultSkipBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: theme.accent,
-    borderRadius: 10,
+    backgroundColor: "rgba(20,18,16,0.95)",
+    borderRadius: 999,
     paddingVertical: 10,
     paddingHorizontal: 24,
     marginTop: 4,
   },
-  adultSkipBtnDisabled: { backgroundColor: "rgba(255,255,255,0.2)" },
-  adultSkipBtnText: { color: "#04140D", fontWeight: "700", fontSize: 14 },
+  adultSkipBtnDisabled: { backgroundColor: "rgba(80,78,76,0.95)" },
+  adultSkipBtnText: { color: "#FFFFFF", fontWeight: "700", fontSize: 14 },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
