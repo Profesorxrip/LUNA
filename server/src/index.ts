@@ -5,6 +5,7 @@ import http from "http";
 import { randomUUID } from "crypto";
 import { Server, Socket } from "socket.io";
 import { getFaviconBadge } from "./faviconBadge";
+import { fetchLinkTitle } from "./linkTitle";
 import { pickNextAutoplayVideo } from "./youtubeRelated";
 import {
   createRoom,
@@ -128,6 +129,16 @@ app.get("/favicon-badge", async (req, res) => {
   res.set("Content-Type", "image/png");
   res.set("Cache-Control", "public, max-age=86400");
   res.send(buffer);
+});
+
+// "Web" ile yapistirilan genel sayfa linkleri (external tur) icin oda/kart
+// ismi olarak alan adi yerine sayfanin GERCEK basligini kullanabilmek icin
+// (bkz. linkTitle.ts, MediaPickerSheet.tsx handleWebUrlSubmit).
+app.get("/link-title", async (req, res) => {
+  const url = String(req.query.url || "");
+  const title = await fetchLinkTitle(url);
+  if (!title) return res.status(404).end();
+  res.json({ title });
 });
 
 const server = http.createServer(app);

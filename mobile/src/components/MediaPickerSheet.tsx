@@ -6,7 +6,7 @@ import { getSocket, HistoryItem, SourceType } from "../services/socket";
 import type { MediaSource } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
-import { EXTERNAL_PLATFORMS } from "../utils/media";
+import { EXTERNAL_PLATFORMS, fetchWebPageTitle } from "../utils/media";
 import { extractYouTubeId, fetchYouTubeMeta } from "../utils/youtube";
 import PlatformLogo from "./PlatformLogo";
 import Icon from "./Icon";
@@ -192,24 +192,35 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     handleClose();
   }
 
-  function handleWebUrlSubmit() {
+  async function handleWebUrlSubmit() {
     const trimmed = webUrlInput.trim();
     if (!trimmed) {
       setError("Bir web sitesi linki yaz.");
       return;
     }
     const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-    const label = normalized.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0];
+    const domainLabel = normalized.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0];
     // Dogrudan bir video dosyasi linkiyse (.mp4/.m3u8) DRM'li bir platform
-    // degil, kendi oynaticimizda (HlsPlayer) gercek senkronla oynatilabilir.
+    // degil, kendi oynaticimizda (HlsPlayer) gercek senkronla oynatilabilir -
+    // bunlarda sayfa/baslik kavrami yok (ham video verisi), alan adi kaliyor.
     const pathname = normalized.replace(/[?#].*$/, "");
     if (/\.m3u8$/i.test(pathname)) {
-      onSelect({ type: "hls", url: normalized, label });
-    } else if (/\.mp4$/i.test(pathname)) {
-      onSelect({ type: "mp4", url: normalized, label });
-    } else {
-      onSelect({ type: "external", url: normalized, label });
+      onSelect({ type: "hls", url: normalized, label: domainLabel });
+      handleClose();
+      return;
     }
+    if (/\.mp4$/i.test(pathname)) {
+      onSelect({ type: "mp4", url: normalized, label: domainLabel });
+      handleClose();
+      return;
+    }
+    // Genel sayfa linki ("external") - oda/kart ismi icin sayfanin GERCEK
+    // basligini (og:title) cekmeyi deniyoruz, basarisiz olursa alan adi
+    // yedek olarak kullanilir (bkz. fetchWebPageTitle).
+    setLoadingTitle(true);
+    const realTitle = await fetchWebPageTitle(normalized);
+    setLoadingTitle(false);
+    onSelect({ type: "external", url: normalized, label: realTitle || domainLabel });
     handleClose();
   }
 
@@ -311,8 +322,12 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               autoFocus
             />
             {error && <Text style={styles.error}>{error}</Text>}
-            <TouchableOpacity style={styles.primaryButton} onPress={handleWebUrlSubmit}>
-              <Text style={styles.primaryButtonText}>Devam</Text>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleWebUrlSubmit} disabled={loadingTitle}>
+              {loadingTitle ? (
+                <ActivityIndicator color="#04140D" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Devam</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}

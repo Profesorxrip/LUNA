@@ -53,3 +53,21 @@ export function badgeInfoForSource(source: MediaSource | null): SourceBadgeInfo 
   if (source.type === "hls" || source.type === "mp4") return { key: "web", label: "Web" };
   return null;
 }
+
+/** "Web" ile yapistirilan GENEL bir sayfa linkinin (external tur) GERCEK
+ * basligini (og:title/<title>) sunucu uzerinden ceker - dogrudan client'tan
+ * fetch etmek rastgele sitelerin CORS kisitina takilabilir, sunucuda boyle
+ * bir sinirlama yok (bkz. server/src/linkTitle.ts). Basarisiz olursa (sayfa
+ * yok, HTML degil - orn. dogrudan bir .mp4 - ya da hicbir baslik etiketi
+ * yoksa) null doner, cagiran taraf (MediaPickerSheet.tsx) alan adini yedek
+ * olarak kullanir. */
+export async function fetchWebPageTitle(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${SERVER_URL}/link-title?url=${encodeURIComponent(url)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.title === "string" ? data.title : null;
+  } catch {
+    return null;
+  }
+}
