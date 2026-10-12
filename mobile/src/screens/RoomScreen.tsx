@@ -1076,7 +1076,15 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
               video siyah bir ortuyle KAPATILMIYOR, alani KENDISI yok oluyor. */}
           <Animated.View
             style={
-              fullscreenVideo || videoNaturalHeight == null
+              // Tam ekran yatay modda bu View'in flex:1 ALMASI sart - aksi
+              // halde (stil "undefined" kalirsa) kendi icerigine (videonun
+              // DOGAL 16:9 yuksekligine) gore kuculuyor, bu da onu saran
+              // videoColFullscreen'in (justifyContent:"center") onu dikeyde
+              // ORTALAMASINA ve ekrandan TASIP ust/alt kontrollerin
+              // YARIM gorunmesine yol aciyordu.
+              fullscreenVideo
+                ? styles.mediaAnimatedFullscreen
+                : videoNaturalHeight == null
                 ? undefined
                 : {
                     height: videoCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, videoNaturalHeight] }),
@@ -1487,6 +1495,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.bg },
+  mediaAnimatedFullscreen: { flex: 1 },
   mediaSection: { position: "relative" },
   // Tam ekran yatay modda bu View (video + kontroller) flex:1 ile roomBody'nin
   // (ust bar gizliyken TUM ekranin) kalan butun yuksekligini kaplar.
