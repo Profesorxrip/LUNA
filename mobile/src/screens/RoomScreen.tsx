@@ -660,17 +660,77 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     playerRef.current?.setPlaybackRate(room.playback.playbackRate);
   }, [room.playback.playbackRate, room.playback.source?.url]);
 
-  function toggleHideVideo() {
-    setVideoHidden((v) => {
-      const next = !v;
-      Animated.timing(videoCollapseAnim, {
-        toValue: next ? 0 : 1,
-        duration: 260,
-        useNativeDriver: false, // height animasyonu native driver'da desteklenmiyor
-      }).start();
-      return next;
-    });
+  // Hem dokunmatik butondan (Video Ayarlari) hem suruklemeden (asagidaki
+  // iki PanResponder) ayni sekilde cagrilir - "next" yonune yumusak bir
+  // sprinde "yapis"tirir (suruklerken parmagin biraktigi ARA deger neyse
+  // oradan baslar, aniden siframadan tamamlar).
+  function finishVideoDrag(hide: boolean) {
+    setVideoHidden(hide);
+    Animated.spring(videoCollapseAnim, { toValue: hide ? 0 : 1, useNativeDriver: false, bounciness: 4 }).start();
   }
+  function toggleHideVideo() {
+    finishVideoDrag(!videoHidden);
+  }
+
+  // PanResponder.create() SADECE ilk render'da calisir (useRef ile sabit
+  // tutuluyor) - icindeki callback'ler videoHidden/videoNaturalHeight'in o
+  // ANKI (hep ilk/stale) degerini "kapatir". Guncel degeri HER ZAMAN
+  // gorebilmek icin (HlsPlayer.tsx'teki callbacksRef ile AYNI teknik) ref
+  // uzerinden okuyoruz.
+  const videoHiddenRef = useRef(videoHidden);
+  videoHiddenRef.current = videoHidden;
+  const videoNaturalHeightRef = useRef(videoNaturalHeight);
+  videoNaturalHeightRef.current = videoNaturalHeight;
+
+  // Video ACIKKEN, video alaninin KENDISINI yukari suruklemek onu kapatir -
+  // cok az (<8px) ya da yatay agirlikli hareketler normal TIKLAMA olarak
+  // (VideoControlsOverlay'in kontrollerini ac/kapa) gecsin diye sadece
+  // belirgin, DIKEY agirlikli bir suruklemede devreye giriyor.
+  const hideVideoPanResponder = useRef(
+    PanResponder.create({
+      // CAPTURE fazinda (cocuklardan ONCE) sorulur - video uzerindeki
+      // VideoControlsOverlay'in kendi TouchableOpacity'si aksi halde normal
+      // (capture olmayan) surumde dokunusu hemen kendine alip bu PanResponder'in
+      // hic devreye girmesine izin vermiyordu.
+      onMoveShouldSetPanResponderCapture: (_evt, g) =>
+        !videoHiddenRef.current && Math.abs(g.dy) > 8 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
+      onPanResponderMove: (_evt, g) => {
+        const h = videoNaturalHeightRef.current;
+        if (!h) return;
+        const upward = Math.min(0, g.dy); // asagi suruklemeyi yoksay, sadece yukari
+        videoCollapseAnim.setValue(Math.max(0, Math.min(1, 1 + upward / h)));
+      },
+      onPanResponderRelease: (_evt, g) => {
+        const h = videoNaturalHeightRef.current;
+        if (!h) return;
+        const passedThreshold = -g.dy > h * 0.25 || g.vy < -0.6;
+        finishVideoDrag(passedThreshold);
+      },
+      onPanResponderTerminate: () => finishVideoDrag(videoHiddenRef.current),
+    })
+  ).current;
+
+  // Video GIZLIYKEN, onun eski yerinde kalan kucuk "centik"i asagi
+  // suruklemek videoyu geri acar - ayna mantik, ters yonde.
+  const showVideoPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (_evt, g) =>
+        videoHiddenRef.current && Math.abs(g.dy) > 8 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
+      onPanResponderMove: (_evt, g) => {
+        const h = videoNaturalHeightRef.current;
+        if (!h) return;
+        const downward = Math.max(0, g.dy); // yukari suruklemeyi yoksay, sadece asagi
+        videoCollapseAnim.setValue(Math.max(0, Math.min(1, downward / h)));
+      },
+      onPanResponderRelease: (_evt, g) => {
+        const h = videoNaturalHeightRef.current;
+        if (!h) return;
+        const passedThreshold = g.dy > h * 0.25 || g.vy > 0.6;
+        finishVideoDrag(!passedThreshold);
+      },
+      onPanResponderTerminate: () => finishVideoDrag(videoHiddenRef.current),
+    })
+  ).current;
   function changePlaybackRate(rate: number) {
     if (!isHost) return;
     socket.emit("playback:setRate", { rate }, () => {});
@@ -1024,6 +1084,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
                     overflow: "hidden",
                   }
             }
+            {...(fullscreenVideo ? {} : hideVideoPanResponder.panHandlers)}
           >
             <View
               style={[styles.mediaSection, fullscreenVideo && styles.mediaSectionFullscreen]}
@@ -1114,14 +1175,14 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
 
           {/* Video yukari kayip kaybolunca, onu geri getirecek cark da
               ONUNLA BIRLIKTE gizlenmis oluyordu - kullanici sikisip
-              kalmasin diye kalici, HIC collapse olmayan bir "goster"
-              satiri (bkz. toggleHideVideo, VideoSettingsSheet.tsx). */}
+              kalmasin diye kalici, HIC collapse olmayan minik bir "centik"
+              (asagi surukleyince video geri acilir, bkz. showVideoPanResponder).
+              Video ACIKKEN bu centik HIC gorunmez - oradaki kapatma
+              hareketi videonun KENDISINI yukari suruklemektir. */}
           {videoHidden && !fullscreenVideo && (
-            <TouchableOpacity style={styles.videoHiddenBar} onPress={toggleHideVideo}>
-              <Icon name="eyeOff" size={16} color={theme.textMuted} />
-              <Text style={styles.videoHiddenBarText}>Video gizli</Text>
-              <Text style={styles.videoHiddenBarAction}>Göster</Text>
-            </TouchableOpacity>
+            <View style={styles.videoHandleBar} {...showVideoPanResponder.panHandlers}>
+              <View style={styles.videoHandleNotch} />
+            </View>
           )}
 
           {syncable && !fullscreenVideo && (
@@ -1449,16 +1510,13 @@ const styles = StyleSheet.create({
   mediaSectionFullscreen: { flex: 1 },
   bottomFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 48 },
   nowPlayingBarFullscreenOverlay: { position: "absolute", left: 0, right: 0, bottom: 0 },
-  videoHiddenBar: {
-    flexDirection: "row",
+  videoHandleBar: {
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
     paddingVertical: 10,
-    paddingHorizontal: 16,
     backgroundColor: theme.surface,
   },
-  videoHiddenBarText: { color: theme.textMuted, fontSize: 13, flex: 1 },
-  videoHiddenBarAction: { color: theme.accent, fontSize: 13, fontWeight: "700" },
+  videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   adultBlurHint: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
   adultBlurText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   adultBlurSubtext: { color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" },
