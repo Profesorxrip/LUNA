@@ -104,9 +104,9 @@ export default function VideoControlsOverlay({
     <TouchableOpacity style={styles.touchArea} activeOpacity={1} onPress={handleToggle}>
       {visible && (
         <>
-          <View style={styles.topRow}>
+          <View style={[styles.topRow, styles.frame]}>
             <TouchableOpacity
-              style={styles.smallIconTouch}
+              style={styles.framedIconTouch}
               onPress={onSkipPrevious}
               disabled={!canSkip || !hasPreviousVideo}
               hitSlop={10}
@@ -118,10 +118,10 @@ export default function VideoControlsOverlay({
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.smallIconTouch} onPress={onToggleLike} hitSlop={10}>
+            <TouchableOpacity style={styles.framedIconTouch} onPress={onToggleLike} hitSlop={10}>
               <Icon name={liked ? "heart" : "heartOutline"} size={20} color={liked ? "#E34848" : "#FFFFFF"} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.smallIconTouch} onPress={onSkipNext} disabled={!canSkip} hitSlop={10}>
+            <TouchableOpacity style={styles.framedIconTouch} onPress={onSkipNext} disabled={!canSkip} hitSlop={10}>
               <Icon name="skipForward" size={18} color={canSkip ? "#FFFFFF" : "rgba(255,255,255,0.35)"} />
               {showVoteBadges && !!nextVoteCount && (
                 <View style={styles.voteBadge}>
@@ -147,7 +147,7 @@ export default function VideoControlsOverlay({
           </View>
 
           {canControlTransport && (
-            <View style={styles.centerRow}>
+            <View style={[styles.centerRow, styles.frame]}>
               <TouchableOpacity style={styles.skipTouch} onPress={() => onSkip(-10)} hitSlop={10}>
                 <Icon name="rotateCcw" size={26} color="#FFFFFF" />
                 <Text style={styles.skipLabel}>10</Text>
@@ -171,11 +171,26 @@ const styles = StyleSheet.create({
   touchArea: { ...StyleSheet.absoluteFill, justifyContent: "center" },
   topRow: { position: "absolute", top: 10, left: 10, flexDirection: "row", gap: 14 },
   topRightRow: { position: "absolute", top: 10, right: 10, flexDirection: "row", gap: 14 },
+  // NowPlayingBar'daki "hap" cercevesiyle (wrap stili) BIREBIR AYNI gorunum -
+  // onceki/begeni/sonraki ve geri-oynat-ileri gruplari artik ayri ayri
+  // dairesel butonlar degil, TEK bir cerceve icinde toplaniyor.
+  frame: {
+    borderRadius: 999,
+    backgroundColor: "rgba(20,18,16,0.95)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   smallIconTouch: {
     width: 32,
     height: 32,
     borderRadius: 16,
     backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  framedIconTouch: {
+    width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
   },
