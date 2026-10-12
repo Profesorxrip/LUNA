@@ -1152,11 +1152,13 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
               <LinearGradient colors={["transparent", theme.bg]} style={styles.bottomFade} pointerEvents="none" />
             )}
 
-            {/* Tam ekran yatay modda NowPlayingBar artik videonun ALTINDA ayri
-                bir satir degil, videonun uzerine binen bir alt overlay - normal
-                moddaki ayni bar, sadece konumu absolute/bottom'a aliniyor. */}
-            {syncable && fullscreenVideo && (
-              <View style={styles.nowPlayingBarFullscreenOverlay}>
+            {/* NowPlayingBar artik HER MODDA (tam ekran da, normal da) videonun
+                ALTINDA ayri bir satir degil, videonun KENDISININ uzerine binen,
+                kontrol butonlarinin (ortadaki -10/oynat/+10) ALTINDA kalan bir
+                overlay - boylece sohbetten net ayrisiyor, "sohbetin bir parcasi"
+                gibi gorunmuyor. */}
+            {syncable && (
+              <View style={styles.nowPlayingBarOverlay}>
                 <NowPlayingBar
                   source={room.playback.source}
                   positionSeconds={displayPosition}
@@ -1183,20 +1185,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
             <View style={styles.videoHandleBar} {...showVideoPanResponder.panHandlers}>
               <View style={styles.videoHandleNotch} />
             </View>
-          )}
-
-          {syncable && !fullscreenVideo && (
-            <NowPlayingBar
-              source={room.playback.source}
-              positionSeconds={displayPosition}
-              durationSeconds={room.playback.durationSeconds ?? null}
-              canSeek={canControlTransport}
-              onSeek={seekTo}
-              isFullscreen={fullscreenVideo}
-              onToggleFullscreen={toggleFullscreenVideo}
-              hostName={hostParticipant?.name || "Lider"}
-              hostAvatarUrl={hostParticipant?.avatarUrl}
-            />
           )}
 
           {room.buffering.anyoneBuffering && (
@@ -1509,7 +1497,7 @@ const styles = StyleSheet.create({
   // (ust bar gizliyken TUM ekranin) kalan butun yuksekligini kaplar.
   mediaSectionFullscreen: { flex: 1 },
   bottomFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 48 },
-  nowPlayingBarFullscreenOverlay: { position: "absolute", left: 0, right: 0, bottom: 0 },
+  nowPlayingBarOverlay: { position: "absolute", left: 0, right: 0, bottom: 0 },
   videoHandleBar: {
     alignItems: "center",
     justifyContent: "center",
