@@ -155,7 +155,7 @@ export default function ProfileOptionsSheet({
 }
 
 const CARD_WIDTH = 240;
-const PHOTO_WIDTH = 150;
+const PHOTO_WIDTH = 90;
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "center", alignItems: "center" },
