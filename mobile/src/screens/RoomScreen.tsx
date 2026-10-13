@@ -439,8 +439,15 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // selectSource) - "vote" modunda da herkes oneri sunabilir (oylamaya girer).
   // Diger modlarda (leader/autoplay) secim hala sadece host'a ozel.
   const canPickMedia = isHost || room.playbackMode === "vote" || room.playbackMode === "playOnly";
+  // "external" (Netflix/Disney+/Prime/HBO Max vb.) ARTIK syncable - gercek
+  // oynaticisi var (bkz. DrmWebViewPlayer.tsx, uygulama ICI WebView'de
+  // oynat/durdur/saniye yakalayip masaustu tarayici eklentimizle AYNI
+  // "playback:update" protokolunu konusuyor).
   const syncable =
-    room.playback.source?.type === "youtube" || room.playback.source?.type === "hls" || room.playback.source?.type === "mp4";
+    room.playback.source?.type === "youtube" ||
+    room.playback.source?.type === "hls" ||
+    room.playback.source?.type === "mp4" ||
+    room.playback.source?.type === "external";
   // NowPlayingBar.tsx'teki avatar icin - su anki video icin kalici bir "kim
   // sectiyi" bilgimiz olmadigindan (bkz. backlog), liderin kendisi kullanilir.
   const hostParticipant = room.participants.find((p) => p.isHost);
@@ -612,6 +619,25 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     socket.emit("playback:buffering", { isBuffering });
   }, []);
 
+  // SADECE "external" (DRM) kaynaklarda, SADECE host icin: uygulama ICI
+  // WebView'de (bkz. DrmWebViewPlayer.tsx) baska bir basliga/sayfaya
+  // gecilince yeni URL'i sunucuya "source" olarak bildiriyoruz - boylece
+  // takipcilerin WebView'i de (syncable oldugu icin yukaridaki
+  // appliedSourceUrlRef efekti otomatik loadVideo cagirir) ayni sayfaya
+  // gider. Takipcinin KENDI WebView'inde dolasmasi ise odanin kaynagini
+  // DEGISTIRMEMELI - bu yuzden isHost disinda hic bir sey yapmiyoruz.
+  const handleDrmUrlChange = useCallback(
+    (url: string) => {
+      if (!isHost || !room.playback.source) return;
+      socket.emit("playback:update", {
+        source: { type: "external", url, label: room.playback.source.label },
+        isPlaying: false,
+        positionSeconds: 0,
+      });
+    },
+    [isHost, room.playback.source]
+  );
+
   const lastDurationRef = useRef<number | null>(null);
   const handleDuration = useCallback(
     (seconds: number) => {
@@ -636,8 +662,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       socket.emit("room:enqueueSource", { source }, () => {});
       return;
     }
+    // "external" icin isPlaying hala false - platform az once secildi, henuz
+    // kimse bir basliga girip oynatmadi (bkz. DrmWebViewPlayer.tsx), ama
+    // loadVideo ARTIK onun icin de cagriliyor (WebView'i platformun
+    // sayfasina yonlendirir).
     socket.emit("playback:update", { source, isPlaying: source.type !== "external", positionSeconds: 0 });
-    if (source.type !== "external") playerRef.current?.loadVideo(source.url, 0);
+    playerRef.current?.loadVideo(source.url, 0);
   }
 
   // Video dogal olarak bitince: "vote" modunda sunucu 10 saniyelik bir oylama
@@ -1423,6 +1453,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 onBuffering={handleBuffering}
                 onDuration={handleDuration}
                 onEnded={handleEnded}
+                onUrlChange={handleDrmUrlChange}
                 fullscreen={fullscreenVideo}
                 onSubtitlesAvailabilityChange={setSubtitlesAvailable}
                 onDubTracksChange={setDubTracks}

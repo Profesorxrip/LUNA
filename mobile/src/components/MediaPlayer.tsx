@@ -1,14 +1,17 @@
 import { forwardRef, useImperativeHandle, useRef } from "react";
-import { Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { MediaSource } from "../services/socket";
 import { theme } from "../theme";
 import YouTubePlayer, { YouTubePlayerHandle } from "./YouTubePlayer";
 import HlsPlayer, { HlsPlayerHandle } from "./HlsPlayer";
+import DrmWebViewPlayer, { DrmWebViewPlayerHandle } from "./DrmWebViewPlayer";
 
 /** Kaynak turune gore dogru oynaticiya yonlendiren tek bir bilesen.
- * "external" (Netflix/Prime/Disney+/HBO Max/Twitch kanal sayfasi vb.)
- * icin oynatici GOSTERILMEZ - sadece platformu acan bir buton gosterilir,
- * senkron/play-pause kontrolu yapilmaz (bkz. rooms.ts'teki aciklama). */
+ * "external" (Netflix/Prime/Disney+/HBO Max/Twitch vb.) icin ARTIK gercek
+ * bir oynatici VAR - DrmWebViewPlayer.tsx, platformu uygulama ICINDE bir
+ * WebView'de acip GERCEK senkron (oynat/durdur/saniye) sagliyor (Rave'in de
+ * yaptigi gibi - bkz. extension/ klasorundeki masaustu tarayici eklentisi,
+ * AYNI teknik, AYNI playback:update protokolu). */
 export interface MediaPlayerHandle {
   play: () => void;
   pause: () => void;
@@ -43,6 +46,11 @@ interface Props {
   onBuffering?: (isBuffering: boolean) => void;
   onDuration?: (seconds: number) => void;
   onEnded?: () => void;
+  // SADECE "external" (DRM) kaynaklarda gelir - host, uygulama ICI
+  // WebView'de Netflix/Disney+ vb. icinde BASKA bir basliga gecince
+  // (bkz. DrmWebViewPlayer.tsx) - RoomScreen bunu yeni "source.url" olarak
+  // sunucuya bildirir, boylece takipcilerin WebView'i de ayni sayfaya gider.
+  onUrlChange?: (url: string) => void;
   // Tam ekran yatay moddaysa (bkz. RoomScreen) sabit 16:9 kutu yerine
   // verilen TUM alani (artik ekranin tamami) doldurur.
   fullscreen?: boolean;
@@ -68,6 +76,7 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(
       onBuffering,
       onDuration,
       onEnded,
+      onUrlChange,
       fullscreen,
       onSubtitlesAvailabilityChange,
       onDubTracksChange,
@@ -77,27 +86,30 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(
   ) => {
   const youtubeRef = useRef<YouTubePlayerHandle>(null);
   const hlsRef = useRef<HlsPlayerHandle>(null);
+  const drmRef = useRef<DrmWebViewPlayerHandle>(null);
+
+  // Uc oynatici turu de AYNI imzaya sahip (bkz. MediaPlayerHandle) - hangi
+  // ref'in "aktif" oldugunu TEK bir yerde secip, asagidaki her metodun
+  // kendi ternary'sini tekrarlamasini onluyoruz.
+  function active(): { play: () => void; pause: () => void; seekTo: (s: number) => void; loadVideo: (u: string, s?: number) => void; getCurrentTime: () => number | Promise<number>; setVolume: (v: number) => void; setPlaybackRate: (r: number) => void; setSubtitlesEnabled: (e: boolean) => void; setDubTrack: (i: number) => void } | null {
+    if (source?.type === "youtube") return youtubeRef.current;
+    if (source?.type === "external") return drmRef.current;
+    return hlsRef.current;
+  }
 
   useImperativeHandle(ref, () => ({
-    play: () => (source?.type === "youtube" ? youtubeRef.current?.play() : hlsRef.current?.play()),
-    pause: () => (source?.type === "youtube" ? youtubeRef.current?.pause() : hlsRef.current?.pause()),
-    seekTo: (seconds) => (source?.type === "youtube" ? youtubeRef.current?.seekTo(seconds) : hlsRef.current?.seekTo(seconds)),
-    loadVideo: (url, startSeconds) =>
-      source?.type === "youtube" ? youtubeRef.current?.loadVideo(url, startSeconds) : hlsRef.current?.loadVideo(url, startSeconds),
-    getCurrentTime: async () => {
-      if (source?.type === "youtube") return (await youtubeRef.current?.getCurrentTime()) ?? 0;
-      return hlsRef.current?.getCurrentTime() ?? 0;
-    },
-    setVolume: (volume) => (source?.type === "youtube" ? youtubeRef.current?.setVolume(volume) : hlsRef.current?.setVolume(volume)),
-    setPlaybackRate: (rate) =>
-      source?.type === "youtube" ? youtubeRef.current?.setPlaybackRate(rate) : hlsRef.current?.setPlaybackRate(rate),
+    play: () => active()?.play(),
+    pause: () => active()?.pause(),
+    seekTo: (seconds) => active()?.seekTo(seconds),
+    loadVideo: (url, startSeconds) => active()?.loadVideo(url, startSeconds),
+    getCurrentTime: async () => (await active()?.getCurrentTime()) ?? 0,
+    setVolume: (volume) => active()?.setVolume(volume),
+    setPlaybackRate: (rate) => active()?.setPlaybackRate(rate),
     setQuality: (quality) => {
       if (source?.type === "youtube") youtubeRef.current?.setQuality(quality);
     },
-    setSubtitlesEnabled: (enabled) =>
-      source?.type === "youtube" ? youtubeRef.current?.setSubtitlesEnabled(enabled) : hlsRef.current?.setSubtitlesEnabled(enabled),
-    setDubTrack: (index) =>
-      source?.type === "youtube" ? youtubeRef.current?.setDubTrack(index) : hlsRef.current?.setDubTrack(index),
+    setSubtitlesEnabled: (enabled) => active()?.setSubtitlesEnabled(enabled),
+    setDubTrack: (index) => active()?.setDubTrack(index),
   }));
 
   if (!source) {
@@ -110,17 +122,17 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(
 
   if (source.type === "external") {
     return (
-      <View style={[styles.placeholder, fullscreen && styles.placeholderFullscreen]}>
-        <Text style={styles.placeholderIcon}>🔗</Text>
-        <Text style={styles.placeholderTitle}>{source.label || "Harici platform"}</Text>
-        <Text style={styles.placeholderText}>
-          Bu platform DRM korumasi kullandigi icin otomatik senkron desteklenmiyor. Kendi hesabinla acip
-          izleyebilirsin - sohbet ve sesli sohbet odada acik kalmaya devam eder.
-        </Text>
-        <TouchableOpacity style={styles.openButton} onPress={() => Linking.openURL(source.url)}>
-          <Text style={styles.openButtonText}>{source.label} 'i Ac</Text>
-        </TouchableOpacity>
-      </View>
+      <DrmWebViewPlayer
+        ref={drmRef}
+        url={source.url}
+        label={source.label}
+        onStateChange={onStateChange}
+        onBuffering={onBuffering}
+        onDuration={onDuration}
+        onEnded={onEnded}
+        onUrlChange={onUrlChange}
+        fullscreen={fullscreen}
+      />
     );
   }
 
@@ -169,11 +181,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   placeholderFullscreen: { flex: 1, aspectRatio: undefined, height: "100%" },
-  placeholderIcon: { fontSize: 32 },
-  placeholderTitle: { color: theme.text, fontSize: 18, fontWeight: "700" },
   placeholderText: { color: theme.textMuted, fontSize: 13, textAlign: "center" },
-  openButton: { marginTop: 8, backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 20 },
-  openButtonText: { color: "#04140D", fontWeight: "700" },
 });
 
 export default MediaPlayer;
