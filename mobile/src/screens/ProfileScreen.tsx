@@ -771,6 +771,8 @@ const styles = StyleSheet.create({
   simpleSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", marginTop: 3, lineHeight: 16 },
   dangerText: { color: "#FF8A8A" },
   versionText: { color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: "500", paddingHorizontal: 18, paddingVertical: 10 },
-  signOutButton: { marginHorizontal: 18, marginTop: 24, backgroundColor: "rgba(255,77,79,0.15)", borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,77,79,0.4)" },
+  // Renkleri (arkaplan/kenarlik) AYNI kaldi, sadece sekli NowPlayingBar.tsx
+  // "hap" cercevesiyle (borderRadius:30, ayni mantik) birebir ayni oldu.
+  signOutButton: { marginHorizontal: 18, marginTop: 24, backgroundColor: "rgba(255,77,79,0.15)", borderRadius: 30, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,77,79,0.4)" },
   signOutText: { color: "#FF8A8A", fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
 });
