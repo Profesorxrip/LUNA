@@ -641,7 +641,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#1E1A17",
   },
-  searchInput: { flex: 1, color: TEXT, fontSize: 13, outlineWidth: 0, outlineStyle: "none" } as any,
+  searchInput: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 13,
+    paddingVertical: 0,
+    includeFontPadding: false,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
   expiryBanner: {
     flexDirection: "row",
     alignItems: "center",

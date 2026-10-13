@@ -505,7 +505,18 @@ const styles = StyleSheet.create({
   },
   // Web onizlemesindeki varsayilan odak cercevesini (beyaz kare) kapatiyor -
   // gercek Android/iOS'ta zaten yok, sadece tarayici davranisi.
-  searchInput: { flex: 1, color: TEXT, fontSize: 14, outlineWidth: 0, outlineStyle: "none" } as any,
+  // "includeFontPadding: false" - Android'in native TextInput'u varsayilan
+  // olarak fazladan dikey bosluk ekleyip kutuyu gercek cihazda web/iOS'a
+  // gore belirgin sekilde daha "uzun" gosteriyordu.
+  searchInput: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 14,
+    paddingVertical: 0,
+    includeFontPadding: false,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
   requestsButton: {
     width: 42,
     height: 42,

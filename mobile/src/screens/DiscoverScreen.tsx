@@ -225,7 +225,8 @@ export default function DiscoverScreen({
     // tum katilimcilar - giris yapmis olsalar bile - yanlislikla "Misafir"
     // gorunuyordu).
     getSocket().emit("room:join", { code }, (res: any) => {
-      if (res.ok) onJoinRoom(res.room);
+      if (res?.ok) onJoinRoom(res.room);
+      else showAlert("Odaya girilemedi", res?.error || "Sunucudan yanıt alınamadı (bağlantı sorunu olabilir).");
     });
   }
 
@@ -233,7 +234,8 @@ export default function DiscoverScreen({
   // acar, secim yapilinca oda o icerikle birlikte olusturulup girilir.
   function createRoomWithSource(source: MediaSource) {
     getSocket().emit("room:create", { name: hostName, isPublic: true, source }, (res: any) => {
-      if (res.ok) onJoinRoom(res.room);
+      if (res?.ok) onJoinRoom(res.room);
+      else showAlert("Oda oluşturulamadı", res?.error || "Sunucudan yanıt alınamadı (bağlantı sorunu olabilir).");
     });
   }
 
@@ -352,16 +354,28 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
+    height: 48,
     borderRadius: 26,
     paddingHorizontal: 18,
-    paddingVertical: 12,
     gap: 10,
     marginHorizontal: 16,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
   },
-  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 15, outlineWidth: 0, outlineStyle: "none" } as any,
+  // "includeFontPadding: false" ŞART - Android'in native TextInput'u
+  // (EditText) varsayilan olarak yazi tipi metriklerine gore fazladan dikey
+  // bosluk ekliyor, bu da web/iOS'ta normal gorunen bir kutuyu GERCEK
+  // Android cihazda belirgin sekilde daha "kalin/uzun" gosteriyordu.
+  searchInput: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontSize: 15,
+    paddingVertical: 0,
+    includeFontPadding: false,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
   listContent: { padding: 8, flexGrow: 1 },
   sectionHeaderRow: {
     flexDirection: "row",
