@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
 import { getSocket, PublicRoomSummary, RoomParticipantDetail, PrivacyLevel } from "../services/socket";
+import { supabase } from "../services/supabase";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
 import CrownBadge from "../components/CrownBadge";
@@ -38,10 +39,18 @@ function formatTime(totalSeconds: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
+// Odanin "Açıldı: 14:32" satiri icin - sadece saat:dakika, cihazin kendi
+// yerel saatine gore (bkz. server/src/rooms.ts mapRoomSummary createdAtMs).
+function formatOpenedTime(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticipant }: Props) {
   const [participants, setParticipants] = useState<RoomParticipantDetail[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(true);
   const [position, setPosition] = useState(room.positionSeconds);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
 
   useEffect(() => {
     getSocket().emit("room:participants", { code: room.code }, (res: any) => {
@@ -49,6 +58,43 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
       setLoadingParticipants(false);
     });
   }, [room.code]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
+  }, []);
+
+  // "Odayı Sil" (sadece oda sahibi) / "Bildir" (sahibi disinda herkes)
+  // basliktaki iki ikondan hangisinin gorunecegini belirler - bkz.
+  // ProfileOptionsSheet.tsx'teki ayni "sadece role gore goster" deseni.
+  const amHost = participants.some((p) => p.isHost && p.userId && p.userId === myUserId);
+
+  function confirmDeleteRoom() {
+    showAlert("Odayı Sil", "Bu odayı kalıcı olarak silmek istediğine emin misin? İçindeki herkes çıkarılır.", [
+      { text: "Vazgeç", style: "cancel" },
+      {
+        text: "Odayı Sil",
+        style: "destructive",
+        onPress: () => {
+          getSocket().emit("room:closeByHost", { code: room.code }, (res: any) => {
+            if (res?.ok) onBack();
+            else showAlert("Hata", res?.error || "Oda silinemedi.");
+          });
+        },
+      },
+    ]);
+  }
+
+  function reportRoom() {
+    const host = participants.find((p) => p.isHost);
+    if (!host?.userId) return;
+    getSocket().emit(
+      "report:submit",
+      { targetUserId: host.userId, reason: `Oda bildirildi: ${room.code} - ${room.title}` },
+      (res: any) => {
+        if (res?.ok) showAlert("Bildirildi", "Bu oda moderasyon ekibine iletildi, teşekkürler.");
+      }
+    );
+  }
 
   const hasDuration = room.durationSeconds != null && room.durationSeconds > 0;
   const hasEnded = hasDuration && position >= room.durationSeconds!;
@@ -83,6 +129,17 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
         <TouchableOpacity onPress={onBack} hitSlop={10}>
           <Icon name="chevronLeft" size={22} color={theme.text} />
         </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {amHost ? (
+            <TouchableOpacity onPress={confirmDeleteRoom} hitSlop={10}>
+              <Icon name="trash" size={20} color={theme.danger} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={reportRoom} hitSlop={10}>
+              <Icon name="warning" size={20} color={theme.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <TouchableOpacity style={styles.coverWrap} activeOpacity={0.9} onPress={onJoin}>
@@ -126,6 +183,8 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
           <Text style={styles.statusDot}>•</Text>
           <Text style={styles.statusText}>{PRIVACY_LABEL[room.privacy]}</Text>
           <Icon name={room.privacy === "friends" ? "people" : room.privacy === "invite" ? "invite" : room.privacy === "nearby" ? "pin" : "globe"} size={16} color={theme.textMuted} />
+          <Text style={styles.statusDot}>•</Text>
+          <Text style={styles.statusText}>{formatOpenedTime(room.createdAtMs)}'de açıldı</Text>
         </View>
         {isExternal && (
           <TouchableOpacity style={styles.warningBadge} onPress={showSyncNotice} hitSlop={8}>
@@ -183,7 +242,15 @@ const styles = StyleSheet.create({
   participantList: { flex: 1 },
   emptyText: { color: theme.textMuted, fontSize: 13, textAlign: "center", marginTop: 40 },
   listContent: { paddingBottom: 24 },
-  header: { paddingHorizontal: 16, paddingTop: 50, paddingBottom: 12 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 12,
+  },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
   coverWrap: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden" },
   cover: { width: "100%", aspectRatio: 16 / 10 },
   coverPlaceholder: { backgroundColor: theme.surfaceAlt },

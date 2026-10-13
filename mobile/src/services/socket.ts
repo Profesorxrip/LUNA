@@ -187,6 +187,9 @@ export interface PublicRoomSummary {
   durationSeconds: number | null;
   isAdult: boolean;
   participants: { name: string; userId: string | null }[];
+  // Oda onizleme ekraninda "Açıldı: 14:32" gibi gosterilir (bkz.
+  // RoomPreviewScreen.tsx, server/src/rooms.ts mapRoomSummary).
+  createdAtMs: number;
 }
 
 // Discover/"rooms:list" artik tek bir liste degil, 4 ayri bolum doner -

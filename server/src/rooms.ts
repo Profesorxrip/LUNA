@@ -302,6 +302,9 @@ function mapRoomSummary(r: Room) {
     positionSeconds: currentPlaybackPosition(r.playback),
     durationSeconds: r.playback.durationSeconds ?? null,
     isAdult: r.isAdult,
+    // Oda onizleme ekraninda "Açıldı: 14:32" gibi gosterilir (bkz.
+    // RoomPreviewScreen.tsx).
+    createdAtMs: r.createdAtMs,
     // Discover kartinda katilimci avatar siramasi kaydirilarak
     // gorulebiliyor - makul bir ust sinira kadar hepsini gonderiyoruz.
     participants: Array.from(r.participants.values())
@@ -371,6 +374,21 @@ export function listPublicRooms(viewer: DiscoverViewer): DiscoverSections {
 
 export function getRoom(code: string): Room | undefined {
   return rooms.get(code.toUpperCase());
+}
+
+/** "Odayı Sil" - Discover'daki oda onizleme ekranindan cagirilir, yani
+ * cagiran kisi o odanin socket.io odasina HENUZ KATILMAMIS olabilir (bkz.
+ * index.ts "room:closeByHost") - bu yuzden requesterId yerine HESAP
+ * kimligi (requesterUserId) ile host participant'inki karsilastirilir.
+ * Basarili olursa oda TAMAMEN silinir ve participants'i (disari cikartmasi
+ * icin) dondurur; yetkisizse veya oda yoksa null doner. */
+export function closeRoomByHost(code: string, requesterUserId: string): Room | null {
+  const room = getRoom(code);
+  if (!room) return null;
+  const host = room.participants.get(room.hostSocketId);
+  if (!host || !host.userId || host.userId !== requesterUserId) return null;
+  rooms.delete(room.code);
+  return room;
 }
 
 /** Profil ekraninda "su an acik odasi" karti icin: hedef kullanici (targetUserId)

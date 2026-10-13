@@ -43,6 +43,7 @@ import {
   ClipboardDocumentIcon,
   UserIcon,
   NoSymbolIcon,
+  TrashIcon,
 } from "react-native-heroicons/solid";
 import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
 import { MicOff, Hourglass, Crown, RotateCcw, RotateCw } from "lucide-react-native";
@@ -107,7 +108,8 @@ export type IconName =
   | "clipboard"
   | "person"
   | "block"
-  | "shield";
+  | "shield"
+  | "trash";
 
 interface Props {
   name: IconName;
@@ -151,6 +153,7 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   bellOff: BellSlashIcon,
   personBlock: UserMinusIcon,
   warning: ExclamationTriangleIcon,
+  trash: TrashIcon,
   check: CheckIcon,
   pin: MapPinIcon,
   fastForward: ForwardIcon,

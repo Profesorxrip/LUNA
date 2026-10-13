@@ -514,17 +514,26 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       showAlert("Odadan atildin", "Oda lideri seni odadan cikardi.");
       onLeave();
     }
+    // Oda sahibi odayi Discover'daki onizleme ekranindan sildi (bkz.
+    // RoomPreviewScreen.tsx "room:closeByHost") - icindeki herkes disari
+    // atilir, "room:kicked"ten FARKLI bir mesajla (kimse kimseyi atmadi).
+    function handleClosedByHost() {
+      showAlert("Oda kapatıldı", "Oda sahibi bu odayı sildi.");
+      onLeave();
+    }
     socket.on("room:state", handleRoomState);
     socket.on("room:chat", handleChat);
     socket.on("room:chatTranslation", handleChatTranslation);
     socket.on("room:messageReaction", handleMessageReaction);
     socket.on("room:kicked", handleKicked);
+    socket.on("room:closedByHost", handleClosedByHost);
     return () => {
       socket.off("room:state", handleRoomState);
       socket.off("room:chat", handleChat);
       socket.off("room:chatTranslation", handleChatTranslation);
       socket.off("room:messageReaction", handleMessageReaction);
       socket.off("room:kicked", handleKicked);
+      socket.off("room:closedByHost", handleClosedByHost);
     };
   }, []);
 
