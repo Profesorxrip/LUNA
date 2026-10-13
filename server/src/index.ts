@@ -1464,6 +1464,24 @@ io.on("connection", (socket: Socket) => {
     io.to(currentRoomCode).emit("room:messageReaction", { messageId, reactions });
   });
 
+  // Mesaja basili tutunca acilan "Bildir" - henuz bir moderasyon paneli
+  // olmadigi icin KALICI bir yere YAZILMIYOR, ama sunucu loguna gercekten
+  // dusuyor (oda kodu/mesaj id/bildiren) - ileride bir panel eklenince
+  // buradan baslanabilir, simdilik "bildirildi" geri bildirimi gercek bir
+  // sunucu olayina dayaniyor, sadece client tarafinda gosterilen bos bir
+  // alert DEGIL.
+  socket.on("message:report", ({ messageId }: { messageId: string }, ack) => {
+    if (!currentRoomCode || !isNonEmptyString(messageId, 100)) return ack?.({ ok: false });
+    if (!allow("message:report", 10, 60_000)) return ack?.({ ok: false });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false });
+    const reporterName = room.participants.get(socket.id)?.name || "?";
+    console.warn(
+      `[message:report] oda=${currentRoomCode} mesajId=${messageId} bildiren=${reporterName} (${myUserId || "misafir"})`
+    );
+    ack?.({ ok: true });
+  });
+
   socket.on("host:kick", ({ targetSocketId }: { targetSocketId: string }, ack) => {
     if (!currentRoomCode || !isNonEmptyString(targetSocketId, 100)) return ack?.({ ok: false });
     const room = getRoom(currentRoomCode);

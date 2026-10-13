@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import * as ScreenOrientation from "expo-screen-orientation";
+import * as Clipboard from "expo-clipboard";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
 import type { MediaSource, DMReply, FriendUser } from "../services/socket";
 import { supabase } from "../services/supabase";
@@ -31,6 +32,7 @@ import ParticipantsModal from "../components/ParticipantsModal";
 import FriendsScreen from "./FriendsScreen";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import VideoSettingsSheet from "../components/VideoSettingsSheet";
+import MessageOptionsSheet from "../components/MessageOptionsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
 import RoomMapSheet from "../components/RoomMapSheet";
@@ -66,6 +68,10 @@ interface ChatBubbleRowProps {
   groupedWithPrev: boolean;
   onReply: () => void;
   onDoubleTap: () => void;
+  // Mesaja BASILI TUTUNCA (Rave'deki gibi) acilan kart - basilan mesajin
+  // GERCEK ekran konumunu (measureInWindow) da bildirir ki kart o mesajin
+  // tam oldugu yerde "asili" gorunsun (bkz. MessageOptionsSheet.tsx).
+  onLongPressMessage: (anchorY: number) => void;
   // Discover'daki mavi "arkadas halkasi" ile AYNI - bu mesaji gonderen
   // gercek arkadasimizsa true (bkz. Avatar.tsx isFriend, RoomScreen.tsx
   // friendIds).
@@ -82,10 +88,15 @@ interface ChatBubbleRowProps {
  * doldurup tasdigi icin ustten baslamaya devam ediyor. Bu sayede react-
  * native-web'de desteklenmeyen onTextLayout'a bagli kalinmiyor ve native'de
  * de ilk render'da dogru pozisyonla cikiyor - sonradan "ziplama" olmuyor. */
-function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, isFriend }: ChatBubbleRowProps) {
+function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onLongPressMessage, isFriend }: ChatBubbleRowProps) {
   const { i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
+  const bubbleRef = useRef<any>(null);
+
+  function handleLongPress() {
+    bubbleRef.current?.measureInWindow((_x: number, y: number) => onLongPressMessage(y));
+  }
   // "Chat Mesajlarini Otomatik Cevir" - ceviri varsa varsayilan GOSTERILIR,
   // dokununca orijinal metne gecilip geri donulebilir (Instagram/WhatsApp'taki
   // "Cevirisini gor / Orijinali gor" deseniyle ayni mantik).
@@ -158,7 +169,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, isF
             {item.mediaUrl ? (
               <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
             ) : (
-              <TouchableOpacity activeOpacity={1} onPress={handleTap}>
+              <TouchableOpacity ref={bubbleRef} activeOpacity={1} onPress={handleTap} onLongPress={handleLongPress}>
                 <Text style={styles.chatMsgOwn} selectable={false}>
                   {displayText}
                 </Text>
@@ -188,7 +199,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, isF
                 <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
               </>
             ) : (
-              <TouchableOpacity activeOpacity={1} onPress={handleTap}>
+              <TouchableOpacity ref={bubbleRef} activeOpacity={1} onPress={handleTap} onLongPress={handleLongPress}>
                 <Text style={styles.chatMsg} selectable={false}>
                   {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
                   {displayText}
@@ -988,6 +999,43 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     socket.emit("message:react", { messageId: item.id, emoji: quickReactionEmoji });
   }
 
+  // Mesaja BASILI TUTUNCA acilan kart (Rave'deki gibi) - bkz.
+  // MessageOptionsSheet.tsx / ChatBubbleRow onLongPressMessage.
+  const [optionsMessage, setOptionsMessage] = useState<ChatMessage | null>(null);
+  const [optionsAnchorY, setOptionsAnchorY] = useState<number | null>(null);
+
+  function openMessageOptions(item: ChatMessage, anchorY: number) {
+    setOptionsMessage(item);
+    setOptionsAnchorY(anchorY);
+  }
+  function closeMessageOptions() {
+    setOptionsMessage(null);
+    setOptionsAnchorY(null);
+  }
+  async function copyOptionsMessage() {
+    if (optionsMessage) await Clipboard.setStringAsync(optionsMessage.text);
+    closeMessageOptions();
+  }
+  function replyToOptionsMessage() {
+    if (optionsMessage) startReply(optionsMessage);
+    closeMessageOptions();
+  }
+  function reportOptionsMessage() {
+    if (optionsMessage?.id) {
+      socket.emit("message:report", { messageId: optionsMessage.id }, (res: any) => {
+        if (res?.ok) showAlert("Bildirildi", "Bu mesaj moderasyon ekibine iletildi, teşekkürler.");
+      });
+    }
+    closeMessageOptions();
+  }
+  // Uzun basma karti herhangi bir emojiyle tepki vermeyi destekler - cift
+  // tikin aksine (reactToMessage, sadece sabit hizli tepki emojisi) burada
+  // tam emoji klavyesinden SECILEN emoji dogrudan gonderiliyor.
+  function reactToOptionsMessageWithEmoji(emoji: string) {
+    if (optionsMessage?.id) socket.emit("message:react", { messageId: optionsMessage.id, emoji });
+    closeMessageOptions();
+  }
+
   function kick(targetSocketId: string) {
     socket.emit("host:kick", { targetSocketId }, () => {});
   }
@@ -1304,6 +1352,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
               groupedWithPrev={groupedWithPrev}
               onReply={() => startReply(item)}
               onDoubleTap={() => reactToMessage(item)}
+              onLongPressMessage={(anchorY) => openMessageOptions(item, anchorY)}
               isFriend={Boolean(senderUserId && friendIds.has(senderUserId))}
             />
           ) : item.kind === "joined" ? (
@@ -1523,6 +1572,17 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         selectedDubIndex={selectedDubIndex}
         onChangeDubTrack={changeDubTrack}
         videoResolution={videoResolution}
+      />
+
+      <MessageOptionsSheet
+        visible={!!optionsMessage}
+        message={optionsMessage}
+        anchorY={optionsAnchorY}
+        onClose={closeMessageOptions}
+        onCopy={copyOptionsMessage}
+        onReply={replyToOptionsMessage}
+        onReport={reportOptionsMessage}
+        onSelectEmoji={reactToOptionsMessageWithEmoji}
       />
 
       {leaveConfirmVisible && (
