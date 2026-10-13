@@ -58,11 +58,16 @@ const REAL_LOGOS: Record<PlatformKey, { source: any; ratio: number }> = {
  * ve "murekkep yogunlugu" agirligina gore degisiyordu (bkz. eski weight
  * alani), bu da ayni satirdaki logolari farkli genislikte gosteriyordu.
  * Yukseklik, oran (ratio) bozulmadan genislikten hesaplanir, sadece asiri
- * kare logolarda (orn. X) satiri tasirmamak icin MAX_H ile sinirlanir. */
+ * kare logolarda (orn. Disney+, Likes) satiri tasirmamak icin MAX_H ile
+ * sinirlanir - resizeMode "contain" DEGIL "stretch" kullaniliyor, cunku
+ * "contain" kirpilan yukseklige gore GENISLIGI de kucultup (letterbox)
+ * tam bu sinirlanan logolari digerlerinden DAR gosteriyordu; "stretch"
+ * genisligi HER ZAMAN tam kutu kadar tutar, sinira takilan logolar sadece
+ * hafifce dikeyde sikisir. */
 export default function PlatformLogo({ platform, size = 56 }: Props) {
   const { source, ratio } = REAL_LOGOS[platform];
   const width = size * 2.3;
-  const maxH = size * 1.15;
+  const maxH = size * 1.0;
   const height = Math.min(width / ratio, maxH);
-  return <Image source={source} resizeMode="contain" style={{ height, width }} />;
+  return <Image source={source} resizeMode="stretch" style={{ height, width }} />;
 }
