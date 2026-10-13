@@ -196,19 +196,13 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: "center",
   },
-  // Moderator rozeti - lider rozeti (taç, ustte) gibi ama profil fotografinin
-  // SAG ALT kosesinde, arka planla ayni renkte kucuk bir daire icinde (bkz.
-  // ModeratorBadge.tsx) - "kesilmis/cikinti" gorunumu icin.
+  // Moderator rozeti - lider rozeti (taç, ustte) gibi profil fotografinin
+  // USTUNE biner, SAG ALT kosesinde - arkasinda bir daire/arka plan YOK
+  // (profil fotografinda bosluk/kesinti olusturmasin diye).
   moderatorBadge: {
     position: "absolute",
     bottom: -2,
     right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: theme.surface,
-    alignItems: "center",
-    justifyContent: "center",
   },
   nameWrap: { flex: 1 },
   name: { color: theme.text, fontSize: 14 },
