@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from "react-native";
-import { BlurView } from "expo-blur";
 import Icon from "./Icon";
 import Avatar from "./Avatar";
 import { ALL_EMOJIS } from "../data/emojiCategories";
@@ -54,8 +53,6 @@ export default function MessageOptionsSheet({ visible, message, onClose, onCopy,
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose}>
-        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
-
         <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
           <View style={styles.handle} />
 
