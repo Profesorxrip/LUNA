@@ -10,10 +10,12 @@ import type { ChatMessage } from "../services/socket";
 
 const COLS = 7;
 const DEFAULT_EMOJIS = ALL_EMOJIS.map((e) => e.emoji);
-// Mesaj onizleme karti + Kopyala/Yanitla/Bildir satiri icin ayrilan asgari
-// alan - basilan mesaj ekranin cok asagisindaysa kart bu kadar yukselige
-// SIGACAK sekilde yukari ittiriliyor (bkz. clampedTop).
-const MIN_BOTTOM_SPACE = 360;
+// Emoji karti artik ekranin altina kadar UZAMIYOR (flex:1 degil) - sabit,
+// kompakt bir yukseklikte (bkz. styles.emojiCard). MIN_BOTTOM_SPACE bu
+// yuzden tum kartin (onizleme + aksiyon satiri + emoji karti) gercek toplam
+// yuksekligine yakin, sabit bir deger - basilan mesaj ekranin cok
+// asagisindaysa kart bu kadar yer SIGACAK sekilde yukari ittiriliyor.
+const MIN_BOTTOM_SPACE = 300;
 
 function formatTime(ts: number): string {
   const d = new Date(ts);
@@ -69,22 +71,22 @@ export default function MessageOptionsSheet({ visible, message, anchorY, onClose
 
         <TouchableOpacity activeOpacity={1} style={styles.actionsRow} onPress={() => {}}>
           <TouchableOpacity style={styles.actionButton} onPress={onCopy}>
-            <Icon name="clipboard" size={22} color="#FFFFFF" />
+            <Icon name="clipboard" size={19} color="#FFFFFF" />
             <Text style={styles.actionLabel}>Kopyala</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={onReply}>
-            <Icon name="reply" size={22} color="#FFFFFF" />
+            <Icon name="reply" size={19} color="#FFFFFF" />
             <Text style={styles.actionLabel}>Yanıtla</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={onReport}>
-            <Icon name="warning" size={22} color="#FFFFFF" />
+            <Icon name="warning" size={19} color="#FFFFFF" />
             <Text style={styles.actionLabel}>Bildir</Text>
           </TouchableOpacity>
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={1} style={styles.emojiCard} onPress={() => {}}>
           <View style={styles.searchBar}>
-            <Icon name="search" size={16} color="rgba(255,255,255,0.6)" />
+            <Icon name="search" size={14} color="rgba(255,255,255,0.6)" />
             <TextInput
               value={query}
               onChangeText={setQuery}
@@ -123,48 +125,53 @@ const styles = StyleSheet.create({
   previewCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10,
+    gap: 8,
     backgroundColor: "rgba(28,28,30,0.95)",
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 14,
+    padding: 10,
     marginHorizontal: 16,
   },
-  previewTextCol: { flex: 1, gap: 4 },
-  previewText: { color: "#FFFFFF", fontSize: 14, lineHeight: 19 },
+  previewTextCol: { flex: 1, gap: 2 },
+  previewText: { color: "#FFFFFF", fontSize: 13, lineHeight: 17 },
   previewFrom: { fontWeight: "700" },
-  previewTime: { color: "rgba(255,255,255,0.5)", fontSize: 11 },
+  previewTime: { color: "rgba(255,255,255,0.5)", fontSize: 10 },
   actionsRow: {
     flexDirection: "row",
     backgroundColor: "rgba(28,28,30,0.95)",
-    borderRadius: 16,
+    borderRadius: 14,
     marginHorizontal: 16,
-    marginTop: 10,
+    marginTop: 8,
     overflow: "hidden",
   },
-  actionButton: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14 },
-  actionLabel: { color: "#FFFFFF", fontSize: 12, fontWeight: "600" },
+  actionButton: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 10 },
+  actionLabel: { color: "#FFFFFF", fontSize: 11, fontWeight: "600" },
+  // Sabit, kompakt yukseklik - artik ekranin altina kadar UZAMIYOR (eskiden
+  // flex:1 ile tum kalan alani dolduruyordu), referans ekran goruntusundeki
+  // gibi sadece birkac satirlik bir izgara olarak kalip altinda bos (karanlik
+  // arka plan) alan birakiyor.
   emojiCard: {
-    flex: 1,
+    height: 220,
     backgroundColor: "#000000",
-    marginTop: 14,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 14,
+    marginTop: 10,
+    marginHorizontal: 16,
+    borderRadius: 16,
+    paddingTop: 10,
+    overflow: "hidden",
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-    marginHorizontal: 16,
-    marginBottom: 10,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    gap: 6,
+    marginHorizontal: 12,
+    marginBottom: 6,
   },
-  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 14, outlineWidth: 0, outlineStyle: "none" } as any,
-  noResults: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", textAlign: "center", marginTop: 40 },
-  emojiGrid: { paddingHorizontal: 12, paddingBottom: 24 },
-  emojiCell: { flex: 1, height: 48, borderRadius: 12, justifyContent: "center", alignItems: "center" },
-  emojiText: { fontSize: 28 },
+  searchInput: { flex: 1, color: "#FFFFFF", fontSize: 13, outlineWidth: 0, outlineStyle: "none" } as any,
+  noResults: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", textAlign: "center", marginTop: 32 },
+  emojiGrid: { paddingHorizontal: 8, paddingBottom: 12 },
+  emojiCell: { flex: 1, height: 38, borderRadius: 9, justifyContent: "center", alignItems: "center" },
+  emojiText: { fontSize: 22 },
 });
