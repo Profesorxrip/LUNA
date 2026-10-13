@@ -12,7 +12,7 @@ import { registerForPushNotifications } from "./src/services/notifications";
 import { loadStoredLanguage } from "./src/i18n";
 
 // Roadmap AŞAMA 3: gercek authentication artik zorunlu.
-const PREVIEW_SKIP_AUTH = false;
+const PREVIEW_SKIP_AUTH = true;
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
