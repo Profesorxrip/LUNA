@@ -25,13 +25,14 @@ interface Props {
   visible: boolean;
   target: ProfileOptionsTarget | null;
   // Bu katilimcinin bulundugu odada BEN GERCEKTEN lider miyim - SADECE
-  // liderin elinde olan tek aksiyon (moderatorlugu geri almak) buna bakar.
+  // liderin elinde olan aksiyonlar (Liderligi ver / Moderator yap /
+  // Moderatorlukten cikar) buna bakar, moderatorler bunlari YAPAMAZ.
   isHost: boolean;
-  // Liderlige ozel digerleri (Liderligi ver / Moderator yap / Odadan at /
-  // Mikrofonu Devre Disi Birak) - BEN lider isem HER ZAMAN, moderator isem
-  // SADECE hedef baska bir moderator/lider DEGILSE true gelir (bkz.
-  // RoomScreen.tsx openProfileOptions - sunucudaki canModerate ile AYNI
-  // mantik, sadece burada arayuzu dogru satirlari gosterip gizlemek icin).
+  // Odadan at / Mikrofonu Devre Disi Birak icin - BEN lider isem HER ZAMAN,
+  // moderator isem SADECE hedef baska bir moderator/lider DEGILSE true gelir
+  // (bkz. RoomScreen.tsx openProfileOptions - sunucudaki canModerate ile
+  // AYNI mantik, sadece burada arayuzu dogru satirlari gosterip gizlemek
+  // icin).
   canModerateTarget: boolean;
   onClose: () => void;
   onOpenProfile: (target: ProfileOptionsTarget) => void;
@@ -71,9 +72,11 @@ function colorForName(name: string): string {
  * kullanici adi karti, altinda her biri AYRI yuvarlatilmis birer "hap"
  * (pill) olan aksiyon satirlari (kullanicinin gonderdigi referans ekran
  * goruntusuyle BIREBIR ayni duzen). Hangi ekranda/baglamda kullanilirsa
- * kullanilsin ayni bilesen - liderlige ozel satirlar "canModerateTarget" true
+ * kullanilsin ayni bilesen - Liderligi ver/Moderator yap/Moderatorlukten
+ * cikar SADECE "isHost" true ise (gercek lider, moderatorler bunlari asla
+ * yapamaz); Odadan at/Mikrofonu Devre Disi Birak "canModerateTarget" true
  * ise gosterilir (lider HER ZAMAN, moderator SADECE hedef baska bir
- * moderator/lider DEGILSE - bkz. rooms.ts canModerate), arkadaslikla ilgili
+ * moderator/lider DEGILSE - bkz. rooms.ts canModerate); arkadaslikla ilgili
  * satirlar sadece gercek bir userId/arkadaslik durumu varsa gosterilir. */
 export default function ProfileOptionsSheet({
   visible,
@@ -107,10 +110,13 @@ export default function ProfileOptionsSheet({
   if (target.userId) {
     rows.push({ key: "profile", icon: "person", label: "Profil", onPress: act(onOpenProfile) });
   }
-  if (canModerateTarget && onMakeLeader) {
+  // Liderligi devretmek ve moderator atamak SADECE gercek liderin elinde -
+  // moderatorler bunlari YAPAMAZ (bkz. rooms.ts transferHost/setModerator,
+  // bilerek canModerateTarget DEGIL dogrudan isHost kullanir).
+  if (isHost && onMakeLeader) {
     rows.push({ key: "leader", icon: "crown", label: "Liderliği ver", onPress: act(onMakeLeader) });
   }
-  if (canModerateTarget && !target.isModerator && onMakeModerator) {
+  if (isHost && !target.isModerator && onMakeModerator) {
     rows.push({ key: "moderator", icon: "shield", label: "Moderatör yap", onPress: act(onMakeModerator) });
   }
   if (isHost && target.isModerator && onRemoveModerator) {

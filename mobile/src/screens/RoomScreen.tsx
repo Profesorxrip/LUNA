@@ -332,11 +332,14 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
   const me = room.participants.find((p) => p.socketId === socket.id);
   const isHost = me?.isHost ?? false;
-  // Lider beni moderator yaptiysa - liderin yetkilerinin AYNISINI
-  // kullanabilirim, ama SADECE baska bir moderator/lider OLMAYAN birine
-  // karsi (bkz. ProfileOptionsSheet.tsx canModerateTarget, server/src/
-  // rooms.ts canModerate - sunucu tarafi KENDI kontrolunu ayrica yapar, bu
-  // sadece dogru satirlari gosterip gizlemek icin).
+  // Lider beni moderator yaptiysa - Odadan at/Mikrofonu Devre Disi Birak
+  // yetkilerini kullanabilirim, ama SADECE baska bir moderator/lider
+  // OLMAYAN birine karsi (bkz. ProfileOptionsSheet.tsx canModerateTarget,
+  // server/src/rooms.ts canModerate). Liderligi ver/Moderator yap ise
+  // moderatorlere HICBIR ZAMAN acik degil - SADECE gercek lider yapabilir
+  // (bkz. rooms.ts transferHost/setModerator, bilerek canModerate
+  // kullanmiyorlar). Sunucu tarafi KENDI kontrolunu ayrica yapar, bu
+  // client-side hesap sadece dogru satirlari gosterip gizlemek icin.
   const isModerator = me?.isModerator ?? false;
   // Oynat/duraklat/sarma/ilerletme cubugu HER modda sadece lidere ozel -
   // video SECME yetkisi (openMediaPicker/selectSource'ta ayrica kontrol

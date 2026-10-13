@@ -451,9 +451,11 @@ export const MAX_MODERATORS = 2;
 
 // Lider HER ZAMAN herkese karsi yetki kullanabilir. Moderator ise SADECE
 // baska bir moderator VEYA liderin kendisi OLMAYAN birine karsi - iki
-// moderator birbirini "yonetemez", moderatorler lidere de dokunamaz (bkz.
-// index.ts "host:kick"/"host:transfer"/"room:muteParticipant"/
-// "host:setModerator" - hepsi bunun yerine dogrudan isHost kontrolu yapar).
+// moderator birbirini "yonetemez", moderatorler lidere de dokunamaz. Bunu
+// kullanan: kickParticipant, setParticipantMuted. Liderligi devretmek
+// (transferHost) ve moderatorluk vermek (setModerator) ise BUNU
+// KULLANMIYOR - ikisi de dogrudan isHost kontrolu yapar, yani SADECE
+// lider yapabilir, moderatorler yapamaz.
 export function canModerate(room: Room, requesterId: string, targetId: string): boolean {
   if (requesterId === targetId) return false;
   const requester = room.participants.get(requesterId);
@@ -464,16 +466,16 @@ export function canModerate(room: Room, requesterId: string, targetId: string): 
   return false;
 }
 
-// Moderatorluk VERMEK: lider veya (hedefi zaten yonetebilen) bir moderator -
-// en fazla MAX_MODERATORS kisi ayni anda moderator olabilir. Moderatorlugu
-// GERI ALMAK ise SADECE liderin elinde - moderatorler birbirine dokunamadigi
-// icin (bkz. canModerate) bir moderator baska bir moderatoru asla indiremez.
+// Moderatorluk VERMEK de GERI ALMAK da SADECE liderin elinde - moderatorler
+// baska birini moderator YAPAMAZ (bilerek canModerate KULLANILMIYOR, dogrudan
+// isHost kontrolu yapiliyor). En fazla MAX_MODERATORS kisi ayni anda
+// moderator olabilir.
 export function setModerator(room: Room, requesterId: string, targetId: string, value: boolean): boolean {
   const target = room.participants.get(targetId);
   if (!target) return false;
   if (value) {
     if (target.isModerator || target.isHost) return false;
-    if (!canModerate(room, requesterId, targetId)) return false;
+    if (!isHost(room, requesterId)) return false;
     const currentCount = Array.from(room.participants.values()).filter((p) => p.isModerator).length;
     if (currentCount >= MAX_MODERATORS) return false;
     target.isModerator = true;
@@ -485,8 +487,11 @@ export function setModerator(room: Room, requesterId: string, targetId: string, 
   return true;
 }
 
+// Liderligi devretmek SADECE liderin elinde - moderatorler bunu YAPAMAZ
+// (bkz. canModerate - bu fonksiyon bilerek onu KULLANMIYOR, dogrudan
+// isHost kontrolu yapiyor).
 export function transferHost(room: Room, requesterId: string, targetId: string): boolean {
-  if (!canModerate(room, requesterId, targetId)) return false;
+  if (!isHost(room, requesterId) || requesterId === targetId) return false;
   const currentHostId = room.hostSocketId;
   const current = room.participants.get(currentHostId);
   const target = room.participants.get(targetId);
