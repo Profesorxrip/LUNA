@@ -1450,7 +1450,8 @@ io.on("connection", (socket: Socket) => {
     if (!allow("message:react", 40, 10_000)) return;
     const room = getRoom(currentRoomCode);
     if (!room) return;
-    const fromName = room.participants.get(socket.id)?.name || "?";
+    const reactor = room.participants.get(socket.id);
+    const fromName = reactor?.name || "?";
     let forMessage = room.messageReactions.get(messageId);
     if (!forMessage) {
       forMessage = new Map();
@@ -1460,12 +1461,13 @@ io.on("connection", (socket: Socket) => {
     if (existing && existing.emoji === emoji) {
       forMessage.delete(socket.id);
     } else {
-      forMessage.set(socket.id, { emoji, fromName });
+      forMessage.set(socket.id, { emoji, fromName, fromAvatarUrl: reactor?.avatarUrl ?? null });
     }
     const reactions = Array.from(forMessage.entries()).map(([fromSocketId, r]) => ({
       fromSocketId,
       emoji: r.emoji,
       fromName: r.fromName,
+      fromAvatarUrl: r.fromAvatarUrl ?? null,
     }));
     io.to(currentRoomCode).emit("room:messageReaction", { messageId, reactions });
   });

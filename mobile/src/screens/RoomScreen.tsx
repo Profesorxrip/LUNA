@@ -138,12 +138,15 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
     lastTapRef.current = now;
   }
 
+  // Her tepki - emoji + tepki veren kisinin profil fotografi AYNI cercevenin
+  // (pill) icinde, kim tepki verdigi belli olsun diye (bkz. Avatar.tsx).
   const reactionBadges = item.reactions && item.reactions.length > 0 && (
     <View style={styles.reactionBadgeRow}>
       {item.reactions.map((r) => (
-        <Text key={r.fromSocketId} style={styles.reactionBadgeEmoji}>
-          {r.emoji}
-        </Text>
+        <View key={r.fromSocketId} style={styles.reactionChip}>
+          <Avatar name={r.fromName} avatarUrl={r.fromAvatarUrl} size={14} />
+          <Text style={styles.reactionBadgeEmoji}>{r.emoji}</Text>
+        </View>
       ))}
     </View>
   );
@@ -444,7 +447,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       reactions,
     }: {
       messageId: string;
-      reactions: { emoji: string; fromSocketId: string; fromName: string }[];
+      reactions: { emoji: string; fromSocketId: string; fromName: string; fromAvatarUrl?: string | null }[];
     }) {
       setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)));
     }
@@ -1975,7 +1978,20 @@ const styles = StyleSheet.create({
   messageTextCol: { flexShrink: 1, minHeight: 32, justifyContent: "center" },
   chatMsg: { color: theme.text, fontSize: 14 },
   chatMsgOwn: { color: theme.text, fontSize: 14, textAlign: "right" },
-  reactionBadgeRow: { flexDirection: "row", gap: 2, marginTop: 2 },
+  reactionBadgeRow: { flexDirection: "row", gap: 4, marginTop: 2 },
+  // Her tepkinin cercevesi - tepki veren kisinin pp'si + emoji AYNI pill'in
+  // icinde (bkz. reactionBadges).
+  reactionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: theme.surfaceAlt,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
   reactionBadgeEmoji: { fontSize: 13 },
   chatFrom: { color: theme.text, fontSize: 14, fontWeight: "700" },
   translatedHint: { color: theme.accentBright, fontSize: 10, fontWeight: "600", marginTop: 2 },

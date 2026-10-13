@@ -145,7 +145,7 @@ export interface ChatMessage {
   replyTo?: DMReply | null;
   // Bu mesaja cift-tiklayarak tepki veren katilimcilar (bkz. "message:react" /
   // "room:messageReaction") - oda hafizadan silinince bu da gider, kalici degil.
-  reactions?: { emoji: string; fromSocketId: string; fromName: string }[];
+  reactions?: { emoji: string; fromSocketId: string; fromName: string; fromAvatarUrl?: string | null }[];
   /** "text" her zaman duz bir yedek ozet tasir (bildirim/erisilebilirlik icin) -
    * "kind" verilmisse istemci asagidaki alanlarla Rave'deki gibi zengin
    * (ikonlu, kalin isimli) bir sistem mesaji ciziyor. */
