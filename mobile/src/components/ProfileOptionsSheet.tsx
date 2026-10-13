@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: { width: CARD_WIDTH },
   cardInner: { alignItems: "center", gap: 8 },
-  photo: { width: PHOTO_WIDTH, height: 75, borderRadius: 20 },
+  photo: { width: PHOTO_WIDTH, height: PHOTO_WIDTH, borderRadius: 20 },
   photoPlaceholder: { justifyContent: "center", alignItems: "center" },
   photoInitial: { color: "#FFFFFF", fontSize: 28, fontWeight: "700" },
   nameCard: {
