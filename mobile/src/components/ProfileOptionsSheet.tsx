@@ -2,6 +2,12 @@ import { Image, Modal, View, Text, TouchableOpacity, StyleSheet } from "react-na
 import Icon from "./Icon";
 import type { IconName } from "./Icon";
 
+// DM/UserProfileScreen'deki ile AYNI sunucu degerleri (bkz. server/src/
+// social.ts FriendStatus) - "outgoing" = BEN istek attim (henuz kabul
+// edilmedi), "incoming" = o bana istek atti, "blocked" = BEN onu
+// engellemisim.
+export type FriendStatus = "none" | "outgoing" | "incoming" | "friends" | "blocked";
+
 export interface ProfileOptionsTarget {
   userId?: string | null;
   socketId?: string | null;
@@ -10,11 +16,18 @@ export interface ProfileOptionsTarget {
   avatarUrl?: string | null;
   isHost?: boolean;
   isModerator?: boolean;
-  isFriend?: boolean;
-  // Lider bu katilimcinin mikrofonunu zaten susturmus mu (bkz.
-  // RoomScreen.tsx muteParticipant) - zaten susturulmusse "Mikrofonu Devre
-  // Disi Birak" satiri tekrar gosterilmez.
+  // Gercek arkadaslik/istek/engel durumu (bkz. RoomScreen.tsx
+  // openProfileOptions - acilista "friend:status" ile sunucudan sorulur,
+  // gelene kadar undefined kalir ve "Istek at" varsayilan gosterilir).
+  friendStatus?: FriendStatus;
+  // Lider/moderator bu katilimcinin mikrofonunu zaten devre disi birakmis mi
+  // (bkz. RoomScreen.tsx muteParticipant) - duruma gore "Mikrofonu Devre
+  // Disi Birak" <-> "Mikrofonu Aktif Et" arasinda gidip gelir.
   micDisabled?: boolean;
+  // Lider/moderator bu katilimcinin sohbete YAZMASINI kapatti mi (bkz.
+  // RoomScreen.tsx room:setChatBanned) - "Chati Kapat" <-> "Chati Ac"
+  // arasinda gidip gelir.
+  chatBanned?: boolean;
   // Bu SADECE benim icin kisilmis mi (bkz. useVoiceChat.ts
   // setParticipantVolume) - host olup olmadigima bakmaksizin herkeste olan
   // kisisel bir tercih, odanin geneline etki etmez.
@@ -28,7 +41,7 @@ interface Props {
   // liderin elinde olan aksiyonlar (Liderligi ver / Moderator yap /
   // Moderatorlukten cikar) buna bakar, moderatorler bunlari YAPAMAZ.
   isHost: boolean;
-  // Odadan at / Mikrofonu Devre Disi Birak icin - BEN lider isem HER ZAMAN,
+  // Odadan at / Mikrofon / Chat kapatma icin - BEN lider isem HER ZAMAN,
   // moderator isem SADECE hedef baska bir moderator/lider DEGILSE true gelir
   // (bkz. RoomScreen.tsx openProfileOptions - sunucudaki canModerate ile
   // AYNI mantik, sadece burada arayuzu dogru satirlari gosterip gizlemek
@@ -42,13 +55,17 @@ interface Props {
   // (bkz. rooms.ts canModerate) SADECE gercek lidere ozel, canModerateTarget
   // DEGIL dogrudan isHost'a bakar.
   onRemoveModerator?: (target: ProfileOptionsTarget) => void;
-  onSilence?: (target: ProfileOptionsTarget) => void;
   onKick?: (target: ProfileOptionsTarget) => void;
   onDisableMic?: (target: ProfileOptionsTarget) => void;
+  onEnableMic?: (target: ProfileOptionsTarget) => void;
+  onDisableChat?: (target: ProfileOptionsTarget) => void;
+  onEnableChat?: (target: ProfileOptionsTarget) => void;
   onToggleLocalMute?: (target: ProfileOptionsTarget) => void;
   onSendFriendRequest?: (target: ProfileOptionsTarget) => void;
+  onCancelFriendRequest?: (target: ProfileOptionsTarget) => void;
   onRemoveFriend?: (target: ProfileOptionsTarget) => void;
   onBlock?: (target: ProfileOptionsTarget) => void;
+  onUnblock?: (target: ProfileOptionsTarget) => void;
   onReport?: (target: ProfileOptionsTarget) => void;
 }
 
@@ -70,14 +87,14 @@ function colorForName(name: string): string {
 /** Rave'deki gibi bir katilimcinin profiline/avatarina BASILI TUTUNCA
  * ekranin ORTASINDA acilan kucuk kutu - buyuk kare profil fotografi + isim/
  * kullanici adi karti, altinda her biri AYRI yuvarlatilmis birer "hap"
- * (pill) olan aksiyon satirlari (kullanicinin gonderdigi referans ekran
- * goruntusuyle BIREBIR ayni duzen). Hangi ekranda/baglamda kullanilirsa
- * kullanilsin ayni bilesen - Liderligi ver/Moderator yap/Moderatorlukten
- * cikar SADECE "isHost" true ise (gercek lider, moderatorler bunlari asla
- * yapamaz); Odadan at/Mikrofonu Devre Disi Birak "canModerateTarget" true
- * ise gosterilir (lider HER ZAMAN, moderator SADECE hedef baska bir
- * moderator/lider DEGILSE - bkz. rooms.ts canModerate); arkadaslikla ilgili
- * satirlar sadece gercek bir userId/arkadaslik durumu varsa gosterilir. */
+ * (pill) olan aksiyon satirlari. Hangi ekranda/baglamda kullanilirsa
+ * kullanilsin ayni bilesen - Liderligi ver/Moderator yap/Moderatorlugu al
+ * SADECE "isHost" true ise (gercek lider, moderatorler bunlari asla
+ * yapamaz); Odadan at/Mikrofon/Chat kapatma "canModerateTarget" true ise
+ * gosterilir (lider HER ZAMAN, moderator SADECE hedef baska bir
+ * moderator/lider DEGILSE - bkz. rooms.ts canModerate); Profil/arkadaslik/
+ * engelleme/bildirme SADECE gercek bir userId varsa, role BAKMAKSIZIN
+ * herkese gosterilir; Sessize Al ise rolden tamamen BAGIMSIZ, herkeste. */
 export default function ProfileOptionsSheet({
   visible,
   target,
@@ -88,13 +105,17 @@ export default function ProfileOptionsSheet({
   onMakeLeader,
   onMakeModerator,
   onRemoveModerator,
-  onSilence,
   onKick,
   onDisableMic,
+  onEnableMic,
+  onDisableChat,
+  onEnableChat,
   onToggleLocalMute,
   onSendFriendRequest,
+  onCancelFriendRequest,
   onRemoveFriend,
   onBlock,
+  onUnblock,
   onReport,
 }: Props) {
   if (!target) return null;
@@ -116,22 +137,31 @@ export default function ProfileOptionsSheet({
   if (isHost && onMakeLeader) {
     rows.push({ key: "leader", icon: "crown", label: "Liderliği ver", onPress: act(onMakeLeader) });
   }
-  if (isHost && !target.isModerator && onMakeModerator) {
-    rows.push({ key: "moderator", icon: "shield", label: "Moderatör yap", onPress: act(onMakeModerator) });
+  if (isHost) {
+    if (target.isModerator && onRemoveModerator) {
+      rows.push({ key: "removeModerator", icon: "shield", label: "Moderatörlüğü al", danger: true, onPress: act(onRemoveModerator) });
+    } else if (!target.isModerator && onMakeModerator) {
+      rows.push({ key: "moderator", icon: "shield", label: "Moderatör yap", onPress: act(onMakeModerator) });
+    }
   }
-  if (isHost && target.isModerator && onRemoveModerator) {
-    rows.push({ key: "removeModerator", icon: "shield", label: "Moderatörlükten çıkar", danger: true, onPress: act(onRemoveModerator) });
-  }
-  if (target.userId && target.isFriend && onRemoveFriend) {
-    rows.push({ key: "removeFriend", icon: "personBlock", label: "Arkadaşı sil", onPress: act(onRemoveFriend) });
-  } else if (target.userId && !target.isFriend && onSendFriendRequest) {
-    rows.push({ key: "addFriend", icon: "invite", label: "İstek at", onPress: act(onSendFriendRequest) });
+  if (target.userId) {
+    if (target.friendStatus === "friends" && onRemoveFriend) {
+      rows.push({ key: "removeFriend", icon: "personBlock", label: "Arkadaşı sil", onPress: act(onRemoveFriend) });
+    } else if (target.friendStatus === "outgoing" && onCancelFriendRequest) {
+      rows.push({ key: "cancelFriendRequest", icon: "invite", label: "İsteği iptal et", onPress: act(onCancelFriendRequest) });
+    } else if (onSendFriendRequest) {
+      rows.push({ key: "addFriend", icon: "invite", label: "İstek at", onPress: act(onSendFriendRequest) });
+    }
   }
   if (canModerateTarget && onKick) {
     rows.push({ key: "kick", icon: "kicked", label: "Odadan at", danger: true, onPress: act(onKick) });
   }
-  if (canModerateTarget && !target.micDisabled && onDisableMic) {
-    rows.push({ key: "disableMic", icon: "micOff", label: "Mikrofonu Devre Dışı Bırak", onPress: act(onDisableMic) });
+  if (canModerateTarget) {
+    if (target.micDisabled && onEnableMic) {
+      rows.push({ key: "enableMic", icon: "mic", label: "Mikrofonu Aktif Et", onPress: act(onEnableMic) });
+    } else if (!target.micDisabled && onDisableMic) {
+      rows.push({ key: "disableMic", icon: "micOff", label: "Mikrofonu Devre Dışı Bırak", onPress: act(onDisableMic) });
+    }
   }
   if (onToggleLocalMute) {
     rows.push({
@@ -141,11 +171,19 @@ export default function ProfileOptionsSheet({
       onPress: act(onToggleLocalMute),
     });
   }
-  if (onSilence) {
-    rows.push({ key: "silence", icon: "volumeOff", label: "Sustur", onPress: act(onSilence) });
+  if (canModerateTarget) {
+    if (target.chatBanned && onEnableChat) {
+      rows.push({ key: "enableChat", icon: "chatBubble", label: "Chati Aç", onPress: act(onEnableChat) });
+    } else if (!target.chatBanned && onDisableChat) {
+      rows.push({ key: "disableChat", icon: "chatBubble", label: "Chati Kapat", danger: true, onPress: act(onDisableChat) });
+    }
   }
-  if (target.userId && onBlock) {
-    rows.push({ key: "block", icon: "block", label: "Engelle", danger: true, onPress: act(onBlock) });
+  if (target.userId) {
+    if (target.friendStatus === "blocked" && onUnblock) {
+      rows.push({ key: "unblock", icon: "block", label: "Engeli Kaldır", onPress: act(onUnblock) });
+    } else if (onBlock) {
+      rows.push({ key: "block", icon: "block", label: "Engelle", danger: true, onPress: act(onBlock) });
+    }
   }
   if (target.userId && onReport) {
     rows.push({ key: "report", icon: "warning", label: "Bildir", danger: true, onPress: act(onReport) });

@@ -32,11 +32,16 @@ export interface Participant {
   joinedAtMs: number;
   // Lider (host) bu katilimciya moderatorluk verdi mi (bkz. index.ts
   // "host:setModerator", rooms.ts setModerator) - moderatorler liderin
-  // yetkilerinin (at/mikrofon devre disi/liderlik ver/moderator yap) AYNISINI
+  // "Odadan at"/"Mikrofonu Devre Disi Birak"/"Chati Kapat" yetkilerini
   // kullanabilir, ama SADECE baska bir moderator veya liderin kendisi
-  // OLMAYAN birine karsi (bkz. canModerate). En fazla MAX_MODERATORS kisi
-  // ayni anda moderator olabilir.
+  // OLMAYAN birine karsi (bkz. canModerate). Liderligi devretmek/baskasini
+  // moderator yapmak ise moderatorlere HICBIR ZAMAN acik degil. En fazla
+  // MAX_MODERATORS kisi ayni anda moderator olabilir.
   isModerator?: boolean;
+  // Lider/moderator bu katilimcinin sohbete YAZMASINI kapatti mi (bkz.
+  // index.ts "room:setChatBanned", rooms.ts setChatBanned, "chat:send").
+  // Susturulan kisi sohbeti OKUYABILIR, sadece mesaj GONDEREMEZ.
+  chatBanned?: boolean;
 }
 
 // Ayarlar ekranindaki "GIZLILIK" secenekleri:
@@ -750,6 +755,19 @@ export function setParticipantMuted(room: Room, requesterId: string, targetSocke
   const participant = room.participants.get(targetSocketId);
   if (!participant || participant.muted === muted) return false;
   participant.muted = muted;
+  return true;
+}
+
+// "Chati Kapat/Ac" - lider/moderator bu katilimcinin sohbete YAZMASINI
+// kapatir (bkz. index.ts "chat:send" - chatBanned olan bir mesaj hic
+// yayinlanmaz). Kick/mute ile AYNI yetki kurali (bkz. canModerate): lider
+// herkese, moderator SADECE baska bir moderator/lider OLMAYAN birine karsi.
+export function setChatBanned(room: Room, requesterId: string, targetSocketId: string, banned: boolean): boolean {
+  if (targetSocketId === room.hostSocketId) return false;
+  if (!canModerate(room, requesterId, targetSocketId)) return false;
+  const participant = room.participants.get(targetSocketId);
+  if (!participant || participant.chatBanned === banned) return false;
+  participant.chatBanned = banned;
   return true;
 }
 

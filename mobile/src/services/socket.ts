@@ -31,6 +31,9 @@ export interface Participant {
   // AYNISINI kullanabilir, ama SADECE baska bir moderator/lider OLMAYAN
   // birine karsi.
   isModerator?: boolean;
+  // Lider/moderator bu katilimcinin sohbete YAZMASINI kapatti mi (bkz.
+  // RoomScreen.tsx chat:send ack, ProfileOptionsSheet.tsx "Chati Kapat/Ac").
+  chatBanned?: boolean;
 }
 
 /** Oynatilan medyanin turu - bkz. sunucu tarafi rooms.ts:

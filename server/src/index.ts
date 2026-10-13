@@ -19,6 +19,7 @@ import {
   updateRoomSettings,
   setHostMicOpen,
   setParticipantMuted,
+  setChatBanned,
   voteSkipAdultContent,
   proposeSource,
   startVideoEndedPoll,
@@ -1373,13 +1374,16 @@ io.on("connection", (socket: Socket) => {
     });
   });
 
-  socket.on("chat:send", ({ text, replyTo }: { text: string; replyTo?: DMReply | null }) => {
-    if (!currentRoomCode || !isNonEmptyString(text, 1000)) return;
-    if (!allow("chat:send", 20, 10_000)) return;
-    const validReplyTo =
-      replyTo && isNonEmptyString(replyTo.text, 1000) && isNonEmptyString(replyTo.fromName, 200) ? replyTo : null;
+  socket.on("chat:send", ({ text, replyTo }: { text: string; replyTo?: DMReply | null }, ack) => {
+    if (!currentRoomCode || !isNonEmptyString(text, 1000)) return ack?.({ ok: false });
     const room = getRoom(currentRoomCode);
     const participant = room?.participants.get(socket.id);
+    // "Chati Kapat" (bkz. room:setChatBanned) - susturulan kisi sohbeti
+    // OKUYABILIR, sadece mesaj GONDEREMEZ; mesaj hic yayinlanmaz.
+    if (participant?.chatBanned) return ack?.({ ok: false, error: "Lider/moderator sohbete yazmani kapatti." });
+    if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
+    const validReplyTo =
+      replyTo && isNonEmptyString(replyTo.text, 1000) && isNonEmptyString(replyTo.fromName, 200) ? replyTo : null;
     const messageId = randomUUID();
     const trimmedText = text.trim().slice(0, 1000);
     io.to(currentRoomCode).emit("room:chat", {
@@ -1412,6 +1416,7 @@ io.on("connection", (socket: Socket) => {
         })
         .catch(() => {});
     }
+    ack?.({ ok: true });
   });
 
   // Oda sohbetinde GERCEK fotograf gonderme - oda mesajlari hic kalici
@@ -1618,6 +1623,19 @@ io.on("connection", (socket: Socket) => {
     // false, geri aciliyorsa oda genel politikasina (micOpenToAll) doner.
     const canPublish = !muted && room.micOpenToAll;
     syncVoicePermissions(currentRoomCode, [{ socketId: targetSocketId, canPublish }]).catch(() => {});
+  });
+
+  // "Chati Kapat/Ac" - room:muteParticipant ile AYNI yetki kurali
+  // (canModerate), ama sesi degil SOHBETE YAZMAYI kapatir.
+  socket.on("room:setChatBanned", ({ targetSocketId, banned }: { targetSocketId: string; banned: boolean }, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    if (!isNonEmptyString(targetSocketId, 100) || !isBoolean(banned)) return ack?.({ ok: false, error: "Gecersiz istek." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    const applied = setChatBanned(room, socket.id, targetSocketId, banned);
+    if (!applied) return ack?.({ ok: false, error: "Bu islemi sadece lider/moderator yapabilir." });
+    ack?.({ ok: true });
+    broadcastRoom(currentRoomCode);
   });
 
   socket.on("voice:token", async (_data, ack) => {

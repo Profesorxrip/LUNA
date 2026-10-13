@@ -986,7 +986,9 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
   function sendChat() {
     if (!chatInput.trim()) return;
-    socket.emit("chat:send", { text: chatInput, replyTo: replyingTo });
+    socket.emit("chat:send", { text: chatInput, replyTo: replyingTo }, (res: any) => {
+      if (res && !res.ok) showAlert("Gönderilemedi", res.error || "Mesaj gönderilemedi.");
+    });
     setChatInput("");
     setReplyingTo(null);
   }
@@ -1071,10 +1073,21 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       avatarUrl: p.avatarUrl,
       isHost: p.isHost,
       isModerator: p.isModerator,
-      isFriend: Boolean(p.userId && friendIds.has(p.userId)),
+      // Ilk anlik tahmin (arkadas listesinden, SENKRON) - "outgoing"/
+      // "blocked" durumunu bilemeyiz, onun icin asagida sunucuya soruyoruz;
+      // cevap gelince ayni p.socketId'li hedefse guncelliyoruz (kart kapanip
+      // baskasi acilmissa UYGULANMAZ).
+      friendStatus: p.userId && friendIds.has(p.userId) ? "friends" : undefined,
       micDisabled: p.muted,
+      chatBanned: p.chatBanned,
       locallyMuted: locallyMutedIds.has(p.socketId),
     });
+    if (p.userId) {
+      socket.emit("friend:status", { withUserId: p.userId }, (res: any) => {
+        if (!res?.ok) return;
+        setProfileOptionsTarget((prev) => (prev && prev.socketId === p.socketId ? { ...prev, friendStatus: res.status } : prev));
+      });
+    }
   }
   function closeProfileOptions() {
     setProfileOptionsTarget(null);
@@ -1100,6 +1113,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       if (res?.ok) showAlert("İstek gönderildi", `${target.name} kullanıcısına arkadaşlık isteği gönderildi.`);
     });
   }
+  function cancelFriendRequestFromProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    socket.emit("friend:cancel", { toUserId: target.userId }, () => {});
+  }
   function removeFriendFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     socket.emit("friend:remove", { userId: target.userId }, (res: any) => {
@@ -1124,18 +1141,30 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     if (!target.socketId) return;
     socket.emit("host:setModerator", { targetSocketId: target.socketId, value: false }, () => {});
   }
-  // "Sustur" - kullanicinin profil kartina eklenmesini istedigi ama ne ise
-  // yarayacagini YARIN acikliyacagini soyledigi satir - henuz gercek bir
-  // sunucu karsiligi YOK, bu yuzden sessizce "basariyla yapildi" gibi
-  // davranmak yerine durumu acikca soyluyor.
-  function silenceParticipantPlaceholder(target: ProfileOptionsTarget) {
-    showAlert("Yakında", "\"Sustur\" aksiyonu henüz eklenmedi.");
+  function enableMicFromProfile(target: ProfileOptionsTarget) {
+    if (!target.socketId) return;
+    muteParticipant(target.socketId, false);
+  }
+  // "Chati Kapat/Ac" - sadece ses degil, SOHBETE YAZMAYI kapatir (bkz.
+  // server/src/index.ts "chat:send" - chatBanned olan bir mesaj hic
+  // yayinlanmaz). kick/mute ile AYNI yetki kurali (canModerateTarget).
+  function disableChatFromProfile(target: ProfileOptionsTarget) {
+    if (!target.socketId) return;
+    socket.emit("room:setChatBanned", { targetSocketId: target.socketId, banned: true }, () => {});
+  }
+  function enableChatFromProfile(target: ProfileOptionsTarget) {
+    if (!target.socketId) return;
+    socket.emit("room:setChatBanned", { targetSocketId: target.socketId, banned: false }, () => {});
   }
   function blockFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     socket.emit("friend:block", { userId: target.userId }, (res: any) => {
       if (res?.ok) showAlert("Engellendi", `${target.name} engellendi.`);
     });
+  }
+  function unblockFromProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    socket.emit("friend:unblock", { userId: target.userId }, () => {});
   }
   function reportParticipant(target: ProfileOptionsTarget) {
     if (!target.userId) return;
@@ -1546,13 +1575,14 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         </TouchableOpacity>
         <TextInput
           style={styles.chatInput}
-          placeholder="Mesaj yaz..."
+          placeholder={me?.chatBanned ? "Sohbete yazman kapatıldı" : "Mesaj yaz..."}
           placeholderTextColor={theme.textMuted}
           value={chatInput}
           onChangeText={setChatInput}
           onSubmitEditing={sendChat}
           onFocus={() => setChatFocused(true)}
           onBlur={() => setChatFocused(false)}
+          editable={!me?.chatBanned}
         />
         {chatFocused ? (
           // Yaziyorken: Rave'deki gibi sadece gonder oku gorunur.
@@ -1698,11 +1728,15 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onRemoveModerator={removeModerator}
         onKick={(t) => t.socketId && kick(t.socketId)}
         onDisableMic={(t) => t.socketId && muteParticipant(t.socketId, true)}
+        onEnableMic={enableMicFromProfile}
+        onDisableChat={disableChatFromProfile}
+        onEnableChat={enableChatFromProfile}
         onToggleLocalMute={toggleLocalMute}
-        onSilence={silenceParticipantPlaceholder}
         onSendFriendRequest={sendFriendRequestFromProfile}
+        onCancelFriendRequest={cancelFriendRequestFromProfile}
         onRemoveFriend={removeFriendFromProfile}
         onBlock={blockFromProfile}
+        onUnblock={unblockFromProfile}
         onReport={reportParticipant}
       />
 
