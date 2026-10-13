@@ -68,10 +68,9 @@ interface ChatBubbleRowProps {
   groupedWithPrev: boolean;
   onReply: () => void;
   onDoubleTap: () => void;
-  // Mesaja BASILI TUTUNCA (Rave'deki gibi) acilan kart - basilan mesajin
-  // GERCEK ekran konumunu (measureInWindow) da bildirir ki kart o mesajin
-  // tam oldugu yerde "asili" gorunsun (bkz. MessageOptionsSheet.tsx).
-  onLongPressMessage: (anchorY: number) => void;
+  // Mesaja BASILI TUTUNCA (Rave'deki gibi) ekranin altina acilan panel
+  // (bkz. MessageOptionsSheet.tsx).
+  onLongPressMessage: () => void;
   // Discover'daki mavi "arkadas halkasi" ile AYNI - bu mesaji gonderen
   // gercek arkadasimizsa true (bkz. Avatar.tsx isFriend, RoomScreen.tsx
   // friendIds).
@@ -92,11 +91,6 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
   const { i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
-  const bubbleRef = useRef<any>(null);
-
-  function handleLongPress() {
-    bubbleRef.current?.measureInWindow((_x: number, y: number) => onLongPressMessage(y));
-  }
   // "Chat Mesajlarini Otomatik Cevir" - ceviri varsa varsayilan GOSTERILIR,
   // dokununca orijinal metne gecilip geri donulebilir (Instagram/WhatsApp'taki
   // "Cevirisini gor / Orijinali gor" deseniyle ayni mantik).
@@ -169,7 +163,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
             {item.mediaUrl ? (
               <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
             ) : (
-              <TouchableOpacity ref={bubbleRef} activeOpacity={1} onPress={handleTap} onLongPress={handleLongPress}>
+              <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
                 <Text style={styles.chatMsgOwn} selectable={false}>
                   {displayText}
                 </Text>
@@ -199,7 +193,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
                 <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
               </>
             ) : (
-              <TouchableOpacity ref={bubbleRef} activeOpacity={1} onPress={handleTap} onLongPress={handleLongPress}>
+              <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
                 <Text style={styles.chatMsg} selectable={false}>
                   {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
                   {displayText}
@@ -1002,15 +996,12 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
   // Mesaja BASILI TUTUNCA acilan kart (Rave'deki gibi) - bkz.
   // MessageOptionsSheet.tsx / ChatBubbleRow onLongPressMessage.
   const [optionsMessage, setOptionsMessage] = useState<ChatMessage | null>(null);
-  const [optionsAnchorY, setOptionsAnchorY] = useState<number | null>(null);
 
-  function openMessageOptions(item: ChatMessage, anchorY: number) {
+  function openMessageOptions(item: ChatMessage) {
     setOptionsMessage(item);
-    setOptionsAnchorY(anchorY);
   }
   function closeMessageOptions() {
     setOptionsMessage(null);
-    setOptionsAnchorY(null);
   }
   async function copyOptionsMessage() {
     if (optionsMessage) await Clipboard.setStringAsync(optionsMessage.text);
@@ -1352,7 +1343,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
               groupedWithPrev={groupedWithPrev}
               onReply={() => startReply(item)}
               onDoubleTap={() => reactToMessage(item)}
-              onLongPressMessage={(anchorY) => openMessageOptions(item, anchorY)}
+              onLongPressMessage={() => openMessageOptions(item)}
               isFriend={Boolean(senderUserId && friendIds.has(senderUserId))}
             />
           ) : item.kind === "joined" ? (
@@ -1577,7 +1568,6 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
       <MessageOptionsSheet
         visible={!!optionsMessage}
         message={optionsMessage}
-        anchorY={optionsAnchorY}
         onClose={closeMessageOptions}
         onCopy={copyOptionsMessage}
         onReply={replyToOptionsMessage}
