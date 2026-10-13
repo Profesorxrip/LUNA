@@ -22,13 +22,17 @@ interface Props {
   onPress?: () => void;
   onLongPress?: () => void;
   onOpenParticipant?: (peer: { userId: string; name: string }) => void;
+  // Bir katilimci avatarina BASILI TUTUNCA - kartin geri kalanindaki
+  // onLongPress'ten (oda onizlemesini acar) FARKLI olarak, o kisinin
+  // profil kartini (bkz. ProfileOptionsSheet.tsx) acar.
+  onLongPressParticipant?: (peer: { userId: string; name: string }) => void;
   style?: StyleProp<ViewStyle>;
 }
 
 /** Discover'daki oda kartinin TEK kaynagi - baska bir ekranda (orn. profildeki
  * "su an acik odasi") ayni kart gerekirse BURADAN kullanilir, kopyalanmaz -
  * boylece ikisi her zaman birebir ayni gorunur. */
-export default function RoomCard({ room, friendIds = new Set(), onPress, onLongPress, onOpenParticipant, style }: Props) {
+export default function RoomCard({ room, friendIds = new Set(), onPress, onLongPress, onOpenParticipant, onLongPressParticipant, style }: Props) {
   const badgeInfo = badgeInfoForSource(room.source);
   const coverUrl = coverUrlForSource(room.source);
   return (
@@ -72,8 +76,10 @@ export default function RoomCard({ room, friendIds = new Set(), onPress, onLongP
             return (
               <TouchableOpacity
                 key={i}
-                disabled={!p.userId || !onOpenParticipant}
+                disabled={!p.userId || (!onOpenParticipant && !onLongPressParticipant)}
                 onPress={() => p.userId && onOpenParticipant?.({ userId: p.userId, name: p.name })}
+                onLongPress={() => p.userId && onLongPressParticipant?.({ userId: p.userId, name: p.name })}
+                delayLongPress={350}
                 style={[
                   styles.participantAvatar,
                   { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },

@@ -22,6 +22,8 @@ import RoomCard from "../components/RoomCard";
 import BoldPlusIcon from "../components/BoldPlusIcon";
 import { useFocusEffect } from "@react-navigation/native";
 import { getHiddenRoomCodes } from "../utils/hiddenRooms";
+import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
+import { showAlert } from "../components/CustomAlert";
 
 interface Props {
   onJoinRoom: (room: RoomState) => void;
@@ -78,6 +80,13 @@ export default function DiscoverScreen({
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [hiddenCodes, setHiddenCodes] = useState<Set<string>>(new Set());
+  // Bir oda kartindaki bir katilimcinin avatarina BASILI TUTUNCA acilan
+  // profil karti (bkz. ProfileOptionsSheet.tsx) - RoomScreen.tsx'teki AYNI
+  // bilesen, ama isHost/canModerateTarget hep false ve oda-ici (lider/
+  // moderator/mikrofon/chat) handler'lari HIC verilmiyor, boylece sadece
+  // Profil/arkadaslik/Engelle/Bildir satirlari goruntuleniyor - "Keşfet"ten
+  // henuz o odaya girilmedigi icin oda yonetimi burada anlamsiz.
+  const [profileOptionsTarget, setProfileOptionsTarget] = useState<ProfileOptionsTarget | null>(null);
   const widthRef = useRef(width);
   widthRef.current = width;
 
@@ -147,6 +156,68 @@ export default function DiscoverScreen({
       socket.off("rooms:list", setSections);
     };
   }, [fetchRooms]);
+
+  // Bir katilimci avatarina basili tutunca - RoomScreen.tsx openProfileOptions
+  // ile AYNI desen: once arkadas listesinden ANINDA bir tahmin, sonra
+  // sunucudan GERCEK durumu (outgoing/incoming/blocked) sorup guncelliyoruz.
+  function openParticipantOptions(peer: { userId: string; name: string }) {
+    setProfileOptionsTarget({
+      userId: peer.userId,
+      name: peer.name,
+      friendStatus: friendIds.has(peer.userId) ? "friends" : undefined,
+    });
+    getSocket().emit("friend:status", { withUserId: peer.userId }, (res: any) => {
+      if (!res?.ok) return;
+      setProfileOptionsTarget((prev) => (prev && prev.userId === peer.userId ? { ...prev, friendStatus: res.status } : prev));
+    });
+  }
+  function closeProfileOptions() {
+    setProfileOptionsTarget(null);
+  }
+  function openParticipantProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    onOpenParticipant({ userId: target.userId, name: target.name });
+  }
+  function sendFriendRequestFromProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    getSocket().emit("friend:request", { toUserId: target.userId }, (res: any) => {
+      if (res?.ok) showAlert("İstek gönderildi", `${target.name} kullanıcısına arkadaşlık isteği gönderildi.`);
+    });
+  }
+  function cancelFriendRequestFromProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    getSocket().emit("friend:cancel", { toUserId: target.userId }, () => {});
+  }
+  function removeFriendFromProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    getSocket().emit("friend:remove", { userId: target.userId }, (res: any) => {
+      if (res?.ok) setFriendIds((prev) => {
+        const next = new Set(prev);
+        next.delete(target.userId!);
+        return next;
+      });
+    });
+  }
+  function blockFromProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    getSocket().emit("friend:block", { userId: target.userId }, (res: any) => {
+      if (res?.ok) showAlert("Engellendi", `${target.name} engellendi.`);
+    });
+  }
+  function unblockFromProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    getSocket().emit("friend:unblock", { userId: target.userId }, () => {});
+  }
+  function reportParticipant(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    getSocket().emit(
+      "report:submit",
+      { targetUserId: target.userId, reason: "Keşfet oda kartından bildirildi" },
+      (res: any) => {
+        if (res?.ok) showAlert("Bildirildi", "Bu kullanıcı moderasyon ekibine iletildi, teşekkürler.");
+      }
+    );
+  }
 
   function joinByCode(code: string) {
     // "name" gonderilmiyor - sunucu zaten identify olmus GERCEK kullanicinin
@@ -226,6 +297,7 @@ export default function DiscoverScreen({
                 onPress={() => joinByCode(item.code)}
                 onLongPress={() => onOpenRoomPreview(item)}
                 onOpenParticipant={onOpenParticipant}
+                onLongPressParticipant={openParticipantOptions}
                 style={{ flex: 1 / numColumns }}
               />
             ))}
@@ -241,6 +313,21 @@ export default function DiscoverScreen({
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
         onSelect={createRoomWithSource}
+      />
+
+      <ProfileOptionsSheet
+        visible={!!profileOptionsTarget}
+        target={profileOptionsTarget}
+        isHost={false}
+        canModerateTarget={false}
+        onClose={closeProfileOptions}
+        onOpenProfile={openParticipantProfile}
+        onSendFriendRequest={sendFriendRequestFromProfile}
+        onCancelFriendRequest={cancelFriendRequestFromProfile}
+        onRemoveFriend={removeFriendFromProfile}
+        onBlock={blockFromProfile}
+        onUnblock={unblockFromProfile}
+        onReport={reportParticipant}
       />
     </View>
   );
