@@ -199,7 +199,7 @@ export default function DiscoverScreen({
         }
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeaderRow}>
-            <Icon name={section.icon} size={14} color={theme.textMuted} />
+            <Icon name={section.icon} size={20} color={theme.textMuted} />
             <Text style={styles.sectionHeader}>{section.title}</Text>
           </View>
         )}
@@ -266,14 +266,15 @@ const styles = StyleSheet.create({
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "center",
+    gap: 8,
     paddingHorizontal: 8,
     paddingTop: 14,
     paddingBottom: 6,
   },
   sectionHeader: {
     color: theme.textMuted,
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
