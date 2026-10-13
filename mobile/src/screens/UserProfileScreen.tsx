@@ -649,8 +649,8 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
                 <Text style={styles.secondaryButtonText}>İsteği İptal Et</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={styles.primaryButton} onPress={sendFriendRequest}>
-                <Text style={styles.primaryButtonText}>İstek Gönder</Text>
+              <TouchableOpacity style={styles.requestButton} onPress={sendFriendRequest}>
+                <Text style={styles.requestButtonText}>İstek Gönder</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -991,6 +991,19 @@ const styles = StyleSheet.create({
   chartSelected: { color: MUTED, fontSize: 11, textAlign: "center" },
   primaryButton: { flex: 1, backgroundColor: ACCENT, borderRadius: 8, paddingVertical: 14, alignItems: "center" },
   primaryButtonText: { color: "#04140D", fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
+  // "Çıkış Yap" (ProfileScreen.tsx signOutButton) ile AYNI hap/kapsul sekli
+  // (borderRadius:30, borderWidth:1 cerceve) - sadece renk tonlari kirmizi
+  // yerine mavi (ACCENT bazli).
+  requestButton: {
+    flex: 1,
+    backgroundColor: "rgba(14,165,233,0.15)",
+    borderRadius: 30,
+    paddingVertical: 14,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(14,165,233,0.4)",
+  },
+  requestButtonText: { color: ACCENT, fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
   secondaryButton: {
     flex: 1,
     backgroundColor: "transparent",
