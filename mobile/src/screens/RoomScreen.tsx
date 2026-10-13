@@ -39,6 +39,8 @@ import ChatImageBubble from "../components/ChatImageBubble";
 import RoomMapSheet from "../components/RoomMapSheet";
 import RoomQuickCards, { PRIVACY_OPTIONS, PLAYBACK_INFO } from "../components/RoomQuickCards";
 import Avatar from "../components/Avatar";
+import CrownBadge from "../components/CrownBadge";
+import ModeratorBadge from "../components/ModeratorBadge";
 import AdultBadge from "../components/AdultBadge";
 import { coverUrlForSource } from "../utils/media";
 import Icon, { IconName } from "../components/Icon";
@@ -80,6 +82,32 @@ interface ChatBubbleRowProps {
   // gercek arkadasimizsa true (bkz. Avatar.tsx isFriend, RoomScreen.tsx
   // friendIds).
   isFriend: boolean;
+  // Katilimcilar panelindeki taç/kalkan rozetleriyle AYNI (bkz.
+  // ParticipantsModal.tsx) - sohbette de gonderici lider/moderatorse
+  // avatarinin uzerinde gosterilir.
+  senderIsHost: boolean;
+  senderIsModerator: boolean;
+}
+
+/** Sohbetteki avatarin ustune, katilimcilar panelindekiyle AYNI konumda
+ * (lider = tac, ustte / moderator = kalkan, sag altta) rozet ekler - bkz.
+ * ParticipantsModal.tsx hostBadge/moderatorBadge. */
+function ChatAvatar({ name, avatarUrl, isFriend, isHost, isModerator }: { name: string; avatarUrl?: string | null; isFriend: boolean; isHost: boolean; isModerator: boolean }) {
+  return (
+    <View style={styles.chatAvatarWrap}>
+      <Avatar name={name} avatarUrl={avatarUrl} size={32} isFriend={isFriend} />
+      {isHost && (
+        <View style={styles.chatHostBadge}>
+          <CrownBadge size={16} color={theme.accent} />
+        </View>
+      )}
+      {isModerator && (
+        <View style={styles.chatModeratorBadge}>
+          <ModeratorBadge size={10} color="#fff" />
+        </View>
+      )}
+    </View>
+  );
 }
 
 /** Sohbet mesaji satiri - kendi mesajimizi SAGDAN SOLA, baskasinin mesajini
@@ -92,7 +120,7 @@ interface ChatBubbleRowProps {
  * doldurup tasdigi icin ustten baslamaya devam ediyor. Bu sayede react-
  * native-web'de desteklenmeyen onTextLayout'a bagli kalinmiyor ve native'de
  * de ilk render'da dogru pozisyonla cikiyor - sonradan "ziplama" olmuyor. */
-function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onLongPressMessage, isFriend }: ChatBubbleRowProps) {
+function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onLongPressMessage, isFriend, senderIsHost, senderIsModerator }: ChatBubbleRowProps) {
   const { i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
@@ -181,12 +209,14 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
             )}
             {reactionBadges}
           </View>
-          {!groupedWithPrev && <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} isFriend={isFriend} />}
+          {!groupedWithPrev && (
+            <ChatAvatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} isFriend={isFriend} isHost={senderIsHost} isModerator={senderIsModerator} />
+          )}
         </>
       ) : (
         <>
           {!groupedWithPrev ? (
-            <Avatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} size={32} isFriend={isFriend} />
+            <ChatAvatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} isFriend={isFriend} isHost={senderIsHost} isModerator={senderIsModerator} />
           ) : (
             <View style={styles.avatarSpacer} />
           )}
@@ -1473,7 +1503,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
           // devaminda sadece metin aliniyor.
           const prev = messages[index - 1];
           const groupedWithPrev = !!prev && !prev.system && !item.system && prev.fromSocketId === item.fromSocketId;
-          const senderUserId = room.participants.find((p) => p.socketId === item.fromSocketId)?.userId;
+          const sender = room.participants.find((p) => p.socketId === item.fromSocketId);
           return !item.system ? (
             <ChatBubbleRow
               item={item}
@@ -1482,7 +1512,9 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               onReply={() => startReply(item)}
               onDoubleTap={() => reactToMessage(item)}
               onLongPressMessage={() => openMessageOptions(item)}
-              isFriend={Boolean(senderUserId && friendIds.has(senderUserId))}
+              isFriend={Boolean(sender?.userId && friendIds.has(sender.userId))}
+              senderIsHost={Boolean(sender?.isHost)}
+              senderIsModerator={Boolean(sender?.isModerator)}
             />
           ) : item.kind === "joined" ? (
             <View style={styles.messageRow}>
@@ -1925,6 +1957,11 @@ const styles = StyleSheet.create({
   // ilkinde gosterilir - devam eden satirlar avatarin genisligi kadar
   // bosluk birakip metnin hizasini korur (Rave'deki gruplama davranisi).
   avatarSpacer: { width: 32 },
+  // ParticipantsModal.tsx avatarWrap/hostBadge/moderatorBadge ile AYNI
+  // konumlandirma, sadece 32'lik sohbet avatarina oranli kucultulmus.
+  chatAvatarWrap: { position: "relative" },
+  chatHostBadge: { position: "absolute", top: -12, left: 0, right: 0, alignItems: "center" },
+  chatModeratorBadge: { position: "absolute", bottom: -2, right: -2 },
   // Metin + (varsa) alinti kutusunu dikey olarak ust uste dizen sutun.
   // minHeight avatarin boyuyla (32) ayni, justifyContent:"center" ile:
   // - Tek satirlik kisa metin bu 32'lik kutunun icinde dikey ortalanir ->
