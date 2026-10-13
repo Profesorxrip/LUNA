@@ -26,6 +26,11 @@ export interface Participant {
   // Oda haritasi icin - sadece "Konumu Gizle" kapali olup paylasmayi
   // SECEN katilimcilarda dolu (bkz. RoomMapSheet.tsx).
   location?: { lat: number; lng: number } | null;
+  // Lider bu katilimciya moderatorluk verdi mi (bkz. ProfileOptionsSheet.tsx,
+  // server/src/rooms.ts canModerate) - moderatorler liderin yetkilerinin
+  // AYNISINI kullanabilir, ama SADECE baska bir moderator/lider OLMAYAN
+  // birine karsi.
+  isModerator?: boolean;
 }
 
 /** Oynatilan medyanin turu - bkz. sunucu tarafi rooms.ts:

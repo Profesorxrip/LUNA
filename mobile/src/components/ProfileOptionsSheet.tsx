@@ -9,6 +9,7 @@ export interface ProfileOptionsTarget {
   handle?: string | null;
   avatarUrl?: string | null;
   isHost?: boolean;
+  isModerator?: boolean;
   isFriend?: boolean;
   // Lider bu katilimcinin mikrofonunu zaten susturmus mu (bkz.
   // RoomScreen.tsx muteParticipant) - zaten susturulmusse "Mikrofonu Devre
@@ -23,20 +24,23 @@ export interface ProfileOptionsTarget {
 interface Props {
   visible: boolean;
   target: ProfileOptionsTarget | null;
-  // Bu katilimcinin bulundugu odada BEN lider miyim - liderlige ozel
-  // satirlar (Liderligi ver / At / Mikrofonu Devre Disi Birak) sadece bu
-  // true ve hedef ben degilsem gosterilir. Oda disi (orn. DM/Discover)
-  // kullanimlarda hep false gecilebilir.
+  // Bu katilimcinin bulundugu odada BEN GERCEKTEN lider miyim - SADECE
+  // liderin elinde olan tek aksiyon (moderatorlugu geri almak) buna bakar.
   isHost: boolean;
+  // Liderlige ozel digerleri (Liderligi ver / Moderator yap / Odadan at /
+  // Mikrofonu Devre Disi Birak) - BEN lider isem HER ZAMAN, moderator isem
+  // SADECE hedef baska bir moderator/lider DEGILSE true gelir (bkz.
+  // RoomScreen.tsx openProfileOptions - sunucudaki canModerate ile AYNI
+  // mantik, sadece burada arayuzu dogru satirlari gosterip gizlemek icin).
+  canModerateTarget: boolean;
   onClose: () => void;
   onOpenProfile: (target: ProfileOptionsTarget) => void;
   onMakeLeader?: (target: ProfileOptionsTarget) => void;
-  // Henuz sunucu tarafinda bir "moderator" rolu YOK - bu iki satir
-  // (Moderator yap / Sustur) kullanicinin "yarin ne ise yaradiklarini
-  // anlatip duzelticem" demesi uzerine SADECE kart uzerinde gorunsunler
-  // diye eklendi, su an gercek bir sunucu aksiyonu TETIKLEMIYOR (bkz.
-  // RoomScreen.tsx onMakeModerator/onSilence - "yakinda" uyarisi gosterir).
   onMakeModerator?: (target: ProfileOptionsTarget) => void;
+  // Moderatorlugu GERI ALMAK - moderatorler birbirine dokunamadigi icin
+  // (bkz. rooms.ts canModerate) SADECE gercek lidere ozel, canModerateTarget
+  // DEGIL dogrudan isHost'a bakar.
+  onRemoveModerator?: (target: ProfileOptionsTarget) => void;
   onSilence?: (target: ProfileOptionsTarget) => void;
   onKick?: (target: ProfileOptionsTarget) => void;
   onDisableMic?: (target: ProfileOptionsTarget) => void;
@@ -67,17 +71,20 @@ function colorForName(name: string): string {
  * kullanici adi karti, altinda her biri AYRI yuvarlatilmis birer "hap"
  * (pill) olan aksiyon satirlari (kullanicinin gonderdigi referans ekran
  * goruntusuyle BIREBIR ayni duzen). Hangi ekranda/baglamda kullanilirsa
- * kullanilsin ayni bilesen - liderlige ozel satirlar sadece "isHost" true ve
- * hedef kendim degilsem, arkadaslikla ilgili satirlar sadece gercek bir
- * userId/arkadaslik durumu varsa gosterilir. */
+ * kullanilsin ayni bilesen - liderlige ozel satirlar "canModerateTarget" true
+ * ise gosterilir (lider HER ZAMAN, moderator SADECE hedef baska bir
+ * moderator/lider DEGILSE - bkz. rooms.ts canModerate), arkadaslikla ilgili
+ * satirlar sadece gercek bir userId/arkadaslik durumu varsa gosterilir. */
 export default function ProfileOptionsSheet({
   visible,
   target,
   isHost,
+  canModerateTarget,
   onClose,
   onOpenProfile,
   onMakeLeader,
   onMakeModerator,
+  onRemoveModerator,
   onSilence,
   onKick,
   onDisableMic,
@@ -100,21 +107,24 @@ export default function ProfileOptionsSheet({
   if (target.userId) {
     rows.push({ key: "profile", icon: "person", label: "Profil", onPress: act(onOpenProfile) });
   }
-  if (isHost && onMakeLeader) {
+  if (canModerateTarget && onMakeLeader) {
     rows.push({ key: "leader", icon: "crown", label: "Liderliği ver", onPress: act(onMakeLeader) });
   }
-  if (isHost && onMakeModerator) {
+  if (canModerateTarget && !target.isModerator && onMakeModerator) {
     rows.push({ key: "moderator", icon: "shield", label: "Moderatör yap", onPress: act(onMakeModerator) });
+  }
+  if (isHost && target.isModerator && onRemoveModerator) {
+    rows.push({ key: "removeModerator", icon: "shield", label: "Moderatörlükten çıkar", danger: true, onPress: act(onRemoveModerator) });
   }
   if (target.userId && target.isFriend && onRemoveFriend) {
     rows.push({ key: "removeFriend", icon: "personBlock", label: "Arkadaşı sil", onPress: act(onRemoveFriend) });
   } else if (target.userId && !target.isFriend && onSendFriendRequest) {
     rows.push({ key: "addFriend", icon: "invite", label: "İstek at", onPress: act(onSendFriendRequest) });
   }
-  if (isHost && onKick) {
+  if (canModerateTarget && onKick) {
     rows.push({ key: "kick", icon: "kicked", label: "Odadan at", danger: true, onPress: act(onKick) });
   }
-  if (isHost && !target.micDisabled && onDisableMic) {
+  if (canModerateTarget && !target.micDisabled && onDisableMic) {
     rows.push({ key: "disableMic", icon: "micOff", label: "Mikrofonu Devre Dışı Bırak", onPress: act(onDisableMic) });
   }
   if (onToggleLocalMute) {

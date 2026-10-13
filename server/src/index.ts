@@ -14,6 +14,7 @@ import {
   leaveRoom,
   kickParticipant,
   transferHost,
+  setModerator,
   updatePlayback,
   updateRoomSettings,
   setHostMicOpen,
@@ -1514,6 +1515,20 @@ io.on("connection", (socket: Socket) => {
     const room = getRoom(currentRoomCode);
     if (!room) return ack?.({ ok: false });
     const ok = transferHost(room, socket.id, targetSocketId);
+    if (ok) broadcastRoom(currentRoomCode);
+    ack?.({ ok });
+  });
+
+  // Moderatorluk ver/geri al - lider HER ZAMAN, bir moderator ise SADECE
+  // baska bir moderator/lider OLMAYAN birine moderatorluk VEREBILIR;
+  // moderatorlugu geri almak SADECE liderin elinde (bkz. rooms.ts
+  // setModerator/canModerate - en fazla MAX_MODERATORS kisi ayni anda
+  // moderator olabilir).
+  socket.on("host:setModerator", ({ targetSocketId, value }: { targetSocketId: string; value: boolean }, ack) => {
+    if (!currentRoomCode || !isNonEmptyString(targetSocketId, 100) || !isBoolean(value)) return ack?.({ ok: false });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false });
+    const ok = setModerator(room, socket.id, targetSocketId, value);
     if (ok) broadcastRoom(currentRoomCode);
     ack?.({ ok });
   });

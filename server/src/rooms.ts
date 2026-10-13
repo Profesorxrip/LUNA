@@ -30,6 +30,13 @@ export interface Participant {
   // Discover'daki "Açık" bolumunde siralama icin - bir arkadasimin bu odaya
   // EN SON NE ZAMAN GIRDIGINI bulabilmek icin (bkz. mostRecentFriendJoinMs).
   joinedAtMs: number;
+  // Lider (host) bu katilimciya moderatorluk verdi mi (bkz. index.ts
+  // "host:setModerator", rooms.ts setModerator) - moderatorler liderin
+  // yetkilerinin (at/mikrofon devre disi/liderlik ver/moderator yap) AYNISINI
+  // kullanabilir, ama SADECE baska bir moderator veya liderin kendisi
+  // OLMAYAN birine karsi (bkz. canModerate). En fazla MAX_MODERATORS kisi
+  // ayni anda moderator olabilir.
+  isModerator?: boolean;
 }
 
 // Ayarlar ekranindaki "GIZLILIK" secenekleri:
@@ -436,9 +443,52 @@ export function isHost(room: Room, socketId: string): boolean {
   return room.hostSocketId === socketId;
 }
 
-export function transferHost(room: Room, requesterId: string, targetId: string): boolean {
+export function isModerator(room: Room, socketId: string): boolean {
+  return Boolean(room.participants.get(socketId)?.isModerator);
+}
+
+export const MAX_MODERATORS = 2;
+
+// Lider HER ZAMAN herkese karsi yetki kullanabilir. Moderator ise SADECE
+// baska bir moderator VEYA liderin kendisi OLMAYAN birine karsi - iki
+// moderator birbirini "yonetemez", moderatorler lidere de dokunamaz (bkz.
+// index.ts "host:kick"/"host:transfer"/"room:muteParticipant"/
+// "host:setModerator" - hepsi bunun yerine dogrudan isHost kontrolu yapar).
+export function canModerate(room: Room, requesterId: string, targetId: string): boolean {
+  if (requesterId === targetId) return false;
+  const requester = room.participants.get(requesterId);
+  const target = room.participants.get(targetId);
+  if (!requester || !target) return false;
+  if (requester.isHost) return true;
+  if (requester.isModerator) return !target.isModerator && !target.isHost;
+  return false;
+}
+
+// Moderatorluk VERMEK: lider veya (hedefi zaten yonetebilen) bir moderator -
+// en fazla MAX_MODERATORS kisi ayni anda moderator olabilir. Moderatorlugu
+// GERI ALMAK ise SADECE liderin elinde - moderatorler birbirine dokunamadigi
+// icin (bkz. canModerate) bir moderator baska bir moderatoru asla indiremez.
+export function setModerator(room: Room, requesterId: string, targetId: string, value: boolean): boolean {
+  const target = room.participants.get(targetId);
+  if (!target) return false;
+  if (value) {
+    if (target.isModerator || target.isHost) return false;
+    if (!canModerate(room, requesterId, targetId)) return false;
+    const currentCount = Array.from(room.participants.values()).filter((p) => p.isModerator).length;
+    if (currentCount >= MAX_MODERATORS) return false;
+    target.isModerator = true;
+    return true;
+  }
   if (!isHost(room, requesterId)) return false;
-  const current = room.participants.get(requesterId);
+  if (!target.isModerator) return false;
+  target.isModerator = false;
+  return true;
+}
+
+export function transferHost(room: Room, requesterId: string, targetId: string): boolean {
+  if (!canModerate(room, requesterId, targetId)) return false;
+  const currentHostId = room.hostSocketId;
+  const current = room.participants.get(currentHostId);
   const target = room.participants.get(targetId);
   if (!current || !target) return false;
   current.isHost = false;
@@ -448,7 +498,7 @@ export function transferHost(room: Room, requesterId: string, targetId: string):
 }
 
 export function kickParticipant(room: Room, requesterId: string, targetId: string): boolean {
-  if (!isHost(room, requesterId) || requesterId === targetId) return false;
+  if (!canModerate(room, requesterId, targetId)) return false;
   room.bufferingSocketIds.delete(targetId);
   return room.participants.delete(targetId);
 }
@@ -690,8 +740,8 @@ export function setHostMicOpen(room: Room, requesterId: string, open: boolean): 
  * ona OZEL bir kisitlama (bkz. index.ts "room:muteParticipant"). Host
  * kendini bu yoldan susturamaz. */
 export function setParticipantMuted(room: Room, requesterId: string, targetSocketId: string, muted: boolean): boolean {
-  if (!isHost(room, requesterId)) return false;
   if (targetSocketId === room.hostSocketId) return false;
+  if (!canModerate(room, requesterId, targetSocketId)) return false;
   const participant = room.participants.get(targetSocketId);
   if (!participant || participant.muted === muted) return false;
   participant.muted = muted;

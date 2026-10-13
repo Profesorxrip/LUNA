@@ -332,6 +332,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
   const me = room.participants.find((p) => p.socketId === socket.id);
   const isHost = me?.isHost ?? false;
+  // Lider beni moderator yaptiysa - liderin yetkilerinin AYNISINI
+  // kullanabilirim, ama SADECE baska bir moderator/lider OLMAYAN birine
+  // karsi (bkz. ProfileOptionsSheet.tsx canModerateTarget, server/src/
+  // rooms.ts canModerate - sunucu tarafi KENDI kontrolunu ayrica yapar, bu
+  // sadece dogru satirlari gosterip gizlemek icin).
+  const isModerator = me?.isModerator ?? false;
   // Oynat/duraklat/sarma/ilerletme cubugu HER modda sadece lidere ozel -
   // video SECME yetkisi (openMediaPicker/selectSource'ta ayrica kontrol
   // edilir) modlara gore degisebilir ("vote"/"playOnly"), ama oynatmanin
@@ -1060,6 +1066,8 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       name: p.name,
       handle: p.handle,
       avatarUrl: p.avatarUrl,
+      isHost: p.isHost,
+      isModerator: p.isModerator,
       isFriend: Boolean(p.userId && friendIds.has(p.userId)),
       micDisabled: p.muted,
       locallyMuted: locallyMutedIds.has(p.socketId),
@@ -1099,13 +1107,24 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       });
     });
   }
-  // "Moderator yap" / "Sustur" - kullanicinin profil kartina eklenmesini
-  // istedigi ama ne ise yarayacaklarini YARIN acikliyacagini soyledigi iki
-  // satir - henuz gercek bir sunucu karsiligi YOK, bu yuzden simdilik sadece
-  // bunu soyluyorlar (sessizce "basariyla yapildi" gibi davranmiyorlar).
-  function makeModeratorPlaceholder(target: ProfileOptionsTarget) {
-    showAlert("Yakında", "Moderatör rolü henüz eklenmedi.");
+  // Moderatorluk ver/geri al - sunucu KENDI yetki kontrolunu de yapiyor
+  // (bkz. server/src/rooms.ts canModerate/setModerator, en fazla
+  // MAX_MODERATORS=2 kisi ayni anda moderator olabilir), ack basarisizsa
+  // (orn. kontenjan dolu) kullaniciya nedenini soyluyoruz.
+  function makeModerator(target: ProfileOptionsTarget) {
+    if (!target.socketId) return;
+    socket.emit("host:setModerator", { targetSocketId: target.socketId, value: true }, (res: any) => {
+      if (!res?.ok) showAlert("Olmadı", "En fazla 2 kişi aynı anda moderatör olabilir.");
+    });
   }
+  function removeModerator(target: ProfileOptionsTarget) {
+    if (!target.socketId) return;
+    socket.emit("host:setModerator", { targetSocketId: target.socketId, value: false }, () => {});
+  }
+  // "Sustur" - kullanicinin profil kartina eklenmesini istedigi ama ne ise
+  // yarayacagini YARIN acikliyacagini soyledigi satir - henuz gercek bir
+  // sunucu karsiligi YOK, bu yuzden sessizce "basariyla yapildi" gibi
+  // davranmak yerine durumu acikca soyluyor.
   function silenceParticipantPlaceholder(target: ProfileOptionsTarget) {
     showAlert("Yakında", "\"Sustur\" aksiyonu henüz eklenmedi.");
   }
@@ -1665,10 +1684,15 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         visible={!!profileOptionsTarget}
         target={profileOptionsTarget}
         isHost={isHost}
+        canModerateTarget={Boolean(
+          profileOptionsTarget &&
+            (isHost || (isModerator && !profileOptionsTarget.isModerator && !profileOptionsTarget.isHost))
+        )}
         onClose={closeProfileOptions}
         onOpenProfile={openParticipantProfile}
         onMakeLeader={(t) => t.socketId && makeLeader(t.socketId)}
-        onMakeModerator={makeModeratorPlaceholder}
+        onMakeModerator={makeModerator}
+        onRemoveModerator={removeModerator}
         onKick={(t) => t.socketId && kick(t.socketId)}
         onDisableMic={(t) => t.socketId && muteParticipant(t.socketId, true)}
         onToggleLocalMute={toggleLocalMute}
