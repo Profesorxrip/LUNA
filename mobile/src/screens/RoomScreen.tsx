@@ -144,7 +144,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
     <View style={styles.reactionBadgeRow}>
       {item.reactions.map((r) => (
         <View key={r.fromSocketId} style={styles.reactionChip}>
-          <Avatar name={r.fromName} avatarUrl={r.fromAvatarUrl} size={14} />
+          <Avatar name={r.fromName} avatarUrl={r.fromAvatarUrl} size={18} />
           <Text style={styles.reactionBadgeEmoji}>{r.emoji}</Text>
         </View>
       ))}
@@ -1984,15 +1984,15 @@ const styles = StyleSheet.create({
   reactionChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
+    gap: 4,
     backgroundColor: theme.surfaceAlt,
     borderWidth: 1,
     borderColor: theme.border,
-    borderRadius: 10,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
+    borderRadius: 14,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
   },
-  reactionBadgeEmoji: { fontSize: 13 },
+  reactionBadgeEmoji: { fontSize: 17 },
   chatFrom: { color: theme.text, fontSize: 14, fontWeight: "700" },
   translatedHint: { color: theme.accentBright, fontSize: 10, fontWeight: "600", marginTop: 2 },
   systemMsg: { color: theme.textMuted, fontSize: 12, fontStyle: "italic", textAlign: "center" },
