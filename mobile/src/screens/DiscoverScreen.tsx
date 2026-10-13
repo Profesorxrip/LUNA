@@ -20,6 +20,8 @@ import LoadingView from "../components/LoadingView";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import RoomCard from "../components/RoomCard";
 import BoldPlusIcon from "../components/BoldPlusIcon";
+import { useFocusEffect } from "@react-navigation/native";
+import { getHiddenRoomCodes } from "../utils/hiddenRooms";
 
 interface Props {
   onJoinRoom: (room: RoomState) => void;
@@ -75,12 +77,22 @@ export default function DiscoverScreen({
   const [hostName, setHostName] = useState("Misafir");
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const [hiddenCodes, setHiddenCodes] = useState<Set<string>>(new Set());
   const widthRef = useRef(width);
   widthRef.current = width;
 
+  // "Odayı Sil" (bkz. RoomPreviewScreen.tsx) odayi degil, sadece bu
+  // kullanicinin kendi listesini gizliyor - ekran her odaklaninca (orn. oda
+  // onizlemesinden "Kaldır" deyip geri donunce) guncel listeyi tekrar okur.
+  useFocusEffect(
+    useCallback(() => {
+      getHiddenRoomCodes().then(setHiddenCodes);
+    }, [])
+  );
+
   const trimmedSearch = search.trim().toLowerCase();
   const sectionListData = SECTION_TITLES.map(({ key, title, icon }) => {
-    const filtered = sections[key].filter((r) => r.title.toLowerCase().includes(trimmedSearch));
+    const filtered = sections[key].filter((r) => r.title.toLowerCase().includes(trimmedSearch) && !hiddenCodes.has(r.code));
     return { key, title, icon, data: chunk(filtered, numColumns) };
   }).filter((s) => s.data.length > 0);
 

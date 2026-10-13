@@ -376,21 +376,6 @@ export function getRoom(code: string): Room | undefined {
   return rooms.get(code.toUpperCase());
 }
 
-/** "Odayı Sil" - Discover'daki oda onizleme ekranindan cagirilir, yani
- * cagiran kisi o odanin socket.io odasina HENUZ KATILMAMIS olabilir (bkz.
- * index.ts "room:closeByHost") - bu yuzden requesterId yerine HESAP
- * kimligi (requesterUserId) ile host participant'inki karsilastirilir.
- * Basarili olursa oda TAMAMEN silinir ve participants'i (disari cikartmasi
- * icin) dondurur; yetkisizse veya oda yoksa null doner. */
-export function closeRoomByHost(code: string, requesterUserId: string): Room | null {
-  const room = getRoom(code);
-  if (!room) return null;
-  const host = room.participants.get(room.hostSocketId);
-  if (!host || !host.userId || host.userId !== requesterUserId) return null;
-  rooms.delete(room.code);
-  return room;
-}
-
 /** Profil ekraninda "su an acik odasi" karti icin: hedef kullanici (targetUserId)
  * su an katilimcisi oldugu bir oda var mi, ve varsa o oda bu BAKAN (viewer)
  * icin Kesif'teki ile AYNI gizlilik kuralina gore gorunur mu? Gorunmuyorsa

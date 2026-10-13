@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
 import { getSocket, PublicRoomSummary, RoomParticipantDetail, PrivacyLevel } from "../services/socket";
-import { supabase } from "../services/supabase";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
 import CrownBadge from "../components/CrownBadge";
@@ -12,6 +11,7 @@ import PlatformBadge from "../components/PlatformBadge";
 import AdultBadge from "../components/AdultBadge";
 import CountryFlag from "../components/CountryFlag";
 import { badgeInfoForSource, coverUrlForSource } from "../utils/media";
+import { hideRoomFromDiscover } from "../utils/hiddenRooms";
 
 interface Props {
   room: PublicRoomSummary;
@@ -50,7 +50,6 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
   const [participants, setParticipants] = useState<RoomParticipantDetail[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(true);
   const [position, setPosition] = useState(room.positionSeconds);
-  const [myUserId, setMyUserId] = useState<string | null>(null);
 
   useEffect(() => {
     getSocket().emit("room:participants", { code: room.code }, (res: any) => {
@@ -59,26 +58,18 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
     });
   }, [room.code]);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
-  }, []);
-
-  // "Odayı Sil" (sadece oda sahibi) / "Bildir" (sahibi disinda herkes)
-  // basliktaki iki ikondan hangisinin gorunecegini belirler - bkz.
-  // ProfileOptionsSheet.tsx'teki ayni "sadece role gore goster" deseni.
-  const amHost = participants.some((p) => p.isHost && p.userId && p.userId === myUserId);
-
-  function confirmDeleteRoom() {
-    showAlert("Odayı Sil", "Bu odayı kalıcı olarak silmek istediğine emin misin? İçindeki herkes çıkarılır.", [
+  // "Odayı Sil" - odayi GERCEKTEN silmiyor/kapatmiyor, sadece bu kullanicinin
+  // KENDI Keşfet listesinden gizliyor (bkz. utils/hiddenRooms.ts) - herkes
+  // kullanabilir, oda baskalarinda normal gorunmeye devam eder.
+  function confirmHideRoom() {
+    showAlert("Odayı Sil", "Bu oda Keşfet listenden kaldırılsın mı? Oda kapanmaz, sadece senin için gizlenir.", [
       { text: "Vazgeç", style: "cancel" },
       {
-        text: "Odayı Sil",
+        text: "Kaldır",
         style: "destructive",
-        onPress: () => {
-          getSocket().emit("room:closeByHost", { code: room.code }, (res: any) => {
-            if (res?.ok) onBack();
-            else showAlert("Hata", res?.error || "Oda silinemedi.");
-          });
+        onPress: async () => {
+          await hideRoomFromDiscover(room.code);
+          onBack();
         },
       },
     ]);
@@ -130,15 +121,12 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
           <Icon name="chevronLeft" size={22} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerActions}>
-          {amHost ? (
-            <TouchableOpacity onPress={confirmDeleteRoom} hitSlop={10}>
-              <Icon name="trash" size={20} color={theme.danger} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={reportRoom} hitSlop={10}>
-              <Icon name="warning" size={20} color={theme.textMuted} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={reportRoom} hitSlop={10}>
+            <Icon name="warning" size={20} color={theme.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={confirmHideRoom} hitSlop={10}>
+            <Icon name="trash" size={20} color={theme.danger} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -241,7 +229,10 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   participantList: { flex: 1 },
   emptyText: { color: theme.textMuted, fontSize: 13, textAlign: "center", marginTop: 40 },
-  listContent: { paddingBottom: 24 },
+  // paddingTop, lider rozetinin (hostBadge, top: -16) KIRPILMADAN tam
+  // gorunmesi icin - oncesinde ustte hic bosluk olmadigindan tacin yarisi
+  // listenin disina tasiyip kesiliyordu.
+  listContent: { paddingTop: 20, paddingBottom: 24 },
   header: {
     flexDirection: "row",
     alignItems: "center",

@@ -13,7 +13,6 @@ import {
   joinRoom,
   leaveRoom,
   kickParticipant,
-  closeRoomByHost,
   transferHost,
   setModerator,
   updatePlayback,
@@ -1523,22 +1522,6 @@ io.on("connection", (socket: Socket) => {
       });
     }
     ack?.({ ok });
-  });
-
-  // "Odayı Sil" - Discover'daki oda onizleme ekranindan cagirilir, cagiran
-  // kisi bu odaya HENUZ KATILMAMIS olabilir (currentRoomCode'a degil
-  // requireAuth/myUserId'ye dayanir - bkz. rooms.ts closeRoomByHost). Odayi
-  // tamamen siler ve o an icindeki HERKESI disari atar.
-  socket.on("room:closeByHost", ({ code }: { code: string }, ack) => {
-    if (!requireAuth(ack) || !isNonEmptyString(code, 20)) return ack?.({ ok: false });
-    const room = closeRoomByHost(code, myUserId!);
-    if (!room) return ack?.({ ok: false, error: "Sadece oda sahibi bu odayı silebilir." });
-    for (const socketId of room.participants.keys()) {
-      io.sockets.sockets.get(socketId)?.leave(room.code);
-      io.to(socketId).emit("room:closedByHost");
-    }
-    ack?.({ ok: true });
-    broadcastRoomsList();
   });
 
   socket.on("host:transfer", ({ targetSocketId }: { targetSocketId: string }, ack) => {
