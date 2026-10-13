@@ -169,7 +169,13 @@ function RoomPreviewRoute() {
 function RoomRoute() {
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<RouteProp<RootStackParamList, "Room">>();
-  return <RoomScreen initialRoom={params.room} onLeave={() => navigation.goBack()} />;
+  return (
+    <RoomScreen
+      initialRoom={params.room}
+      onLeave={() => navigation.goBack()}
+      onOpenParticipant={(peer) => navigation.navigate("UserProfile", { own: false, peer })}
+    />
+  );
 }
 
 export default function RootNavigator() {

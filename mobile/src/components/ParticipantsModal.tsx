@@ -14,6 +14,9 @@ interface Props {
   onKick: (targetSocketId: string) => void;
   onMakeLeader: (targetSocketId: string) => void;
   onMuteParticipant: (targetSocketId: string, muted: boolean) => void;
+  // Bir katilimciya BASILI TUTUNCA (bkz. ProfileOptionsSheet.tsx) - Rave'deki
+  // gibi Profil/Liderlik/Engelle/Bildir vb. iceren panel acilir.
+  onLongPressParticipant: (participant: Participant) => void;
   // Liderin kendi mikrofonu su an acik mi (bkz. RoomScreen.tsx
   // room.micOpenToAll) - HERKES gorur, ama tiklayip degistirmek (kendi
   // mikrofonunu acip kapatmak) SADECE liderin kendisine ozel.
@@ -46,6 +49,7 @@ export default function ParticipantsModal({
   onKick,
   onMakeLeader,
   onMuteParticipant,
+  onLongPressParticipant,
   hostMicOpen,
   onToggleOwnMic,
   topOffset,
@@ -69,6 +73,11 @@ export default function ParticipantsModal({
               const isSelf = item.socketId === mySocketId;
               return (
                 <View style={styles.row}>
+                  <TouchableOpacity
+                    style={styles.identityWrap}
+                    activeOpacity={isSelf ? 1 : 0.7}
+                    onLongPress={() => !isSelf && onLongPressParticipant(item)}
+                  >
                   <View style={styles.avatarWrap}>
                     <Avatar
                       name={item.name}
@@ -92,6 +101,7 @@ export default function ParticipantsModal({
                       </Text>
                     )}
                   </View>
+                  </TouchableOpacity>
                   {/* Mikrofon durumu - HERKES gorur (kim susturulmus/liderin
                       mikrofonu acik mi bilsin diye). Tiklayip degistirmek ise
                       HER ZAMAN o mikrofonun "sahibine" ozel: liderin kendi
@@ -183,6 +193,7 @@ const styles = StyleSheet.create({
   listContent: { paddingTop: 14 },
   title: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 12 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
+  identityWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   avatarWrap: { position: "relative" },
   // Lider rozeti - ozel cizilmis, kenarlari asagi kivrilan taç (bkz.
   // CrownBadge.tsx) profil fotografinin TAM USTUNE (negatif top ile) oturur.

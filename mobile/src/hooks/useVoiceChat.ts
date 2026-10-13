@@ -16,6 +16,12 @@ export function useVoiceChat() {
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nativeModuleMissing, setNativeModuleMissing] = useState(false);
+  // "Sessize Al" (bkz. ProfileOptionsSheet.tsx) - belirli bir katilimcinin
+  // sesini SADECE BENIM icin kisan kimlikler (LiveKit identity = socketId,
+  // bkz. server/src/livekit.ts). Katilimci henuz ses yayinina baslamamissa
+  // setVolume hemen uygulanacak bir audioTrackPublication bulamaz - bu
+  // yuzden kimligi burada da saklayip TrackSubscribed'da tekrar uyguluyoruz.
+  const mutedIdentitiesRef = useRef<Set<string>>(new Set());
 
   const join = useCallback(async (startMuted = false) => {
     setError(null);
@@ -43,9 +49,15 @@ export function useVoiceChat() {
     }
 
     try {
+      mutedIdentitiesRef.current = new Set();
       await livekitReactNative.AudioSession.startAudioSession();
       const room = new livekitClient.Room();
       room.on(livekitClient.RoomEvent.Disconnected, () => setConnected(false));
+      room.on(livekitClient.RoomEvent.TrackSubscribed, (track: any, _pub: any, participant: any) => {
+        if (track?.kind === livekitClient.Track.Kind.Audio && mutedIdentitiesRef.current.has(participant.identity)) {
+          track.setVolume?.(0);
+        }
+      });
       await room.connect(res.livekitUrl, res.token);
       // "Herkes mikrofon acabilsin" kapaliysa (bkz. RoomScreen.tsx
       // handleMicPress) host disindakiler SESSIZ (sadece dinleyici) olarak
@@ -94,5 +106,18 @@ export function useVoiceChat() {
     });
   }, []);
 
-  return { connected, muted, error, nativeModuleMissing, join, leave, toggleMute, setRemoteVolume };
+  // "Sessize Al" - sadece TEK bir katilimcinin sesini (benim icin) kisar/
+  // acar, setRemoteVolume'un aksine (o HERKESI birden etkiler, bkz. yukarisi).
+  const setParticipantVolume = useCallback((identity: string, volume: number) => {
+    if (volume <= 0) mutedIdentitiesRef.current.add(identity);
+    else mutedIdentitiesRef.current.delete(identity);
+    const room = roomRef.current;
+    if (!room) return;
+    const participant = room.remoteParticipants?.get?.(identity);
+    participant?.audioTrackPublications?.forEach((pub: any) => {
+      pub.track?.setVolume?.(volume);
+    });
+  }, []);
+
+  return { connected, muted, error, nativeModuleMissing, join, leave, toggleMute, setRemoteVolume, setParticipantVolume };
 }

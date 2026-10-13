@@ -41,6 +41,8 @@ import {
   SpeakerXMarkIcon,
   ChatBubbleOvalLeftIcon,
   ClipboardDocumentIcon,
+  UserIcon,
+  NoSymbolIcon,
 } from "react-native-heroicons/solid";
 import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
 import { MicOff, Hourglass, Crown, RotateCcw, RotateCw } from "lucide-react-native";
@@ -101,7 +103,9 @@ export type IconName =
   | "volume"
   | "volumeOff"
   | "chatBubble"
-  | "clipboard";
+  | "clipboard"
+  | "person"
+  | "block";
 
 interface Props {
   name: IconName;
@@ -161,6 +165,8 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   collapse: ArrowsPointingInIcon,
   chatBubble: ChatBubbleOvalLeftIcon,
   clipboard: ClipboardDocumentIcon,
+  person: UserIcon,
+  block: NoSymbolIcon,
 };
 
 const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>>> = {

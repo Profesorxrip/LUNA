@@ -21,7 +21,7 @@ import * as Location from "expo-location";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Clipboard from "expo-clipboard";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
-import type { MediaSource, DMReply, FriendUser } from "../services/socket";
+import type { MediaSource, DMReply, FriendUser, Participant } from "../services/socket";
 import { supabase } from "../services/supabase";
 import MediaPlayer, { MediaPlayerHandle } from "../components/MediaPlayer";
 import MediaPickerSheet from "../components/MediaPickerSheet";
@@ -33,6 +33,7 @@ import FriendsScreen from "./FriendsScreen";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import VideoSettingsSheet from "../components/VideoSettingsSheet";
 import MessageOptionsSheet from "../components/MessageOptionsSheet";
+import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
 import SendMediaSheet from "../components/SendMediaSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
 import RoomMapSheet from "../components/RoomMapSheet";
@@ -50,6 +51,10 @@ import { theme } from "../theme";
 interface Props {
   initialRoom: RoomState;
   onLeave: () => void;
+  // Katilimci secenek panelindeki (bkz. ProfileOptionsSheet.tsx) "Profil"
+  // satirina basilinca - DiscoverScreen/FriendsScreen/DMScreen'deki AYNI
+  // "onOpenParticipant" deseni (bkz. RootNavigator.tsx).
+  onOpenParticipant: (peer: { userId: string; name: string; handle?: string }) => void;
 }
 
 const DRIFT_TOLERANCE_SECONDS = 2;
@@ -236,7 +241,7 @@ const NOW_PLAYING_META: Record<NonNullable<ChatMessage["nowPlayingReason"]>, { i
   autoplay: { icon: "fastForward", desc: () => "Otomatik oynatılıyor" },
 };
 
-export default function RoomScreen({ initialRoom, onLeave }: Props) {
+export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: Props) {
   const socket = getSocket();
   const { width: windowWidth } = useWindowDimensions();
   const isDesktop = windowWidth >= DESKTOP_BREAKPOINT;
@@ -1039,6 +1044,72 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
     socket.emit("room:muteParticipant", { targetSocketId, muted }, () => {});
   }
 
+  // Katilimci secenek paneli (bkz. ProfileOptionsSheet.tsx) - Rave'deki gibi
+  // bir katilimciya BASILI TUTUNCA acilir (bkz. ParticipantsModal.tsx
+  // onLongPressParticipant).
+  const [profileOptionsTarget, setProfileOptionsTarget] = useState<ProfileOptionsTarget | null>(null);
+  // Sadece BENIM icin kisilmis katilimcilarin socketId'leri (bkz.
+  // useVoiceChat.ts setParticipantVolume) - oda geneline etki etmez, bu
+  // yuzden sunucuya hic bildirilmiyor.
+  const [locallyMutedIds, setLocallyMutedIds] = useState<Set<string>>(new Set());
+
+  function openProfileOptions(p: Participant) {
+    setProfileOptionsTarget({
+      userId: p.userId,
+      socketId: p.socketId,
+      name: p.name,
+      handle: p.handle,
+      avatarUrl: p.avatarUrl,
+      isFriend: Boolean(p.userId && friendIds.has(p.userId)),
+      micDisabled: p.muted,
+      locallyMuted: locallyMutedIds.has(p.socketId),
+    });
+  }
+  function closeProfileOptions() {
+    setProfileOptionsTarget(null);
+  }
+  function openParticipantProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    onOpenParticipant({ userId: target.userId, name: target.name, handle: target.handle ?? undefined });
+  }
+  function toggleLocalMute(target: ProfileOptionsTarget) {
+    if (!target.socketId) return;
+    const next = !locallyMutedIds.has(target.socketId);
+    setLocallyMutedIds((prev) => {
+      const nextSet = new Set(prev);
+      if (next) nextSet.add(target.socketId!);
+      else nextSet.delete(target.socketId!);
+      return nextSet;
+    });
+    voice.setParticipantVolume(target.socketId, next ? 0 : 1);
+  }
+  function removeFriendFromProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    socket.emit("friend:remove", { userId: target.userId }, (res: any) => {
+      if (res?.ok) setFriendIds((prev) => {
+        const next = new Set(prev);
+        next.delete(target.userId!);
+        return next;
+      });
+    });
+  }
+  function blockFromProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    socket.emit("friend:block", { userId: target.userId }, (res: any) => {
+      if (res?.ok) showAlert("Engellendi", `${target.name} engellendi.`);
+    });
+  }
+  function reportParticipant(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    socket.emit(
+      "report:submit",
+      { targetUserId: target.userId, reason: "Katılımcı kartından bildirildi" },
+      (res: any) => {
+        if (res?.ok) showAlert("Bildirildi", "Bu kullanıcı moderasyon ekibine iletildi, teşekkürler.");
+      }
+    );
+  }
+
   function leave() {
     socket.emit("room:leave");
     voice.leave();
@@ -1498,6 +1569,7 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onKick={kick}
         onMakeLeader={makeLeader}
         onMuteParticipant={muteParticipant}
+        onLongPressParticipant={openProfileOptions}
         hostMicOpen={room.micOpenToAll}
         onToggleOwnMic={handleMicPress}
         topOffset={topBarHeight}
@@ -1573,6 +1645,21 @@ export default function RoomScreen({ initialRoom, onLeave }: Props) {
         onReply={replyToOptionsMessage}
         onReport={reportOptionsMessage}
         onSelectEmoji={reactToOptionsMessageWithEmoji}
+      />
+
+      <ProfileOptionsSheet
+        visible={!!profileOptionsTarget}
+        target={profileOptionsTarget}
+        isHost={isHost}
+        onClose={closeProfileOptions}
+        onOpenProfile={openParticipantProfile}
+        onMakeLeader={(t) => t.socketId && makeLeader(t.socketId)}
+        onKick={(t) => t.socketId && kick(t.socketId)}
+        onDisableMic={(t) => t.socketId && muteParticipant(t.socketId, true)}
+        onToggleLocalMute={toggleLocalMute}
+        onRemoveFriend={removeFriendFromProfile}
+        onBlock={blockFromProfile}
+        onReport={reportParticipant}
       />
 
       {leaveConfirmVisible && (
