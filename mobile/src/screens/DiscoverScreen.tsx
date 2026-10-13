@@ -139,11 +139,20 @@ export default function DiscoverScreen({
   ).current;
 
   const fetchRooms = useCallback(() => {
-    getSocket().emit("rooms:list", {}, (result: DiscoverSections) => {
-      setSections(result);
-      setLoading(false);
-      setRefreshing(false);
-    });
+    // Ack'siz emit sunucu hic cevap vermezse (coktu/baglanti kopuk) SURESIZ
+    // bekler - "loading" true'da kalip ekran sonsuza kadar donen bir ikonda
+    // takilirdi (bkz. room:create/room:join'deki AYNI duzeltme).
+    getSocket()
+      .timeout(8000)
+      .emit("rooms:list", {}, (err: any, result: DiscoverSections) => {
+        setLoading(false);
+        setRefreshing(false);
+        if (err) {
+          showAlert("Bağlantı sorunu", "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et.");
+          return;
+        }
+        setSections(result);
+      });
   }, []);
 
   useEffect(() => {
