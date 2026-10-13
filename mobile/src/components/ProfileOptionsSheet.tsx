@@ -159,9 +159,9 @@ const CARD_WIDTH = 240;
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: { width: CARD_WIDTH },
-  photo: { width: CARD_WIDTH, height: 105, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  photo: { width: CARD_WIDTH, height: 75, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   photoPlaceholder: { justifyContent: "center", alignItems: "center" },
-  photoInitial: { color: "#FFFFFF", fontSize: 36, fontWeight: "700" },
+  photoInitial: { color: "#FFFFFF", fontSize: 28, fontWeight: "700" },
   nameCard: {
     backgroundColor: "#1E1E22",
     borderBottomLeftRadius: 20,
