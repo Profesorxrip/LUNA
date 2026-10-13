@@ -137,51 +137,52 @@ export default function ProfileOptionsSheet({
                   @{target.handle}
                 </Text>
               )}
+
+              <View style={styles.list}>
+                {rows.map((row) => (
+                  <TouchableOpacity key={row.key} style={styles.pill} onPress={row.onPress}>
+                    <Icon name={row.icon} size={16} color={row.danger ? "#FF6B6B" : "#FFFFFF"} />
+                    <Text style={[styles.pillLabel, row.danger && styles.pillLabelDanger]}>{row.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           </TouchableOpacity>
-
-          <View style={styles.list}>
-            {rows.map((row) => (
-              <TouchableOpacity key={row.key} style={styles.pill} onPress={row.onPress}>
-                <Icon name={row.icon} size={18} color={row.danger ? "#FF6B6B" : "#FFFFFF"} />
-                <Text style={[styles.pillLabel, row.danger && styles.pillLabelDanger]}>{row.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </View>
       </TouchableOpacity>
     </Modal>
   );
 }
 
-const CARD_WIDTH = 300;
+const CARD_WIDTH = 270;
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: { width: CARD_WIDTH },
-  photo: { width: CARD_WIDTH, height: CARD_WIDTH, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  photo: { width: CARD_WIDTH, height: 150, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   photoPlaceholder: { justifyContent: "center", alignItems: "center" },
-  photoInitial: { color: "#FFFFFF", fontSize: 64, fontWeight: "700" },
+  photoInitial: { color: "#FFFFFF", fontSize: 48, fontWeight: "700" },
   nameCard: {
-    backgroundColor: "rgba(28,28,30,0.96)",
+    backgroundColor: "#1E1E22",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingHorizontal: 14,
     alignItems: "center",
   },
-  name: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", fontStyle: "italic" },
-  handle: { color: "rgba(255,255,255,0.55)", fontSize: 13, marginTop: 2 },
-  list: { marginTop: 14, gap: 10 },
+  name: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", fontStyle: "italic", fontFamily: "Georgia" },
+  handle: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 2 },
+  list: { width: "100%", marginTop: 10, gap: 6 },
   pill: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: "rgba(28,28,30,0.96)",
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    height: 42,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 13,
   },
-  pillLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "600", textAlign: "center" },
+  pillLabel: { color: "#FFFFFF", fontSize: 13, fontWeight: "600", textAlign: "center" },
   pillLabelDanger: { color: "#FF6B6B" },
 });
