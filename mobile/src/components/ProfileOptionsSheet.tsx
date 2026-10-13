@@ -120,7 +120,7 @@ export default function ProfileOptionsSheet({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <View style={styles.card}>
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}} style={styles.cardInner}>
             {target.avatarUrl ? (
               <Image source={{ uri: target.avatarUrl }} style={styles.photo} />
             ) : (
@@ -155,17 +155,19 @@ export default function ProfileOptionsSheet({
 }
 
 const CARD_WIDTH = 240;
+const PHOTO_WIDTH = 150;
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: { width: CARD_WIDTH },
-  photo: { width: CARD_WIDTH, height: 75, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  cardInner: { alignItems: "center", gap: 8 },
+  photo: { width: PHOTO_WIDTH, height: 75, borderRadius: 20 },
   photoPlaceholder: { justifyContent: "center", alignItems: "center" },
   photoInitial: { color: "#FFFFFF", fontSize: 28, fontWeight: "700" },
   nameCard: {
+    width: "100%",
     backgroundColor: "#1E1E22",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderRadius: 20,
     paddingTop: 12,
     paddingBottom: 12,
     paddingHorizontal: 14,
