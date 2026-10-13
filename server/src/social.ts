@@ -124,10 +124,13 @@ export interface PublicProfile {
   bioVisible: boolean;
   statsVisible: boolean;
   defaultAutoTranslate: boolean;
+  // supabase/migrations/0018_is_premium.sql - henuz gercek bir satin alma
+  // akisi yok, bu yuzden su an herkeste false (bkz. PremiumScreen.tsx).
+  isPremium: boolean;
 }
 
 const PUBLIC_PROFILE_COLUMNS =
-  "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,default_auto_translate";
+  "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,default_auto_translate,is_premium";
 
 function rowToPublicProfile(row: any): PublicProfile {
   return {
@@ -144,6 +147,7 @@ function rowToPublicProfile(row: any): PublicProfile {
     bioVisible: row.bio_visible !== false,
     statsVisible: row.stats_visible !== false,
     defaultAutoTranslate: row.default_auto_translate === true,
+    isPremium: row.is_premium === true,
   };
 }
 

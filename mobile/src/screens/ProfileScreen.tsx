@@ -67,6 +67,9 @@ export default function ProfileScreen({
 
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState("Kullanici");
+  // supabase/migrations/0018_is_premium.sql - su an herkeste false (henuz
+  // gercek bir satin alma akisi yok, bkz. PremiumScreen.tsx).
+  const [isPremium, setIsPremium] = useState(false);
   const [handle, setHandle] = useState("kullanici");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [email, setEmail] = useState<string | null>(null);
@@ -97,7 +100,9 @@ export default function ProfileScreen({
       setGoogleLinked((data.user?.identities || []).some((i: any) => i.provider === "google"));
       supabase
         .from("profiles")
-        .select("name,handle,avatar_url,default_auto_translate,default_reaction_emoji,invite_restriction,hide_adult_content")
+        .select(
+          "name,handle,avatar_url,default_auto_translate,default_reaction_emoji,invite_restriction,hide_adult_content,is_premium"
+        )
         .eq("id", userId)
         .maybeSingle()
         .then(({ data: profile }) => {
@@ -109,6 +114,7 @@ export default function ProfileScreen({
           if (profile.default_reaction_emoji) setQuickReaction(profile.default_reaction_emoji);
           if (profile.invite_restriction) setInviteRestriction(profile.invite_restriction as InviteRestriction);
           setHideAdult(profile.hide_adult_content === true);
+          setIsPremium(profile.is_premium === true);
         });
     });
   }, []);
@@ -323,7 +329,10 @@ export default function ProfileScreen({
           </View>
         </TouchableOpacity>
 
-        <Text style={styles.name}>{name.toUpperCase()}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{name.toUpperCase()}</Text>
+          {isPremium && <Icon name="crown" size={18} color={theme.accent} />}
+        </View>
         <Text style={styles.handle}>@{handle}</Text>
 
         <SectionHeader title={t("profile.sectionAccounts")} />
@@ -654,7 +663,11 @@ const styles = StyleSheet.create({
   },
   avatarImage: { width: "100%", height: "100%" },
   avatarInitial: { color: "#FFFFFF", fontSize: 56, fontWeight: "700" },
-  name: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, textAlign: "center", marginTop: 18 },
+  name: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, textAlign: "center" },
+  // supabase/migrations/0018_is_premium.sql - isim/taç rozetini yan yana
+  // gostermek icin (bkz. isPremium). Eski "name" stilinin marginTop'u
+  // buraya tasindi (artik satirin kendisi degil, bu satiri saran View).
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 18 },
   handle: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "600", letterSpacing: 0.2, textAlign: "center", marginTop: 4, marginBottom: 18 },
   sectionHeader: {
     paddingHorizontal: 18,
@@ -774,5 +787,5 @@ const styles = StyleSheet.create({
   // Renkleri (arkaplan/kenarlik) AYNI kaldi, sadece sekli NowPlayingBar.tsx
   // "hap" cercevesiyle (borderRadius:30, ayni mantik) birebir ayni oldu.
   signOutButton: { marginHorizontal: 18, marginTop: 24, backgroundColor: "rgba(255,77,79,0.15)", borderRadius: 30, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,77,79,0.4)" },
-  signOutText: { color: "#FF8A8A", fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
+  signOutText: { color: "#FF8A8A", fontSize: 15, fontWeight: "800", letterSpacing: 0.2, textTransform: "uppercase" },
 });

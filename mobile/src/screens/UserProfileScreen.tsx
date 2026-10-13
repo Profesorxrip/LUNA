@@ -123,6 +123,10 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
   const [bioVisible, setBioVisible] = useState(true);
   const [statsVisible, setStatsVisible] = useState(true);
   const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "friends">("none");
+  // supabase/migrations/0018_is_premium.sql - su an herkeste false (henuz
+  // gercek bir satin alma akisi yok, bkz. PremiumScreen.tsx) - dolu gelince
+  // isim yaninda taç rozeti gosteriliyor.
+  const [isPremium, setIsPremium] = useState(false);
   const [friendCount, setFriendCount] = useState(0);
   const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -175,7 +179,7 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
       supabase
         .from("profiles")
         .select(
-          "name,handle,bio,avatar_url,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible"
+          "name,handle,bio,avatar_url,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,is_premium"
         )
         .eq("id", userId)
         .maybeSingle()
@@ -191,6 +195,7 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
           if (profile.videos_visible !== undefined) setVideosVisible(profile.videos_visible !== false);
           if (profile.bio_visible !== undefined) setBioVisible(profile.bio_visible !== false);
           if (profile.stats_visible !== undefined) setStatsVisible(profile.stats_visible !== false);
+          setIsPremium(profile.is_premium === true);
         });
     });
   }, [own]);
@@ -215,6 +220,7 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
         setVideosVisible(res.profile.videosVisible !== false);
         setBioVisible(res.profile.bioVisible !== false);
         setStatsVisible(res.profile.statsVisible !== false);
+        setIsPremium(Boolean(res.profile.isPremium));
       }
     });
     socket.emit("friend:status", { withUserId: peerUserId }, (res: any) => {
@@ -571,7 +577,10 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
             />
           ) : (
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")}>
-              <Text style={styles.name}>{name.toUpperCase()}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{name.toUpperCase()}</Text>
+                {isPremium && <Icon name="crown" size={18} color={ACCENT} />}
+              </View>
             </TouchableOpacity>
           )}
           {editingField === "handle" ? (
@@ -925,6 +934,9 @@ const styles = StyleSheet.create({
   avatarInitial: { color: ACCENT, fontSize: 32, fontWeight: "700" },
   avatarImage: { width: 88, height: 88, borderRadius: 44 },
   nameBlock: { alignItems: "center", marginBottom: 6 },
+  // supabase/migrations/0018_is_premium.sql - isim/taç rozetini yan yana
+  // gostermek icin (bkz. isPremium).
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   name: { color: TEXT, fontSize: 22, fontWeight: "800", letterSpacing: 0.3 },
   nameInput: {
     color: TEXT,
@@ -1003,7 +1015,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(14,165,233,0.4)",
   },
-  requestButtonText: { color: ACCENT, fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
+  requestButtonText: { color: ACCENT, fontSize: 15, fontWeight: "800", letterSpacing: 0.2, textTransform: "uppercase" },
   secondaryButton: {
     flex: 1,
     backgroundColor: "transparent",
