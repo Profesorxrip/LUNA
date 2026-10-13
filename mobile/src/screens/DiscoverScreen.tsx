@@ -19,6 +19,7 @@ import Icon, { IconName } from "../components/Icon";
 import LoadingView from "../components/LoadingView";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import RoomCard from "../components/RoomCard";
+import BoldPlusIcon from "../components/BoldPlusIcon";
 
 interface Props {
   onJoinRoom: (room: RoomState) => void;
@@ -221,7 +222,7 @@ export default function DiscoverScreen({
       />
 
       <TouchableOpacity style={styles.fab} onPress={() => setPickerVisible(true)}>
-        <Icon name="plus" size={24} color="#04140D" />
+        <BoldPlusIcon size={24} color="#04140D" />
       </TouchableOpacity>
 
       <MediaPickerSheet
