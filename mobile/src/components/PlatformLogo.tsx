@@ -49,12 +49,12 @@ const REAL_LOGOS: Record<PlatformKey, { source: any; ratio: number; heightScale?
   // Gercek marka logosu olmadigi icin dahili yazi-logolar - kullanicinin
   // gonderdigi referans tabela fotolarindan ("HISTORY"/"LIKES" yazisi +
   // sparkle yildizlar) dogrudan cikarilip beyaza cevrilmis.
-  // heightScale: Likes ile AYNI son yukseklige gelsin diye (ikisi ayni
-  // satirda yan yana) - Likes zaten MAX_H sinirina takilip 0.85 ile
-  // olculuyor, History kendi dogal (sinira takilmayan) yuksekligi ustune
-  // bu carpanla ayni seviyeye cekiliyor.
-  gecmis: { source: require("../../assets/logos/gecmis.png"), ratio: 3.0286, heightScale: 1.12 },
-  begenilenler: { source: require("../../assets/logos/begenilenler.png"), ratio: 1.8525, heightScale: 0.85 },
+  // heightScale: ikisi AYNI son yukseklige gelsin diye (ayni satirda yan
+  // yana) - deger, iki yondeki "stretch" bozulmasini (Likes'in asiri
+  // sikismasi / History'nin asiri uzamasi) DENGELEYECEK sekilde secildi,
+  // Likes'i eskisi kadar yassilastirmamak icin.
+  gecmis: { source: require("../../assets/logos/gecmis.png"), ratio: 3.0286, heightScale: 1.28 },
+  begenilenler: { source: require("../../assets/logos/begenilenler.png"), ratio: 1.8525, heightScale: 0.97 },
 };
 
 /** Platform secim ekraninda kullanilan marka rozetleri - kullanicinin
