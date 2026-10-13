@@ -331,7 +331,7 @@ export default function ProfileScreen({
 
         <View style={styles.nameRow}>
           <Text style={styles.name}>{name.toUpperCase()}</Text>
-          {isPremium && <Icon name="crown" size={18} color={theme.accent} />}
+          {isPremium && <Icon name="sparkles" size={18} color={theme.accent} />}
         </View>
         <Text style={styles.handle}>@{handle}</Text>
 
@@ -664,8 +664,8 @@ const styles = StyleSheet.create({
   avatarImage: { width: "100%", height: "100%" },
   avatarInitial: { color: "#FFFFFF", fontSize: 56, fontWeight: "700" },
   name: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, textAlign: "center" },
-  // supabase/migrations/0018_is_premium.sql - isim/taç rozetini yan yana
-  // gostermek icin (bkz. isPremium). Eski "name" stilinin marginTop'u
+  // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
+  // yana gostermek icin (bkz. isPremium). Eski "name" stilinin marginTop'u
   // buraya tasindi (artik satirin kendisi degil, bu satiri saran View).
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 18 },
   handle: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "600", letterSpacing: 0.2, textAlign: "center", marginTop: 4, marginBottom: 18 },

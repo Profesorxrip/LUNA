@@ -125,7 +125,7 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
   const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "friends">("none");
   // supabase/migrations/0018_is_premium.sql - su an herkeste false (henuz
   // gercek bir satin alma akisi yok, bkz. PremiumScreen.tsx) - dolu gelince
-  // isim yaninda taç rozeti gosteriliyor.
+  // isim yaninda parıltı rozeti gosteriliyor.
   const [isPremium, setIsPremium] = useState(false);
   const [friendCount, setFriendCount] = useState(0);
   const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
@@ -579,7 +579,7 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")}>
               <View style={styles.nameRow}>
                 <Text style={styles.name}>{name.toUpperCase()}</Text>
-                {isPremium && <Icon name="crown" size={18} color={ACCENT} />}
+                {isPremium && <Icon name="sparkles" size={18} color={ACCENT} />}
               </View>
             </TouchableOpacity>
           )}
@@ -934,8 +934,8 @@ const styles = StyleSheet.create({
   avatarInitial: { color: ACCENT, fontSize: 32, fontWeight: "700" },
   avatarImage: { width: 88, height: 88, borderRadius: 44 },
   nameBlock: { alignItems: "center", marginBottom: 6 },
-  // supabase/migrations/0018_is_premium.sql - isim/taç rozetini yan yana
-  // gostermek icin (bkz. isPremium).
+  // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
+  // yana gostermek icin (bkz. isPremium).
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   name: { color: TEXT, fontSize: 22, fontWeight: "800", letterSpacing: 0.3 },
   nameInput: {
