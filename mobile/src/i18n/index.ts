@@ -10,8 +10,10 @@ import ar from "./locales/ar.json";
 import ku from "./locales/ku.json";
 import el from "./locales/el.json";
 import ru from "./locales/ru.json";
+import az from "./locales/az.json";
+import es from "./locales/es.json";
 
-export type LanguageCode = "tr" | "en" | "de" | "fr" | "ar" | "ku" | "el" | "ru";
+export type LanguageCode = "tr" | "en" | "de" | "fr" | "ar" | "ku" | "el" | "ru" | "az" | "es";
 
 // Dil adlari HER ZAMAN kendi dillerinde gosterilir (otonim) - hangi dil
 // secili olursa olsun bu liste degismez, uygulamalardaki standart davranis budur.
@@ -24,6 +26,8 @@ export const LANGUAGES: { code: LanguageCode; label: string }[] = [
   { code: "ku", label: "Kurdî" },
   { code: "el", label: "Ελληνικά" },
   { code: "ru", label: "Русский" },
+  { code: "az", label: "Azərbaycan dili" },
+  { code: "es", label: "Español" },
 ];
 
 const STORAGE_KEY = "app_language";
@@ -38,6 +42,8 @@ i18n.use(initReactI18next).init({
     ku: { translation: ku },
     el: { translation: el },
     ru: { translation: ru },
+    az: { translation: az },
+    es: { translation: es },
   },
   lng: "tr",
   fallbackLng: "tr",
