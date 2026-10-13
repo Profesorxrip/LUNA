@@ -224,19 +224,29 @@ export default function DiscoverScreen({
     // adini biliyor, client'in bunu "Misafir" ile EZMESINE gerek yok (eskiden
     // tum katilimcilar - giris yapmis olsalar bile - yanlislikla "Misafir"
     // gorunuyordu).
-    getSocket().emit("room:join", { code }, (res: any) => {
-      if (res?.ok) onJoinRoom(res.room);
-      else showAlert("Odaya girilemedi", res?.error || "Sunucudan yanıt alınamadı (bağlantı sorunu olabilir).");
-    });
+    // Socket.IO varsayilan olarak bu tur ack'lerde SURESIZ bekler - sunucu
+    // hic cevap vermezse (coktu/baglanti kopuk) geri cagirma fonksiyonu HIC
+    // CALISMAZ, asagidaki hata mesaji bile gorunmez. ".timeout()" olmadan
+    // kullanici "hicbir sey olmuyor" diye dusunup sessizce takilir kalirdi.
+    getSocket()
+      .timeout(8000)
+      .emit("room:join", { code }, (err: any, res: any) => {
+        if (err) return showAlert("Odaya girilemedi", "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et.");
+        if (res?.ok) onJoinRoom(res.room);
+        else showAlert("Odaya girilemedi", res?.error || "Bilinmeyen bir hata oluştu.");
+      });
   }
 
   // Oda, icerik secilmeden var olamaz - "+" direkt platform secme ekranini
   // acar, secim yapilinca oda o icerikle birlikte olusturulup girilir.
   function createRoomWithSource(source: MediaSource) {
-    getSocket().emit("room:create", { name: hostName, isPublic: true, source }, (res: any) => {
-      if (res?.ok) onJoinRoom(res.room);
-      else showAlert("Oda oluşturulamadı", res?.error || "Sunucudan yanıt alınamadı (bağlantı sorunu olabilir).");
-    });
+    getSocket()
+      .timeout(8000)
+      .emit("room:create", { name: hostName, isPublic: true, source }, (err: any, res: any) => {
+        if (err) return showAlert("Oda oluşturulamadı", "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et.");
+        if (res?.ok) onJoinRoom(res.room);
+        else showAlert("Oda oluşturulamadı", res?.error || "Bilinmeyen bir hata oluştu.");
+      });
   }
 
   return (
