@@ -35,7 +35,7 @@ const REAL_LOGOS: Record<PlatformKey, { source: any; ratio: number; heightScale?
   // yukarida, biri asagida). Ikisi ayni satirda yan yana durunca yazilari
   // ayni hizada gorunsun diye resimlere ASIMETRIK seffaf dolgu eklendi
   // (bkz. asset hazirlama scripti) - artik bbox merkezi = yazi merkezi.
-  disneyplus: { source: require("../../assets/logos/disney-plus.png"), ratio: 1.3469, heightScale: 1.15 },
+  disneyplus: { source: require("../../assets/logos/disney-plus.png"), ratio: 1.3469, heightScale: 1.3 },
   primevideo: { source: require("../../assets/logos/prime-video.png"), ratio: 2.3051 },
   x: { source: require("../../assets/logos/x.png"), ratio: 0.9786 },
   drive: { source: require("../../assets/logos/drive.png"), ratio: 4.2692 },
@@ -49,7 +49,11 @@ const REAL_LOGOS: Record<PlatformKey, { source: any; ratio: number; heightScale?
   // Gercek marka logosu olmadigi icin dahili yazi-logolar - kullanicinin
   // gonderdigi referans tabela fotolarindan ("HISTORY"/"LIKES" yazisi +
   // sparkle yildizlar) dogrudan cikarilip beyaza cevrilmis.
-  gecmis: { source: require("../../assets/logos/gecmis.png"), ratio: 3.0286 },
+  // heightScale: Likes ile AYNI son yukseklige gelsin diye (ikisi ayni
+  // satirda yan yana) - Likes zaten MAX_H sinirina takilip 0.85 ile
+  // olculuyor, History kendi dogal (sinira takilmayan) yuksekligi ustune
+  // bu carpanla ayni seviyeye cekiliyor.
+  gecmis: { source: require("../../assets/logos/gecmis.png"), ratio: 3.0286, heightScale: 1.12 },
   begenilenler: { source: require("../../assets/logos/begenilenler.png"), ratio: 1.8525, heightScale: 0.85 },
 };
 
