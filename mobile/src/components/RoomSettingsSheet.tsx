@@ -13,10 +13,17 @@ interface Props {
   playbackMode: PlaybackMode;
   autoTranslateChat: boolean;
   isAdult: boolean;
+  // Hesabimin geneline uygulanan "Yetiskin Icerigini Gizle" tercihi (bkz.
+  // ProfileScreen.tsx) - burada da gosterilmesinin tek amaci, bir sey
+  // izlerken Profil'e gitmeden (odadan cikmadan) ANINDA ac/kapa yapabilmek;
+  // "isAdult"tan FARKLI - o ROOM'un kendisinin isaretlenmesi (sadece host),
+  // bu ise BENIM kisisel goruntuleme tercihim (herkes degistirebilir).
+  hideAdultContent: boolean;
   onChangePrivacy: (p: PrivacyLevel) => void;
   onChangePlaybackMode: (m: PlaybackMode) => void;
   onToggleAutoTranslate: (v: boolean) => void;
   onToggleAdult: (v: boolean) => void;
+  onToggleHideAdultContent: (v: boolean) => void;
   micConnected: boolean;
   micMuted: boolean;
   onMicPress: () => void;
@@ -74,10 +81,12 @@ export default function RoomSettingsSheet({
   playbackMode,
   autoTranslateChat,
   isAdult,
+  hideAdultContent,
   onChangePrivacy,
   onChangePlaybackMode,
   onToggleAutoTranslate,
   onToggleAdult,
+  onToggleHideAdultContent,
   micConnected,
   micMuted,
   onMicPress,
@@ -204,11 +213,24 @@ export default function RoomSettingsSheet({
             </View>
 
             <View style={styles.translateRow}>
-              <Text style={styles.translateLabel}>18+ içerik</Text>
+              <Text style={[styles.translateLabel, !isHost && styles.translateLabelDisabled]}>
+                Bu oda 18+ içerik barındırıyor
+              </Text>
               <Switch
                 value={isAdult}
                 onValueChange={onToggleAdult}
+                disabled={!isHost}
                 trackColor={{ false: theme.border, true: theme.danger }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+
+            <View style={styles.translateRow}>
+              <Text style={styles.translateLabel}>Yetişkin içeriğini gizle</Text>
+              <Switch
+                value={hideAdultContent}
+                onValueChange={onToggleHideAdultContent}
+                trackColor={{ false: theme.border, true: theme.accent }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -276,4 +298,5 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.08)",
   },
   translateLabel: { color: theme.text, fontSize: 14, fontWeight: "600" },
+  translateLabelDisabled: { color: theme.textMuted },
 });

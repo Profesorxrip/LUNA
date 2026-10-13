@@ -678,7 +678,13 @@ io.on("connection", (socket: Socket) => {
   socket.on("user:activeRoom", async ({ userId }: { userId: string }, ack) => {
     if (!isNonEmptyString(userId, 200)) return ack?.({ ok: false, error: "Gecersiz kullanici." });
     const friendIds = myUserId && myDb ? new Set((await listFriends(myDb, myUserId)).map((f) => f.userId)) : new Set<string>();
-    const room = findActiveRoomForUser(userId, { userId: myUserId, country: myCountry, city: myCity, friendIds });
+    const room = findActiveRoomForUser(userId, {
+      userId: myUserId,
+      country: myCountry,
+      city: myCity,
+      friendIds,
+      hideAdultContent: myHideAdultContent,
+    });
     ack?.({ ok: true, room });
   });
 

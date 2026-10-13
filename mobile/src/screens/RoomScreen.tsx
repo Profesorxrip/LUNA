@@ -974,6 +974,16 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     socket.emit("room:settings", { isAdult }, () => {});
   }
 
+  // Ayarlar panelindeki kisisel "Yetiskin Icerigini Gizle" kisayolu -
+  // ProfileScreen.tsx'teki ile AYNI tercih, sadece buradan (odadan
+  // cikmadan) da degistirilebilsin diye - yerel state'i hemen guncelleyip
+  // video blurunu (adultBlurActive) aninda yansitir, sunucuya/Supabase'e
+  // kaydetmeyi ise profile:hideAdultContent zaten yapiyor.
+  function toggleMyHideAdultContent(enabled: boolean) {
+    setMyHideAdultContent(enabled);
+    socket.emit("profile:hideAdultContent", { enabled }, () => {});
+  }
+
   function handleVoiceVolumeChange(v: number) {
     setVoiceVolume(v);
     voice.setRemoteVolume(v);
@@ -1770,6 +1780,8 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onToggleAutoTranslate={toggleAutoTranslate}
         isAdult={room.isAdult}
         onToggleAdult={toggleAdult}
+        hideAdultContent={myHideAdultContent}
+        onToggleHideAdultContent={toggleMyHideAdultContent}
         micConnected={voice.connected}
         micMuted={voice.muted}
         onMicPress={handleMicPress}
