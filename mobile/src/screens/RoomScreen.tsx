@@ -409,8 +409,11 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
   // Ayarlar ekranindaki "Yetiskin Icerigini Gizle" tercihim - "+18 icerik"
   // isaretli bir odada video KENDI ekranimda bulanik gorunsun mu, "Atla"
-  // oyu verebileyim mi diye (bkz. asagidaki adultBlurActive).
-  const [myHideAdultContent, setMyHideAdultContent] = useState(false);
+  // oyu verebileyim mi diye (bkz. asagidaki adultBlurActive). Gercek deger
+  // Supabase'den gelene kadar GUVENLI VARSAYILAN "true" (gizli) - "false"
+  // ile baslarsak, oda +18 isaretliyse ve gercek tercihim "gizli" olsa
+  // bile veri yuklenene kadar video kisa bir an bulaniksiz goruntulenirdi.
+  const [myHideAdultContent, setMyHideAdultContent] = useState(true);
 
   const playerRef = useRef<MediaPlayerHandle>(null);
   const reactionsRef = useRef<ReactionsOverlayHandle>(null);

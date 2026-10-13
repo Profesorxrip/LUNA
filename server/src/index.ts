@@ -390,13 +390,21 @@ io.on("connection", (socket: Socket) => {
   let myCountry: string | null = null;
   let myCity: string | null = null;
   let myHideLocation = true;
-  let myHideAdultContent = false;
+  // GUVENLI VARSAYILAN: baglanti acilir acilmaz (identify/profil sorgusu
+  // HENUZ sonuclanmadan) biri "rooms:list" ya da "user:activeRoom"
+  // cagirirsa, bu kisa pencerede +18 icerigi SIZDIRMAMAK icin "gizli"
+  // kabul ediyoruz - gercek tercih yuklenince (asagida) dogru degere
+  // duzeltilir. Eskiden false (yani "gizleme") ile basliyordu, bu da
+  // tam bu pencerede +18'i gizlemis bir kullaniciya bile icerik
+  // sizdirabiliyordu (fail-open). "false" DEGIL, hesabi olmayan/henuz
+  // giris yapmamis misafirler icin de ayni guvenli varsayilan gecerli.
+  let myHideAdultContent = true;
   let myLanguage = "tr";
   const allow = makeRateLimiter();
 
   // Giris yapmamis (anonim) bir istemci de Discover'da "acik" odalari
   // gorebilmeli - bu yuzden HERKES (identify olsun olmasin) buraya kaydedilir.
-  connectionMeta.set(socket.id, { userId: null, country: null, city: null, db: null, hideAdultContent: false, language: myLanguage });
+  connectionMeta.set(socket.id, { userId: null, country: null, city: null, db: null, hideAdultContent: true, language: myLanguage });
 
   socket.on("rooms:list", async (_data, ack) => {
     const friendIds = myUserId && myDb ? new Set((await listFriends(myDb, myUserId)).map((f) => f.userId)) : new Set<string>();
