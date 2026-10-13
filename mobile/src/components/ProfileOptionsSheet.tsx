@@ -1,6 +1,5 @@
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Image, Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import Icon from "./Icon";
-import Avatar from "./Avatar";
 import type { IconName } from "./Icon";
 
 export interface ProfileOptionsTarget {
@@ -48,13 +47,21 @@ interface Row {
   onPress: () => void;
 }
 
-/** Rave'deki gibi bir katilimcinin profiline/avatarina BASILI TUTUNCA acilan
- * panel - MessageOptionsSheet ile AYNI alttan panel (bottom sheet) deseni,
- * uygulama genelinde tutarli olsun diye. Hangi ekranda/baglamda kullanilirsa
+const PLACEHOLDER_COLORS = ["#F97316", "#10B981", "#3B82F6", "#EC4899", "#EAB308", "#8B5CF6", "#14B8A6"];
+function colorForName(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return PLACEHOLDER_COLORS[Math.abs(hash) % PLACEHOLDER_COLORS.length];
+}
+
+/** Rave'deki gibi bir katilimcinin profiline/avatarina BASILI TUTUNCA
+ * ekranin ORTASINDA acilan kucuk kutu - buyuk kare profil fotografi + isim/
+ * kullanici adi karti, altinda her biri AYRI yuvarlatilmis birer "hap"
+ * (pill) olan aksiyon satirlari (kullanicinin gonderdigi referans ekran
+ * goruntusuyle BIREBIR ayni duzen). Hangi ekranda/baglamda kullanilirsa
  * kullanilsin ayni bilesen - liderlige ozel satirlar sadece "isHost" true ve
  * hedef kendim degilsem, arkadaslikla ilgili satirlar sadece gercek bir
- * userId/arkadaslik durumu varsa gosterilir (bkz. ilgili ekranlarin
- * kendi "target" olusturma mantigi). */
+ * userId/arkadaslik durumu varsa gosterilir. */
 export default function ProfileOptionsSheet({
   visible,
   target,
@@ -110,14 +117,18 @@ export default function ProfileOptionsSheet({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
-          <View style={styles.dragHandle} />
-
-          <View style={styles.header}>
-            <Avatar name={target.name} avatarUrl={target.avatarUrl} size={44} />
-            <View style={styles.headerTextCol}>
+        <View style={styles.card}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            {target.avatarUrl ? (
+              <Image source={{ uri: target.avatarUrl }} style={styles.photo} />
+            ) : (
+              <View style={[styles.photo, styles.photoPlaceholder, { backgroundColor: colorForName(target.name) }]}>
+                <Text style={styles.photoInitial}>{target.name.trim().charAt(0).toUpperCase() || "?"}</Text>
+              </View>
+            )}
+            <View style={styles.nameCard}>
               <Text style={styles.name} numberOfLines={1}>
                 {target.name}
               </Text>
@@ -127,46 +138,50 @@ export default function ProfileOptionsSheet({
                 </Text>
               )}
             </View>
-          </View>
-
-          <View style={styles.divider} />
+          </TouchableOpacity>
 
           <View style={styles.list}>
-            {rows.map((row, i) => (
-              <TouchableOpacity
-                key={row.key}
-                style={[styles.row, i === rows.length - 1 && styles.rowLast]}
-                onPress={row.onPress}
-              >
+            {rows.map((row) => (
+              <TouchableOpacity key={row.key} style={styles.pill} onPress={row.onPress}>
                 <Icon name={row.icon} size={18} color={row.danger ? "#FF6B6B" : "#FFFFFF"} />
-                <Text style={[styles.rowLabel, row.danger && styles.rowLabelDanger]}>{row.label}</Text>
+                <Text style={[styles.pillLabel, row.danger && styles.pillLabelDanger]}>{row.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
-        </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     </Modal>
   );
 }
 
+const CARD_WIDTH = 300;
+
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: "flex-end" },
-  sheet: {
-    backgroundColor: "#1C1C1E",
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingBottom: 26,
-    maxHeight: "80%",
+  backdrop: { flex: 1, justifyContent: "center", alignItems: "center" },
+  card: { width: CARD_WIDTH },
+  photo: { width: CARD_WIDTH, height: CARD_WIDTH, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  photoPlaceholder: { justifyContent: "center", alignItems: "center" },
+  photoInitial: { color: "#FFFFFF", fontSize: 64, fontWeight: "700" },
+  nameCard: {
+    backgroundColor: "rgba(28,28,30,0.96)",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingVertical: 12,
+    alignItems: "center",
   },
-  dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)", alignSelf: "center", marginTop: 10, marginBottom: 6 },
-  header: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
-  headerTextCol: { flex: 1, gap: 2 },
-  name: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
-  handle: { color: "rgba(255,255,255,0.5)", fontSize: 12 },
-  divider: { height: 1, backgroundColor: "rgba(255,255,255,0.08)", marginHorizontal: 16 },
-  list: { paddingHorizontal: 16, paddingTop: 4 },
-  row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 13, borderBottomWidth: 1, borderColor: "rgba(255,255,255,0.07)" },
-  rowLast: { borderBottomWidth: 0 },
-  rowLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "500" },
-  rowLabelDanger: { color: "#FF6B6B" },
+  name: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", fontStyle: "italic" },
+  handle: { color: "rgba(255,255,255,0.55)", fontSize: 13, marginTop: 2 },
+  list: { marginTop: 14, gap: 10 },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "rgba(28,28,30,0.96)",
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  pillLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "600", textAlign: "center" },
+  pillLabelDanger: { color: "#FF6B6B" },
 });

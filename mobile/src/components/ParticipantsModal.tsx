@@ -11,8 +11,6 @@ interface Props {
   participants: Participant[];
   mySocketId?: string;
   isHost: boolean;
-  onKick: (targetSocketId: string) => void;
-  onMakeLeader: (targetSocketId: string) => void;
   onMuteParticipant: (targetSocketId: string, muted: boolean) => void;
   // Bir katilimciya BASILI TUTUNCA (bkz. ProfileOptionsSheet.tsx) - Rave'deki
   // gibi Profil/Liderlik/Engelle/Bildir vb. iceren panel acilir.
@@ -46,8 +44,6 @@ export default function ParticipantsModal({
   participants,
   mySocketId,
   isHost,
-  onKick,
-  onMakeLeader,
   onMuteParticipant,
   onLongPressParticipant,
   hostMicOpen,
@@ -128,16 +124,6 @@ export default function ParticipantsModal({
                       <Icon name={item.muted ? "micOff" : "mic"} size={20} color={item.muted ? theme.danger : theme.textMuted} />
                     </TouchableOpacity>
                   )}
-                  {isHost && !isSelf && (
-                    <View style={styles.actions}>
-                      <TouchableOpacity onPress={() => onMakeLeader(item.socketId)}>
-                        <Text style={styles.actionText}>Lider yap</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => onKick(item.socketId)}>
-                        <Text style={styles.actionTextDanger}>At</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
                 </View>
               );
               }}
@@ -208,7 +194,4 @@ const styles = StyleSheet.create({
   name: { color: theme.text, fontSize: 14 },
   handle: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
   micBtn: { padding: 4 },
-  actions: { flexDirection: "row", gap: 10 },
-  actionText: { color: theme.info, fontSize: 12 },
-  actionTextDanger: { color: theme.danger, fontSize: 12 },
 });
