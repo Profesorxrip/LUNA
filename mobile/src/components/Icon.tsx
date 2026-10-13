@@ -43,11 +43,11 @@ import {
   ClipboardDocumentIcon,
   UserIcon,
   NoSymbolIcon,
-  ShieldCheckIcon,
 } from "react-native-heroicons/solid";
 import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
 import { MicOff, Hourglass, Crown, RotateCcw, RotateCw } from "lucide-react-native";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
+import ModeratorBadge from "./ModeratorBadge";
 
 export type IconName =
   | "close"
@@ -169,7 +169,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   clipboard: ClipboardDocumentIcon,
   person: UserIcon,
   block: NoSymbolIcon,
-  shield: ShieldCheckIcon,
 };
 
 const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>>> = {
@@ -185,6 +184,7 @@ const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: num
 const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
   skipForward: SkipForwardIcon,
   skipBack: SkipBackIcon,
+  shield: ModeratorBadge,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
