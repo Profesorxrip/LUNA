@@ -43,6 +43,7 @@ import {
   ClipboardDocumentIcon,
   UserIcon,
   NoSymbolIcon,
+  ShieldCheckIcon,
 } from "react-native-heroicons/solid";
 import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
 import { MicOff, Hourglass, Crown, RotateCcw, RotateCw } from "lucide-react-native";
@@ -105,7 +106,8 @@ export type IconName =
   | "chatBubble"
   | "clipboard"
   | "person"
-  | "block";
+  | "block"
+  | "shield";
 
 interface Props {
   name: IconName;
@@ -167,6 +169,7 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   clipboard: ClipboardDocumentIcon,
   person: UserIcon,
   block: NoSymbolIcon,
+  shield: ShieldCheckIcon,
 };
 
 const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>>> = {

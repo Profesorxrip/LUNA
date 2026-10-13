@@ -1083,6 +1083,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     });
     voice.setParticipantVolume(target.socketId, next ? 0 : 1);
   }
+  function sendFriendRequestFromProfile(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    socket.emit("friend:request", { toUserId: target.userId }, (res: any) => {
+      if (res?.ok) showAlert("İstek gönderildi", `${target.name} kullanıcısına arkadaşlık isteği gönderildi.`);
+    });
+  }
   function removeFriendFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     socket.emit("friend:remove", { userId: target.userId }, (res: any) => {
@@ -1092,6 +1098,16 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         return next;
       });
     });
+  }
+  // "Moderator yap" / "Sustur" - kullanicinin profil kartina eklenmesini
+  // istedigi ama ne ise yarayacaklarini YARIN acikliyacagini soyledigi iki
+  // satir - henuz gercek bir sunucu karsiligi YOK, bu yuzden simdilik sadece
+  // bunu soyluyorlar (sessizce "basariyla yapildi" gibi davranmiyorlar).
+  function makeModeratorPlaceholder(target: ProfileOptionsTarget) {
+    showAlert("Yakında", "Moderatör rolü henüz eklenmedi.");
+  }
+  function silenceParticipantPlaceholder(target: ProfileOptionsTarget) {
+    showAlert("Yakında", "\"Sustur\" aksiyonu henüz eklenmedi.");
   }
   function blockFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
@@ -1652,9 +1668,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onClose={closeProfileOptions}
         onOpenProfile={openParticipantProfile}
         onMakeLeader={(t) => t.socketId && makeLeader(t.socketId)}
+        onMakeModerator={makeModeratorPlaceholder}
         onKick={(t) => t.socketId && kick(t.socketId)}
         onDisableMic={(t) => t.socketId && muteParticipant(t.socketId, true)}
         onToggleLocalMute={toggleLocalMute}
+        onSilence={silenceParticipantPlaceholder}
+        onSendFriendRequest={sendFriendRequestFromProfile}
         onRemoveFriend={removeFriendFromProfile}
         onBlock={blockFromProfile}
         onReport={reportParticipant}

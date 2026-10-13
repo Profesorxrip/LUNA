@@ -31,9 +31,17 @@ interface Props {
   onClose: () => void;
   onOpenProfile: (target: ProfileOptionsTarget) => void;
   onMakeLeader?: (target: ProfileOptionsTarget) => void;
+  // Henuz sunucu tarafinda bir "moderator" rolu YOK - bu iki satir
+  // (Moderator yap / Sustur) kullanicinin "yarin ne ise yaradiklarini
+  // anlatip duzelticem" demesi uzerine SADECE kart uzerinde gorunsunler
+  // diye eklendi, su an gercek bir sunucu aksiyonu TETIKLEMIYOR (bkz.
+  // RoomScreen.tsx onMakeModerator/onSilence - "yakinda" uyarisi gosterir).
+  onMakeModerator?: (target: ProfileOptionsTarget) => void;
+  onSilence?: (target: ProfileOptionsTarget) => void;
   onKick?: (target: ProfileOptionsTarget) => void;
   onDisableMic?: (target: ProfileOptionsTarget) => void;
   onToggleLocalMute?: (target: ProfileOptionsTarget) => void;
+  onSendFriendRequest?: (target: ProfileOptionsTarget) => void;
   onRemoveFriend?: (target: ProfileOptionsTarget) => void;
   onBlock?: (target: ProfileOptionsTarget) => void;
   onReport?: (target: ProfileOptionsTarget) => void;
@@ -69,9 +77,12 @@ export default function ProfileOptionsSheet({
   onClose,
   onOpenProfile,
   onMakeLeader,
+  onMakeModerator,
+  onSilence,
   onKick,
   onDisableMic,
   onToggleLocalMute,
+  onSendFriendRequest,
   onRemoveFriend,
   onBlock,
   onReport,
@@ -92,11 +103,16 @@ export default function ProfileOptionsSheet({
   if (isHost && onMakeLeader) {
     rows.push({ key: "leader", icon: "crown", label: "Liderliği ver", onPress: act(onMakeLeader) });
   }
-  if (target.isFriend && target.userId && onRemoveFriend) {
+  if (isHost && onMakeModerator) {
+    rows.push({ key: "moderator", icon: "shield", label: "Moderatör yap", onPress: act(onMakeModerator) });
+  }
+  if (target.userId && target.isFriend && onRemoveFriend) {
     rows.push({ key: "removeFriend", icon: "personBlock", label: "Arkadaşı sil", onPress: act(onRemoveFriend) });
+  } else if (target.userId && !target.isFriend && onSendFriendRequest) {
+    rows.push({ key: "addFriend", icon: "invite", label: "İstek at", onPress: act(onSendFriendRequest) });
   }
   if (isHost && onKick) {
-    rows.push({ key: "kick", icon: "kicked", label: "At", danger: true, onPress: act(onKick) });
+    rows.push({ key: "kick", icon: "kicked", label: "Odadan at", danger: true, onPress: act(onKick) });
   }
   if (isHost && !target.micDisabled && onDisableMic) {
     rows.push({ key: "disableMic", icon: "micOff", label: "Mikrofonu Devre Dışı Bırak", onPress: act(onDisableMic) });
@@ -108,6 +124,9 @@ export default function ProfileOptionsSheet({
       label: target.locallyMuted ? "Sesini Aç" : "Sessize Al",
       onPress: act(onToggleLocalMute),
     });
+  }
+  if (onSilence) {
+    rows.push({ key: "silence", icon: "volumeOff", label: "Sustur", onPress: act(onSilence) });
   }
   if (target.userId && onBlock) {
     rows.push({ key: "block", icon: "block", label: "Engelle", danger: true, onPress: act(onBlock) });
