@@ -87,6 +87,61 @@ interface ChatBubbleRowProps {
   // avatarinin uzerinde gosterilir.
   senderIsHost: boolean;
   senderIsModerator: boolean;
+  // Bir tepki kartina BASINCA (uzun basma degil, tek dokunus) o emojiyle
+  // tepki verir / zaten o emojiyle tepki vermissek geri ceker (bkz.
+  // RoomScreen.tsx reactToMessageWithEmoji, server/src/index.ts message:react
+  // - sunucu zaten ayni emojiyle ikinci tepkiyi toggle/geri aliyor).
+  onReactWithEmoji: (emoji: string) => void;
+}
+
+type Reaction = { emoji: string; fromSocketId: string; fromName: string; fromAvatarUrl?: string | null };
+
+// Ayni mesajdaki tepkileri emojiye gore gruplar - iki+ kisi AYNI emojiyi
+// verdiyse tek kart icinde tek emoji gosterilsin diye (bkz. ReactionChip).
+// Ilk gorulme sirasi korunur (farkli emojiler farkli kart acar).
+function groupReactionsByEmoji(reactions: Reaction[]): { emoji: string; reactors: Reaction[] }[] {
+  const order: string[] = [];
+  const byEmoji = new Map<string, Reaction[]>();
+  for (const r of reactions) {
+    if (!byEmoji.has(r.emoji)) {
+      byEmoji.set(r.emoji, []);
+      order.push(r.emoji);
+    }
+    byEmoji.get(r.emoji)!.push(r);
+  }
+  return order.map((emoji) => ({ emoji, reactors: byEmoji.get(emoji)! }));
+}
+
+const REACTION_AVATAR_CYCLE_MS = 1500;
+
+/** Tek bir tepki karti - emoji + (2+ kisi ayni tepkiyi verdiyse) sirayla
+ * geçiş animasyonuyla donen pp'ler. Karta dokununca ayni emojiyle tepki
+ * verir/geri ceker (bkz. onReactWithEmoji). */
+function ReactionChip({ emoji, reactors, onPress }: { emoji: string; reactors: Reaction[]; onPress: () => void }) {
+  const [index, setIndex] = useState(0);
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (reactors.length < 2) return;
+    const id = setInterval(() => {
+      Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        setIndex((i) => (i + 1) % reactors.length);
+        Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+      });
+    }, REACTION_AVATAR_CYCLE_MS);
+    return () => clearInterval(id);
+  }, [reactors.length, opacity]);
+
+  const current = reactors[index % reactors.length] || reactors[0];
+
+  return (
+    <TouchableOpacity activeOpacity={0.7} onPress={onPress} style={styles.reactionChip}>
+      <Animated.View style={{ opacity }}>
+        <Avatar name={current.fromName} avatarUrl={current.fromAvatarUrl} size={24} />
+      </Animated.View>
+      <Text style={styles.reactionBadgeEmoji}>{emoji}</Text>
+    </TouchableOpacity>
+  );
 }
 
 /** Sohbetteki avatarin ustune, katilimcilar panelindekiyle AYNI konumda
@@ -120,7 +175,7 @@ function ChatAvatar({ name, avatarUrl, isFriend, isHost, isModerator }: { name: 
  * doldurup tasdigi icin ustten baslamaya devam ediyor. Bu sayede react-
  * native-web'de desteklenmeyen onTextLayout'a bagli kalinmiyor ve native'de
  * de ilk render'da dogru pozisyonla cikiyor - sonradan "ziplama" olmuyor. */
-function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onLongPressMessage, isFriend, senderIsHost, senderIsModerator }: ChatBubbleRowProps) {
+function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onLongPressMessage, isFriend, senderIsHost, senderIsModerator, onReactWithEmoji }: ChatBubbleRowProps) {
   const { i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
@@ -138,15 +193,13 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
     lastTapRef.current = now;
   }
 
-  // Her tepki - emoji + tepki veren kisinin profil fotografi AYNI cercevenin
-  // (pill) icinde, kim tepki verdigi belli olsun diye (bkz. Avatar.tsx).
-  const reactionBadges = item.reactions && item.reactions.length > 0 && (
+  // Ayni emojiyi veren herkes TEK bir kartta toplanir (bkz.
+  // groupReactionsByEmoji) - farkli emoji farkli kart acar.
+  const reactionGroups = item.reactions && item.reactions.length > 0 ? groupReactionsByEmoji(item.reactions) : [];
+  const reactionBadges = reactionGroups.length > 0 && (
     <View style={styles.reactionBadgeRow}>
-      {item.reactions.map((r) => (
-        <View key={r.fromSocketId} style={styles.reactionChip}>
-          <Avatar name={r.fromName} avatarUrl={r.fromAvatarUrl} size={18} />
-          <Text style={styles.reactionBadgeEmoji}>{r.emoji}</Text>
-        </View>
+      {reactionGroups.map((g) => (
+        <ReactionChip key={g.emoji} emoji={g.emoji} reactors={g.reactors} onPress={() => onReactWithEmoji(g.emoji)} />
       ))}
     </View>
   );
@@ -1042,6 +1095,14 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     socket.emit("message:react", { messageId: item.id, emoji: quickReactionEmoji });
   }
 
+  // Bir tepki kartina DOKUNUNCA o KARTIN emojisiyle tepki verir - zaten o
+  // emojiyle tepki vermissek sunucu geri ceker (bkz. ReactionChip,
+  // server/src/index.ts message:react - ayni emoji = toggle).
+  function reactToMessageWithEmoji(item: ChatMessage, emoji: string) {
+    if (!item.id) return;
+    socket.emit("message:react", { messageId: item.id, emoji });
+  }
+
   // Mesaja BASILI TUTUNCA acilan kart (Rave'deki gibi) - bkz.
   // MessageOptionsSheet.tsx / ChatBubbleRow onLongPressMessage.
   const [optionsMessage, setOptionsMessage] = useState<ChatMessage | null>(null);
@@ -1518,6 +1579,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               isFriend={Boolean(sender?.userId && friendIds.has(sender.userId))}
               senderIsHost={Boolean(sender?.isHost)}
               senderIsModerator={Boolean(sender?.isModerator)}
+              onReactWithEmoji={(emoji) => reactToMessageWithEmoji(item, emoji)}
             />
           ) : item.kind === "joined" ? (
             <View style={styles.messageRow}>
@@ -1984,12 +2046,12 @@ const styles = StyleSheet.create({
   reactionChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
     backgroundColor: theme.surfaceAlt,
     borderWidth: 1,
     borderColor: theme.border,
-    borderRadius: 14,
-    paddingHorizontal: 7,
+    borderRadius: 16,
+    paddingHorizontal: 8,
     paddingVertical: 4,
   },
   reactionBadgeEmoji: { fontSize: 17 },
