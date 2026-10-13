@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "LUNA Watch Party",
+  "short_name": "LUNA",
+  "description": "Netflix, Disney+, Prime Video ve HBO Max'ta LUNA odandakilerle senkron izle - video kendi hesabinla, kendi tarayicinda, DRM'e hic dokunmadan oynar; sadece oynat/durdur/saniye bilgisi odadakilerle paylasilir.",
+  "version": "0.1.0",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://*.netflix.com/*",
+    "https://*.disneyplus.com/*",
+    "https://*.primevideo.com/*",
+    "https://*.amazon.com/*",
+    "https://*.max.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.netflix.com/*",
+        "https://*.disneyplus.com/*",
+        "https://*.primevideo.com/*",
+        "https://*.amazon.com/gp/video/*",
+        "https://*.max.com/*"
+      ],
+      "js": ["vendor/socket.io.min.js", "src/platforms.js", "src/content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/content.css"],
+      "matches": [
+        "https://*.netflix.com/*",
+        "https://*.disneyplus.com/*",
+        "https://*.primevideo.com/*",
+        "https://*.amazon.com/*",
+        "https://*.max.com/*"
+      ]
+    }
+  ]
+}

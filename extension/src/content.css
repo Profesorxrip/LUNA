@@ -1,0 +1,138 @@
+/* Shadow DOM icinde oldugu icin sayfanin kendi stilinden etkilenmez.
+   NOT: [hidden] kuralini ACIKCA yaziyoruz - yazar (author) CSS'i her zaman
+   tarayici varsayilanini (user-agent stylesheet) ezer, bu yuzden asagidaki
+   ".luna-section { display:flex }" gibi kurallar olmasaydi bile "hidden"
+   ozniteligi varsayilan olarak calisirdi, ama display tanimlayan HERHANGI
+   bir kuralimiz oldugunda bu varsayilani ezip elementi GORUNUR birakir. */
+[hidden] { display: none !important; }
+
+.luna-root {
+  position: fixed;
+  top: 90px;
+  right: 16px;
+  z-index: 2147483647;
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  color: #fff;
+}
+
+.luna-bubble {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0b0b10;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  user-select: none;
+}
+
+.luna-dot { width: 8px; height: 8px; border-radius: 50%; background: #666; }
+.luna-dot-off { background: #ff4d4f; }
+.luna-dot-connecting { background: #f5a623; }
+.luna-dot-on { background: #3ddc84; }
+
+.luna-panel {
+  margin-top: 8px;
+  width: 280px;
+  max-height: 480px;
+  background: #0b0b10;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.luna-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.luna-icon-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.luna-status { font-size: 12px; color: rgba(255, 255, 255, 0.7); }
+
+.luna-section { display: flex; flex-direction: column; gap: 8px; }
+
+.luna-input {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  padding: 8px 10px;
+  font-size: 13px;
+  flex: 1;
+  outline: none;
+}
+
+.luna-row { display: flex; gap: 6px; }
+.luna-row-between { display: flex; justify-content: space-between; align-items: center; }
+
+.luna-btn {
+  background: #2f9bff;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.luna-btn-sm { padding: 6px 10px; font-size: 12px; }
+.luna-btn-danger { background: rgba(255, 77, 79, 0.18); color: #ff8a8a; border: 1px solid rgba(255, 77, 79, 0.4); }
+
+.luna-room-title { font-weight: 700; font-size: 14px; }
+.luna-muted { font-size: 11px; color: rgba(255, 255, 255, 0.55); }
+
+.luna-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.luna-tag-host { background: rgba(61, 220, 132, 0.2); color: #3ddc84; }
+
+.luna-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: rgba(47, 155, 255, 0.15);
+  border: 1px solid rgba(47, 155, 255, 0.4);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.luna-chat {
+  height: 160px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.luna-chat-line { word-break: break-word; }
+.luna-chat-system { color: rgba(255, 255, 255, 0.5); font-style: italic; }
