@@ -131,9 +131,11 @@ export interface Room {
   playback: PlaybackState;
   createdAtMs: number;
   bufferingSocketIds: Set<string>;
-  // Oda sohbetinde bir mesaja cift-tiklayinca eklenen tepkiler - mesajlar
-  // gibi kalici degil, sadece oda hafizadayken yasiyor (messageId -> socketId -> tepki).
-  messageReactions: Map<string, Map<string, { emoji: string; fromName: string; fromAvatarUrl?: string | null }>>;
+  // Oda sohbetinde bir mesaja eklenen tepkiler - mesajlar gibi kalici degil,
+  // sadece oda hafizadayken yasiyor (messageId -> socketId -> o kisinin
+  // FARKLI emojilerle verdigi tepkiler, en fazla MAX_REACTIONS_PER_USER tane -
+  // bkz. index.ts message:react).
+  messageReactions: Map<string, Map<string, { emoji: string; fromName: string; fromAvatarUrl?: string | null }[]>>;
   // Host odayi "18+ icerik" olarak isaretleyebilir - Ayarlar ekranindaki
   // "Yetiskin Icerigini Gizle" acik olan kullanicilarin Discover listesinde
   // bu oda hic gorunmez (bkz. visibleToViewer).

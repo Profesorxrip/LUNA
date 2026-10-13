@@ -87,6 +87,9 @@ import { isNonEmptyString, isOptionalString, isBoolean, isFiniteNumber, isOneOf 
 import { translateToLanguages } from "./translate";
 
 const SOURCE_TYPES = ["youtube", "hls", "mp4", "external"] as const;
+// Herkes AYNI mesaja en fazla bu kadar FARKLI emojiyle tepki verebilir
+// (bkz. "message:react").
+const MAX_REACTIONS_PER_USER = 3;
 
 // Sohbet akisindaki "ayar degisti" sistem mesajlarinda gosterilen Turkce
 // etiketler - RoomSettingsSheet.tsx'teki secenek isimleriyle tutarli.
@@ -1441,10 +1444,12 @@ io.on("connection", (socket: Socket) => {
     });
   });
 
-  // Oda sohbetinde bir mesaja CIFT TIKLAYINCA gonderilen tepki - DM'deki
-  // message:react ile ayni mantik, ama hicbir yerde kalici olarak
-  // saklanmiyor (oda hafizadan silinince bu tepkiler de gider). Ayni emoji
-  // ile ikinci cift-tik tepkiyi geri kaldirir (toggle).
+  // Oda sohbetinde bir mesaja (cift-tiklayarak VEYA bir tepki kartina
+  // dokunarak) gonderilen tepki - DM'deki message:react ile ayni mantik,
+  // ama hicbir yerde kalici olarak saklanmiyor (oda hafizadan silinince bu
+  // tepkiler de gider). Herkes AYNI mesaja en fazla MAX_REACTIONS_PER_USER
+  // FARKLI emojiyle tepki verebilir - ayni emoji ile ikinci tepki onu geri
+  // kaldirir (toggle), sinir doluyken yeni bir emoji denemesi yok sayilir.
   socket.on("message:react", ({ messageId, emoji }: { messageId: string; emoji: string }) => {
     if (!currentRoomCode || !isNonEmptyString(messageId, 100) || !isNonEmptyString(emoji, 8)) return;
     if (!allow("message:react", 40, 10_000)) return;
@@ -1457,18 +1462,20 @@ io.on("connection", (socket: Socket) => {
       forMessage = new Map();
       room.messageReactions.set(messageId, forMessage);
     }
-    const existing = forMessage.get(socket.id);
-    if (existing && existing.emoji === emoji) {
-      forMessage.delete(socket.id);
+    const mine = forMessage.get(socket.id) || [];
+    const existingIndex = mine.findIndex((r) => r.emoji === emoji);
+    if (existingIndex >= 0) {
+      mine.splice(existingIndex, 1);
+    } else if (mine.length < MAX_REACTIONS_PER_USER) {
+      mine.push({ emoji, fromName, fromAvatarUrl: reactor?.avatarUrl ?? null });
     } else {
-      forMessage.set(socket.id, { emoji, fromName, fromAvatarUrl: reactor?.avatarUrl ?? null });
+      return;
     }
-    const reactions = Array.from(forMessage.entries()).map(([fromSocketId, r]) => ({
-      fromSocketId,
-      emoji: r.emoji,
-      fromName: r.fromName,
-      fromAvatarUrl: r.fromAvatarUrl ?? null,
-    }));
+    if (mine.length > 0) forMessage.set(socket.id, mine);
+    else forMessage.delete(socket.id);
+    const reactions = Array.from(forMessage.entries()).flatMap(([fromSocketId, list]) =>
+      list.map((r) => ({ fromSocketId, emoji: r.emoji, fromName: r.fromName, fromAvatarUrl: r.fromAvatarUrl ?? null }))
+    );
     io.to(currentRoomCode).emit("room:messageReaction", { messageId, reactions });
   });
 
