@@ -1385,7 +1385,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   const hiddenParticipantCount = room.participants.length - mapMarkers.length;
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       {/* Ust bar (Rave'deki X / ayarlar / logo / ara / katilimci duzeni) - medya
           alaninin uzerine binmez, kendi satirinda durur, video tam altinda baslar.
           Tam ekran yatay modda TAMAMEN gizlenir - video butun ekrani kaplar,
@@ -1709,17 +1709,19 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
       {/* Alt bar - mikrofon / mesaj kutusu / etiket / galeri / davet / paylas / gonder (Rave'deki alt bar duzeni) */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[styles.micButton, voice.connected && voice.muted && styles.micButtonMuted]}
-          onPress={handleMicPress}
-          onLongPress={handleMicLongPress}
-        >
-          <Icon
-            name={voice.connected && voice.muted ? "micOff" : "mic"}
-            size={28}
-            color={voice.connected && !voice.muted ? theme.accent : "#04140D"}
-          />
-        </TouchableOpacity>
+        {!chatFocused && (
+          <TouchableOpacity
+            style={[styles.micButton, voice.connected && voice.muted && styles.micButtonMuted]}
+            onPress={handleMicPress}
+            onLongPress={handleMicLongPress}
+          >
+            <Icon
+              name={voice.connected && voice.muted ? "micOff" : "mic"}
+              size={28}
+              color={voice.connected && !voice.muted ? theme.accent : "#04140D"}
+            />
+          </TouchableOpacity>
+        )}
         <TextInput
           style={styles.chatInput}
           placeholder={me?.chatBanned ? "Sohbete yazman kapatıldı" : "Mesaj yaz..."}
