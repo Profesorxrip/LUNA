@@ -631,7 +631,6 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
                   placeholderTextColor={MUTED}
                 />
                 <TouchableOpacity style={styles.bioSaveButton} onPress={() => closeFieldEdit("bio", bio)}>
-                  <Icon name="check" size={16} color="#04140D" />
                   <Text style={styles.bioSaveButtonText}>Kaydet</Text>
                 </TouchableOpacity>
               </View>
