@@ -216,7 +216,14 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
   return (
     <WebView<{}>
       ref={webviewRef}
-      source={{ html: playerHtml }}
+      // YouTube IFrame API, statik/inline HTML'in varsayilan "bos" kokenini
+      // (origin) reddediyor ve "Hata 153 / Video oynatici yapilandirma
+      // hatasi" veriyordu - gercek bir https:// kokeni (baseUrl) verince
+      // YouTube artik embed'i gecerli sayiyor. Adresin gercekten yayinda
+      // olmasina gerek yok, sadece gecerli bir https origin'e benzemesi
+      // yeterli (YouTube sunucuya hic istek atmiyor, sadece header'daki
+      // origin'i kontrol ediyor).
+      source={{ html: playerHtml, baseUrl: "https://luna.app" }}
       style={[styles.webview, fullscreen && styles.webviewFullscreen]}
       javaScriptEnabled
       allowsInlineMediaPlayback
