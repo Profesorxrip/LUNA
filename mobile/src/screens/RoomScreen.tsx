@@ -357,7 +357,11 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // Katilimcilar paneli (Modal, kendi ayri agacinda render edilir) ust barin
   // ALTINDAN baslasin diye - gercek yukseklik cihaza/masaustu-telefon
   // duzenine gore degistigi icin olculup burada tutuluyor.
-  const [topBarHeight, setTopBarHeight] = useState(0);
+  // Baslangic degeri 0 degil, tahmini bir yukseklik - onLayout olcumu
+  // (Katilimcilar paneli acilmasi gibi cok erken bir anda) henuz
+  // gelmemisse panel "top: 0" ile ust barin UZERINE binip, altta da
+  // sinirlarin yanlis hesaplanmasina (bosluk) yol aciyordu.
+  const [topBarHeight, setTopBarHeight] = useState(isDesktop ? 58 : 90);
   const [inviteFriendsVisible, setInviteFriendsVisible] = useState(false);
   // Discover'daki oda kartlarinda kullanilan mavi "arkadas halkasi" ile AYNI -
   // katilimcilar panelinde/sohbet avatarlarinda gercek arkadaslarimizi
@@ -383,7 +387,16 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // YUKARI KAYDIRARAK (yuksekligini 0'a indirerek) yok etmesi - bkz.
   // videoCollapseAnim/videoNaturalHeight asagida, toggleHideVideo.
   const videoCollapseAnim = useRef(new Animated.Value(1)).current;
-  const [videoNaturalHeight, setVideoNaturalHeight] = useState<number | null>(null);
+  // Baslangic degeri artik null degil, genislikten hesaplanmis 16:9 bir
+  // tahmin - bazi cihazlarda mediaSection'in ilk onLayout olcumu hic
+  // gelmiyor/cok gecikiyordu, bu da video alaninin GORUNMEZ (yukseklik 0)
+  // kalmasina yol aciyordu (kaynak secilsin ya da secilmesin, "Henuz bir
+  // medya secilmedi" yazisi bile gorunmuyordu). Dogru olcum gelince zaten
+  // bu tahmini gercek degerle gunceller (asagidaki onLayout).
+  const estimatedVideoWidth = isDesktop ? Math.max(200, windowWidth - 380 - 48) : windowWidth;
+  const [videoNaturalHeight, setVideoNaturalHeight] = useState<number | null>(
+    Math.round((estimatedVideoWidth * 9) / 16)
+  );
   const [videoQuality, setVideoQualityState] = useState("default");
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(false);
   // Su an oynayan videonun GERCEKTEN altyazisi var mi - tercih (subtitlesEnabled)
