@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { StyleSheet, View, ActivityIndicator, Linking, Text, TouchableOpacity } from "react-native";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { theme } from "../theme";
@@ -207,13 +207,23 @@ const DrmWebViewPlayer = forwardRef<DrmWebViewPlayerHandle, Props>(
       setDubTrack: () => {},
     }));
 
-    if (!currentUri) return null;
+    // "source" nesnesi satir icinde yazilsaydi (source={{uri:currentUri}})
+    // RoomScreen'in HER yeniden render'inda (orn. host'un birkac saniyede
+    // bir pozisyon bildirdigi kalp atisi) YENI bir nesne olusur, react-
+    // native-webview bunu "kaynak degisti" sanip sayfayi BASTAN yukler -
+    // YouTubePlayer.tsx'te ayni sebeple videonun basa sarmasina yol acan
+    // AYNI hata. useMemo ile sadece currentUri GERCEKTEN degisince yeni
+    // nesne olusturuyoruz. (Erken "return null"dan ONCE cagirilmali - React
+    // hook kurali: hook cagrilari sartli olamaz.)
+    const source = useMemo(() => (currentUri ? { uri: currentUri } : null), [currentUri]);
+
+    if (!currentUri || !source) return null;
 
     return (
       <View style={[styles.container, fullscreen && styles.containerFullscreen]}>
         <WebView
           ref={webviewRef}
-          source={{ uri: currentUri }}
+          source={source}
           injectedJavaScriptBeforeContentLoaded={INJECTED_JS}
           onMessage={handleMessage}
           javaScriptEnabled

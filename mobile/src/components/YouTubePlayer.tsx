@@ -182,7 +182,16 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
   // uzerinden yapiliyor, bu yuzden state tek sefer (lazy initializer)
   // hesaplaniyor, videoId prop'u sonradan degisse bile HTML yeniden
   // uretilmiyor.
-  const [playerHtml] = useState(() => buildPlayerHtml(videoId));
+  //
+  // "source" nesnesinin KENDISI de (sadece HTML string'i degil) tek sefer
+  // hesaplanip sabit tutuluyor - "source={{ html: ..., baseUrl: ... }}"
+  // SATIR ICINDE yazilsaydi, RoomScreen'in her yeniden render'inda (orn.
+  // host'un 5 saniyede bir pozisyon bildirdigi kalp atisi - bkz.
+  // HOST_HEARTBEAT_INTERVAL_MS) YENI bir nesne olusurdu; react-native-webview
+  // bunu "kaynak degisti" sanip WebView'i sessizce BASTAN YUKLUYORDU - video
+  // birkac saniyede bir basa sariyordu. Ayni nesne referansi korununca
+  // WebView bir daha yeniden yuklenmiyor.
+  const [playerSource] = useState(() => ({ html: buildPlayerHtml(videoId), baseUrl: "https://luna.app" }));
 
   function postToPlayer(message: object) {
     webviewRef.current?.postMessage(JSON.stringify(message));
@@ -216,14 +225,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
   return (
     <WebView<{}>
       ref={webviewRef}
-      // YouTube IFrame API, statik/inline HTML'in varsayilan "bos" kokenini
-      // (origin) reddediyor ve "Hata 153 / Video oynatici yapilandirma
-      // hatasi" veriyordu - gercek bir https:// kokeni (baseUrl) verince
-      // YouTube artik embed'i gecerli sayiyor. Adresin gercekten yayinda
-      // olmasina gerek yok, sadece gecerli bir https origin'e benzemesi
-      // yeterli (YouTube sunucuya hic istek atmiyor, sadece header'daki
-      // origin'i kontrol ediyor).
-      source={{ html: playerHtml, baseUrl: "https://luna.app" }}
+      source={playerSource}
       style={[styles.webview, fullscreen && styles.webviewFullscreen]}
       javaScriptEnabled
       allowsInlineMediaPlayback
