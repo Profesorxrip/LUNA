@@ -17,7 +17,11 @@ export interface MediaPlayerHandle {
   pause: () => void;
   seekTo: (seconds: number) => void;
   loadVideo: (url: string, startSeconds?: number) => void;
-  getCurrentTime: () => Promise<number>;
+  // undefined: bir olcum ALINAMADI (orn. YouTube'un WebView'inden zaman
+  // asiminda cevap gelmedi) - cagiran taraf (RoomScreen.tsx) bunu "0" GIBI
+  // gercek bir deger sanip sunucuya yanlislikla yayinlamamali, bu yuzden
+  // sahte bir "0" DONDURMUYORUZ, actual ALINAMADIGINI acikca bildiriyoruz.
+  getCurrentTime: () => Promise<number | undefined>;
   // volume: 0..1 - "external" (DRM'li) kaynaklarda gercek bir oynaticimiz
   // olmadigi icin no-op (bkz. asagidaki "external" render dali).
   setVolume: (volume: number) => void;
@@ -102,7 +106,16 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(
     pause: () => active()?.pause(),
     seekTo: (seconds) => active()?.seekTo(seconds),
     loadVideo: (url, startSeconds) => active()?.loadVideo(url, startSeconds),
-    getCurrentTime: async () => (await active()?.getCurrentTime()) ?? 0,
+    getCurrentTime: async () => {
+      try {
+        return await active()?.getCurrentTime();
+      } catch {
+        // YouTubePlayer.tsx: zaman asiminda artik reddediyor (reject), 0
+        // ile sessizce cozmuyor - burada da ayni "olcum yok" anlamina gelen
+        // undefined'a ceviriyoruz, 0'a DEGIL.
+        return undefined;
+      }
+    },
     setVolume: (volume) => active()?.setVolume(volume),
     setPlaybackRate: (rate) => active()?.setPlaybackRate(rate),
     setQuality: (quality) => {

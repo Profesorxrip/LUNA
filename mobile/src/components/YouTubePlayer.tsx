@@ -208,15 +208,20 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
     setSubtitlesEnabled: (enabled: boolean) => postToPlayer({ type: "setSubtitles", enabled }),
     setDubTrack: (index: number) => postToPlayer({ type: "setDubTrack", index }),
     getCurrentTime: () =>
-      new Promise<number>((resolve) => {
+      new Promise<number>((resolve, reject) => {
         const requestId = Math.random().toString(36).slice(2);
         pendingRequests.current.set(requestId, resolve);
         postToPlayer({ type: "getCurrentTime", requestId });
-        // 2sn icinde cevap gelmezse takilip kalmamak icin 0 ile coz
+        // 2sn icinde cevap gelmezse 0 ile COZMUYORUZ artik - bu sahte "0"
+        // degeri, RoomScreen.tsx'teki host kalp atisi tarafindan GERCEK bir
+        // olcummus gibi sunucuya "positionSeconds: 0" diye yayinlaniyordu,
+        // bu da (bazi durumlarda) videonun basa sarmis GIBI gorunmesine yol
+        // aciyordu. Artik zaman asiminda reddediyoruz, cagiran taraf o
+        // turu sessizce atlayip bir sonraki kalp atisinda tekrar dener.
         setTimeout(() => {
           if (pendingRequests.current.has(requestId)) {
-            pendingRequests.current.get(requestId)!(0);
             pendingRequests.current.delete(requestId);
+            reject(new Error("getCurrentTime timeout"));
           }
         }, 2000);
       }),
