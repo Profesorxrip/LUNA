@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useRef } from "react";
+import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import { WebView } from "react-native-webview";
 
@@ -46,7 +46,20 @@ interface Props {
 // React Native tarafindan postMessage ile kontrol edebilecegimiz basit bir
 // HTML sayfasi. player durumu degistiginde (oynat/durdur) React Native'e
 // geri mesaj gonderiyor.
-const PLAYER_HTML = `
+//
+// DIKKAT: ilk video artik buraya DOGRUDAN (sablonla) gomuluyor, RN'den
+// postMessage ile "loadVideo" beklemiyor. Eskiden WebView'in "onLoadEnd"i
+// (HTML belgesinin kendisi hazir oldugunda) ateslenir ateslenmez RN hemen
+// postMessage ile ilk videoyu gondermeye calisiyordu - ama o an disaridaki
+// "https://www.youtube.com/iframe_api" script'i HENUZ inip calismamis
+// olabiliyordu (onYouTubeIframeAPIReady henuz hic cagrilmamis, "player"
+// degiskeni hala undefined), bu durumda handleMessage'daki "if (!player)
+// return" o ilk mesaji SESSIZCE cope atiyordu - video HICBIR ZAMAN
+// acilmiyordu (ekranda duz siyah kalirdi). videoId'yi dogrudan player
+// constructor'ina gomerek bu yarisi tamamen ortadan kaldiriyoruz - oynatici
+// HAZIR oldugu anda zaten DOGRU videoyla olusuyor.
+function buildPlayerHtml(initialVideoId: string | null): string {
+  return `
 <!DOCTYPE html>
 <html>
 <head><style>body,html{margin:0;padding:0;background:#000;}</style></head>
@@ -60,6 +73,7 @@ const PLAYER_HTML = `
       player = new YT.Player('player', {
         height: '100%',
         width: '100%',
+        videoId: ${JSON.stringify(initialVideoId || "")},
         // controls:0 - YouTube'un kendi oynat/duraklat/sarma cubugu YERINE
         // artik RoomScreen'deki ozel VideoControlsOverlay kullaniliyor
         // (Rave'deki gibi) - iki ayri kontrol seti ust uste gorunmesin diye.
@@ -153,6 +167,7 @@ const PLAYER_HTML = `
 </body>
 </html>
 `;
+}
 
 const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
   (
@@ -161,6 +176,13 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
   ) => {
   const webviewRef = useRef<WebView>(null);
   const pendingRequests = useRef(new Map<string, (time: number) => void>());
+  // Sadece ILK videoId'yi HTML'e gomuyoruz (bkz. buildPlayerHtml yorumu) -
+  // sonraki video degisiklikleri DrmWebViewPlayer.tsx'teki currentUri ile
+  // AYNI mantikla, WebView'i yeniden mount etmeden postMessage/loadVideo
+  // uzerinden yapiliyor, bu yuzden state tek sefer (lazy initializer)
+  // hesaplaniyor, videoId prop'u sonradan degisse bile HTML yeniden
+  // uretilmiyor.
+  const [playerHtml] = useState(() => buildPlayerHtml(videoId));
 
   function postToPlayer(message: object) {
     webviewRef.current?.postMessage(JSON.stringify(message));
@@ -194,7 +216,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
   return (
     <WebView<{}>
       ref={webviewRef}
-      source={{ html: PLAYER_HTML }}
+      source={{ html: playerHtml }}
       style={[styles.webview, fullscreen && styles.webviewFullscreen]}
       javaScriptEnabled
       allowsInlineMediaPlayback
@@ -224,9 +246,6 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
         } catch {
           // yoksay - beklenmeyen mesaj formati
         }
-      }}
-      onLoadEnd={() => {
-        if (videoId) postToPlayer({ type: "loadVideo", videoId });
       }}
     />
   );
