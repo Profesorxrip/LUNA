@@ -1936,7 +1936,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.bg },
   mediaAnimatedFullscreen: { flex: 1 },
-  mediaSection: { position: "relative" },
+  // GECICI TANI AMACLI: kirmizi arka plan - video alaninin GERCEKTEN
+  // bos (genislik/yukseklik 0) mi kaldigini, yoksa alan var da icindeki
+  // WebView mi cizilmiyor onu ayirt etmek icin. Sorun bulununca kaldirilacak.
+  mediaSection: { position: "relative", backgroundColor: "red" },
   // Tam ekran yatay modda bu View (video + kontroller) flex:1 ile roomBody'nin
   // (ust bar gizliyken TUM ekranin) kalan butun yuksekligini kaplar.
   mediaSectionFullscreen: { flex: 1 },
