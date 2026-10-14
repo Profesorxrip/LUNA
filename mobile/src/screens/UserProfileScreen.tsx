@@ -620,16 +620,21 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
             </View>
             <View style={styles.fullDivider} />
             {editingField === "bio" ? (
-              <TextInput
-                style={styles.bioInput}
-                value={bio}
-                onChangeText={setBio}
-                multiline
-                autoFocus
-                onBlur={() => closeFieldEdit("bio", bio)}
-                placeholder="Biyografi"
-                placeholderTextColor={MUTED}
-              />
+              <View>
+                <TextInput
+                  style={styles.bioInput}
+                  value={bio}
+                  onChangeText={setBio}
+                  multiline
+                  autoFocus
+                  placeholder="Biyografi"
+                  placeholderTextColor={MUTED}
+                />
+                <TouchableOpacity style={styles.bioSaveButton} onPress={() => closeFieldEdit("bio", bio)}>
+                  <Icon name="check" size={16} color="#04140D" />
+                  <Text style={styles.bioSaveButtonText}>Kaydet</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("bio")}>
                 <Text style={bio ? styles.bio : [styles.emptyHistoryText, { marginTop: 14 }]}>
@@ -979,6 +984,19 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
+  bioSaveButton: {
+    flexDirection: "row",
+    alignSelf: "flex-end",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: ACCENT,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginTop: -16,
+    marginBottom: 24,
+  },
+  bioSaveButtonText: { color: "#04140D", fontSize: 13, fontWeight: "800" },
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   activeRoomCard: { margin: 0, marginTop: 14, marginBottom: 24 },
   sectionHeaderActions: { flexDirection: "row", alignItems: "center", gap: 14 },
