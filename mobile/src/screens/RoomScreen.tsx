@@ -1469,7 +1469,25 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
             {...(fullscreenVideo ? {} : hideVideoPanResponder.panHandlers)}
           >
             <View
-              style={[styles.mediaSection, fullscreenVideo && styles.mediaSectionFullscreen]}
+              style={[
+                styles.mediaSection,
+                // GERCEK KOK NEDEN: bu kutunun yuksekligi, icindeki
+                // WebView/placeholder'in aspectRatio:16/9 stilinin PARENT'tan
+                // (flex/stretch zinciri uzerinden) bir GENISLIK alabilmesine
+                // bagliydi - bu zincir bir yerde kopunca (ornegin bu cihazda)
+                // mediaSection'in KENDI dogal yuksekligi 0 kaliyordu; ustteki
+                // Animated.View'e yuksekli ver(se bile) mediaSection kendi
+                // icerigine gore boyutlandigi icin hicbir sey degismiyordu -
+                // bu yuzden "Henuz bir medya secilmedi" yazisi/video HICBIR
+                // ZAMAN gorunmuyordu. Artik genislik/yukseklik dogrudan ekran
+                // genisliginden PIKSEL olarak hesaplanip veriliyor, flex/
+                // aspectRatio zincirine hic ihtiyac yok.
+                !fullscreenVideo && {
+                  width: estimatedVideoWidth,
+                  height: Math.round((estimatedVideoWidth * 9) / 16),
+                },
+                fullscreenVideo && styles.mediaSectionFullscreen,
+              ]}
               onLayout={(e) => {
                 if (!videoHidden) setVideoNaturalHeight(e.nativeEvent.layout.height);
               }}
