@@ -580,29 +580,35 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   const appliedSourceUrlRef = useRef<string | null>(null);
   useEffect(() => {
     const url = room.playback.source?.url ?? null;
-    // Host "leader" modundayken kendi oynaticisi zaten otorite (selectSource
-    // kendisi loadVideo cagiriyor) - burada sadece ref'i o url'e esitleyip
-    // cikiyoruz, aksi halde daha sonra baska bir moda gecince (ornegin
-    // "vote") ref hala eski/bos oldugu icin zaten oynayan videoyu gereksiz
-    // yere yeniden yukleyip kendi play() cagrisiyla yarisa girip
-    // durduruyordu (goo.gl/LdLk22 hatasi, video kalici olarak pause'da kalirdi).
-    if ((isHost && room.playbackMode === "leader") || !syncable || room.poll) {
+    const hostIsAuthoritative = isHost && room.playbackMode === "leader";
+    if (!syncable || room.poll) {
       appliedSourceUrlRef.current = url;
       return;
     }
     if (!url) return;
     if (appliedSourceUrlRef.current !== url) {
-      // loadVideo() yeni kaynagi yukleyip KENDISI play() cagiriyor (asenkron
-      // replaceAsync zinciri icinde) - hemen altindaki play()/pause() burada
-      // AYRICA cagrilirsa, henuz tamamlanmamis replaceAsync ile yarisip
-      // "play() interrupted by pause()" hatasiyla videoyu kalici pause'da
-      // biraktigi icin, yeni yukleme durumunda o ikinci cagriyi atliyoruz -
-      // sadece sunucu "durmus baslasin" derse (isPlaying false) devreye giriyoruz.
       appliedSourceUrlRef.current = url;
-      playerRef.current?.loadVideo(url, room.playback.positionSeconds);
+      // Host "leader" modundaysa selectSource() ZATEN dogrudan loadVideo
+      // cagirmisti - ama o cagri, kaynak null'dan ilk videoya (veya bir
+      // turden BASKA bir ture, orn. YouTube'dan Netflix'e) gecerken MediaPlayer
+      // henuz DOGRU alt oynaticiyi (YouTubePlayer/DrmWebViewPlayer/HlsPlayer)
+      // monte etmemisken calisiyordu - playerRef o anda hala ESKI (ya da hic
+      // mevcut olmayan) oynaticiyi gosterdigi icin cagri sessizce hicbir sey
+      // yapmiyordu (video hic acilmiyordu). Burada URL degisince HER ZAMAN
+      // (host dahil) tekrar yukluyoruz - ayni videoyu iki kez yuklemek
+      // zararsiz/idempotent, ama kacirilan ilk yuklemeyi guvenilir sekilde
+      // telafi ediyor.
+      playerRef.current?.loadVideo(url, hostIsAuthoritative ? 0 : room.playback.positionSeconds);
       if (!room.playback.isPlaying) playerRef.current?.pause();
       return;
     }
+    // Ayni video, sadece oynat/duraklat durumu - host "leader" modundayken
+    // kendi oynaticisi zaten otorite (bkz. yukaridaki yorum), burada AYRICA
+    // play()/pause() cagirirsak henuz tamamlanmamis replaceAsync ile yarisip
+    // "play() interrupted by pause()" hatasiyla videoyu kalici pause'da
+    // birakir (goo.gl/LdLk22) - bu yuzden SADECE host degilken/leader
+    // degilken senkronluyoruz.
+    if (hostIsAuthoritative) return;
     if (room.playback.isPlaying && !room.buffering.anyoneBuffering) playerRef.current?.play();
     else playerRef.current?.pause();
   }, [room.playback.source?.url, room.playback.isPlaying, room.buffering.anyoneBuffering, room.playbackMode, isHost, room.poll, syncable]);

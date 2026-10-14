@@ -1,4 +1,5 @@
 import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Participant } from "../services/socket";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
@@ -54,10 +55,11 @@ export default function ParticipantsModal({
   onInvite,
   friendIds,
 }: Props) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={[styles.sheet, { top: topOffset }]} onPress={() => {}}>
+        <TouchableOpacity activeOpacity={1} style={[styles.sheet, { top: topOffset, paddingBottom: insets.bottom }]} onPress={() => {}}>
           <View style={styles.content}>
             <Text style={styles.title}>Katilimcilar ({participants.length})</Text>
 
