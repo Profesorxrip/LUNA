@@ -120,6 +120,9 @@ function UserProfileRoute() {
       peer={params.peer}
       onOpenDM={(peer) => navigation.navigate("DM", { peer })}
       onOpenRoomPreview={(room) => navigation.navigate("RoomPreview", { room })}
+      onOpenRoom={(room) =>
+        navigation.reset({ index: 1, routes: [{ name: "Discover" }, { name: "Room", params: { room } }] })
+      }
     />
   );
 }

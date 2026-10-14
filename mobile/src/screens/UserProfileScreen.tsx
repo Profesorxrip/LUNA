@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../services/supabase";
-import { getSocket, PublicRoomSummary, HistoryItem } from "../services/socket";
+import { getSocket, PublicRoomSummary, HistoryItem, MediaSource, SourceType, RoomState } from "../services/socket";
 import Icon, { IconName } from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import CountryFlag from "../components/CountryFlag";
@@ -25,6 +25,7 @@ interface Props {
   peer?: { userId: string; name: string; handle?: string };
   onOpenDM?: (peer: { userId: string; name: string; handle?: string }) => void;
   onOpenRoomPreview?: (room: PublicRoomSummary) => void;
+  onOpenRoom?: (room: RoomState) => void;
 }
 
 const ACCENT = "#0EA5E9";
@@ -103,7 +104,7 @@ function buildDailyActivity(daily: Record<string, number>): { date: string; hour
 /** "Vinil Kayıt" konsepti - kartelanın (bkz. tasarım oturumu) ilk seçeneği,
  * kullanıcının kendi profili (own) ve başkasının profili (!own) icin
  * ortak bir govde uzerinde farkli baslik/aksiyon satiri gosterir. */
-export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRoomPreview }: Props) {
+export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRoomPreview, onOpenRoom }: Props) {
   const peerUserId = peer?.userId || DEMO_PEER_USER_ID;
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState(peer?.name || "Kullanici");
@@ -424,6 +425,30 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
     } catch (err: any) {
       showAlert("Yüklenemedi", err?.message || "Fotoğraf yüklenirken bir hata oluştu, tekrar dene.");
     }
+  }
+
+  // GEÇMİŞ'teki bir video kartına dokununca, o videoyla GERÇEK yeni bir oda
+  // açıp dogrudan icine giriyoruz - "+" ile yeni oda acma (DiscoverScreen.tsx
+  // createRoomWithSource) ile AYNI room:create cagrisi, sadece kaynak
+  // kaydedilmis gecmisten geliyor. Eskiden bu kartlarin HICBIR onPress'i yoktu.
+  function openHistoryVideo(item: HistoryItem) {
+    if (!item.mediaUrl || !item.mediaType) {
+      showAlert("Açılamadı", "Bu videonun kaydı eksik, tekrar oynatılamıyor.");
+      return;
+    }
+    const source: MediaSource = {
+      type: item.mediaType as SourceType,
+      url: item.mediaUrl,
+      label: item.mediaLabel,
+      coverUrl: item.mediaCoverUrl || undefined,
+    };
+    getSocket()
+      .timeout(8000)
+      .emit("room:create", { name, isPublic: true, source }, (err: any, res: any) => {
+        if (err) return showAlert("Oda oluşturulamadı", "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et.");
+        if (res?.ok) onOpenRoom?.(res.room);
+        else showAlert("Oda oluşturulamadı", res?.error || "Bilinmeyen bir hata oluştu.");
+      });
   }
 
   function confirmDeleteGalleryPhoto(photo: GalleryPhoto) {
@@ -834,7 +859,7 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
             ) : (
               <View style={styles.videoGrid}>
                 {historyList.map((item) => (
-                  <View key={`v-${item.eventId}`} style={styles.videoCard}>
+                  <TouchableOpacity key={`v-${item.eventId}`} style={styles.videoCard} onPress={() => openHistoryVideo(item)}>
                     <View style={styles.videoThumb}>
                       {item.mediaCoverUrl ? (
                         <Image source={{ uri: item.mediaCoverUrl }} style={styles.videoThumbImage} />
@@ -850,7 +875,7 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
                     <Text style={styles.videoMeta}>
                       {historyTab === "best" ? `${item.participantCount} kişi` : timeAgo(item.createdAt)}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
