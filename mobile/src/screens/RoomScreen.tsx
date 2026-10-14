@@ -13,6 +13,7 @@ import {
   PanResponder,
   useWindowDimensions,
   Modal,
+  Keyboard,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
@@ -338,6 +339,15 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatFocused, setChatFocused] = useState(false);
+  // Android'de geri tusu/dislari dokunarak klavyeyi kapatmak TextInput'un
+  // "onBlur"unu HER ZAMAN tetiklemiyor (klavye kapanir ama React'e gore kutu
+  // hala "odakli" kalabiliyor) - bu da gonder ikonunun kalici gorunmesine yol
+  // aciyordu. Klavyenin GERCEKTEN kapandigini dogrudan dinleyip chatFocused'i
+  // orada da sifirliyoruz, sadece onBlur'a guvenmiyoruz.
+  useEffect(() => {
+    const sub = Keyboard.addListener("keyboardDidHide", () => setChatFocused(false));
+    return () => sub.remove();
+  }, []);
   const [replyingTo, setReplyingTo] = useState<DMReply | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
