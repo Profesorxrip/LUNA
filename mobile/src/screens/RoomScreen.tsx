@@ -1592,7 +1592,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 kontrol butonlarinin (ortadaki -10/oynat/+10) ALTINDA kalan bir
                 overlay - boylece sohbetten net ayrisiyor, "sohbetin bir parcasi"
                 gibi gorunmuyor. */}
-            {syncable && (!fullscreenVideo || controlsVisible) && (
+            {syncable && controlsVisible && (
               <View style={styles.nowPlayingBarOverlay}>
                 <NowPlayingBar
                   source={room.playback.source}
