@@ -195,6 +195,15 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
   // birkac saniyede bir basa sariyordu. Ayni nesne referansi korununca
   // WebView bir daha yeniden yuklenmiyor.
   const [playerSource] = useState(() => ({ html: buildPlayerHtml(videoId), baseUrl: "https://luna.app" }));
+  // Su an oynaticiya YUKLENMIS gercek video - ilk video zaten HTML'e gomulu
+  // oldugu icin buradan basliyor. RoomScreen.tsx'teki hem selectSource()'un
+  // DOGRUDAN cagrisi HEM de reaktif efekt (appliedSourceUrlRef) AYNI videoyu
+  // birbirinden habersiz iki kez yukleyebiliyordu - biri baslatiyor, bir an
+  // sonra digeri ayniyi tekrar "loadVideoById" ile SIFIRDAN baslatiyordu
+  // (video 2-3sn oynayip basa sariyormus gibi gorunuyordu). DrmWebViewPlayer.
+  // tsx'teki "currentUri" ile AYNI korunma: zaten yuklu olan videoyu TEKRAR
+  // istenirse sessizce yoksayiyoruz.
+  const loadedVideoIdRef = useRef(videoId);
 
   function postToPlayer(message: object) {
     webviewRef.current?.postMessage(JSON.stringify(message));
@@ -204,7 +213,11 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
     play: () => postToPlayer({ type: "play" }),
     pause: () => postToPlayer({ type: "pause" }),
     seekTo: (seconds: number) => postToPlayer({ type: "seekTo", seconds }),
-    loadVideo: (id: string, startSeconds = 0) => postToPlayer({ type: "loadVideo", videoId: id, startSeconds }),
+    loadVideo: (id: string, startSeconds = 0) => {
+      if (id === loadedVideoIdRef.current) return;
+      loadedVideoIdRef.current = id;
+      postToPlayer({ type: "loadVideo", videoId: id, startSeconds });
+    },
     setVolume: (volume: number) => postToPlayer({ type: "setVolume", volume: Math.round(volume * 100) }),
     setPlaybackRate: (rate: number) => postToPlayer({ type: "setPlaybackRate", rate }),
     setQuality: (quality: string) => postToPlayer({ type: "setQuality", quality }),
