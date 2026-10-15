@@ -432,6 +432,22 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // onVisibilityChange) - normal (tam ekran olmayan) modda kullanilmiyor,
   // orada NowPlayingBar zaten her zaman gorunur kaliyor.
   const [controlsVisible, setControlsVisible] = useState(false);
+  // YouTube, HER videonun basinda (controls:0/iv_load_policy ayarlarindan
+  // BAGIMSIZ, hicbir resmi parametreyle kapatilamayan) birkac saniyeligine
+  // kendi kanal adi/logo/bilgi katmanini gosteriyor - bu "duraklatildi"
+  // durumuyla ilgili degil, SADECE yeni bir video yuklenince baslayan bir
+  // zaman penceresi. Rave'in de yaptigi gibi, bu pencere boyunca da kendi
+  // kapak gorselimizi ustune cekiyoruz (bkz. asagidaki kapak View'i).
+  const [introCoverActive, setIntroCoverActive] = useState(false);
+  useEffect(() => {
+    if (room.playback.source?.type !== "youtube") {
+      setIntroCoverActive(false);
+      return;
+    }
+    setIntroCoverActive(true);
+    const timer = setTimeout(() => setIntroCoverActive(false), 5000);
+    return () => clearTimeout(timer);
+  }, [room.playback.source?.url, room.playback.source?.type]);
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
   // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
@@ -1547,7 +1563,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   "duraklatildi" ekranimizi koyup altini tamamen gizleyebiliriz -
                   YouTube'un oynaticisina hic dokunmuyoruz, sadece onun
                   ONUNE kendi gorselimizi cekiyoruz. */}
-              {room.playback.source?.type === "youtube" && !room.playback.isPlaying && !adultBlurActive && (
+              {room.playback.source?.type === "youtube" && (introCoverActive || !room.playback.isPlaying) && !adultBlurActive && (
                 <View style={StyleSheet.absoluteFill} pointerEvents="none">
                   <Image
                     source={{ uri: `https://img.youtube.com/vi/${room.playback.source.url}/hqdefault.jpg` }}
