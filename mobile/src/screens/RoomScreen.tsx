@@ -1540,6 +1540,23 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 onDubTracksChange={setDubTracks}
                 onVideoResolutionChange={setVideoResolution}
               />
+              {/* Video DURDURULUNCA YouTube'un kendi arayuzu (logo/paylas/
+                  onerilen video karti) ortaya cikiyor - bunlara biz
+                  dokunamayiz (YouTube'un gomulu oynatici kurallarinin bir
+                  parcasi), ama Rave'in de yaptigi gibi USTUNE kendi opak
+                  "duraklatildi" ekranimizi koyup altini tamamen gizleyebiliriz -
+                  YouTube'un oynaticisina hic dokunmuyoruz, sadece onun
+                  ONUNE kendi gorselimizi cekiyoruz. */}
+              {room.playback.source?.type === "youtube" && !room.playback.isPlaying && !adultBlurActive && (
+                <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                  <Image
+                    source={{ uri: `https://img.youtube.com/vi/${room.playback.source.url}/hqdefault.jpg` }}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="cover"
+                  />
+                  <View style={[StyleSheet.absoluteFill, styles.pausedCoverTint]} />
+                </View>
+              )}
               {syncable && !videoHidden && (
                 <VideoControlsOverlay
                   isPlaying={room.playback.isPlaying}
@@ -2001,6 +2018,9 @@ const styles = StyleSheet.create({
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   adultBlurFallbackBg: { backgroundColor: theme.surface },
+  // Video durduruldugunda YouTube'un kendi arayuzunu gizleyen kapak
+  // resminin UZERINDEKI karartma - kontrol ikonlarinin okunurlugu icin.
+  pausedCoverTint: { backgroundColor: "rgba(0,0,0,0.35)" },
   adultBlurHint: {
     position: "absolute",
     top: 0,
