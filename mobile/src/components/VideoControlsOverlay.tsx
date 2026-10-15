@@ -36,6 +36,10 @@ interface Props {
   micMuted?: boolean;
   onMicPress?: () => void;
   onMicLongPress?: () => void;
+  // Tam ekranda NowPlayingBar'in da butonlarla AYNI anda acilip
+  // kapanmasini saglamak icin (bkz. RoomScreen.tsx) - bu bilesenin kendi
+  // ic "visible" durumunu disariya bildirir.
+  onVisibilityChange?: (visible: boolean) => void;
 }
 
 const AUTO_HIDE_MS = 3000;
@@ -69,9 +73,15 @@ export default function VideoControlsOverlay({
   micMuted,
   onMicPress,
   onMicLongPress,
+  onVisibilityChange,
 }: Props) {
   const [visible, setVisible] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    onVisibilityChange?.(visible);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   function scheduleAutoHide(playing: boolean) {
     if (hideTimer.current) clearTimeout(hideTimer.current);

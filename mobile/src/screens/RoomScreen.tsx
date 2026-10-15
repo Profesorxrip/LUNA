@@ -427,6 +427,11 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // Video tam ekran mi - sadece BU ekranda gorsel bir mod, oda sohbeti/
   // katilimci durumu etkilenmez, sadece video alani buyuyup chat gizlenir.
   const [fullscreenVideo, setFullscreenVideo] = useState(false);
+  // Tam ekranda ekrana dokununca VideoControlsOverlay'in butonlariyla
+  // NowPlayingBar'in AYNI ANDA acilip kapanmasi icin (bkz. VideoControlsOverlay
+  // onVisibilityChange) - normal (tam ekran olmayan) modda kullanilmiyor,
+  // orada NowPlayingBar zaten her zaman gorunur kaliyor.
+  const [controlsVisible, setControlsVisible] = useState(false);
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
   // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
@@ -1545,6 +1550,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   micMuted={voice.muted}
                   onMicPress={handleMicPress}
                   onMicLongPress={handleMicLongPress}
+                  onVisibilityChange={setControlsVisible}
                 />
               )}
               {adultBlurActive && (
@@ -1586,7 +1592,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 kontrol butonlarinin (ortadaki -10/oynat/+10) ALTINDA kalan bir
                 overlay - boylece sohbetten net ayrisiyor, "sohbetin bir parcasi"
                 gibi gorunmuyor. */}
-            {syncable && (
+            {syncable && (!fullscreenVideo || controlsVisible) && (
               <View style={styles.nowPlayingBarOverlay}>
                 <NowPlayingBar
                   source={room.playback.source}
