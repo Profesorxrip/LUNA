@@ -83,6 +83,22 @@ function buildPlayerHtml(initialVideoId: string | null): string {
         playerVars: { playsinline: 1, controls: 0 },
         events: {
           onReady: function () {
+            // YT.Player olusurken ({height:'100%',width:'100%'}) kendi
+            // ic iframe'ini #player div'inin O ANKI boyutuna gore olusturuyor -
+            // WebView'in RN tarafindan verilen GERCEK boyutu (ozellikle
+            // kucuk/normal ekrandaki 16:9 kutuda) henuz oturmamisken
+            // olusturulursa, iframe KUCUK/YANLIS bir boyutta KALICI olarak
+            // takiliyor, kutu sonradan buyuse bile kendiliginden tekrar
+            // boyutlanmiyordu (video gorunmuyormus gibi duruyordu, aslinda
+            // kucuk bir alanda cizilmisti). setSize()'i hem hemen hem de
+            // her pencere boyutu degisiminde (fullscreen/rotation gecisleri
+            // dahil) tekrar cagirarak GERCEK boyuta zorluyoruz.
+            function syncPlayerSize() {
+              try { player.setSize(window.innerWidth, window.innerHeight); } catch (e) {}
+            }
+            syncPlayerSize();
+            window.addEventListener('resize', syncPlayerSize);
+            setTimeout(syncPlayerSize, 300);
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'duration', seconds: player.getDuration() }));
             // Altyazi modulunu SESSIZCE yukluyoruz - bu bir track'i GOSTERMEZ,
             // sadece onApiChange'in tracklist'i sorgulayabilmesi icin gerekli
