@@ -82,7 +82,15 @@ function buildPlayerHtml(initialVideoId: string | null): string {
         // controls:0 - YouTube'un kendi oynat/duraklat/sarma cubugu YERINE
         // artik RoomScreen'deki ozel VideoControlsOverlay kullaniliyor
         // (Rave'deki gibi) - iki ayri kontrol seti ust uste gorunmesin diye.
-        playerVars: { playsinline: 1, controls: 0 },
+        // iv_load_policy:3 - eski "Kartlar/Annotasyonlar" bilgi kutularini
+        // (ornegin "TRT, Turkiye'deki bir kamu yayin kurulusudur" gibi)
+        // kapatir. rel:0 - video bitince/durdurulunca onerilen videolari
+        // SADECE ayni kanaldan gosterir. YouTube logosu/paylas oku/onerilen
+        // video karti ise SADECE video DURAKLATILINCA cikan, YouTube'un
+        // kendi gomulu oynatici kurallari geregi KALDIRILAMAYAN bir
+        // arayuz - hicbir ucuncu parti uygulama (Rave dahil) bunu
+        // kaldiramaz, oynarken zaten hic gorunmuyor.
+        playerVars: { playsinline: 1, controls: 0, iv_load_policy: 3, rel: 0 },
         events: {
           onReady: function () {
             // YT.Player olusurken ({height:'100%',width:'100%'}) kendi
