@@ -227,8 +227,11 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(
 );
 
 const styles = StyleSheet.create({
-  container: { width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000" },
-  containerFullscreen: { flex: 1, aspectRatio: undefined },
+  // flex:1 - genislik/aspectRatio hesabina GUVENMIYORUZ artik, parent
+  // (mediaSection) zaten kesin piksel 16:9 boyutunda (bkz. RoomScreen.tsx) -
+  // bu kutu sadece onu doldursun yeter.
+  container: { flex: 1, backgroundColor: "#000" },
+  containerFullscreen: { flex: 1 },
   video: { width: "100%", height: "100%" },
 });
 

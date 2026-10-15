@@ -184,16 +184,18 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(
 );
 
 const styles = StyleSheet.create({
+  // flex:1 - genislik/aspectRatio hesabina GUVENMIYORUZ artik, parent
+  // (mediaSection) zaten kesin piksel 16:9 boyutunda (bkz. RoomScreen.tsx) -
+  // bu kutu sadece onu doldursun yeter.
   placeholder: {
-    width: "100%",
-    aspectRatio: 16 / 9,
+    flex: 1,
     backgroundColor: theme.surface,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
     gap: 8,
   },
-  placeholderFullscreen: { flex: 1, aspectRatio: undefined, height: "100%" },
+  placeholderFullscreen: { flex: 1, height: "100%" },
   placeholderText: { color: theme.textMuted, fontSize: 13, textAlign: "center" },
 });
 

@@ -326,6 +326,9 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
 export default YouTubePlayer;
 
 const styles = StyleSheet.create({
-  webview: { width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000" },
-  webviewFullscreen: { flex: 1, aspectRatio: undefined },
+  // flex:1 - genislik/aspectRatio hesabina GUVENMIYORUZ artik, parent
+  // (mediaSection) zaten kesin piksel 16:9 boyutunda (bkz. RoomScreen.tsx) -
+  // bu WebView sadece onu doldursun yeter.
+  webview: { flex: 1, backgroundColor: "#000" },
+  webviewFullscreen: { flex: 1 },
 });

@@ -251,8 +251,11 @@ const DrmWebViewPlayer = forwardRef<DrmWebViewPlayerHandle, Props>(
 export default DrmWebViewPlayer;
 
 const styles = StyleSheet.create({
-  container: { width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000" },
-  containerFullscreen: { flex: 1, aspectRatio: undefined },
+  // flex:1 - genislik/aspectRatio hesabina GUVENMIYORUZ artik, parent
+  // (mediaSection) zaten kesin piksel 16:9 boyutunda (bkz. RoomScreen.tsx) -
+  // bu kutu sadece onu doldursun yeter.
+  container: { flex: 1, backgroundColor: "#000" },
+  containerFullscreen: { flex: 1 },
   webview: { flex: 1, backgroundColor: "#000" },
   loadingOverlay: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center" },
   // "bottom" DEGIL "top" - altta RoomScreen'in kendi NowPlayingBar'i

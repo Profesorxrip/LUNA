@@ -78,7 +78,12 @@ const ReactionsOverlay = forwardRef<ReactionsOverlayHandle, { children: ReactNod
 });
 
 const styles = StyleSheet.create({
-  mediaWrap: { position: "relative" },
+  // flex:1 artik HER ZAMAN (normal ekranda da) - mediaSection'in artik
+  // kesin piksel genislik/yukseklige sahip oldugunu (bkz. RoomScreen.tsx
+  // estimatedVideoWidth) biliyoruz, bu yuzden alt bilesenlerin (WebView'ler)
+  // KENDI aspectRatio hesabina guvenmesine hic gerek yok - sadece bu
+  // kapsayiciyi doldurmalari yeterli.
+  mediaWrap: { position: "relative", flex: 1 },
   mediaWrapFullscreen: { flex: 1 },
   overlay: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
   floatingEmoji: { position: "absolute", bottom: 10, fontSize: 28 },
