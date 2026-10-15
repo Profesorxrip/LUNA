@@ -62,7 +62,9 @@ function buildPlayerHtml(initialVideoId: string | null): string {
   return `
 <!DOCTYPE html>
 <html>
-<head><style>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
   html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden;}
   #player{width:100%;height:100%;}
 </style></head>
