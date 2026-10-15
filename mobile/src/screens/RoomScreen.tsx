@@ -1480,14 +1480,25 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               // videoColFullscreen'in (justifyContent:"center") onu dikeyde
               // ORTALAMASINA ve ekrandan TASIP ust/alt kontrollerin
               // YARIM gorunmesine yol aciyordu.
+              // Normal (gizli olmayan) durumda bu View'e KASITLI OLARAK
+              // hicbir yukseklik/overflow stili VERMIYORUZ - eskiden
+              // "videoHidden" false olsa bile interpolate()'in sonucu
+              // (videoCollapseAnim tam olarak 1.0'a OTURMAMISSA, orn. spring
+              // animasyonu cok ufak bir fark ile "bitmis" sayilsa) mediaSection'i
+              // KENDI gercek boyutundan BIRAZ daha kucuk kirpabiliyordu - bu da
+              // hem videonun alt kenarinin kesilmesine HEM DE dokunma algilama
+              // alaninin (VideoControlsOverlay touchArea) o kirpilan kismi hic
+              // gormesine yol aciyordu (normal ekranda dokunma hic calismiyordu).
+              // Kirpma/interpolasyon ARTIK SADECE "videoyu gizle" surukleme
+              // hareketi/sonucu sirasinda devreye giriyor.
               fullscreenVideo
                 ? styles.mediaAnimatedFullscreen
-                : videoNaturalHeight == null
-                ? undefined
-                : {
+                : videoHidden && videoNaturalHeight != null
+                ? {
                     height: videoCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, videoNaturalHeight] }),
                     overflow: "hidden",
                   }
+                : undefined
             }
             {...(fullscreenVideo ? {} : hideVideoPanResponder.panHandlers)}
           >
