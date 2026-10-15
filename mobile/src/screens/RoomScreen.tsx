@@ -544,6 +544,11 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
   useEffect(() => {
     function handleRoomState(state: RoomState) {
+      console.log("[LUNA-DEBUG] room:state alindi", {
+        positionSeconds: state.playback.positionSeconds,
+        isPlaying: state.playback.isPlaying,
+        updatedAtMs: state.playback.updatedAtMs,
+      });
       setRoom(state);
     }
     function handleChat(msg: ChatMessage) {
@@ -813,8 +818,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   }
 
   function seekTo(seconds: number) {
+    console.log("[LUNA-DEBUG] seekTo() cagrildi", { seconds, canControlTransport });
     if (!canControlTransport) return;
     const next = Math.max(0, seconds);
+    console.log("[LUNA-DEBUG] seekTo(): playerRef.seekTo + sunucuya emit ediliyor", { next });
     playerRef.current?.seekTo(next);
     socket.emit("playback:update", { positionSeconds: next, isPlaying: room.playback.isPlaying });
   }
