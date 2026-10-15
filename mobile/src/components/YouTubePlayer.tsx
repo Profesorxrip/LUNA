@@ -99,6 +99,12 @@ function buildPlayerHtml(initialVideoId: string | null): string {
               try { player.setSize(window.innerWidth, window.innerHeight); } catch (e) {}
             }
             syncPlayerSize();
+            // videoId constructor'a verilince oynatici "CUED" (yuklendi ama
+            // BASLAMADI) durumunda kaliyordu - RoomScreen hicbir yerde ayrica
+            // "oynat" komutu gondermiyordu (host'un ilk secimi her zaman
+            // oynuyor VARSAYILIYOR, bkz. selectSource isPlaying:true), bu
+            // yuzden video GORUNSE bile sayac hep 0'da kalip hic ilerlemiyordu.
+            player.playVideo();
             window.addEventListener('resize', syncPlayerSize);
             setTimeout(syncPlayerSize, 300);
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'duration', seconds: player.getDuration() }));
