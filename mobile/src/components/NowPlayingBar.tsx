@@ -55,10 +55,21 @@ export default function NowPlayingBar({
   const liveFraction = duration > 0 ? Math.min(1, Math.max(0, positionSeconds / duration)) : 0;
   const fraction = dragFraction ?? liveFraction;
 
+  // PanResponder.create() SADECE ilk render'da calisiyor (useRef ile sabit
+  // tutuluyor) - icindeki fonksiyonlar o anki canSeek/duration/onSeek'i
+  // KALICI olarak "kapatirdi" (closure). Video suresi ilk render'da henuz
+  // bilinmedigi (duration=0) icin "onStartShouldSetPanResponder" sonsuza
+  // kadar "hayir" cevabinda TAKILI kalirdi - sure sonradan gercek degerine
+  // (ornegin 59:54) ulassa bile cubuk hic dokunmaya tepki vermezdi
+  // (RoomScreen.tsx'teki videoHiddenRef/videoNaturalHeightRef ile AYNI
+  // "ref'ten oku" cozumu burada da gerekiyordu).
+  const latestRef = useRef({ canSeek, duration, onSeek });
+  latestRef.current = { canSeek, duration, onSeek };
+
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => canSeek && duration > 0,
-      onMoveShouldSetPanResponder: () => canSeek && duration > 0,
+      onStartShouldSetPanResponder: () => latestRef.current.canSeek && latestRef.current.duration > 0,
+      onMoveShouldSetPanResponder: () => latestRef.current.canSeek && latestRef.current.duration > 0,
       onPanResponderGrant: (evt) => {
         if (barWidthRef.current > 0) setDragFraction(Math.min(1, Math.max(0, evt.nativeEvent.locationX / barWidthRef.current)));
       },
@@ -67,7 +78,7 @@ export default function NowPlayingBar({
       },
       onPanResponderRelease: () => {
         setDragFraction((frac) => {
-          if (frac !== null) onSeek(frac * duration);
+          if (frac !== null) latestRef.current.onSeek(frac * latestRef.current.duration);
           return null;
         });
       },
