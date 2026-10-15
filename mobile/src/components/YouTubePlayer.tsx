@@ -150,6 +150,7 @@ function buildPlayerHtml(initialVideoId: string | null): string {
     window.addEventListener('message', handleMessage);
     function handleMessage(event) {
       var msg = JSON.parse(event.data);
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'debugIncoming', msg: msg, hasPlayer: !!player }));
       if (!player) return;
       if (msg.type === 'play') player.playVideo();
       if (msg.type === 'pause') player.pauseVideo();
@@ -228,11 +229,24 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
   }
 
   useImperativeHandle(ref, () => ({
-    play: () => postToPlayer({ type: "play" }),
-    pause: () => postToPlayer({ type: "pause" }),
-    seekTo: (seconds: number) => postToPlayer({ type: "seekTo", seconds }),
+    play: () => {
+      console.log("[LUNA-DEBUG] YouTubePlayer.play() cagrildi");
+      postToPlayer({ type: "play" });
+    },
+    pause: () => {
+      console.log("[LUNA-DEBUG] YouTubePlayer.pause() cagrildi");
+      postToPlayer({ type: "pause" });
+    },
+    seekTo: (seconds: number) => {
+      console.log("[LUNA-DEBUG] YouTubePlayer.seekTo() cagrildi", seconds);
+      postToPlayer({ type: "seekTo", seconds });
+    },
     loadVideo: (id: string, startSeconds = 0) => {
-      if (id === loadedVideoIdRef.current) return;
+      if (id === loadedVideoIdRef.current) {
+        console.log("[LUNA-DEBUG] YouTubePlayer.loadVideo() ATLANDI (zaten yuklu)", id);
+        return;
+      }
+      console.log("[LUNA-DEBUG] YouTubePlayer.loadVideo() GERCEKTEN calisiyor", { oldId: loadedVideoIdRef.current, newId: id, startSeconds });
       loadedVideoIdRef.current = id;
       postToPlayer({ type: "loadVideo", videoId: id, startSeconds });
     },
@@ -272,6 +286,9 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(
       onMessage={(event) => {
         try {
           const data = JSON.parse(event.nativeEvent.data);
+          if (data.type === "stateChange" || data.type === "buffering" || data.type === "debugIncoming") {
+            console.log("[LUNA-DEBUG] WebView'den mesaj geldi", data);
+          }
           if (data.type === "stateChange" && onStateChange) {
             onStateChange(data.isPlaying, data.currentTime);
           } else if (data.type === "buffering") {

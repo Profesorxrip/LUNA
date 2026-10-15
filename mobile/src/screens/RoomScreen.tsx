@@ -583,9 +583,19 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     const timer = setInterval(async () => {
       const current = roomRef.current;
       if (!current.playback.source || !current.playback.isPlaying) return;
-      const actual = await playerRef.current?.getCurrentTime();
+      let actual: number | undefined;
+      try {
+        actual = await playerRef.current?.getCurrentTime();
+      } catch (err) {
+        console.log("[LUNA-DEBUG] kalp atisi: getCurrentTime REDDEDILDI (zaman asimi)", String(err));
+        return;
+      }
+      console.log("[LUNA-DEBUG] kalp atisi: getCurrentTime sonucu", actual);
       if (actual !== undefined) {
+        console.log("[LUNA-DEBUG] kalp atisi: sunucuya emit ediliyor", { positionSeconds: actual });
         socket.emit("playback:update", { positionSeconds: actual, isPlaying: true });
+      } else {
+        console.log("[LUNA-DEBUG] kalp atisi: olcum YOK (undefined), bu turu atliyor");
       }
     }, HOST_HEARTBEAT_INTERVAL_MS);
     return () => clearInterval(timer);
@@ -621,6 +631,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       // (host dahil) tekrar yukluyoruz - ayni videoyu iki kez yuklemek
       // zararsiz/idempotent, ama kacirilan ilk yuklemeyi guvenilir sekilde
       // telafi ediyor.
+      console.log("[LUNA-DEBUG] effect: URL DEGISTI, loadVideo cagriliyor", { url, hostIsAuthoritative, positionSeconds: room.playback.positionSeconds });
       playerRef.current?.loadVideo(url, hostIsAuthoritative ? 0 : room.playback.positionSeconds);
       if (!room.playback.isPlaying) playerRef.current?.pause();
       return;
@@ -631,7 +642,11 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     // "play() interrupted by pause()" hatasiyla videoyu kalici pause'da
     // birakir (goo.gl/LdLk22) - bu yuzden SADECE host degilken/leader
     // degilken senkronluyoruz.
-    if (hostIsAuthoritative) return;
+    if (hostIsAuthoritative) {
+      console.log("[LUNA-DEBUG] effect: ayni url, host otoriter, HICBIR SEY yapmiyor (dogru davranis)");
+      return;
+    }
+    console.log("[LUNA-DEBUG] effect: ayni url, misafir/senkron modu - play/pause uyguluyor", { isPlaying: room.playback.isPlaying });
     if (room.playback.isPlaying && !room.buffering.anyoneBuffering) playerRef.current?.play();
     else playerRef.current?.pause();
   }, [room.playback.source?.url, room.playback.isPlaying, room.buffering.anyoneBuffering, room.playbackMode, isHost, room.poll, syncable]);
@@ -639,6 +654,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   const handleHostPlayerChange = useCallback(
     (playing: boolean, currentTime: number) => {
       if (!canControlTransport) return;
+      console.log("[LUNA-DEBUG] handleHostPlayerChange (oynaticidan geldi) -> sunucuya emit", { playing, currentTime });
       socket.emit("playback:update", { isPlaying: playing, positionSeconds: currentTime });
     },
     [canControlTransport]
@@ -696,6 +712,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     // loadVideo ARTIK onun icin de cagriliyor (WebView'i platformun
     // sayfasina yonlendirir).
     socket.emit("playback:update", { source, isPlaying: source.type !== "external", positionSeconds: 0 });
+    console.log("[LUNA-DEBUG] selectSource: DOGRUDAN loadVideo cagriliyor", { url: source.url });
     playerRef.current?.loadVideo(source.url, 0);
   }
 
@@ -769,6 +786,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // etmiyoruz (cift gonderim/yarisi onlenir).
   function togglePlayPause() {
     if (!canControlTransport) return;
+    console.log("[LUNA-DEBUG] togglePlayPause basildi", { suankiIsPlaying: room.playback.isPlaying });
     if (room.playback.isPlaying) playerRef.current?.pause();
     else playerRef.current?.play();
   }
