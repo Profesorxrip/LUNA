@@ -42,6 +42,13 @@ export interface MediaPlayerHandle {
   // expo-video'nun RESMI audioTrack API'si uzerinden GERCEK bir ses parcasi
   // seciyor (bkz. HlsPlayer.tsx).
   setDubTrack: (index: number) => void;
+  // Ayarlar/Profil ekranindaki "Başka Ses Çalarken Sessize Al" tercihinin
+  // video panelinden de ANINDA uygulanmasi icin - SADECE hls/mp4'te anlamli
+  // (expo-video'nun audioMixingMode'u, bkz. HlsPlayer.tsx), YouTube WebView'i
+  // ve "external" (DRM) icin boyle bir native ses oturumu API'si olmadigindan
+  // no-op (tercih yine de AsyncStorage'a kaydedilip bir sonraki hls/mp4
+  // videoda gecerli olur).
+  setMuteOtherAudio: (enabled: boolean) => void;
 }
 
 interface Props {
@@ -123,6 +130,9 @@ const MediaPlayer = forwardRef<MediaPlayerHandle, Props>(
     },
     setSubtitlesEnabled: (enabled) => active()?.setSubtitlesEnabled(enabled),
     setDubTrack: (index) => active()?.setDubTrack(index),
+    setMuteOtherAudio: (enabled) => {
+      if (source?.type === "hls" || source?.type === "mp4") hlsRef.current?.setMuteOtherAudio(enabled);
+    },
   }));
 
   if (!source) {

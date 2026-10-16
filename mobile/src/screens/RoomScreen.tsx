@@ -47,6 +47,7 @@ import { coverUrlForSource } from "../utils/media";
 import Icon, { IconName } from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import { isHideLocationEnabled } from "../utils/locationSettings";
+import { isMuteOnOtherAudioEnabled, setMuteOnOtherAudioEnabled } from "../utils/audioSettings";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
 import { useVoiceChat } from "../hooks/useVoiceChat";
 import { theme } from "../theme";
@@ -458,6 +459,19 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // ile baslarsak, oda +18 isaretliyse ve gercek tercihim "gizli" olsa
   // bile veri yuklenene kadar video kisa bir an bulaniksiz goruntulenirdi.
   const [myHideAdultContent, setMyHideAdultContent] = useState(true);
+
+  // Video Ayarlari panelindeki "Başka ses çalarken sessize al" kisayolu -
+  // ProfileScreen.tsx'teki ile AYNI cihaz-bazli AsyncStorage tercihi (bkz.
+  // src/utils/audioSettings.ts), odadan cikmadan da degistirilebilsin diye.
+  const [muteOtherAudio, setMuteOtherAudioState] = useState(false);
+  useEffect(() => {
+    isMuteOnOtherAudioEnabled().then(setMuteOtherAudioState);
+  }, []);
+  function toggleMuteOtherAudio(enabled: boolean) {
+    setMuteOtherAudioState(enabled);
+    setMuteOnOtherAudioEnabled(enabled);
+    playerRef.current?.setMuteOtherAudio(enabled);
+  }
 
   const playerRef = useRef<MediaPlayerHandle>(null);
   const reactionsRef = useRef<ReactionsOverlayHandle>(null);
@@ -1968,6 +1982,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         selectedDubIndex={selectedDubIndex}
         onChangeDubTrack={changeDubTrack}
         videoResolution={videoResolution}
+        hideAdultContent={myHideAdultContent}
+        onToggleHideAdultContent={toggleMyHideAdultContent}
+        muteOtherAudio={muteOtherAudio}
+        onToggleMuteOtherAudio={toggleMuteOtherAudio}
       />
 
       <MessageOptionsSheet

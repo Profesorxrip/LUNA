@@ -21,6 +21,11 @@ export interface HlsPlayerHandle {
   // KENDI implementasyonu (VideoPlayer.web.tsx) bu alanlari hep bos birakir.
   setSubtitlesEnabled: (enabled: boolean) => void;
   setDubTrack: (index: number) => void;
+  // Video Ayarlari panelinden anlik degisebilsin diye - expo-video'nun
+  // RESMI audioMixingMode'unu (bkz. yukaridaki useVideoPlayer kurulumu)
+  // oynatici ZATEN olusmusken de degistirebiliyoruz, yeni video beklemeye
+  // gerek yok.
+  setMuteOtherAudio: (enabled: boolean) => void;
 }
 
 interface Props {
@@ -206,6 +211,9 @@ const HlsPlayer = forwardRef<HlsPlayerHandle, Props>(
       } catch {
         // yoksay
       }
+    },
+    setMuteOtherAudio: (enabled: boolean) => {
+      player.audioMixingMode = audioMixingModeFor(enabled);
     },
   }));
 

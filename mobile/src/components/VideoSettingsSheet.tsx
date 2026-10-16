@@ -40,6 +40,17 @@ interface Props {
   // bu yuzden YouTube'daki gibi bir secim listesi degil, sadece bilgi
   // amacli (dokunulamaz) bir satir olarak gosterilir.
   videoResolution: { width: number; height: number } | null;
+  // Profil ekranindaki "Ayarlar" bolumundeki iki KISISEL (cihaz bazli)
+  // tercihin dogrudan video panelinden de degistirilebilmesi icin - odadan
+  // cikmaya gerek kalmasin diye. hideAdultContent RoomScreen'deki
+  // myHideAdultContent/toggleMyHideAdultContent ile AYNI (adultBlurActive'i
+  // aninda etkiler), muteOtherAudio ise src/utils/audioSettings.ts'teki
+  // AsyncStorage tercihiyle AYNI (hls/mp4'te aninda, YouTube/external'da bir
+  // sonraki hls/mp4 videoda gecerli olur - bkz. MediaPlayer.tsx).
+  hideAdultContent: boolean;
+  onToggleHideAdultContent: (enabled: boolean) => void;
+  muteOtherAudio: boolean;
+  onToggleMuteOtherAudio: (enabled: boolean) => void;
 }
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -93,6 +104,10 @@ export default function VideoSettingsSheet({
   selectedDubIndex,
   onChangeDubTrack,
   videoResolution,
+  hideAdultContent,
+  onToggleHideAdultContent,
+  muteOtherAudio,
+  onToggleMuteOtherAudio,
 }: Props) {
   const [expanded, setExpanded] = useState<"details" | "speed" | "quality" | "dub" | null>(null);
   const isYoutube = source?.type === "youtube";
@@ -257,6 +272,18 @@ export default function VideoSettingsSheet({
                 ))}
               </View>
             )}
+
+            {/* Profil > Ayarlar'daki AYNI iki kisisel tercih - odadan
+                cikmadan burdan da degistirilebilsin diye (bkz. Props
+                yorumu yukarida). */}
+            <TouchableOpacity style={styles.row} onPress={() => onToggleHideAdultContent(!hideAdultContent)}>
+              <Text style={styles.rowLabel}>Yetişkin içeriği bulanıklaştır</Text>
+              <Text style={styles.rowValueText}>{hideAdultContent ? "Açık" : "Kapalı"}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.row} onPress={() => onToggleMuteOtherAudio(!muteOtherAudio)}>
+              <Text style={styles.rowLabel}>Başka ses çalarken sessize al</Text>
+              <Text style={styles.rowValueText}>{muteOtherAudio ? "Açık" : "Kapalı"}</Text>
+            </TouchableOpacity>
           </ScrollView>
         </TouchableOpacity>
       </TouchableOpacity>
