@@ -446,7 +446,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       return;
     }
     setIntroCoverActive(true);
-    const timer = setTimeout(() => setIntroCoverActive(false), 5000);
+    const timer = setTimeout(() => setIntroCoverActive(false), 6000);
     return () => clearTimeout(timer);
   }, [room.playback.source?.url, room.playback.source?.type]);
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
@@ -1584,7 +1584,9 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   "duraklatildi" ekranimizi koyup altini tamamen gizleyebiliriz -
                   YouTube'un oynaticisina hic dokunmuyoruz, sadece onun
                   ONUNE kendi gorselimizi cekiyoruz. */}
-              {room.playback.source?.type === "youtube" && (introCoverActive || !room.playback.isPlaying) && !adultBlurActive && (
+              {room.playback.source?.type === "youtube" &&
+                (introCoverActive || !room.playback.isPlaying || room.buffering.anyoneBuffering) &&
+                !adultBlurActive && (
                 <View style={StyleSheet.absoluteFill} pointerEvents="none">
                   <Image
                     source={{ uri: `https://img.youtube.com/vi/${room.playback.source.url}/hqdefault.jpg` }}
