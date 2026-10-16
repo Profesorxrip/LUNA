@@ -67,9 +67,24 @@ function buildPlayerHtml(initialVideoId: string | null): string {
 <style>
   html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden;}
   #player{width:100%;height:100%;}
+  /* Asagidaki iki yama, YouTube'un resmi IFrame API'sinde KAPATILAMAYAN
+     iki ogeyi (sag-ust "kart/bilgilendirme" ikonu, sag-alt "YouTube"
+     logosu/"Izlemeye devam et" oku) GORSEL olarak orter - bunlar oynama
+     SIRASINDA da (sadece durdurulunca degil) herhangi bir anda cikabiliyor.
+     Rave dahil hicbir uygulama bunlari resmi bir parametreyle kaldiramiyor
+     (arastirdik, boyle bir API yok) - herkesin yaptigi gibi biz de ayni
+     tuzel/gorsel yama teknigini kullaniyoruz. pointer-events:none - kendi
+     dokunma/kontrol gosterme jestimizi (RoomScreen'deki video tiklama)
+     ENGELLEMESIN diye - bu yamalar sadece GORSEL, tiklanamaz. */
+  #lunaMaskTR{position:fixed;top:0;right:0;width:76px;height:76px;pointer-events:none;z-index:2147483647;
+    background:radial-gradient(circle at top right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.9) 38%, rgba(0,0,0,0) 72%);}
+  #lunaMaskBR{position:fixed;bottom:0;right:0;width:200px;height:56px;pointer-events:none;z-index:2147483647;
+    background:linear-gradient(to left, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0) 100%);}
 </style></head>
 <body>
   <div id="player"></div>
+  <div id="lunaMaskTR"></div>
+  <div id="lunaMaskBR"></div>
   <script src="https://www.youtube.com/iframe_api"></script>
   <script>
     var player;
@@ -82,14 +97,14 @@ function buildPlayerHtml(initialVideoId: string | null): string {
         // controls:0 - YouTube'un kendi oynat/duraklat/sarma cubugu YERINE
         // artik RoomScreen'deki ozel VideoControlsOverlay kullaniliyor
         // (Rave'deki gibi) - iki ayri kontrol seti ust uste gorunmesin diye.
-        // iv_load_policy:3 - eski "Kartlar/Annotasyonlar" bilgi kutularini
-        // (ornegin "TRT, Turkiye'deki bir kamu yayin kurulusudur" gibi)
-        // kapatir. rel:0 - video bitince/durdurulunca onerilen videolari
-        // SADECE ayni kanaldan gosterir. YouTube logosu/paylas oku/onerilen
-        // video karti ise SADECE video DURAKLATILINCA cikan, YouTube'un
-        // kendi gomulu oynatici kurallari geregi KALDIRILAMAYAN bir
-        // arayuz - hicbir ucuncu parti uygulama (Rave dahil) bunu
-        // kaldiramaz, oynarken zaten hic gorunmuyor.
+        // iv_load_policy:3 - eski "annotations" (yillar once eklenmis metin
+        // kutulari) icin resmi kapatma parametresi - ama "cards" (sag-ust
+        // "i" ikonu) ve YouTube logosu icin BOYLE bir resmi parametre YOK
+        // (arastirildi) - oynama SIRASINDA da, sadece duraklatinca degil,
+        // herhangi bir anda cikabiliyorlar. rel:0 - video bitince onerilen
+        // videolari SADECE ayni kanaldan gosterir. Bunlari KALDIRAN resmi
+        // bir yol olmadigi icin (Rave dahil hicbir uygulama kaldiramiyor)
+        // yukaridaki #lunaMaskTR/#lunaMaskBR gorsel yamalariyla ORTUYORUZ.
         playerVars: { playsinline: 1, controls: 0, iv_load_policy: 3, rel: 0 },
         events: {
           onReady: function () {
