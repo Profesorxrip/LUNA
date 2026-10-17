@@ -39,7 +39,7 @@ import {
   GlobeEuropeAfricaIcon,
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote } from "lucide-react-native";
-import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon } from "./CustomIcons";
+import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon } from "./CustomIcons";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
 
@@ -79,6 +79,7 @@ export type IconName =
   | "playOnlyControl"
   | "autoplayQueue"
   | "voteBox"
+  | "crownFilled"
   | "crown"
   | "fastForward"
   | "fastBackward"
@@ -174,6 +175,7 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   image: SquarePhotoIcon,
   invite: InvitePersonIcon,
   inviteKey: OrnateKeyIcon,
+  crownFilled: FilledCrownIcon,
   globe: CompassBadgeIcon,
   shareBox: ShareBoxIcon,
 };

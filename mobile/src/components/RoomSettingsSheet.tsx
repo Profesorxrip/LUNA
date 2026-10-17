@@ -57,14 +57,14 @@ const PRIVACY_DESC: Record<PrivacyLevel, string> = {
 };
 
 const PLAYBACK_OPTIONS: { key: PlaybackMode; icon: IconName; label: string }[] = [
-  { key: "leader", icon: "crown", label: "LİDERİN\nSEÇİMİ" },
+  { key: "leader", icon: "crownFilled", label: "KOMUTA\nLİDER'DE" },
   { key: "playOnly", icon: "playOnlyControl", label: "HERKES\nOYNATIR" },
   { key: "autoplay", icon: "autoplayQueue", label: "AKIŞ\nDURMAZ" },
   { key: "vote", icon: "voteBox", label: "ODA\nOYLASIN" },
 ];
 
 const PLAYBACK_DESC: Record<PlaybackMode, string> = {
-  leader: "Sadece lider video seçebilir",
+  leader: "Hangi videonun oynayacağına sadece lider karar verir",
   playOnly: "Video seçimi liderde, oynat/durdur herkesin elinde",
   autoplay: "Kesintisiz izleme, sıradaki video kendiliğinden gelir",
   vote: "Herkes video önerir, en çok oyu alan oynar",
