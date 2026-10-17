@@ -25,7 +25,6 @@ import {
   ForwardIcon,
   ArrowUturnLeftIcon,
   PauseIcon,
-  BackwardIcon,
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
   ChatBubbleOvalLeftIcon,
@@ -87,7 +86,6 @@ export type IconName =
   | "adultOff"
   | "crown"
   | "fastForward"
-  | "fastBackward"
   | "skipForward"
   | "skipBack"
   | "phone"
@@ -142,7 +140,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   check: CheckIcon,
   pin: MapPinIcon,
   fastForward: ForwardIcon,
-  fastBackward: BackwardIcon,
   volume: SpeakerWaveIcon,
   volumeOff: SpeakerXMarkIcon,
   phone: PhoneIcon,
