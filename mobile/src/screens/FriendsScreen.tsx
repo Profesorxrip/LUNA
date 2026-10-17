@@ -526,11 +526,11 @@ export default function FriendsScreen({
                   {!!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>}
                 </View>
                 <View style={styles.requestActions}>
-                  <TouchableOpacity onPress={() => decline(item.userId)} hitSlop={8}>
+                  <TouchableOpacity style={styles.requestDeclineBtn} onPress={() => decline(item.userId)} hitSlop={8}>
                     <Icon name="close" size={16} color={MUTED} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
-                    <Icon name="check" size={22} color={ACCENT} />
+                  <TouchableOpacity style={styles.requestAcceptBtn} onPress={() => accept(item.userId)} hitSlop={8}>
+                    <Icon name="check" size={16} color="#04140D" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -650,7 +650,29 @@ const styles = StyleSheet.create({
   rowName: { color: TEXT, fontSize: 14, fontWeight: "700" },
   rowHandle: { color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },
   rowPreview: { color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },
-  requestActions: { flexDirection: "row", alignItems: "center", gap: 16 },
+  requestActions: { flexDirection: "row", alignItems: "center", gap: 10 },
+  // Kabul/reddet ikonlari eskiden CIPLAK (kutusuz) ve FARKLI boyutlardaydi
+  // (cizgili X 16px, dolgulu tik 22px) - optik olarak uyumsuz duruyordu.
+  // Artik ikisi de AYNI boyuttaki (16px) ikonu AYNI boyuttaki (34px) bir
+  // kutucuk icinde gosteriyor - RoomQuickCards.tsx'teki inviteBadge ile
+  // AYNI "accent arka plan + koyu ikon" deseni (bkz. o dosyadaki "plus"/
+  // "check" rozeti).
+  requestDeclineBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  requestAcceptBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: ACCENT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   tabBarWrap: { position: "absolute", bottom: 34, left: 0, right: 0, alignItems: "center" },
   tabBar: {
     flexDirection: "row",
