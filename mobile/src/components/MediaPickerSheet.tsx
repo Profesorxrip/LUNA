@@ -225,7 +225,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
       <View style={styles.screen}>
         {mode !== "grid" && (
           <View style={styles.topBar}>

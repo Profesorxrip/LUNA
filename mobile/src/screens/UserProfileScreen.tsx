@@ -889,6 +889,7 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
         transparent
         animationType="slide"
         onRequestClose={() => setAvatarSheetVisible(false)}
+        statusBarTranslucent
       >
         <TouchableOpacity
           style={styles.sheetOverlay}

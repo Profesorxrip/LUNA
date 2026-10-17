@@ -456,6 +456,7 @@ export default function ProfileScreen({
         transparent
         animationType="fade"
         onRequestClose={() => setLanguageSheetVisible(false)}
+        statusBarTranslucent
       >
         <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setLanguageSheetVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.optionSheet}>
@@ -476,6 +477,7 @@ export default function ProfileScreen({
         transparent
         animationType="fade"
         onRequestClose={() => setDiagnosticsVisible(false)}
+        statusBarTranslucent
       >
         <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setDiagnosticsVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.diagnosticsCard}>
@@ -595,7 +597,7 @@ function OptionButton({
       >
         <Text style={styles.optionButtonText}>{current?.label ?? value}</Text>
       </TouchableOpacity>
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.optionSheet}>
             {options.map((opt) => (

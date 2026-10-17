@@ -1930,7 +1930,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       />
       {/* Davet et - Discover'daki sag ustteki arkadaslar ikonuyla ACILAN AYNI
           FriendsScreen, sadece inviteMode acik (bkz. FriendsScreen.tsx). */}
-      <Modal visible={inviteFriendsVisible} animationType="slide" onRequestClose={() => setInviteFriendsVisible(false)}>
+      <Modal visible={inviteFriendsVisible} animationType="slide" onRequestClose={() => setInviteFriendsVisible(false)} statusBarTranslucent>
         <FriendsScreen
           onBack={() => setInviteFriendsVisible(false)}
           onOpenSettings={() => {}}

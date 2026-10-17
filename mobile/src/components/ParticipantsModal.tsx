@@ -57,7 +57,7 @@ export default function ParticipantsModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose} statusBarTranslucent>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity activeOpacity={1} style={[styles.sheet, { top: topOffset, paddingBottom: insets.bottom }]} onPress={() => {}}>
           <View style={styles.content}>

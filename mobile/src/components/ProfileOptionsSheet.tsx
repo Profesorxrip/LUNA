@@ -190,7 +190,7 @@ export default function ProfileOptionsSheet({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <View style={styles.card}>
           <TouchableOpacity activeOpacity={1} onPress={() => {}} style={styles.cardInner}>

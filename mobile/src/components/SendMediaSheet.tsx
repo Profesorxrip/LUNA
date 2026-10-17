@@ -17,7 +17,7 @@ export default function SendMediaSheet({ visible, imageUri, uploading, onCancel,
   const [isAdult, setIsAdult] = useState(false);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel} statusBarTranslucent>
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           {imageUri && <Image source={{ uri: imageUri }} style={styles.preview} resizeMode="cover" />}

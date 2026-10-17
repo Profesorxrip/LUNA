@@ -64,7 +64,7 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
       <View style={styles.screen}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleClose} hitSlop={10}>

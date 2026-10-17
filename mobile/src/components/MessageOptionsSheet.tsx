@@ -51,7 +51,7 @@ export default function MessageOptionsSheet({ visible, message, onClose, onCopy,
   if (!message) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose}>
         <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
           <View style={styles.handle} />

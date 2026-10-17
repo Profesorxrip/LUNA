@@ -436,7 +436,7 @@ export default function FriendsScreen({
         </View>
       </View>
 
-      <Modal visible={requestsVisible} animationType="fade" transparent onRequestClose={() => setRequestsVisible(false)}>
+      <Modal visible={requestsVisible} animationType="fade" transparent onRequestClose={() => setRequestsVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setRequestsVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
             <Text style={styles.sheetTitle}>İstekler</Text>

@@ -419,7 +419,7 @@ export default function DMScreen({ peer, onBack }: Props) {
         )}
       </View>
 
-      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
           <View style={styles.menuCard}>
             {menuItems.map((item) => (
@@ -438,7 +438,7 @@ export default function DMScreen({ peer, onBack }: Props) {
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={mediaVisible} transparent animationType="slide" onRequestClose={() => setMediaVisible(false)}>
+      <Modal visible={mediaVisible} transparent animationType="slide" onRequestClose={() => setMediaVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setMediaVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.mediaSheet}>
             <Text style={styles.sheetTitle}>Medya</Text>
@@ -458,7 +458,7 @@ export default function DMScreen({ peer, onBack }: Props) {
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={expiryVisible} transparent animationType="slide" onRequestClose={() => setExpiryVisible(false)}>
+      <Modal visible={expiryVisible} transparent animationType="slide" onRequestClose={() => setExpiryVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setExpiryVisible(false)}>
           <View style={styles.sheetCard}>
             <Text style={styles.sheetTitle}>Süre sonu</Text>
@@ -474,7 +474,7 @@ export default function DMScreen({ peer, onBack }: Props) {
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)}>
+      <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setReportVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
             <Text style={styles.sheetTitle}>{peer.name} kullanicisini sikayet et</Text>

@@ -67,7 +67,7 @@ function buildMapHtml(markers: MapMarker[]): string {
  * RoomScreen.tsx showMap / src/utils/locationSettings.ts). */
 export default function RoomMapSheet({ visible, onClose, markers, hiddenCount }: Props) {
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} hitSlop={10}>
           <Icon name="chevronLeft" size={22} color={theme.text} />
