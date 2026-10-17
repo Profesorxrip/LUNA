@@ -5,7 +5,6 @@ import {
   MagnifyingGlassIcon,
   UsersIcon,
   MicrophoneIcon,
-  PaperAirplaneIcon,
   PlusIcon,
   AtSymbolIcon,
   PhotoIcon,
@@ -32,7 +31,6 @@ import {
   ArrowRightOnRectangleIcon,
   ForwardIcon,
   ArrowUturnLeftIcon,
-  HeartIcon,
   PauseIcon,
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
@@ -46,9 +44,9 @@ import {
   TrashIcon,
   SparklesIcon,
 } from "react-native-heroicons/solid";
-import { HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
-import { MicOff, Hourglass, Crown, RotateCcw, RotateCw } from "lucide-react-native";
+import { MicOff, Hourglass, Crown, RotateCcw, RotateCw, Heart } from "lucide-react-native";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
+import { PaperPlaneIcon } from "./CustomIcons";
 import ModeratorBadge from "./ModeratorBadge";
 
 export type IconName =
@@ -130,7 +128,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   search: MagnifyingGlassIcon,
   people: UsersIcon,
   mic: MicrophoneIcon,
-  send: PaperAirplaneIcon,
   plus: PlusIcon,
   mention: AtSymbolIcon,
   image: PhotoIcon,
@@ -166,8 +163,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   phone: PhoneIcon,
   kicked: ArrowRightOnRectangleIcon,
   reply: ArrowUturnLeftIcon,
-  heart: HeartIcon,
-  heartOutline: HeartOutlineIcon,
   pause: PauseIcon,
   expand: ArrowsPointingOutIcon,
   collapse: ArrowsPointingInIcon,
@@ -191,9 +186,16 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   skipForward: SkipForwardIcon,
   skipBack: SkipBackIcon,
   shield: ModeratorBadge,
+  send: PaperPlaneIcon,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
+  // Kalp (begeni) - Ikon gozden gecirmesinde secilen "B (geometrik)" stili:
+  // Heroicons'un cok yuvarlak kalbi YERINE lucide'in daha koseli/geometrik
+  // Heart glyph'i - begenilmisken dolgulu (fill=color), degilken sadece
+  // cizgi (outline) olsun diye TEK bir bilesen uzerinde fill'i degistiriyoruz.
+  if (name === "heart") return <Heart size={size} color={color} fill={color} />;
+  if (name === "heartOutline") return <Heart size={size} color={color} fill="none" />;
   const HeroGlyph = HEROICONS[name];
   if (HeroGlyph) return <HeroGlyph size={size} color={color} />;
   const LucideGlyph = LUCIDE_FALLBACK[name];
