@@ -27,8 +27,6 @@ import {
   ForwardIcon,
   ArrowUturnLeftIcon,
   PauseIcon,
-  ArrowsPointingOutIcon,
-  ArrowsPointingInIcon,
   BackwardIcon,
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
@@ -39,7 +37,7 @@ import {
   TrashIcon,
   SparklesIcon,
 } from "react-native-heroicons/solid";
-import { Hourglass, Crown, RotateCcw, RotateCw, Heart } from "lucide-react-native";
+import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize } from "lucide-react-native";
 import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon } from "./CustomIcons";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
@@ -138,8 +136,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   kicked: ArrowRightOnRectangleIcon,
   reply: ArrowUturnLeftIcon,
   pause: PauseIcon,
-  expand: ArrowsPointingOutIcon,
-  collapse: ArrowsPointingInIcon,
   chatBubble: ChatBubbleOvalLeftIcon,
   clipboard: ClipboardDocumentIcon,
   person: UserIcon,
@@ -151,6 +147,8 @@ const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: num
   crown: Crown,
   rotateCcw: RotateCcw,
   rotateCw: RotateCw,
+  expand: Maximize,
+  collapse: Minimize,
 };
 
 const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
