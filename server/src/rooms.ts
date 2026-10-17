@@ -744,6 +744,15 @@ export function applyAutoplayNext(room: Room, source: MediaSource): void {
   applyPlayback(room, { source, isPlaying: true, positionSeconds: 0, durationSeconds: null });
 }
 
+/** Oynayan videoyu DOGRUDAN bitirir ("Henuz bir medya secilmedi" durumuna
+ * duser, bkz. MediaPlayer.tsx) - "Liderin Secimi" modunda index.ts
+ * "playback:update" uzerinden dogrudan (lider basinca), diger modlarda ise
+ * advancePastCurrentVideo tarafindan sirada/onerilecek video KALMADIGINDA
+ * cagirilir - cogunluk oyu (ya da dogal bitis) boylece asla "bosa gitmez". */
+export function endCurrentVideo(room: Room): void {
+  applyPlayback(room, { source: null, isPlaying: false, positionSeconds: 0 });
+}
+
 export function updateRoomSettings(
   room: Room,
   requesterId: string,

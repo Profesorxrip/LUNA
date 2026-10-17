@@ -37,6 +37,7 @@ import {
   advanceQueue,
   playedYoutubeIdsInRoom,
   applyAutoplayNext,
+  endCurrentVideo,
   roomToPublicState,
   listPublicRooms,
   findActiveRoomForUser,
@@ -328,29 +329,52 @@ async function advancePastCurrentVideo(room: Room, roomCode: string): Promise<vo
     broadcastRoom(roomCode);
   } else if (room.playbackMode === "playOnly") {
     const next = advanceQueue(room);
-    if (!next) return;
-    broadcastRoom(roomCode);
-    broadcastRoomsList();
-    const title = next.label || next.type;
-    io.to(roomCode).emit("room:chat", {
-      system: true,
-      kind: "nowPlaying",
-      title,
-      nowPlayingReason: "queue",
-      text: `Simdi ${title} oynatiliyor`,
-      ts: Date.now(),
-    });
+    if (next) {
+      broadcastRoom(roomCode);
+      broadcastRoomsList();
+      const title = next.label || next.type;
+      io.to(roomCode).emit("room:chat", {
+        system: true,
+        kind: "nowPlaying",
+        title,
+        nowPlayingReason: "queue",
+        text: `Simdi ${title} oynatiliyor`,
+        ts: Date.now(),
+      });
+      return;
+    }
+    // Sirada video yoksa oy cogunlugu (ya da dogal bitis) BOSA GITMESIN -
+    // oynayan videoyu dogrudan bitirip "Henuz bir medya secilmedi"
+    // durumuna dusuruyoruz (bkz. RoomScreen.tsx skipToNext'teki ayni
+    // mantik, "Liderin Secimi" modunda).
+    if (room.playback.source) {
+      endCurrentVideo(room);
+      broadcastRoom(roomCode);
+    }
   } else if (room.playbackMode === "autoplay") {
     const current = room.playback.source;
-    if (!current || current.type !== "youtube") return;
+    if (!current) return;
+    if (current.type !== "youtube") {
+      // YouTube disindaki kaynaklarda (hls/mp4/external) "ilgili video"
+      // onerisi YOK - dogrudan bitir.
+      endCurrentVideo(room);
+      broadcastRoom(roomCode);
+      return;
+    }
     const excludeIds = playedYoutubeIdsInRoom(room);
     const next = await pickNextAutoplayVideo(current.url, excludeIds);
-    if (!next) return;
     // Ayni "ended" icin baska bir event araya girip odayi degistirmis
     // olabilir (ornegin host odadan ayrildi) - async bekleme sonrasi oda
     // hala ayni modda/durumda mi diye TEKRAR kontrol ediyoruz.
     const freshRoom = getRoom(roomCode);
     if (!freshRoom || freshRoom.playbackMode !== "autoplay" || freshRoom.playback.source?.url !== current.url) return;
+    if (!next) {
+      // Onerilecek (daha once bu odada oynamamis) bir video bulunamadi -
+      // oy cogunlugu BOSA GITMESIN, videoyu dogrudan bitir.
+      endCurrentVideo(freshRoom);
+      broadcastRoom(roomCode);
+      return;
+    }
     applyAutoplayNext(freshRoom, { type: "youtube", url: next.videoId, label: next.title || "YouTube Videosu" });
     broadcastRoom(roomCode);
     broadcastRoomsList();
