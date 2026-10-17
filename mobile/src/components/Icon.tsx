@@ -15,7 +15,6 @@ import {
   EyeIcon,
   EyeSlashIcon,
   CalendarIcon,
-  ClockIcon,
   BellIcon,
   BellSlashIcon,
   UserMinusIcon,
@@ -39,7 +38,7 @@ import {
   LanguageIcon,
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, Volume1, VolumeX } from "lucide-react-native";
-import { PaperPlaneIcon, ParticipantsIcon, PersonIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
+import { PaperPlaneIcon, ParticipantsIcon, PersonIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
 import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
@@ -134,7 +133,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   eye: EyeIcon,
   eyeOff: EyeSlashIcon,
   calendar: CalendarIcon,
-  clock: ClockIcon,
   bell: BellIcon,
   bellOff: BellSlashIcon,
   personBlock: UserMinusIcon,
@@ -188,6 +186,7 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   adultOff: AdultBadge,
   phoneDevice: PhoneDeviceIcon,
   globe: CompassBadgeIcon,
+  clock: ClockIcon,
   shareBox: ShareBoxIcon,
   person: PersonIcon,
 };

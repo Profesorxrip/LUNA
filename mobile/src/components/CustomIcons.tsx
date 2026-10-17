@@ -145,6 +145,26 @@ export function CompassBadgeIcon({ size = 24, color = "#F5F5F7" }: Props) {
   );
 }
 
+// "Saat" ikonu - Heroicons'un dolgulu ClockIcon'undaki akrep/yelkovan
+// cizgileri cok inceydi (sadece ~1.5 birim) - AYNI "pusula" mask tekniginin
+// (bkz. CompassBadgeIcon) tersi: cember TAM DOLU, akrep/yelkovan kalin bir
+// cizgi olarak arka plan rengiyle OYULUYOR, boylece kalinlik dogrudan
+// strokeWidth ile kontrol edilebiliyor.
+export function ClockIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Defs>
+        <Mask id="clockHandsCut">
+          <Rect x={0} y={0} width={24} height={24} fill="white" />
+          <Line x1={12} y1={12} x2={12} y2={6} stroke="black" strokeWidth={2.4} strokeLinecap="round" />
+          <Line x1={12} y1={12} x2={16.5} y2={12} stroke="black" strokeWidth={2.4} strokeLinecap="round" />
+        </Mask>
+      </Defs>
+      <Circle cx={12} cy={12} r={9.75} fill={color} mask="url(#clockHandsCut)" />
+    </Svg>
+  );
+}
+
 // "Paylas kutu" ikonu - Heroicons'un ORIJINAL ArrowUpOnSquareIcon sekli
 // (kutu + ok) birebir AYNI kaliyor, HICBIR SEY yeniden cizilmedi - SADECE
 // okun (ust taraftaki ok basi) rengi mavi (#38BDF8), kutu kendi rengi
