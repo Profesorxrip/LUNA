@@ -41,6 +41,7 @@ import {
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, Volume1, VolumeX } from "lucide-react-native";
 import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
+import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
 
@@ -86,6 +87,7 @@ export type IconName =
   | "volumeMedium"
   | "volumeMediumOff"
   | "language"
+  | "adultOff"
   | "crown"
   | "fastForward"
   | "fastBackward"
@@ -186,6 +188,7 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   inviteKey: OrnateKeyIcon,
   crownFilled: FilledCrownIcon,
   phoneOff: PhoneDeviceOffIcon,
+  adultOff: AdultBadge,
   phoneDevice: PhoneDeviceIcon,
   globe: CompassBadgeIcon,
   shareBox: ShareBoxIcon,
