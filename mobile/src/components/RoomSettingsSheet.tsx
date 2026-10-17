@@ -182,20 +182,14 @@ export default function RoomSettingsSheet({
                 kisisel mikrofon butonu var. */}
             <TouchableOpacity style={styles.row} onPress={() => toggle("mic")} disabled={!isHost}>
               <View style={styles.rowText}>
-                <Text style={[styles.rowLabel, !isHost && styles.translateLabelDisabled]}>SOHBET</Text>
+                <Text style={styles.rowLabel}>SOHBET</Text>
                 <Text style={styles.rowDesc}>
-                  {!isHost
-                    ? "Sadece lider acip kapatabilir"
-                    : !micConnected
-                      ? "Sesli sohbete katilinmadi"
-                      : micMuted
-                        ? "Mikrofonlar kapatildi"
-                        : "Mikrofon acik"}
+                  {micOpen ? "Sesli sohbet açık, herkes mikrofonunu açabilir" : "Sesli sohbet kapalı, kimse mikrofonunu açamaz"}
                 </Text>
               </View>
               {isHost && <Icon name={expanded === "mic" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
               <View style={styles.rowValue}>
-                <Icon name={micOpen ? "mic" : "micOff"} size={26} color={isHost ? theme.text : theme.textMuted} />
+                <Icon name={micOpen ? "mic" : "micOff"} size={26} color={theme.text} />
                 <Text style={styles.rowValueLabel}>{micOpen ? "AÇIK" : "KAPALI"}</Text>
               </View>
             </TouchableOpacity>
