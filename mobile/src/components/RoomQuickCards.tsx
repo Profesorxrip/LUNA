@@ -89,7 +89,7 @@ export default function RoomQuickCards({ isHost, privacy, onChangePrivacy, frien
                   <View style={styles.inviteAvatarWrap}>
                     <Avatar name={f.name} avatarUrl={f.avatarUrl} size={44} isFriend />
                     <View style={[styles.inviteBadge, sent && styles.inviteBadgeSent]}>
-                      <Icon name={sent ? "check" : "plus"} size={12} color="#04140D" />
+                      <Icon name={sent ? "check" : "invite"} size={12} color="#04140D" />
                     </View>
                   </View>
                   <Text style={styles.inviteName} numberOfLines={1}>
