@@ -218,10 +218,16 @@ const ORNATE_KEY_PATH =
 export function OrnateKeyIcon({ size = 24, color = "#F5F5F7" }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 3600 3600">
-      <G transform="translate(3600,0) scale(-1,1)">
-        <G transform="rotate(-90 1800 1800)">
-          <G transform="translate(0,3600) scale(1,-1)">
-            <Path d={ORNATE_KEY_PATH} fill={color} />
+      {/* Siluet genislige (viewBox'in ~%97'si) gore dikeyde dar kaliyordu
+          (~%45) - ERISIM satirindaki yuvarlak diger ikonlarin (dunya/radar/
+          kisiler) yaninda zayif/ince gorunuyordu. Dikeyde 1.5x olceklenip
+          seklin dikey merkezine (y~1800) gore ortalaniyor. */}
+      <G transform="translate(0,-900) scale(1,1.5)">
+        <G transform="translate(3600,0) scale(-1,1)">
+          <G transform="rotate(-90 1800 1800)">
+            <G transform="translate(0,3600) scale(1,-1)">
+              <Path d={ORNATE_KEY_PATH} fill={color} />
+            </G>
           </G>
         </G>
       </G>
