@@ -173,7 +173,7 @@ export default function RoomSettingsSheet({
 
             <TouchableOpacity style={styles.row} onPress={onMicPress}>
               <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>Ses</Text>
+                <Text style={styles.rowLabel}>SOHBET</Text>
                 <Text style={styles.rowDesc}>{!micConnected ? "Sesli sohbete katilinmadi" : micMuted ? "Mikrofonlar kapatildi" : "Mikrofon acik"}</Text>
               </View>
               <View style={styles.rowValue}>
