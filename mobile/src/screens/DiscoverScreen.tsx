@@ -262,7 +262,7 @@ export default function DiscoverScreen({
     <View style={styles.container} {...panResponder.panHandlers}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconTouch} onPress={onOpenProfile} hitSlop={8}>
-          <Icon name="settings" size={30} color={theme.text} />
+          <Icon name="person" size={30} color={theme.text} />
         </TouchableOpacity>
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
         <TouchableOpacity style={styles.iconTouch} onPress={onOpenFriends} hitSlop={8}>
