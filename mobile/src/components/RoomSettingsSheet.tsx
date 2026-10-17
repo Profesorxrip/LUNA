@@ -220,7 +220,7 @@ export default function RoomSettingsSheet({
 
             <Text style={styles.volumeLabel}>SOHBET SESİ</Text>
             <View style={[styles.volumeRow, styles.volumeRowNoTopBorder]}>
-              <Icon name={voiceVolume <= VOLUME_MUTE_THRESHOLD ? "phoneOff" : "phone"} size={18} color={theme.textMuted} />
+              <Icon name={voiceVolume <= VOLUME_MUTE_THRESHOLD ? "phoneOff" : "phoneDevice"} size={18} color={theme.textMuted} />
               <View style={styles.volumeSlider}>
                 <SimpleSlider value={voiceVolume} onValueChange={onVoiceVolumeChange} />
               </View>

@@ -23,7 +23,6 @@ import {
   CheckIcon,
   MapPinIcon,
   PhoneIcon,
-  PhoneXMarkIcon,
   ArrowRightOnRectangleIcon,
   ForwardIcon,
   ArrowUturnLeftIcon,
@@ -40,7 +39,7 @@ import {
   GlobeEuropeAfricaIcon,
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote } from "lucide-react-native";
-import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon } from "./CustomIcons";
+import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
 
@@ -82,6 +81,7 @@ export type IconName =
   | "voteBox"
   | "crownFilled"
   | "phoneOff"
+  | "phoneDevice"
   | "crown"
   | "fastForward"
   | "fastBackward"
@@ -144,7 +144,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   volume: SpeakerWaveIcon,
   volumeOff: SpeakerXMarkIcon,
   phone: PhoneIcon,
-  phoneOff: PhoneXMarkIcon,
   kicked: ArrowRightOnRectangleIcon,
   reply: ArrowUturnLeftIcon,
   pause: PauseIcon,
@@ -179,6 +178,8 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   invite: InvitePersonIcon,
   inviteKey: OrnateKeyIcon,
   crownFilled: FilledCrownIcon,
+  phoneOff: PhoneDeviceOffIcon,
+  phoneDevice: PhoneDeviceIcon,
   globe: CompassBadgeIcon,
   shareBox: ShareBoxIcon,
 };
