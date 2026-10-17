@@ -39,7 +39,7 @@ import {
   TrashIcon,
   SparklesIcon,
 } from "react-native-heroicons/solid";
-import { Hourglass, Crown, RotateCcw, RotateCw, Heart } from "lucide-react-native";
+import { Hourglass, Crown, RotateCcw, RotateCw, Heart, ChevronsRight, ChevronsLeft } from "lucide-react-native";
 import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon } from "./CustomIcons";
 import ModeratorBadge from "./ModeratorBadge";
 
@@ -131,8 +131,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   pin: MapPinIcon,
   fastForward: ForwardIcon,
   fastBackward: BackwardIcon,
-  skipForward: ForwardIcon,
-  skipBack: BackwardIcon,
   volume: SpeakerWaveIcon,
   volumeOff: SpeakerXMarkIcon,
   phone: PhoneIcon,
@@ -152,6 +150,8 @@ const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: num
   crown: Crown,
   rotateCcw: RotateCcw,
   rotateCw: RotateCw,
+  skipForward: ChevronsRight,
+  skipBack: ChevronsLeft,
 };
 
 const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
