@@ -1,9 +1,7 @@
 import React from "react";
-import { XMarkIcon as XMarkIconOutline } from "react-native-heroicons/outline";
+import { XMarkIcon as XMarkIconOutline, MagnifyingGlassIcon as MagnifyingGlassIconOutline } from "react-native-heroicons/outline";
 import {
   Cog6ToothIcon,
-  MagnifyingGlassIcon,
-  UsersIcon,
   MicrophoneIcon,
   PlusIcon,
   AtSymbolIcon,
@@ -44,9 +42,9 @@ import {
   TrashIcon,
   SparklesIcon,
 } from "react-native-heroicons/solid";
-import { MicOff, Hourglass, Crown, RotateCcw, RotateCw, Heart } from "lucide-react-native";
+import { Hourglass, Crown, RotateCcw, RotateCw, Heart } from "lucide-react-native";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
-import { PaperPlaneIcon } from "./CustomIcons";
+import { PaperPlaneIcon, ParticipantsIcon, MicOffIcon } from "./CustomIcons";
 import ModeratorBadge from "./ModeratorBadge";
 
 export type IconName =
@@ -124,8 +122,6 @@ interface Props {
 // ama ayni "dolu/net" agirlikta oldugu icin yan yana durunca fark etmiyor.
 const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
   settings: Cog6ToothIcon,
-  search: MagnifyingGlassIcon,
-  people: UsersIcon,
   mic: MicrophoneIcon,
   plus: PlusIcon,
   mention: AtSymbolIcon,
@@ -172,7 +168,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
 };
 
 const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>>> = {
-  micOff: MicOff,
   hourglass: Hourglass,
   crown: Crown,
   rotateCcw: RotateCcw,
@@ -186,6 +181,8 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   skipBack: SkipBackIcon,
   shield: ModeratorBadge,
   send: PaperPlaneIcon,
+  people: ParticipantsIcon,
+  micOff: MicOffIcon,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
@@ -199,6 +196,7 @@ export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
   // uzerine 2.2 strokeWidth veriliyor (lucide ikonlarinda da ayni kalinlik
   // kullaniliyor, bkz. LUCIDE_FALLBACK render'i asagida - tutarli dursun diye).
   if (name === "close") return <XMarkIconOutline size={size} color={color} strokeWidth={2.8} />;
+  if (name === "search") return <MagnifyingGlassIconOutline size={size} color={color} strokeWidth={2.8} />;
   const HeroGlyph = HEROICONS[name];
   if (HeroGlyph) return <HeroGlyph size={size} color={color} />;
   const LucideGlyph = LUCIDE_FALLBACK[name];
