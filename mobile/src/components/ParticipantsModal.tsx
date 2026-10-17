@@ -176,11 +176,11 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     gap: 6,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 2,
     borderTopWidth: 1,
     borderTopColor: theme.border,
   },
-  inviteBtn: { width: 30, height: 38, justifyContent: "center", alignItems: "center" },
+  inviteBtn: { width: 30, height: 30, justifyContent: "center", alignItems: "center" },
   list: { flex: 1 },
   // Ilk satirin lider rozeti (negatif top ile ustte tasan) listenin kendi
   // ust sinirinda KESILMESIN diye ufak bir bosluk birakiyoruz.
