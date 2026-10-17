@@ -91,7 +91,6 @@ function ProfileRoute() {
     <ProfileScreen
       onBack={() => navigation.goBack()}
       onOpenUserProfile={() => navigation.navigate("UserProfile", { own: true })}
-      onOpenFriends={() => navigation.navigate("Friends")}
       onOpenPremium={() => navigation.navigate("Premium")}
       onOpenPrivacy={() => navigation.navigate("Privacy")}
       onOpenBackgroundInfo={() => navigation.navigate("BackgroundInfo")}

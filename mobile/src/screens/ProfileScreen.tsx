@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator } from "react-native";
+import { ChevronLeft } from "lucide-react-native";
 import * as StoreReview from "expo-store-review";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../services/supabase";
@@ -20,7 +21,6 @@ type InviteRestriction = "everyone" | "friends" | "none";
 interface Props {
   onBack: () => void;
   onOpenUserProfile: () => void;
-  onOpenFriends: () => void;
   onOpenPremium: () => void;
   onOpenPrivacy: () => void;
   onOpenBackgroundInfo: () => void;
@@ -43,7 +43,6 @@ const APP_VERSION = "1.0.0 (1)";
 export default function ProfileScreen({
   onBack,
   onOpenUserProfile,
-  onOpenFriends,
   onOpenPremium,
   onOpenPrivacy,
   onOpenBackgroundInfo,
@@ -83,7 +82,6 @@ export default function ProfileScreen({
   const [autoTranslate, setAutoTranslate] = useState(false);
   const [muteOnOtherAudio, setMuteOnOtherAudio] = useState(false);
   const [hideLocation, setHideLocation] = useState(true);
-  const [incomingCount, setIncomingCount] = useState(0);
   const [diagnosticsVisible, setDiagnosticsVisible] = useState(false);
   const [diagnostics, setDiagnostics] = useState<DiagnosticResult[]>([]);
 
@@ -246,22 +244,6 @@ export default function ProfileScreen({
     if (myUserId) supabase.from("profiles").update({ default_reaction_emoji: emoji }).eq("id", myUserId);
   }
 
-  useEffect(() => {
-    const socket = getSocket();
-    function refreshIncoming() {
-      socket.emit("friends:list", {}, (res: any) => {
-        if (res?.ok) setIncomingCount(res.incoming.length);
-      });
-    }
-    refreshIncoming();
-    socket.on("friend:incoming", refreshIncoming);
-    socket.on("friend:cancelled", refreshIncoming);
-    return () => {
-      socket.off("friend:incoming", refreshIncoming);
-      socket.off("friend:cancelled", refreshIncoming);
-    };
-  }, []);
-
   function placeholder(label: string) {
     showAlert(label, t("profile.comingSoon"));
   }
@@ -305,17 +287,10 @@ export default function ProfileScreen({
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} hitSlop={10}>
-            <Icon name="close" size={26} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={styles.iconTouch} />
           <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
-          <TouchableOpacity onPress={onOpenFriends} hitSlop={10} style={styles.friendsButton}>
-            <Icon name="people" size={26} color="#FFFFFF" />
-            {incomingCount > 0 && (
-              <View style={styles.friendsBadge}>
-                <Text style={styles.friendsBadgeText}>{incomingCount}</Text>
-              </View>
-            )}
+          <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={10}>
+            <ChevronLeft size={26} color="#FFFFFF" strokeWidth={3} />
           </TouchableOpacity>
         </View>
 
@@ -637,20 +612,7 @@ const styles = StyleSheet.create({
   // hizaya gelmesi icin bu kadar yukari kaydiriyoruz (piksel analiziyle
   // olculdu, tahmini degil).
   headerLogo: { width: 74, height: 34, marginTop: -6, tintColor: "#FFFFFF" },
-  friendsButton: { position: "relative" },
-  friendsBadge: {
-    position: "absolute",
-    top: -4,
-    right: -6,
-    backgroundColor: theme.danger,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 3,
-  },
-  friendsBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
+  iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   avatarWrap: { alignItems: "center", marginTop: 24 },
   avatar: {
     width: 160,
