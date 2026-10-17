@@ -433,6 +433,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // onVisibilityChange) - normal (tam ekran olmayan) modda kullanilmiyor,
   // orada NowPlayingBar zaten her zaman gorunur kaliyor.
   const [controlsVisible, setControlsVisible] = useState(false);
+  // Tam ekrandayken sohbete dusen yeni mesaji kisa sureligine altyazi gibi
+  // gosterip otomatik kaybeden kucuk bar (bkz. asagidaki handleChat ve
+  // render'daki fullscreenCaptionBar) - kullanici tam ekrani kapatmadan
+  // sohbeti takip edebilsin diye.
+  const [fullscreenCaption, setFullscreenCaption] = useState<ChatMessage | null>(null);
+  const fullscreenCaptionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // YouTube, HER videonun basinda (controls:0/iv_load_policy ayarlarindan
   // BAGIMSIZ, hicbir resmi parametreyle kapatilamayan) birkac saniyeligine
   // kendi kanal adi/logo/bilgi katmanini gosteriyor - bu "duraklatildi"
@@ -567,6 +573,13 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     }
     function handleChat(msg: ChatMessage) {
       setMessages((prev) => [...prev.slice(-199), msg]);
+      // Sistem mesajlarini (katildi/kicked/vb.) altyazida gostermiyoruz,
+      // sadece gercek kullanici mesajlarini.
+      if (!msg.system) {
+        setFullscreenCaption(msg);
+        if (fullscreenCaptionTimerRef.current) clearTimeout(fullscreenCaptionTimerRef.current);
+        fullscreenCaptionTimerRef.current = setTimeout(() => setFullscreenCaption(null), 4000);
+      }
     }
     function handleMessageReaction({
       messageId,
@@ -598,6 +611,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       socket.off("room:chatTranslation", handleChatTranslation);
       socket.off("room:messageReaction", handleMessageReaction);
       socket.off("room:kicked", handleKicked);
+      if (fullscreenCaptionTimerRef.current) clearTimeout(fullscreenCaptionTimerRef.current);
     };
   }, []);
 
@@ -1686,6 +1700,26 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 />
               </View>
             )}
+
+            {/* Tam ekrandayken chat gizlendigi icin kullanici mesajlari hic
+                goremiyordu - yeni bir mesaj gelince 4 saniyeligine altyazi
+                gibi gosterip otomatik kaybolan kucuk bar (bkz. yukaridaki
+                handleChat). NowPlayingBar gorunuyorsa onun USTUNDE kalsin
+                diye bottom degeri degisiyor. */}
+            {fullscreenVideo && fullscreenCaption && (
+              <View
+                style={[
+                  styles.fullscreenCaptionBar,
+                  syncable && controlsVisible && styles.fullscreenCaptionBarRaised,
+                ]}
+                pointerEvents="none"
+              >
+                <Text style={styles.fullscreenCaptionText} numberOfLines={2}>
+                  <Text style={styles.fullscreenCaptionName}>{fullscreenCaption.from || "Sistem"}: </Text>
+                  {fullscreenCaption.mediaUrl ? "📷 Fotoğraf" : fullscreenCaption.text}
+                </Text>
+              </View>
+            )}
             </View>
           </Animated.View>
 
@@ -2067,6 +2101,20 @@ const styles = StyleSheet.create({
   // (ust bar gizliyken TUM ekranin) kalan butun yuksekligini kaplar.
   mediaSectionFullscreen: { flex: 1 },
   nowPlayingBarOverlay: { position: "absolute", left: 0, right: 0, bottom: 0 },
+  fullscreenCaptionBar: {
+    position: "absolute",
+    left: 14,
+    right: 14,
+    bottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  // NowPlayingBar gorunurken altyazi onunla cakismasin diye yukari alinir.
+  fullscreenCaptionBarRaised: { bottom: 78 },
+  fullscreenCaptionText: { color: "#FFFFFF", fontSize: 13, lineHeight: 18 },
+  fullscreenCaptionName: { fontWeight: "700", color: theme.accent },
   videoHandleBar: {
     alignItems: "center",
     justifyContent: "center",
