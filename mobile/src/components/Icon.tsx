@@ -1,6 +1,6 @@
 import React from "react";
+import { XMarkIcon as XMarkIconOutline } from "react-native-heroicons/outline";
 import {
-  XMarkIcon,
   Cog6ToothIcon,
   MagnifyingGlassIcon,
   UsersIcon,
@@ -123,7 +123,6 @@ interface Props {
 // react-native'den (zaten kurulu) geliyor - gorsel olarak farkli bir aile
 // ama ayni "dolu/net" agirlikta oldugu icin yan yana durunca fark etmiyor.
 const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
-  close: XMarkIcon,
   settings: Cog6ToothIcon,
   search: MagnifyingGlassIcon,
   people: UsersIcon,
@@ -196,6 +195,10 @@ export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
   // cizgi (outline) olsun diye TEK bir bilesen uzerinde fill'i degistiriyoruz.
   if (name === "heart") return <Heart size={size} color={color} fill={color} />;
   if (name === "heartOutline") return <Heart size={size} color={color} fill="none" />;
+  // Ikon gozden gecirmesinde outline'a cevrilen ilk ikon - "kalin" istegi
+  // uzerine 2.2 strokeWidth veriliyor (lucide ikonlarinda da ayni kalinlik
+  // kullaniliyor, bkz. LUCIDE_FALLBACK render'i asagida - tutarli dursun diye).
+  if (name === "close") return <XMarkIconOutline size={size} color={color} strokeWidth={2.2} />;
   const HeroGlyph = HEROICONS[name];
   if (HeroGlyph) return <HeroGlyph size={size} color={color} />;
   const LucideGlyph = LUCIDE_FALLBACK[name];
