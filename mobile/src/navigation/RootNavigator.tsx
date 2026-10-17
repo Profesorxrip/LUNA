@@ -117,6 +117,7 @@ function UserProfileRoute() {
     <UserProfileScreen
       own={params.own}
       peer={params.peer}
+      onBack={() => navigation.goBack()}
       onOpenDM={(peer) => navigation.navigate("DM", { peer })}
       onOpenRoomPreview={(room) => navigation.navigate("RoomPreview", { room })}
       onOpenRoom={(room) =>

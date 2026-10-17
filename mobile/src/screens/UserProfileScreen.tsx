@@ -12,6 +12,7 @@ import {
   Animated,
   Easing,
 } from "react-native";
+import { ChevronLeft } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../services/supabase";
 import { getSocket, PublicRoomSummary, HistoryItem, MediaSource, SourceType, RoomState } from "../services/socket";
@@ -23,6 +24,7 @@ import RoomCard from "../components/RoomCard";
 interface Props {
   own?: boolean;
   peer?: { userId: string; name: string; handle?: string };
+  onBack?: () => void;
   onOpenDM?: (peer: { userId: string; name: string; handle?: string }) => void;
   onOpenRoomPreview?: (room: PublicRoomSummary) => void;
   onOpenRoom?: (room: RoomState) => void;
@@ -104,7 +106,7 @@ function buildDailyActivity(daily: Record<string, number>): { date: string; hour
 /** "Vinil Kayıt" konsepti - kartelanın (bkz. tasarım oturumu) ilk seçeneği,
  * kullanıcının kendi profili (own) ve başkasının profili (!own) icin
  * ortak bir govde uzerinde farkli baslik/aksiyon satiri gosterir. */
-export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRoomPreview, onOpenRoom }: Props) {
+export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, onOpenRoomPreview, onOpenRoom }: Props) {
   const peerUserId = peer?.userId || DEMO_PEER_USER_ID;
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState(peer?.name || "Kullanici");
@@ -549,13 +551,16 @@ export default function UserProfileScreen({ own = true, peer, onOpenDM, onOpenRo
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topBlock}>
-        {!own && (
-          <View style={styles.header}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} hitSlop={10}>
+            <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
+          </TouchableOpacity>
+          {!own && (
             <TouchableOpacity onPress={() => placeholder("Diger")} hitSlop={10}>
               <Icon name="moreHoriz" size={30} color={TEXT} />
             </TouchableOpacity>
-          </View>
-        )}
+          )}
+        </View>
 
         <TouchableOpacity
           style={[styles.avatarWrap, !showPresenceRing && styles.avatarWrapCompact]}
@@ -919,7 +924,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingTop: 50, paddingBottom: 40 },
   topBlock: { paddingHorizontal: 24 },
   bodyContent: { paddingHorizontal: 16 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", paddingTop: 8, marginBottom: 26 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, marginBottom: 26 },
   avatarWrap: { width: 128, height: 128, alignSelf: "center", marginBottom: 18 },
   // Halka gizliyken (showPresenceRing=false) gosterecek bir sey olmadigi
   // icin halkanin ekstra 20px'lik yer kaplamasina gerek yok - kutuyu
