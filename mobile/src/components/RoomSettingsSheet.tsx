@@ -96,12 +96,13 @@ export default function RoomSettingsSheet({
   videoVolume,
   onVideoVolumeChange,
 }: Props) {
-  const [expanded, setExpanded] = useState<"privacy" | "playback" | null>(null);
+  const [expanded, setExpanded] = useState<"privacy" | "playback" | "mic" | null>(null);
 
   const currentPrivacy = PRIVACY_OPTIONS.find((o) => o.key === privacy)!;
   const currentPlayback = PLAYBACK_OPTIONS.find((o) => o.key === playbackMode)!;
+  const micOpen = micConnected && !micMuted;
 
-  function toggle(section: "privacy" | "playback") {
+  function toggle(section: "privacy" | "playback" | "mic") {
     if (!isHost) return;
     setExpanded((cur) => (cur === section ? null : section));
   }
@@ -179,7 +180,7 @@ export default function RoomSettingsSheet({
                 mikrofonu ONAYI olmadan dogrudan acmak mumkun degil). Katilimcilarin
                 KENDI mikrofonunu acip kapatmasi icin ayri (VideoControlsOverlay'deki)
                 kisisel mikrofon butonu var. */}
-            <TouchableOpacity style={styles.row} onPress={onMicPress} disabled={!isHost}>
+            <TouchableOpacity style={styles.row} onPress={() => toggle("mic")} disabled={!isHost}>
               <View style={styles.rowText}>
                 <Text style={[styles.rowLabel, !isHost && styles.translateLabelDisabled]}>SOHBET</Text>
                 <Text style={styles.rowDesc}>
@@ -192,11 +193,36 @@ export default function RoomSettingsSheet({
                         : "Mikrofon acik"}
                 </Text>
               </View>
+              {isHost && <Icon name={expanded === "mic" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
               <View style={styles.rowValue}>
-                <Icon name={micConnected && !micMuted ? "mic" : "micOff"} size={26} color={isHost ? theme.text : theme.textMuted} />
-                <Text style={styles.rowValueLabel}>{micConnected && !micMuted ? "AÇIK" : "KAPALI"}</Text>
+                <Icon name={micOpen ? "mic" : "micOff"} size={26} color={isHost ? theme.text : theme.textMuted} />
+                <Text style={styles.rowValueLabel}>{micOpen ? "AÇIK" : "KAPALI"}</Text>
               </View>
             </TouchableOpacity>
+            {expanded === "mic" && (
+              <View style={styles.optionsRow}>
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={() => {
+                    if (!micOpen) onMicPress();
+                    setExpanded(null);
+                  }}
+                >
+                  <Icon name="mic" size={28} color={micOpen ? theme.accent : theme.text} />
+                  <Text style={[styles.optionLabel, micOpen && { color: theme.accent }]}>AÇIK</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={() => {
+                    if (micOpen) onMicPress();
+                    setExpanded(null);
+                  }}
+                >
+                  <Icon name="micOff" size={28} color={!micOpen ? theme.accent : theme.text} />
+                  <Text style={[styles.optionLabel, !micOpen && { color: theme.accent }]}>KAPALI</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View style={styles.volumeRow}>
               <Icon name={voiceVolume <= VOLUME_MUTE_THRESHOLD ? "micOff" : "mic"} size={18} color={theme.textMuted} />
