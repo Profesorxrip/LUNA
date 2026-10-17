@@ -109,20 +109,34 @@ export function SquarePhotoIcon({ size = 24, color = "#F5F5F7" }: Props) {
 
 // "Davet Et" ikonu - "people" (ParticipantsIcon) ile TUTARLI olsun diye,
 // Heroicons'un FARKLI iki-kisi siluetini kullanmak yerine AYNI tek kisi
-// (bas + govde) seklini alip sag-ustune Heroicons'un kendi "+" rozetini
-// (UserPlusIcon'daki AYNI yol, sadece yukari-saga tasinmis) ekliyoruz.
-// Artı rozeti govdenin yaninda (alt-sag), vurgu mavisiyle (theme.accentBright
-// ile AYNI deger, #38BDF8) - kullanicinin "C, mavi olsun" secimine gore.
+// (bas + govde) seklini alip sag-alt kosesine daire icinde bir "+" rozeti
+// ekliyoruz - "Engelle" (PersonBlockIcon) ile AYNI rozet yerlesimi/boyutu,
+// sadece renk (mavi) ve ic sembol ("+") farkli, boylece ikisi ailece
+// tutarli dursun.
 export function InvitePersonIcon({ size = 24, color = "#F5F5F7" }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d="M18 21a8 8 0 0 0-16 0Z" fill={color} />
       <Circle cx={10} cy={8} r={5} fill={color} />
-      <Path
-        d="M22.5 17.25a.75.75 0 0 0-1.5 0v2.25H18.75a.75.75 0 0 0 0 1.5H21v2.25a.75.75 0 0 0 1.5 0V21H24.75a.75.75 0 0 0 0-1.5H22.5v-2.25Z"
-        fill="#38BDF8"
-        transform="translate(-3,-2)"
-      />
+      <Circle cx={18} cy={17} r={5} fill="#0A0A0C" />
+      <Circle cx={18} cy={17} r={4.3} fill="#38BDF8" />
+      <Rect x={15.7} y={16.3} width={4.6} height={1.4} rx={0.7} fill="#0A0A0C" />
+      <Rect x={17.3} y={14.7} width={1.4} height={4.6} rx={0.7} fill="#0A0A0C" />
+    </Svg>
+  );
+}
+
+// "Engelle" (kisi) ikonu - "people"/"invite" ile AYNI tek kisi seklini
+// alip, "invite"deki AYNI daire rozeti bu kez tehlike renginde (#E34848)
+// ve icinde sadece "-" (minus) ile - Heroicons'un UserMinusIcon'u YERINE.
+export function PersonBlockIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M18 21a8 8 0 0 0-16 0Z" fill={color} />
+      <Circle cx={10} cy={8} r={5} fill={color} />
+      <Circle cx={18} cy={17} r={5} fill="#0A0A0C" />
+      <Circle cx={18} cy={17} r={4.3} fill="#E34848" />
+      <Rect x={15.7} y={16.3} width={4.6} height={1.4} rx={0.7} fill="#0A0A0C" />
     </Svg>
   );
 }

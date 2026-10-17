@@ -17,7 +17,6 @@ import {
   CalendarIcon,
   BellIcon,
   BellSlashIcon,
-  UserMinusIcon,
   ExclamationTriangleIcon,
   CheckIcon,
   MapPinIcon,
@@ -38,7 +37,7 @@ import {
   LanguageIcon,
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, Volume1, VolumeX } from "lucide-react-native";
-import { PaperPlaneIcon, ParticipantsIcon, PersonIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
+import { PaperPlaneIcon, ParticipantsIcon, PersonIcon, PersonBlockIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
 import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
@@ -135,7 +134,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   calendar: CalendarIcon,
   bell: BellIcon,
   bellOff: BellSlashIcon,
-  personBlock: UserMinusIcon,
   warning: ExclamationTriangleIcon,
   trash: TrashIcon,
   sparkles: SparklesIcon,
@@ -189,6 +187,7 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   clock: ClockIcon,
   shareBox: ShareBoxIcon,
   person: PersonIcon,
+  personBlock: PersonBlockIcon,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
