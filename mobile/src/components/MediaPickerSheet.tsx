@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
+import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { getSocket, HistoryItem, SourceType } from "../services/socket";
 import type { MediaSource } from "../services/socket";
@@ -232,7 +233,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
         {mode !== "grid" && (
           <View style={styles.topBar}>
             <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={10}>
-              <Icon name="chevronLeft" size={28} color="#FFFFFF" />
+              <ChevronLeft size={28} color="#FFFFFF" strokeWidth={3} />
             </TouchableOpacity>
             <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.topBarLogo} resizeMode="contain" />
             {/* Geri butonuyla AYNI genislikte gorunmez bir bosluk - logo
