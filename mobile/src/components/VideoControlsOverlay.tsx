@@ -127,14 +127,22 @@ export default function VideoControlsOverlay({
                 color={canSkip && hasPreviousVideo ? "#FFFFFF" : "rgba(255,255,255,0.35)"}
                 filled={showVoteBadges && !!previousVoteCount}
               />
-              {showVoteBadges && !!previousVoteCount && <Text style={styles.voteCountOverlayBack}>{previousVoteCount}</Text>}
+              {showVoteBadges && !!previousVoteCount && (
+                <View style={styles.voteCountBoxBack}>
+                  <Text style={styles.voteCountText}>{previousVoteCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.framedIconTouch} onPress={onToggleLike} hitSlop={10}>
               <Icon name={liked ? "heart" : "heartOutline"} size={20} color={liked ? "#E34848" : "#FFFFFF"} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.framedIconTouch} onPress={onSkipNext} disabled={!canSkip} hitSlop={10}>
               <SkipForwardIcon size={18} color={canSkip ? "#FFFFFF" : "rgba(255,255,255,0.35)"} filled={showVoteBadges && !!nextVoteCount} />
-              {showVoteBadges && !!nextVoteCount && <Text style={styles.voteCountOverlayForward}>{nextVoteCount}</Text>}
+              {showVoteBadges && !!nextVoteCount && (
+                <View style={styles.voteCountBoxForward}>
+                  <Text style={styles.voteCountText}>{nextVoteCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -203,23 +211,28 @@ const styles = StyleSheet.create({
   },
   // Oy verilince dolan ucgenin TAM ICINE binen sayi - ucgen sol tarafta
   // (skipBack'te sag tarafta) oldugu icin ikonun ortasina degil, ucgenin
-  // kendi merkezine denk gelen sabit bir offsete yerlestiriliyor.
-  voteCountOverlayForward: {
+  // kendi merkezine denk gelen sabit bir kutunun icinde (hem yatay hem
+  // dikey) ortalaniyor, boylece yazi tipi metriklerinden bagimsiz tam
+  // ortalanmis oluyor.
+  voteCountBoxForward: {
     position: "absolute",
-    left: 9,
-    top: 10,
-    color: "#04140D",
-    fontSize: 9,
-    fontWeight: "800",
+    left: 4.5,
+    top: 7,
+    width: 14,
+    height: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  voteCountOverlayBack: {
+  voteCountBoxBack: {
     position: "absolute",
-    left: 16,
-    top: 10,
-    color: "#04140D",
-    fontSize: 9,
-    fontWeight: "800",
+    left: 11.5,
+    top: 7,
+    width: 14,
+    height: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
+  voteCountText: { color: "#04140D", fontSize: 9, fontWeight: "800", lineHeight: 11 },
   centerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 28 },
   // Ayarlar carkiyla (smallIconTouch) AYNI mantik - tek bir cerceve yerine
   // her butonun kendi tekli, dairesel arka plani var.
