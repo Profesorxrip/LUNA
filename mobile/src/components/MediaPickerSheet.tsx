@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { LinearGradient } from "expo-linear-gradient";
 import { getSocket, HistoryItem, SourceType } from "../services/socket";
@@ -72,6 +73,7 @@ const ALL_ITEMS: GridItem[] = [
  * SENKRON da KURULMAZ, sadece "external" kaynak olarak isaretlenip harici
  * acilir. */
 export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVideosFor }: Props) {
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>("grid");
   const [search, setSearch] = useState("");
   const [webUrlInput, setWebUrlInput] = useState("");
@@ -226,7 +228,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
-      <View style={styles.screen}>
+      <View style={[styles.screen, { paddingTop: insets.top + 16 }]}>
         {mode !== "grid" && (
           <View style={styles.topBar}>
             <TouchableOpacity onPress={handleBack} hitSlop={10}>
@@ -337,7 +339,9 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0A0A0C", padding: 20, paddingTop: 24 },
+  // paddingTop statusBarTranslucent nedeniyle inline veriliyor (insets.top +
+  // ekstra boşluk) - arama çubuğu durum çubuğunun/çentiğin altında kalmasın.
+  screen: { flex: 1, backgroundColor: "#0A0A0C", padding: 20 },
   topBar: { height: 30, justifyContent: "center", marginBottom: 12 },
   topBarAction: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
   searchBar: {
