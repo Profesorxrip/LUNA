@@ -115,7 +115,7 @@ export default function RoomSettingsSheet({
 
             <TouchableOpacity style={styles.row} onPress={() => toggle("privacy")} disabled={!isHost}>
               <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>GİZLİLİK</Text>
+                <Text style={styles.rowLabel}>ERİŞİM</Text>
                 <Text style={styles.rowDesc}>{PRIVACY_DESC[privacy]}</Text>
               </View>
               {isHost && <Icon name={expanded === "privacy" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
