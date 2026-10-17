@@ -23,10 +23,10 @@ interface Props {
 const AVATAR_COLORS = ["#3A2F22", "#1F3D24", "#2E4A2F", "#4A3B22"];
 
 const PRIVACY_LABEL: Record<PrivacyLevel, string> = {
-  open: "Açık",
-  nearby: "Yakındakiler",
-  friends: "Sadece Arkadaşlar",
-  invite: "Sadece Davet İle",
+  open: "Herkese Açık",
+  nearby: "Yakın Çevre",
+  friends: "Arkadaş Çemberi",
+  invite: "Anahtarlı Kapı",
 };
 
 function formatTime(totalSeconds: number): string {

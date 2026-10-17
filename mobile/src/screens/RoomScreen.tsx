@@ -326,7 +326,7 @@ const NOW_PLAYING_META: Record<NonNullable<ChatMessage["nowPlayingReason"]>, { i
   previous: { icon: "play", desc: (byName) => (byName ? `${byName} önceki videoya döndü` : "Önceki videoya dönüldü") },
   vote: { icon: "check", desc: () => "Oylama sonucu" },
   queue: { icon: "play", desc: () => "Sıradaki video" },
-  autoplay: { icon: "fastForward", desc: () => "Otomatik oynatılıyor" },
+  autoplay: { icon: "autoplayQueue", desc: () => "Otomatik oynatılıyor" },
 };
 
 export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: Props) {

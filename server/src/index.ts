@@ -97,16 +97,16 @@ const MAX_REACTIONS_PER_USER = 3;
 // Sohbet akisindaki "ayar degisti" sistem mesajlarinda gosterilen Turkce
 // etiketler - RoomSettingsSheet.tsx'teki secenek isimleriyle tutarli.
 const PRIVACY_LABEL: Record<PrivacyLevel, string> = {
-  open: "Açık",
-  nearby: "Yakındakiler",
-  friends: "Sadece Arkadaşlar",
-  invite: "Sadece Davet ile",
+  open: "Herkese Açık",
+  nearby: "Yakın Çevre",
+  friends: "Arkadaş Çemberi",
+  invite: "Anahtarlı Kapı",
 };
 const PLAYBACK_MODE_LABEL: Record<PlaybackMode, string> = {
-  leader: "Liderin Seçimi",
-  playOnly: "Sadece Oynat",
-  autoplay: "Otomatik Oynat",
-  vote: "Haydi Oylayalım",
+  leader: "Komuta Lider'de",
+  playOnly: "Herkes Oynatır",
+  autoplay: "Akış Durmaz",
+  vote: "Oda Oylasın",
 };
 
 function isValidMediaSource(value: unknown): value is MediaSource {

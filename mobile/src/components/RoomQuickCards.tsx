@@ -30,10 +30,10 @@ export const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string
 // ikon secimi icin kullanilir (bkz. RoomSettingsSheet.tsx PLAYBACK_OPTIONS -
 // ayni secenekler, burada kisa tek satirlik etiketlerle).
 export const PLAYBACK_INFO: Record<PlaybackMode, { icon: IconName; label: string }> = {
-  leader: { icon: "crown", label: "Liderin Seçimi" },
-  playOnly: { icon: "play", label: "Sadece Oynat" },
-  autoplay: { icon: "fastForward", label: "Otomatik Oynat" },
-  vote: { icon: "check", label: "Haydi Oylayalım" },
+  leader: { icon: "crownFilled", label: "Komuta Lider'de" },
+  playOnly: { icon: "playOnlyControl", label: "Herkes Oynatır" },
+  autoplay: { icon: "autoplayQueue", label: "Akış Durmaz" },
+  vote: { icon: "voteBox", label: "Oda Oylasın" },
 };
 
 /** Oda yeni acildiginda sohbetin en ustunde (bkz. RoomScreen.tsx chat
