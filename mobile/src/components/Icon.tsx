@@ -198,7 +198,7 @@ export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
   // Ikon gozden gecirmesinde outline'a cevrilen ilk ikon - "kalin" istegi
   // uzerine 2.2 strokeWidth veriliyor (lucide ikonlarinda da ayni kalinlik
   // kullaniliyor, bkz. LUCIDE_FALLBACK render'i asagida - tutarli dursun diye).
-  if (name === "close") return <XMarkIconOutline size={size} color={color} strokeWidth={2.2} />;
+  if (name === "close") return <XMarkIconOutline size={size} color={color} strokeWidth={2.8} />;
   const HeroGlyph = HEROICONS[name];
   if (HeroGlyph) return <HeroGlyph size={size} color={color} />;
   const LucideGlyph = LUCIDE_FALLBACK[name];
