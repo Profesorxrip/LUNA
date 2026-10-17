@@ -23,6 +23,7 @@ import {
   CheckIcon,
   MapPinIcon,
   PhoneIcon,
+  PhoneXMarkIcon,
   ArrowRightOnRectangleIcon,
   ForwardIcon,
   ArrowUturnLeftIcon,
@@ -80,6 +81,7 @@ export type IconName =
   | "autoplayQueue"
   | "voteBox"
   | "crownFilled"
+  | "phoneOff"
   | "crown"
   | "fastForward"
   | "fastBackward"
@@ -142,6 +144,7 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   volume: SpeakerWaveIcon,
   volumeOff: SpeakerXMarkIcon,
   phone: PhoneIcon,
+  phoneOff: PhoneXMarkIcon,
   kicked: ArrowRightOnRectangleIcon,
   reply: ArrowUturnLeftIcon,
   pause: PauseIcon,

@@ -218,8 +218,9 @@ export default function RoomSettingsSheet({
               </View>
             )}
 
-            <View style={styles.volumeRow}>
-              <Icon name={voiceVolume <= VOLUME_MUTE_THRESHOLD ? "micOff" : "mic"} size={18} color={theme.textMuted} />
+            <Text style={styles.volumeLabel}>SOHBET SESİ</Text>
+            <View style={[styles.volumeRow, styles.volumeRowNoTopBorder]}>
+              <Icon name={voiceVolume <= VOLUME_MUTE_THRESHOLD ? "phoneOff" : "phone"} size={18} color={theme.textMuted} />
               <View style={styles.volumeSlider}>
                 <SimpleSlider value={voiceVolume} onValueChange={onVoiceVolumeChange} />
               </View>
@@ -320,6 +321,19 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 16,
     paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  // Etiketli cubuklarda (bkz. "SOHBET SESİ") ust ayirici cizgiyi/bosluk
+  // ustteki Text zaten veriyor - ayni cubukta IKI kez gorunmesin diye.
+  volumeRowNoTopBorder: { borderTopWidth: 0, paddingTop: 0 },
+  volumeLabel: {
+    color: theme.textMuted,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    paddingHorizontal: 20,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
   },
