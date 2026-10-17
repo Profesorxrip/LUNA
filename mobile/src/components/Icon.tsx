@@ -38,7 +38,7 @@ import {
   SparklesIcon,
   GlobeEuropeAfricaIcon,
 } from "react-native-heroicons/solid";
-import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar } from "lucide-react-native";
+import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote } from "lucide-react-native";
 import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon } from "./CustomIcons";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
@@ -76,6 +76,9 @@ export type IconName =
   | "radar"
   | "inviteKey"
   | "worldOpen"
+  | "playOnlyControl"
+  | "autoplayQueue"
+  | "voteBox"
   | "crown"
   | "fastForward"
   | "fastBackward"
@@ -155,6 +158,9 @@ const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: num
   expand: Maximize,
   collapse: Minimize,
   radar: Radar,
+  playOnlyControl: CirclePlay,
+  autoplayQueue: ListVideo,
+  voteBox: Vote,
 };
 
 const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {

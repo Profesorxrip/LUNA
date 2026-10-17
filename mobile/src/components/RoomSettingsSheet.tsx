@@ -58,16 +58,16 @@ const PRIVACY_DESC: Record<PrivacyLevel, string> = {
 
 const PLAYBACK_OPTIONS: { key: PlaybackMode; icon: IconName; label: string }[] = [
   { key: "leader", icon: "crown", label: "LİDERİN\nSEÇİMİ" },
-  { key: "playOnly", icon: "play", label: "SADECE\nOYNAT" },
-  { key: "autoplay", icon: "fastForward", label: "OTOMATİK\nOYNAT" },
-  { key: "vote", icon: "check", label: "HAYDİ\nOYLAYALIM" },
+  { key: "playOnly", icon: "playOnlyControl", label: "HERKES\nOYNATIR" },
+  { key: "autoplay", icon: "autoplayQueue", label: "AKIŞ\nDURMAZ" },
+  { key: "vote", icon: "voteBox", label: "ODA\nOYLASIN" },
 ];
 
 const PLAYBACK_DESC: Record<PlaybackMode, string> = {
   leader: "Sadece lider video seçebilir",
-  playOnly: "Video secimi liderde, herkes oynatıp durdurabilir",
-  autoplay: "Video secimi liderde, herkes oynatıp durdurabilir",
-  vote: "Herkes video önerir, oda oylar",
+  playOnly: "Video seçimi liderde, oynat/durdur herkesin elinde",
+  autoplay: "Kesintisiz izleme, sıradaki video kendiliğinden gelir",
+  vote: "Herkes video önerir, en çok oyu alan oynar",
 };
 
 /** Rave'deki oda ici Ayarlar ekranina benzer panel - GIZLILIK/PLAYBACK
@@ -144,7 +144,7 @@ export default function RoomSettingsSheet({
 
             <TouchableOpacity style={styles.row} onPress={() => toggle("playback")} disabled={!isHost}>
               <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>PLAYBACK</Text>
+                <Text style={styles.rowLabel}>KONTROL</Text>
                 <Text style={styles.rowDesc}>{PLAYBACK_DESC[playbackMode]}</Text>
               </View>
               {isHost && <Icon name={expanded === "playback" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
