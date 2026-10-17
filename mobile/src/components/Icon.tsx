@@ -35,7 +35,7 @@ import {
   LanguageIcon,
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote } from "lucide-react-native";
-import { PaperPlaneIcon, ParticipantsIcon, PersonIcon, PersonBlockIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
+import { PaperPlaneIcon, ParticipantsIcon, PersonIcon, PersonBlockIcon, PersonBanIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
 import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
@@ -67,6 +67,7 @@ export type IconName =
   | "bell"
   | "bellOff"
   | "personBlock"
+  | "personBan"
   | "warning"
   | "check"
   | "pin"
@@ -176,6 +177,7 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   shareBox: ShareBoxIcon,
   person: PersonIcon,
   personBlock: PersonBlockIcon,
+  personBan: PersonBanIcon,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {

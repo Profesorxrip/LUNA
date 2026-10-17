@@ -146,6 +146,23 @@ export function PersonBlockIcon({ size = 24, color = "#F5F5F7" }: Props) {
   );
 }
 
+// "Engellendi" (kisi) ikonu - AYNI kisi+rozet ailesi, ama rozetin icinde
+// "-" (minus) DEGIL, klasik "yasak/dur" isareti (caprazli daire) var -
+// PersonBlockIcon'dan (Arkadaşı sil) hem sekil hem renkle (bilerek KIRMIZI
+// - "Engelle"nin danger rengiyle AYNI) ayrissin diye.
+export function PersonBanIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M18 21a8 8 0 0 0-16 0Z" fill={color} />
+      <Circle cx={10} cy={8} r={5} fill={color} />
+      <Circle cx={18} cy={17} r={5} fill="#0A0A0C" />
+      <Circle cx={18} cy={17} r={4.3} fill="#E34848" />
+      <Circle cx={18} cy={17} r={2.6} stroke="#0A0A0C" strokeWidth={1.1} fill="none" />
+      <Line x1={16.2} y1={15.2} x2={19.8} y2={18.8} stroke="#0A0A0C" strokeWidth={1.1} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 // "Harita" (globe) butonu - lucide Compass'in CIZGILI hali yerine, ikon
 // gozden gecirmesinde secilen "B": cember TAM DOLU, ibre SVG Mask ile
 // arka plan rengiyle oyulmus (duz rozet hissi) - fotograf ikonundaki "A2"

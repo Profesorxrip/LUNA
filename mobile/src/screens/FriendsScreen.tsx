@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, Modal } from "react-native";
+import { ChevronLeft } from "lucide-react-native";
 import { getSocket, FriendUser, RecentRoommate, DMMessage } from "../services/socket";
 import { theme } from "../theme";
 import Avatar from "../components/Avatar";
@@ -277,8 +278,11 @@ export default function FriendsScreen({
     <View style={styles.screen}>
       <View style={styles.header}>
         {showBackOnly ? (
+          // MediaPickerSheet.tsx'teki (platform secim ekrani) "‹ Geri"
+          // okuyla AYNI kalinlik (lucide ChevronLeft, strokeWidth 3) -
+          // Icon.tsx'teki "chevronLeft" (heroicons solid, ince) degil.
           <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
-            <Icon name="chevronLeft" size={26} color={TEXT} />
+            <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.iconTouch} onPress={onOpenSettings} hitSlop={8}>
@@ -454,7 +458,7 @@ export default function FriendsScreen({
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity onPress={() => unblock(item.userId)} hitSlop={8}>
-                    <Icon name="block" size={26} color={MUTED} />
+                    <Icon name="personBan" size={26} color={MUTED} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -493,7 +497,7 @@ export default function FriendsScreen({
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>
-              <Icon name="block" size={24} color={tab === "blocked" ? TEXT : MUTED} />
+              <Icon name="personBan" size={24} color={tab === "blocked" ? TEXT : MUTED} />
               <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
             </TouchableOpacity>
           )}
