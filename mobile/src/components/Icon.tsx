@@ -37,6 +37,7 @@ import {
   TrashIcon,
   SparklesIcon,
   GlobeEuropeAfricaIcon,
+  LanguageIcon,
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, Volume1, VolumeX } from "lucide-react-native";
 import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
@@ -84,6 +85,7 @@ export type IconName =
   | "phoneDevice"
   | "volumeMedium"
   | "volumeMediumOff"
+  | "language"
   | "crown"
   | "fastForward"
   | "fastBackward"
@@ -138,6 +140,7 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   warning: ExclamationTriangleIcon,
   trash: TrashIcon,
   sparkles: SparklesIcon,
+  language: LanguageIcon,
   worldOpen: GlobeEuropeAfricaIcon,
   check: CheckIcon,
   pin: MapPinIcon,

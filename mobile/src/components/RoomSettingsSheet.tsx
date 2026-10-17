@@ -241,7 +241,10 @@ export default function RoomSettingsSheet({
             </View>
 
             <View style={styles.translateRow}>
-              <Text style={styles.translateLabel}>Sohbeti otomatik çevir</Text>
+              <View style={styles.translateLabelRow}>
+                <Icon name="language" size={18} color={theme.text} />
+                <Text style={styles.translateLabel}>Sohbeti otomatik çevir</Text>
+              </View>
               <Switch
                 value={autoTranslateChat}
                 onValueChange={onToggleAutoTranslate}
@@ -251,20 +254,10 @@ export default function RoomSettingsSheet({
             </View>
 
             <View style={styles.translateRow}>
-              <Text style={[styles.translateLabel, !isHost && styles.translateLabelDisabled]}>
-                Bu oda 18+ içerik barındırıyor
-              </Text>
-              <Switch
-                value={isAdult}
-                onValueChange={onToggleAdult}
-                disabled={!isHost}
-                trackColor={{ false: theme.border, true: theme.danger }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-
-            <View style={styles.translateRow}>
-              <Text style={styles.translateLabel}>Yetişkin içeriğini gizle</Text>
+              <View style={styles.translateLabelRow}>
+                <Icon name="eyeOff" size={18} color={theme.text} />
+                <Text style={styles.translateLabel}>Yetişkin içeriğini gizle</Text>
+              </View>
               <Switch
                 value={hideAdultContent}
                 onValueChange={onToggleHideAdultContent}
@@ -349,6 +342,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
   },
+  translateLabelRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   translateLabel: { color: theme.text, fontSize: 14, fontWeight: "600" },
-  translateLabelDisabled: { color: theme.textMuted },
 });
