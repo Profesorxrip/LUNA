@@ -342,7 +342,7 @@ export default function FriendsScreen({
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
-                      <Icon name="invite" size={26} color={ACCENT} />
+                      <Icon name="invite" size={26} color="#FFFFFF" />
                     </TouchableOpacity>
                   )}
                   {inviteMode && (
@@ -386,7 +386,7 @@ export default function FriendsScreen({
                   </TouchableOpacity>
                 ) : unblockedIds.has(item.userId) ? (
                   <TouchableOpacity onPress={() => sendFriendRequest(item.userId, item.name)} hitSlop={8}>
-                    <Icon name="invite" size={26} color={ACCENT} />
+                    <Icon name="invite" size={26} color="#FFFFFF" />
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity onPress={() => unblock(item.userId)} hitSlop={8}>
