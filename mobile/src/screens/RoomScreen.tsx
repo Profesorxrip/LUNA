@@ -1022,10 +1022,21 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     setSkipVoteDirection(null);
   }, [room.playback.source?.url]);
 
+  // "Ileri" (sıradaki video) butonu ARTIK HER MODDA ayni temel isi
+  // yapiyor: su an oynayan videoyu BITIRIR. "Liderin Secimi" modunda bu
+  // dogrudan bir eylem (oylamasiz, sadece lider) - ESKIDEN burada
+  // openMediaPicker() cagrilip platform secme ekrani aciliyordu, bu da
+  // basinca video hic bitmeden (kullanici secimi iptal ederse HICBIR SEY
+  // degismeden) kullaniciyi tam ekran bir secim akisina sokuyordu. Simdi
+  // video dogrudan "Henuz bir medya secilmedi" durumuna duser (bkz.
+  // MediaPlayer.tsx), yeni video secimi ayri bir adim (arama ikonu/"video
+  // secme ekrani" - bkz. bir sonraki gorev). Diger modlarda (vote/
+  // playOnly/autoplay) degisiklik yok - zaten bir COGUNLUK OYU ve oy
+  // gecince advancePastCurrentVideo videoyu ayni sekilde bitiriyor.
   function skipToNext() {
     if (room.playbackMode === "leader") {
       if (!isHost) return;
-      openMediaPicker();
+      socket.emit("playback:update", { source: null, isPlaying: false, positionSeconds: 0 });
       return;
     }
     if (skipVoteDirection === "next") return; // zaten bu yone oy verdim

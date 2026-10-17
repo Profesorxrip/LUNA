@@ -569,13 +569,22 @@ export function canControlTransport(room: Room, socketId: string): boolean {
 // recordHistory=false SADECE goToPreviousVideo'nun kendisinden gelir - geriye
 // donus videoHistory yigininin KENDISINI tuketiyor, tekrar oraya eklenmez.
 function applyPlayback(room: Room, update: Partial<PlaybackState>, recordHistory = true) {
-  if (recordHistory && update.source && room.playback.source && !sourcesMatch(room.playback.source, update.source)) {
+  // DIKKAT: "update.source" burada "!== undefined" ile kontrol ediliyor,
+  // dogrudan truthy DEGIL - "Lider" modunda video dogrudan BITIRILINCE
+  // (source: null, bkz. index.ts "playback:update") de eski video
+  // gecmise (videoHistory) eklensin ve oylar/begeniler sifirlansin diye.
+  if (
+    recordHistory &&
+    update.source !== undefined &&
+    room.playback.source &&
+    (!update.source || !sourcesMatch(room.playback.source, update.source))
+  ) {
     room.videoHistory.push(room.playback.source);
   }
-  // Yeni bir kaynak uygulanirken (video degisirken) "Atla" oylarini
-  // sifirliyoruz - bu oylar SADECE o an oynayan videoya ozel (bkz.
+  // Yeni bir kaynak uygulanirken (video degisirken/bitirilirken) "Atla"
+  // oylarini sifirliyoruz - bu oylar SADECE o an oynayan videoya ozel (bkz.
   // voteSkipAdultContent).
-  if (update.source) {
+  if (update.source !== undefined) {
     room.adultSkipVotes.clear();
     room.nextVideoVotes.clear();
     room.previousVideoVotes.clear();
