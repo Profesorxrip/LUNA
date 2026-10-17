@@ -159,7 +159,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
 };
 
 const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>>> = {
-  hourglass: Hourglass,
   crown: Crown,
   rotateCcw: RotateCcw,
   rotateCw: RotateCw,
@@ -206,6 +205,11 @@ export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
   if (name === "close") return <XMarkIconOutline size={size} color={color} strokeWidth={2.8} />;
   if (name === "search") return <MagnifyingGlassIconOutline size={size} color={color} strokeWidth={2.8} />;
   if (name === "mention") return <AtSymbolIconOutline size={size} color={color} strokeWidth={2.1} />;
+  // "Bekleniyor" (hourglass) - lucide'nin varsayilan cizgi (fill=none) hali
+  // yerine dolgulu istendi - digerlerinden (hourglass DISI lucide ikonlar)
+  // FARKLI olarak burada fill={color} VERILIYOR, stroke de ayni renkte kalip
+  // kenarlari net tutuyor.
+  if (name === "hourglass") return <Hourglass size={size} color={color} fill={color} strokeWidth={2.2} />;
   const HeroGlyph = HEROICONS[name];
   if (HeroGlyph) return <HeroGlyph size={size} color={color} />;
   const LucideGlyph = LUCIDE_FALLBACK[name];
