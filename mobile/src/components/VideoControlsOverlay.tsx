@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "./Icon";
+import { SkipBackIcon, SkipForwardIcon } from "./SkipIcons";
 import { theme } from "../theme";
 
 interface Props {
@@ -121,23 +122,19 @@ export default function VideoControlsOverlay({
               disabled={!canSkip || !hasPreviousVideo}
               hitSlop={10}
             >
-              <Icon name="skipBack" size={18} color={canSkip && hasPreviousVideo ? "#FFFFFF" : "rgba(255,255,255,0.35)"} />
-              {showVoteBadges && !!previousVoteCount && (
-                <View style={styles.voteBadge}>
-                  <Text style={styles.voteBadgeText}>{previousVoteCount}</Text>
-                </View>
-              )}
+              <SkipBackIcon
+                size={18}
+                color={canSkip && hasPreviousVideo ? "#FFFFFF" : "rgba(255,255,255,0.35)"}
+                filled={showVoteBadges && !!previousVoteCount}
+              />
+              {showVoteBadges && !!previousVoteCount && <Text style={styles.voteCountOverlayBack}>{previousVoteCount}</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={styles.framedIconTouch} onPress={onToggleLike} hitSlop={10}>
               <Icon name={liked ? "heart" : "heartOutline"} size={20} color={liked ? "#E34848" : "#FFFFFF"} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.framedIconTouch} onPress={onSkipNext} disabled={!canSkip} hitSlop={10}>
-              <Icon name="skipForward" size={18} color={canSkip ? "#FFFFFF" : "rgba(255,255,255,0.35)"} />
-              {showVoteBadges && !!nextVoteCount && (
-                <View style={styles.voteBadge}>
-                  <Text style={styles.voteBadgeText}>{nextVoteCount}</Text>
-                </View>
-              )}
+              <SkipForwardIcon size={18} color={canSkip ? "#FFFFFF" : "rgba(255,255,255,0.35)"} filled={showVoteBadges && !!nextVoteCount} />
+              {showVoteBadges && !!nextVoteCount && <Text style={styles.voteCountOverlayForward}>{nextVoteCount}</Text>}
             </TouchableOpacity>
           </View>
 
@@ -204,19 +201,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  voteBadge: {
+  // Oy verilince dolan ucgenin TAM ICINE binen sayi - ucgen sol tarafta
+  // (skipBack'te sag tarafta) oldugu icin ikonun ortasina degil, ucgenin
+  // kendi merkezine denk gelen sabit bir offsete yerlestiriliyor.
+  voteCountOverlayForward: {
     position: "absolute",
-    top: -4,
-    right: -4,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    paddingHorizontal: 3,
-    backgroundColor: theme.accent,
-    alignItems: "center",
-    justifyContent: "center",
+    left: 9,
+    top: 10,
+    color: "#04140D",
+    fontSize: 9,
+    fontWeight: "800",
   },
-  voteBadgeText: { color: "#04140D", fontSize: 9, fontWeight: "800" },
+  voteCountOverlayBack: {
+    position: "absolute",
+    left: 16,
+    top: 10,
+    color: "#04140D",
+    fontSize: 9,
+    fontWeight: "800",
+  },
   centerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 28 },
   // Ayarlar carkiyla (smallIconTouch) AYNI mantik - tek bir cerceve yerine
   // her butonun kendi tekli, dairesel arka plani var.
