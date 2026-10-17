@@ -36,6 +36,7 @@ import {
   NoSymbolIcon,
   TrashIcon,
   SparklesIcon,
+  GlobeEuropeAfricaIcon,
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar } from "lucide-react-native";
 import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon } from "./CustomIcons";
@@ -74,6 +75,7 @@ export type IconName =
   | "pin"
   | "radar"
   | "inviteKey"
+  | "worldOpen"
   | "crown"
   | "fastForward"
   | "fastBackward"
@@ -128,6 +130,7 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   warning: ExclamationTriangleIcon,
   trash: TrashIcon,
   sparkles: SparklesIcon,
+  worldOpen: GlobeEuropeAfricaIcon,
   check: CheckIcon,
   pin: MapPinIcon,
   fastForward: ForwardIcon,

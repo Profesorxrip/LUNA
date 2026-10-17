@@ -43,7 +43,7 @@ interface Props {
 const VOLUME_MUTE_THRESHOLD = 0.02;
 
 const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
-  { key: "open", icon: "globe", label: "AÇIK" },
+  { key: "open", icon: "worldOpen", label: "AÇIK" },
   { key: "nearby", icon: "radar", label: "YAKINDAKİLER" },
   { key: "friends", icon: "people", label: "SADECE\nARKADAŞLAR" },
   { key: "invite", icon: "inviteKey", label: "SADECE\nDAVET İLE" },

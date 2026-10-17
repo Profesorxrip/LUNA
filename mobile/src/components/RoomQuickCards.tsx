@@ -20,7 +20,7 @@ interface Props {
 // RoomScreen.tsx'teki "settings" bildiri kartinda da (buyuk ikon secimi
 // icin) kullanilir.
 export const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
-  { key: "open", icon: "globe", label: "Açık" },
+  { key: "open", icon: "worldOpen", label: "Açık" },
   { key: "nearby", icon: "radar", label: "Yakındakiler" },
   { key: "friends", icon: "people", label: "Arkadaşlar" },
   { key: "invite", icon: "inviteKey", label: "Davetli" },

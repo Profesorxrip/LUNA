@@ -311,7 +311,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
 // PRIVACY_OPTIONS/PLAYBACK_INFO - ayni eslemeler, ikisi de tek yerde).
 function settingsCardIcon(item: ChatMessage): IconName {
   if (item.settingKey === "privacy") {
-    return PRIVACY_OPTIONS.find((o) => o.key === item.settingRawValue)?.icon || "globe";
+    return PRIVACY_OPTIONS.find((o) => o.key === item.settingRawValue)?.icon || "worldOpen";
   }
   if (item.settingKey === "playbackMode") {
     return PLAYBACK_INFO[item.settingRawValue as keyof typeof PLAYBACK_INFO]?.icon || "crown";

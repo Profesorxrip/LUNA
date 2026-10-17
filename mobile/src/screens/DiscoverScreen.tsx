@@ -54,7 +54,7 @@ const SECTION_TITLES: { key: keyof DiscoverSections; title: string; icon: IconNa
   { key: "invited", title: "Davetliler", icon: "invite" },
   { key: "friends", title: "Arkadaşlar", icon: "people" },
   { key: "nearby", title: "Yakındakiler", icon: "radar" },
-  { key: "open", title: "Açık", icon: "globe" },
+  { key: "open", title: "Açık", icon: "worldOpen" },
 ];
 
 function chunk<T>(arr: T[], size: number): T[][] {

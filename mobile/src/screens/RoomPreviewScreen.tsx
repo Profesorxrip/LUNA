@@ -170,7 +170,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
           )}
           <Text style={styles.statusDot}>•</Text>
           <Text style={styles.statusText}>{PRIVACY_LABEL[room.privacy]}</Text>
-          <Icon name={room.privacy === "friends" ? "people" : room.privacy === "invite" ? "inviteKey" : room.privacy === "nearby" ? "radar" : "globe"} size={16} color={theme.textMuted} />
+          <Icon name={room.privacy === "friends" ? "people" : room.privacy === "invite" ? "inviteKey" : room.privacy === "nearby" ? "radar" : "worldOpen"} size={16} color={theme.textMuted} />
           <Text style={styles.statusDot}>•</Text>
           <Text style={styles.statusText}>{formatOpenedTime(room.createdAtMs)}'de açıldı</Text>
         </View>
