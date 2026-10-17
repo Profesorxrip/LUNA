@@ -255,7 +255,7 @@ export default function RoomSettingsSheet({
 
             <View style={styles.translateRow}>
               <View style={styles.translateLabelRow}>
-                <Icon name="eyeOff" size={18} color={theme.text} />
+                <Icon name="adultOff" size={18} color={theme.text} />
                 <Text style={styles.translateLabel}>Yetişkin içeriğini gizle</Text>
               </View>
               <Switch
