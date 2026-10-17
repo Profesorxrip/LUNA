@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
   requestDeclineBtn: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: 10,
     backgroundColor: "rgba(255,255,255,0.08)",
     alignItems: "center",
     justifyContent: "center",
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
   requestAcceptBtn: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: 10,
     backgroundColor: ACCENT,
     alignItems: "center",
     justifyContent: "center",
