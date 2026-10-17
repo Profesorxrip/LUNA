@@ -3,6 +3,8 @@ import {
   XMarkIcon as XMarkIconOutline,
   MagnifyingGlassIcon as MagnifyingGlassIconOutline,
   AtSymbolIcon as AtSymbolIconOutline,
+  ArrowRightOnRectangleIcon as ArrowRightOnRectangleIconOutline,
+  NoSymbolIcon as NoSymbolIconOutline,
 } from "react-native-heroicons/outline";
 import {
   Cog6ToothIcon,
@@ -21,14 +23,12 @@ import {
   CheckIcon,
   MapPinIcon,
   PhoneIcon,
-  ArrowRightOnRectangleIcon,
   ArrowUturnLeftIcon,
   PauseIcon,
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
   ChatBubbleOvalLeftIcon,
   ClipboardDocumentIcon,
-  NoSymbolIcon,
   TrashIcon,
   SparklesIcon,
   GlobeEuropeAfricaIcon,
@@ -140,12 +140,10 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   volume: SpeakerWaveIcon,
   volumeOff: SpeakerXMarkIcon,
   phone: PhoneIcon,
-  kicked: ArrowRightOnRectangleIcon,
   reply: ArrowUturnLeftIcon,
   pause: PauseIcon,
   chatBubble: ChatBubbleOvalLeftIcon,
   clipboard: ClipboardDocumentIcon,
-  block: NoSymbolIcon,
 };
 
 const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>>> = {
@@ -197,6 +195,8 @@ export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
   if (name === "close") return <XMarkIconOutline size={size} color={color} strokeWidth={2.8} />;
   if (name === "search") return <MagnifyingGlassIconOutline size={size} color={color} strokeWidth={2.8} />;
   if (name === "mention") return <AtSymbolIconOutline size={size} color={color} strokeWidth={2.1} />;
+  if (name === "kicked") return <ArrowRightOnRectangleIconOutline size={size} color={color} strokeWidth={2} />;
+  if (name === "block") return <NoSymbolIconOutline size={size} color={color} strokeWidth={2} />;
   // "Bekleniyor" (hourglass) - lucide'nin varsayilan cizgi (fill=none) hali
   // yerine dolgulu istendi - digerlerinden (hourglass DISI lucide ikonlar)
   // FARKLI olarak burada fill={color} VERILIYOR, stroke de ayni renkte kalip
