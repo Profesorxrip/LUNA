@@ -504,35 +504,39 @@ export default function FriendsScreen({
         </View>
       </View>
 
-      <Modal visible={requestsVisible} animationType="fade" transparent onRequestClose={() => setRequestsVisible(false)} statusBarTranslucent>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setRequestsVisible(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
-            <Text style={styles.sheetTitle}>İstekler</Text>
-            <FlatList
-              style={styles.requestsList}
-              data={incoming}
-              keyExtractor={(f) => f.userId}
-              ListEmptyComponent={<Text style={styles.emptyText}>Bekleyen arkadaşlık isteği yok.</Text>}
-              renderItem={({ item }) => (
-                <View style={styles.row}>
-                  <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} />
-                  <View style={styles.rowText}>
-                    <Text style={styles.rowName}>{item.name}</Text>
-                    {!!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>}
-                  </View>
-                  <View style={styles.requestActions}>
-                    <TouchableOpacity onPress={() => decline(item.userId)} hitSlop={8}>
-                      <Icon name="close" size={16} color={MUTED} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
-                      <Icon name="check" size={22} color={ACCENT} />
-                    </TouchableOpacity>
-                  </View>
+      <Modal visible={requestsVisible} animationType="slide" onRequestClose={() => setRequestsVisible(false)} statusBarTranslucent>
+        <View style={styles.screen}>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.iconTouch} onPress={() => setRequestsVisible(false)} hitSlop={8}>
+              <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
+            </TouchableOpacity>
+            <Text style={styles.requestsTitle}>İSTEKLER</Text>
+            <View style={styles.iconTouch} />
+          </View>
+          <FlatList
+            contentContainerStyle={styles.listContent}
+            data={incoming}
+            keyExtractor={(f) => f.userId}
+            ListEmptyComponent={<Text style={styles.emptyText}>Bekleyen arkadaşlık isteği yok.</Text>}
+            renderItem={({ item }) => (
+              <View style={styles.row}>
+                <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} />
+                <View style={styles.rowText}>
+                  <Text style={styles.rowName}>{item.name}</Text>
+                  {!!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>}
                 </View>
-              )}
-            />
-          </TouchableOpacity>
-        </TouchableOpacity>
+                <View style={styles.requestActions}>
+                  <TouchableOpacity onPress={() => decline(item.userId)} hitSlop={8}>
+                    <Icon name="close" size={16} color={MUTED} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => accept(item.userId)} hitSlop={8}>
+                    <Icon name="check" size={22} color={ACCENT} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          />
+        </View>
       </Modal>
 
       <ProfileOptionsSheet
@@ -632,17 +636,7 @@ const styles = StyleSheet.create({
   selectAllButtonActive: { backgroundColor: ACCENT },
   selectAllText: { color: TEXT, fontSize: 13, fontWeight: "700" },
   selectAllTextActive: { color: "#04140D" },
-  backdrop: { flex: 1, backgroundColor: "#0A0A0A", justifyContent: "flex-end" },
-  sheet: {
-    backgroundColor: BG,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 20,
-    width: "100%",
-    height: "60%",
-  },
-  sheetTitle: { color: TEXT, fontSize: 16, fontWeight: "700", marginBottom: 12 },
-  requestsList: { flex: 1 },
+  requestsTitle: { color: TEXT, fontSize: 16, fontWeight: "700", letterSpacing: 1 },
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   emptyText: { color: MUTED, textAlign: "center", marginTop: 60, fontSize: 14 },
   row: {
