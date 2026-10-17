@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     width: "60%",
-    backgroundColor: theme.surface,
+    backgroundColor: theme.bg,
   },
   content: { flex: 1, padding: 20 },
   // Alt bar - mesaj alanindaki alt barla (RoomScreen.tsx styles.bottomBar)
