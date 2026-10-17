@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
-import { Info } from "lucide-react-native";
 import { BlurView } from "expo-blur";
 import { getSocket, PublicRoomSummary, RoomParticipantDetail, PrivacyLevel } from "../services/socket";
 import { theme } from "../theme";
@@ -105,15 +104,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
 
   const platform = badgeInfoForSource(room.source);
   const coverUrl = coverUrlForSource(room.source);
-  const isExternal = room.source?.type === "external";
   const statusText = hasEnded ? "Bitti" : room.isPlaying ? "Oynatılıyor" : "Duraklatıldı";
-
-  function showSyncNotice() {
-    showAlert(
-      "Otomatik senkron yok",
-      "Bu platform DRM korumali oldugu icin oynatma otomatik senkronize edilmiyor - sohbet ve sesli sohbet acik kalmaya devam eder."
-    );
-  }
 
   return (
     <View style={styles.screen}>
@@ -175,14 +166,6 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
           <Text style={styles.statusDot}>•</Text>
           <Text style={styles.statusText}>{formatOpenedTime(room.createdAtMs)}'de açıldı</Text>
         </View>
-        {isExternal && (
-          // ÜSTTEKI "Bildir" butonuyla (ayni "warning" ucgen ikonu) AYNI
-          // gorunup kafa karistiriyordu - bu bir sikayet degil, bilgi notu
-          // (senkron yok uyarisi), o yuzden "i" bilgi ikonuna cevrildi.
-          <TouchableOpacity style={styles.warningBadge} onPress={showSyncNotice} hitSlop={8}>
-            <Info size={18} color={theme.info} />
-          </TouchableOpacity>
-        )}
       </View>
 
       <FlatList
@@ -273,7 +256,6 @@ const styles = StyleSheet.create({
   statusLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
   statusText: { color: theme.textMuted, fontSize: 13 },
   statusDot: { color: theme.textMuted, fontSize: 13 },
-  warningBadge: { width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(59,130,246,0.15)", alignItems: "center", justifyContent: "center" },
   participantRow: {
     flexDirection: "row",
     alignItems: "center",
