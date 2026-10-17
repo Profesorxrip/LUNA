@@ -264,22 +264,34 @@ export default function FriendsScreen({
     });
   }
 
+  // "Son Zamanlarda"/"Engellendi" sekmeleri "Arkadaşlar"ın ALT sayfalari gibi
+  // degil, bagimsiz sekmeler ama profil/kapat ikonu ikisi birden gereksiz
+  // kalabalik yapiyordu - bu iki sekmede tek bir sol-ust geri oku (AYNI
+  // X'in yaptigi gibi tum ekrani kapatip Discover'a doner) yeterli.
+  const showBackOnly = !inviteMode && (tab === "recent" || tab === "blocked");
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
         {inviteMode ? (
           // Davet modunda ayarlara gidilemez - sol taraf bos, logo ortalanmis kalsin diye.
           <View style={styles.iconTouch} />
+        ) : showBackOnly ? (
+          <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
+            <Icon name="chevronLeft" size={26} color={TEXT} />
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.iconTouch} onPress={onOpenSettings} hitSlop={8}>
             <Icon name="person" size={30} color={TEXT} />
           </TouchableOpacity>
         )}
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
-        {inviteMode ? (
+        {inviteMode || showBackOnly ? (
           // Davet modunda kapatma ikonu yok - SADECE cihazin kendi geri
           // tusuyla/hareketiyle kapanir (bkz. RoomScreen.tsx'teki Modal'in
           // onRequestClose'u, Android donanim geri tusunu zaten yakalar).
+          // showBackOnly'de de sag taraf bos - geri oku zaten solda tek
+          // basina ayni isi goruyor, logo ortalanmis kalsin diye.
           <View style={styles.iconTouch} />
         ) : (
           <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
