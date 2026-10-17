@@ -129,13 +129,18 @@ export function InvitePersonIcon({ size = 24, color = "#F5F5F7" }: Props) {
 // "Engelle" (kisi) ikonu - "people"/"invite" ile AYNI tek kisi seklini
 // alip, "invite"deki AYNI daire rozeti bu kez tehlike renginde (#E34848)
 // ve icinde sadece "-" (minus) ile - Heroicons'un UserMinusIcon'u YERINE.
+// Rozet rengi bilerek KIRMIZI DEGIL - bu ikon "Engelle" (block) ile
+// karismasin diye SADECE "Arkadaşı sil" (arkadaslik iliskisini kaldirma,
+// tehlikeli/yasaklayici bir aksiyon degil) icin kullaniliyor - "Engelle"
+// artik ayri bir ikonla (bkz. Icon.tsx "block" - caprazli daire) ve KIRMIZI
+// renkle gosteriliyor (bkz. ProfileOptionsSheet.tsx danger rengi).
 export function PersonBlockIcon({ size = 24, color = "#F5F5F7" }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d="M18 21a8 8 0 0 0-16 0Z" fill={color} />
       <Circle cx={10} cy={8} r={5} fill={color} />
       <Circle cx={18} cy={17} r={5} fill="#0A0A0C" />
-      <Circle cx={18} cy={17} r={4.3} fill="#E34848" />
+      <Circle cx={18} cy={17} r={4.3} fill="#8A8A93" />
       <Rect x={15.7} y={16.3} width={4.6} height={1.4} rx={0.7} fill="#0A0A0C" />
     </Svg>
   );

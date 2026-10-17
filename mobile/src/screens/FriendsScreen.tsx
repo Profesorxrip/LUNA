@@ -445,7 +445,7 @@ export default function FriendsScreen({
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity onPress={() => unblock(item.userId)} hitSlop={8}>
-                    <Icon name="personBlock" size={26} color={MUTED} />
+                    <Icon name="block" size={26} color={MUTED} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -484,7 +484,7 @@ export default function FriendsScreen({
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>
-              <Icon name="personBlock" size={24} color={tab === "blocked" ? TEXT : MUTED} />
+              <Icon name="block" size={24} color={tab === "blocked" ? TEXT : MUTED} />
               <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
             </TouchableOpacity>
           )}
