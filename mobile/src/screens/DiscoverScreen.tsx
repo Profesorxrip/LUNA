@@ -440,7 +440,10 @@ const styles = StyleSheet.create({
     bottom: 30,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    // Tam daire degil, kose yuvarlatilmis (oval koseli) kare - İstekler
+    // ekranindaki kabul/reddet kutucuklariyla (bkz. FriendsScreen.tsx
+    // requestAcceptBtn) AYNI oranli yuvarlama dili.
+    borderRadius: 18,
     backgroundColor: theme.accent,
     justifyContent: "center",
     alignItems: "center",
