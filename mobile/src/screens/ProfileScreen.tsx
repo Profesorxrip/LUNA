@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator } from "react-native";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronRight } from "lucide-react-native";
 import * as StoreReview from "expo-store-review";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../services/supabase";
@@ -290,7 +290,7 @@ export default function ProfileScreen({
           <View style={styles.iconTouch} />
           <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
           <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={10}>
-            <ChevronLeft size={26} color="#FFFFFF" strokeWidth={3} />
+            <ChevronRight size={26} color="#FFFFFF" strokeWidth={3} />
           </TouchableOpacity>
         </View>
 
