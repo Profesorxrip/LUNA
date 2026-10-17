@@ -44,9 +44,9 @@ const VOLUME_MUTE_THRESHOLD = 0.02;
 
 const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
   { key: "open", icon: "globe", label: "AÇIK" },
-  { key: "nearby", icon: "pin", label: "YAKINDAKİLER" },
+  { key: "nearby", icon: "radar", label: "YAKINDAKİLER" },
   { key: "friends", icon: "people", label: "SADECE\nARKADAŞLAR" },
-  { key: "invite", icon: "invite", label: "SADECE\nDAVET İLE" },
+  { key: "invite", icon: "inviteKey", label: "SADECE\nDAVET İLE" },
 ];
 
 const PRIVACY_DESC: Record<PrivacyLevel, string> = {

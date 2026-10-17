@@ -21,9 +21,9 @@ interface Props {
 // icin) kullanilir.
 export const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
   { key: "open", icon: "globe", label: "Açık" },
-  { key: "nearby", icon: "pin", label: "Yakındakiler" },
+  { key: "nearby", icon: "radar", label: "Yakındakiler" },
   { key: "friends", icon: "people", label: "Arkadaşlar" },
-  { key: "invite", icon: "invite", label: "Davetli" },
+  { key: "invite", icon: "inviteKey", label: "Davetli" },
 ];
 
 // RoomScreen.tsx'teki "settings"/"nowPlaying" bildiri kartlarinda buyuk

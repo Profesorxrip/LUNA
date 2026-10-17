@@ -53,7 +53,7 @@ const EMPTY_SECTIONS: DiscoverSections = { invited: [], friends: [], nearby: [],
 const SECTION_TITLES: { key: keyof DiscoverSections; title: string; icon: IconName }[] = [
   { key: "invited", title: "Davetliler", icon: "invite" },
   { key: "friends", title: "Arkadaşlar", icon: "people" },
-  { key: "nearby", title: "Yakındakiler", icon: "pin" },
+  { key: "nearby", title: "Yakındakiler", icon: "radar" },
   { key: "open", title: "Açık", icon: "globe" },
 ];
 
