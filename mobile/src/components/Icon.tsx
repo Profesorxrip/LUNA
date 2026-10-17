@@ -32,7 +32,6 @@ import {
   SpeakerXMarkIcon,
   ChatBubbleOvalLeftIcon,
   ClipboardDocumentIcon,
-  UserIcon,
   NoSymbolIcon,
   TrashIcon,
   SparklesIcon,
@@ -40,7 +39,7 @@ import {
   LanguageIcon,
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, Volume1, VolumeX } from "lucide-react-native";
-import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
+import { PaperPlaneIcon, ParticipantsIcon, PersonIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
 import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
@@ -156,7 +155,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   pause: PauseIcon,
   chatBubble: ChatBubbleOvalLeftIcon,
   clipboard: ClipboardDocumentIcon,
-  person: UserIcon,
   block: NoSymbolIcon,
 };
 
@@ -192,6 +190,7 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   phoneDevice: PhoneDeviceIcon,
   globe: CompassBadgeIcon,
   shareBox: ShareBoxIcon,
+  person: PersonIcon,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {

@@ -32,6 +32,19 @@ export function ParticipantsIcon({ size = 24, color = "#F5F5F7" }: Props) {
   );
 }
 
+// "Profil" ikonu - "people" (ParticipantsIcon) ile AYNI tek kisi (bas +
+// govde) sekli, arkadaki ikinci kisi cizgisi olmadan (bkz. InvitePersonIcon -
+// AYNI mantikla "davet et" icin de bu sekil kullaniliyor, boylece tum
+// "kisi" ailesi - Katilimcilar/Davet Et/Profil - gorsel olarak tutarli).
+export function PersonIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M18 21a8 8 0 0 0-16 0Z" fill={color} />
+      <Circle cx={10} cy={8} r={5} fill={color} />
+    </Svg>
+  );
+}
+
 // Mikrofon govdesinin yolu - "mic" (MicIcon) ve "micOff" (MicOffIcon) AYNI
 // bu iki yolu kullanir (tek bir yerden gelsin, ikisi birbirinden asla
 // SAPMASIN diye) - Heroicons'un solid MicrophoneIcon'uyla birebir ayni sekil.
