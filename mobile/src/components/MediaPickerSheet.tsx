@@ -231,9 +231,13 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
       <View style={[styles.screen, { paddingTop: insets.top + 16 }]}>
         {mode !== "grid" && (
           <View style={styles.topBar}>
-            <TouchableOpacity onPress={handleBack} hitSlop={10}>
-              <Text style={styles.topBarAction}>{"‹ Geri"}</Text>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={10}>
+              <Icon name="chevronLeft" size={28} color="#FFFFFF" />
             </TouchableOpacity>
+            <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.topBarLogo} resizeMode="contain" />
+            {/* Geri butonuyla AYNI genislikte gorunmez bir bosluk - logo
+                gercekten ORTALANSIN diye (bkz. RoomMapSheet.tsx ayni kalip). */}
+            <View style={styles.backButton} />
           </View>
         )}
 
@@ -342,8 +346,9 @@ const styles = StyleSheet.create({
   // paddingTop statusBarTranslucent nedeniyle inline veriliyor (insets.top +
   // ekstra boşluk) - arama çubuğu durum çubuğunun/çentiğin altında kalmasın.
   screen: { flex: 1, backgroundColor: "#0A0A0C", padding: 20 },
-  topBar: { height: 30, justifyContent: "center", marginBottom: 12 },
-  topBarAction: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 38, marginBottom: 12 },
+  backButton: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
+  topBarLogo: { width: 68, height: 30, tintColor: "#FFFFFF" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
