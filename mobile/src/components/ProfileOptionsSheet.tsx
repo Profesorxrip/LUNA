@@ -47,6 +47,12 @@ interface Props {
   // AYNI mantik, sadece burada arayuzu dogru satirlari gosterip gizlemek
   // icin).
   canModerateTarget: boolean;
+  // Hedef hala BU ODADA mi - "Odadan at" sonrasi oda-ozel satirlarin
+  // (Liderligi ver/Moderator/Kick/Mikrofon/Sessize Al/Chat) kaybolmasi icin.
+  // SADECE RoomScreen.tsx'teki kullanimda anlamli - Discover/Friends'te hic
+  // oda kavrami olmadigindan (ve zaten o ekranlar bu handler'lari hic
+  // vermedigiden) varsayilan true'nun hicbir etkisi yok.
+  targetInRoom?: boolean;
   onClose: () => void;
   onOpenProfile: (target: ProfileOptionsTarget) => void;
   onMakeLeader?: (target: ProfileOptionsTarget) => void;
@@ -100,6 +106,7 @@ export default function ProfileOptionsSheet({
   target,
   isHost,
   canModerateTarget,
+  targetInRoom = true,
   onClose,
   onOpenProfile,
   onMakeLeader,
@@ -120,7 +127,20 @@ export default function ProfileOptionsSheet({
 }: Props) {
   if (!target) return null;
 
+  // Coğu aksiyon (moderatorluk/mikrofon/chat/arkadaslik/engelleme) kart
+  // ACIK KALIRKEN yerinde "diger" butona donusuyor - ilgili alan
+  // RoomScreen/DiscoverScreen/FriendsScreen tarafindan guncellenip buraya
+  // GUNCEL target olarak geri geliyor (canli oda verisinden turetilen
+  // alanlar icin RoomScreen otomatik, arkadaslik/engelleme icin ilgili ekran
+  // basarili ack sonrasi elle guncelliyor). SADECE Profil (ayri bir ekrana
+  // gider) ve Bildir (tek seferlik, geri donusu olmayan bir islem) karti
+  // kapatir (bkz. actAndClose).
   function act(fn?: (t: ProfileOptionsTarget) => void) {
+    return () => {
+      if (fn) fn(target!);
+    };
+  }
+  function actAndClose(fn?: (t: ProfileOptionsTarget) => void) {
     return () => {
       if (fn) fn(target!);
       onClose();
@@ -129,15 +149,17 @@ export default function ProfileOptionsSheet({
 
   const rows: Row[] = [];
   if (target.userId) {
-    rows.push({ key: "profile", icon: "person", label: "Profil", onPress: act(onOpenProfile) });
+    rows.push({ key: "profile", icon: "person", label: "Profil", onPress: actAndClose(onOpenProfile) });
   }
   // Liderligi devretmek ve moderator atamak SADECE gercek liderin elinde -
   // moderatorler bunlari YAPAMAZ (bkz. rooms.ts transferHost/setModerator,
-  // bilerek canModerateTarget DEGIL dogrudan isHost kullanir).
-  if (isHost && onMakeLeader) {
+  // bilerek canModerateTarget DEGIL dogrudan isHost kullanir). targetInRoom
+  // kontrolu - hedef kick'lendiyse (artik odada degilse) bu satirlar
+  // anlamsiz kalip kaybolur.
+  if (targetInRoom && isHost && onMakeLeader) {
     rows.push({ key: "leader", icon: "crown", label: "Liderliği ver", onPress: act(onMakeLeader) });
   }
-  if (isHost) {
+  if (targetInRoom && isHost) {
     if (target.isModerator && onRemoveModerator) {
       rows.push({ key: "removeModerator", icon: "shield", label: "Moderatörlüğü al", danger: true, onPress: act(onRemoveModerator) });
     } else if (!target.isModerator && onMakeModerator) {
@@ -153,17 +175,17 @@ export default function ProfileOptionsSheet({
       rows.push({ key: "addFriend", icon: "invite", label: "İstek at", onPress: act(onSendFriendRequest) });
     }
   }
-  if (canModerateTarget && onKick) {
+  if (targetInRoom && canModerateTarget && onKick) {
     rows.push({ key: "kick", icon: "kicked", label: "Odadan at", danger: true, onPress: act(onKick) });
   }
-  if (canModerateTarget) {
+  if (targetInRoom && canModerateTarget) {
     if (target.micDisabled && onEnableMic) {
       rows.push({ key: "enableMic", icon: "mic", label: "Mikrofonu Aktif Et", onPress: act(onEnableMic) });
     } else if (!target.micDisabled && onDisableMic) {
       rows.push({ key: "disableMic", icon: "micOff", label: "Mikrofonu Devre Dışı Bırak", onPress: act(onDisableMic) });
     }
   }
-  if (onToggleLocalMute) {
+  if (targetInRoom && onToggleLocalMute) {
     rows.push({
       key: "localMute",
       icon: "volumeOff",
@@ -171,7 +193,7 @@ export default function ProfileOptionsSheet({
       onPress: act(onToggleLocalMute),
     });
   }
-  if (canModerateTarget) {
+  if (targetInRoom && canModerateTarget) {
     if (target.chatBanned && onEnableChat) {
       rows.push({ key: "enableChat", icon: "chatBubble", label: "Chati Aç", onPress: act(onEnableChat) });
     } else if (!target.chatBanned && onDisableChat) {
@@ -186,7 +208,7 @@ export default function ProfileOptionsSheet({
     }
   }
   if (target.userId && onReport) {
-    rows.push({ key: "report", icon: "warning", label: "Bildir", danger: true, onPress: act(onReport) });
+    rows.push({ key: "report", icon: "warning", label: "Bildir", danger: true, onPress: actAndClose(onReport) });
   }
 
   return (

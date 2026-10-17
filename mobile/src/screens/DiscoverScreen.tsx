@@ -187,35 +187,55 @@ export default function DiscoverScreen({
     if (!target.userId) return;
     onOpenParticipant({ userId: target.userId, name: target.name });
   }
+  // Oda-ici alanlarin (RoomScreen.tsx'teki gibi) canli bir "room:state"
+  // kaynagi burada yok, kart basarili bir istekten sonra ACIK KALIRKEN dogru
+  // butonu gosterebilsin diye friendStatus'u elle guncelliyoruz.
+  function patchProfileOptionsTarget(userId: string | null | undefined, patch: Partial<ProfileOptionsTarget>) {
+    if (!userId) return;
+    setProfileOptionsTarget((prev) => (prev && prev.userId === userId ? { ...prev, ...patch } : prev));
+  }
   function sendFriendRequestFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     getSocket().emit("friend:request", { toUserId: target.userId }, (res: any) => {
-      if (res?.ok) showAlert("İstek gönderildi", `${target.name} kullanıcısına arkadaşlık isteği gönderildi.`);
+      if (res?.ok) {
+        showAlert("İstek gönderildi", `${target.name} kullanıcısına arkadaşlık isteği gönderildi.`);
+        patchProfileOptionsTarget(target.userId, { friendStatus: "outgoing" });
+      }
     });
   }
   function cancelFriendRequestFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
-    getSocket().emit("friend:cancel", { toUserId: target.userId }, () => {});
+    getSocket().emit("friend:cancel", { toUserId: target.userId }, () => {
+      patchProfileOptionsTarget(target.userId, { friendStatus: "none" });
+    });
   }
   function removeFriendFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     getSocket().emit("friend:remove", { userId: target.userId }, (res: any) => {
-      if (res?.ok) setFriendIds((prev) => {
-        const next = new Set(prev);
-        next.delete(target.userId!);
-        return next;
-      });
+      if (res?.ok) {
+        setFriendIds((prev) => {
+          const next = new Set(prev);
+          next.delete(target.userId!);
+          return next;
+        });
+        patchProfileOptionsTarget(target.userId, { friendStatus: "none" });
+      }
     });
   }
   function blockFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     getSocket().emit("friend:block", { userId: target.userId }, (res: any) => {
-      if (res?.ok) showAlert("Engellendi", `${target.name} engellendi.`);
+      if (res?.ok) {
+        showAlert("Engellendi", `${target.name} engellendi.`);
+        patchProfileOptionsTarget(target.userId, { friendStatus: "blocked" });
+      }
     });
   }
   function unblockFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
-    getSocket().emit("friend:unblock", { userId: target.userId }, () => {});
+    getSocket().emit("friend:unblock", { userId: target.userId }, () => {
+      patchProfileOptionsTarget(target.userId, { friendStatus: "none" });
+    });
   }
   function reportParticipant(target: ProfileOptionsTarget) {
     if (!target.userId) return;

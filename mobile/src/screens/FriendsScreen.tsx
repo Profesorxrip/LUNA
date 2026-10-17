@@ -137,24 +137,26 @@ export default function FriendsScreen({
     socket.emit("friend:respond", { fromUserId, accept: false }, () => refresh());
   }
 
-  function sendFriendRequest(toUserId: string, name: string) {
+  function sendFriendRequest(toUserId: string, name: string, onSuccess?: () => void) {
     socket.emit("friend:request", { toUserId }, (res: any) => {
       if (res?.ok) {
         setSentRequests((prev) => new Set(prev).add(toUserId));
         showAlert("İstek gönderildi", `${name} kullanıcısına arkadaşlık isteği gönderildi.`);
+        onSuccess?.();
       } else {
         showAlert("Gönderilemedi", "Arkadaşlık isteği gönderilemedi, tekrar dene.");
       }
     });
   }
 
-  function cancelSentRequest(toUserId: string) {
+  function cancelSentRequest(toUserId: string, onDone?: () => void) {
     socket.emit("friend:cancel", { toUserId }, () => {
       setSentRequests((prev) => {
         const next = new Set(prev);
         next.delete(toUserId);
         return next;
       });
+      onDone?.();
     });
   }
 
@@ -190,14 +192,22 @@ export default function FriendsScreen({
     onOpenParticipant({ userId: target.userId, name: target.name, handle: target.handle ?? undefined });
   }
 
+  // Kart ACIK KALIRKEN (artik hicbir aksiyon otomatik kapatmiyor, bkz.
+  // ProfileOptionsSheet.tsx act/actAndClose) basarili bir istekten sonra
+  // dogru butonu gosterebilsin diye friendStatus'u elle guncelliyoruz.
+  function patchProfileCardTarget(userId: string | null | undefined, patch: Partial<ProfileOptionsTarget>) {
+    if (!userId) return;
+    setProfileCardTarget((prev) => (prev && prev.userId === userId ? { ...prev, ...patch } : prev));
+  }
+
   function sendFriendRequestFromCard(target: ProfileOptionsTarget) {
     if (!target.userId) return;
-    sendFriendRequest(target.userId, target.name);
+    sendFriendRequest(target.userId, target.name, () => patchProfileCardTarget(target.userId, { friendStatus: "outgoing" }));
   }
 
   function cancelFriendRequestFromCard(target: ProfileOptionsTarget) {
     if (!target.userId) return;
-    cancelSentRequest(target.userId);
+    cancelSentRequest(target.userId, () => patchProfileCardTarget(target.userId, { friendStatus: "none" }));
   }
 
   function blockFromCard(target: ProfileOptionsTarget) {
@@ -206,14 +216,26 @@ export default function FriendsScreen({
       if (res?.ok) {
         showAlert("Engellendi", `${target.name} engellendi.`);
         refresh();
+        patchProfileCardTarget(target.userId, { friendStatus: "blocked" });
       }
+    });
+  }
+
+  function unblockFromCard(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    socket.emit("friend:unblock", { userId: target.userId }, () => {
+      refresh();
+      patchProfileCardTarget(target.userId, { friendStatus: "none" });
     });
   }
 
   function removeFriendFromCard(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     socket.emit("friend:remove", { userId: target.userId }, (res: any) => {
-      if (res?.ok) setFriends((prev) => prev.filter((f) => f.userId !== target.userId));
+      if (res?.ok) {
+        setFriends((prev) => prev.filter((f) => f.userId !== target.userId));
+        patchProfileCardTarget(target.userId, { friendStatus: "none" });
+      }
     });
   }
 
@@ -553,6 +575,7 @@ export default function FriendsScreen({
         onSendFriendRequest={sendFriendRequestFromCard}
         onCancelFriendRequest={cancelFriendRequestFromCard}
         onBlock={blockFromCard}
+        onUnblock={unblockFromCard}
         onRemoveFriend={removeFriendFromCard}
       />
     </View>

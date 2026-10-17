@@ -1358,24 +1358,41 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     });
     voice.setParticipantVolume(target.socketId, next ? 0 : 1);
   }
+  // Oda-ici (isModerator/micDisabled/chatBanned) alanlar "room:state"
+  // yayınlarıyla zaten CANLI geliyor (bkz. asagidaki liveProfileOptionsTarget),
+  // ama arkadaslik/engelleme durumu (friendStatus) oyle bir yayin KANALINA
+  // sahip degil - basarili bir istekten sonra kart ACIK KALIRKEN dogru
+  // butonu gosterebilmesi icin burada ELLE guncelliyoruz.
+  function patchProfileOptionsTarget(socketId: string | null | undefined, patch: Partial<ProfileOptionsTarget>) {
+    if (!socketId) return;
+    setProfileOptionsTarget((prev) => (prev && prev.socketId === socketId ? { ...prev, ...patch } : prev));
+  }
   function sendFriendRequestFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     socket.emit("friend:request", { toUserId: target.userId }, (res: any) => {
-      if (res?.ok) showAlert("İstek gönderildi", `${target.name} kullanıcısına arkadaşlık isteği gönderildi.`);
+      if (res?.ok) {
+        showAlert("İstek gönderildi", `${target.name} kullanıcısına arkadaşlık isteği gönderildi.`);
+        patchProfileOptionsTarget(target.socketId, { friendStatus: "outgoing" });
+      }
     });
   }
   function cancelFriendRequestFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
-    socket.emit("friend:cancel", { toUserId: target.userId }, () => {});
+    socket.emit("friend:cancel", { toUserId: target.userId }, () => {
+      patchProfileOptionsTarget(target.socketId, { friendStatus: "none" });
+    });
   }
   function removeFriendFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     socket.emit("friend:remove", { userId: target.userId }, (res: any) => {
-      if (res?.ok) setFriendIds((prev) => {
-        const next = new Set(prev);
-        next.delete(target.userId!);
-        return next;
-      });
+      if (res?.ok) {
+        setFriendIds((prev) => {
+          const next = new Set(prev);
+          next.delete(target.userId!);
+          return next;
+        });
+        patchProfileOptionsTarget(target.socketId, { friendStatus: "none" });
+      }
     });
   }
   // Moderatorluk ver/geri al - sunucu KENDI yetki kontrolunu de yapiyor
@@ -1410,12 +1427,17 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   function blockFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     socket.emit("friend:block", { userId: target.userId }, (res: any) => {
-      if (res?.ok) showAlert("Engellendi", `${target.name} engellendi.`);
+      if (res?.ok) {
+        showAlert("Engellendi", `${target.name} engellendi.`);
+        patchProfileOptionsTarget(target.socketId, { friendStatus: "blocked" });
+      }
     });
   }
   function unblockFromProfile(target: ProfileOptionsTarget) {
     if (!target.userId) return;
-    socket.emit("friend:unblock", { userId: target.userId }, () => {});
+    socket.emit("friend:unblock", { userId: target.userId }, () => {
+      patchProfileOptionsTarget(target.socketId, { friendStatus: "none" });
+    });
   }
   function reportParticipant(target: ProfileOptionsTarget) {
     if (!target.userId) return;
@@ -1491,6 +1513,26 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     .filter((p) => p.location)
     .map((p) => ({ name: p.name, lat: p.location!.lat, lng: p.location!.lng, isMe: p.socketId === socket.id }));
   const hiddenParticipantCount = room.participants.length - mapMarkers.length;
+
+  // Profil karti ACIK KALIRKEN (artik hicbir aksiyon otomatik kapatmiyor,
+  // bkz. ProfileOptionsSheet.tsx act/actAndClose) oda-ici alanlar (lider/
+  // moderator/mikrofon/chat) "room:state" yayinindan CANLI turetiliyor -
+  // boylece "Moderator yap"a basinca sunucu onayladiktan hemen sonra satir
+  // kendiliginden "Moderatorlugu al"a donusuyor, elle guncellemeye gerek yok.
+  const liveProfileParticipant = profileOptionsTarget
+    ? room.participants.find((p) => p.socketId === profileOptionsTarget.socketId)
+    : undefined;
+  const profileOptionsTargetInRoom = Boolean(profileOptionsTarget && liveProfileParticipant);
+  const liveProfileOptionsTarget: ProfileOptionsTarget | null = profileOptionsTarget
+    ? {
+        ...profileOptionsTarget,
+        isHost: liveProfileParticipant?.isHost ?? profileOptionsTarget.isHost,
+        isModerator: liveProfileParticipant?.isModerator ?? profileOptionsTarget.isModerator,
+        micDisabled: liveProfileParticipant?.muted ?? profileOptionsTarget.micDisabled,
+        chatBanned: liveProfileParticipant?.chatBanned ?? profileOptionsTarget.chatBanned,
+        locallyMuted: profileOptionsTarget.socketId ? locallyMutedIds.has(profileOptionsTarget.socketId) : false,
+      }
+    : null;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -2049,12 +2091,13 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
       <ProfileOptionsSheet
         visible={!!profileOptionsTarget}
-        target={profileOptionsTarget}
+        target={liveProfileOptionsTarget}
         isHost={isHost}
         canModerateTarget={Boolean(
-          profileOptionsTarget &&
-            (isHost || (isModerator && !profileOptionsTarget.isModerator && !profileOptionsTarget.isHost))
+          liveProfileOptionsTarget &&
+            (isHost || (isModerator && !liveProfileOptionsTarget.isModerator && !liveProfileOptionsTarget.isHost))
         )}
+        targetInRoom={profileOptionsTargetInRoom}
         onClose={closeProfileOptions}
         onOpenProfile={openParticipantProfile}
         onMakeLeader={(t) => t.socketId && makeLeader(t.socketId)}
