@@ -171,13 +171,29 @@ export default function RoomSettingsSheet({
               </View>
             )}
 
-            <TouchableOpacity style={styles.row} onPress={onMicPress}>
+            {/* Buradaki mikrofon butonu KISISEL degil, ODA GENELI bir anahtar -
+                sadece lider basabilir (bkz. handleMicPress -> voice:hostMicOpen):
+                lider kapatinca kendi mikrofonu DISINDAKI acik mikrofonlar
+                otomatik susturulur, lider acinca herkes kendi mikrofonunu
+                acma IZNINE kavusur (fiziksel olarak baskasinin cihazindaki
+                mikrofonu ONAYI olmadan dogrudan acmak mumkun degil). Katilimcilarin
+                KENDI mikrofonunu acip kapatmasi icin ayri (VideoControlsOverlay'deki)
+                kisisel mikrofon butonu var. */}
+            <TouchableOpacity style={styles.row} onPress={onMicPress} disabled={!isHost}>
               <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>SOHBET</Text>
-                <Text style={styles.rowDesc}>{!micConnected ? "Sesli sohbete katilinmadi" : micMuted ? "Mikrofonlar kapatildi" : "Mikrofon acik"}</Text>
+                <Text style={[styles.rowLabel, !isHost && styles.translateLabelDisabled]}>SOHBET</Text>
+                <Text style={styles.rowDesc}>
+                  {!isHost
+                    ? "Sadece lider acip kapatabilir"
+                    : !micConnected
+                      ? "Sesli sohbete katilinmadi"
+                      : micMuted
+                        ? "Mikrofonlar kapatildi"
+                        : "Mikrofon acik"}
+                </Text>
               </View>
               <View style={styles.rowValue}>
-                <Icon name={micConnected && !micMuted ? "mic" : "micOff"} size={26} color={theme.text} />
+                <Icon name={micConnected && !micMuted ? "mic" : "micOff"} size={26} color={isHost ? theme.text : theme.textMuted} />
                 <Text style={styles.rowValueLabel}>{micConnected && !micMuted ? "AÇIK" : "KAPALI"}</Text>
               </View>
             </TouchableOpacity>
