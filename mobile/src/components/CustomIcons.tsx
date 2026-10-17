@@ -32,14 +32,34 @@ export function ParticipantsIcon({ size = 24, color = "#F5F5F7" }: Props) {
   );
 }
 
-// "Mikrofon kapali" - "mic" (Heroicons solid MicrophoneIcon) ile AYNI sekil,
-// farkli bir ikon ailesine (lucide MicOff) GECMEK yerine, kullanicinin
-// istedigi gibi dogrudan UZERINE bir cizik cekiliyor: SVG Mask ile mikrofon
-// govdesinden capraz bir SERIT gercekten KESILIP (transparan) seffaf hale
-// getiriliyor, sonra ayni rengiyle bir CIZGI o bosluktan geciriliyor - boylece
-// hangi renk/arka plan uzerinde kullanilirsa kullanilsin (bkz. Icon.tsx'teki
-// micOff cagrilari - bazen theme.danger, bazen theme.textMuted) dogru gorunur,
-// sabit bir arka plan rengi varsayilmaz.
+// Mikrofon govdesinin yolu - "mic" (MicIcon) ve "micOff" (MicOffIcon) AYNI
+// bu iki yolu kullanir (tek bir yerden gelsin, ikisi birbirinden asla
+// SAPMASIN diye) - Heroicons'un solid MicrophoneIcon'uyla birebir ayni sekil.
+const MIC_PATHS = [
+  "M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z",
+  "M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.709v2.291h3a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5h3v-2.291a6.751 6.751 0 0 1-6-6.709v-1.5A.75.75 0 0 1 6 10.5Z",
+];
+
+// "Mikrofon acik" - MIC_PATHS'in cizik OLMAYAN hali (bkz. asagidaki MicOffIcon
+// yorumu - kullanicinin istegi uzerine ikisi AYNI sekil tanimini paylasiyor).
+export function MicIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      {MIC_PATHS.map((d) => (
+        <Path key={d} d={d} fill={color} />
+      ))}
+    </Svg>
+  );
+}
+
+// "Mikrofon kapali" - "mic" ile AYNI sekil (MIC_PATHS), farkli bir ikon
+// ailesine (lucide MicOff) GECMEK yerine, kullanicinin istedigi gibi
+// dogrudan UZERINE bir cizik cekiliyor: SVG Mask ile mikrofon govdesinden
+// capraz bir SERIT gercekten KESILIP (transparan) seffaf hale getiriliyor,
+// sonra ayni rengiyle bir CIZGI o bosluktan geciriliyor - boylece hangi
+// renk/arka plan uzerinde kullanilirsa kullanilsin (bkz. Icon.tsx'teki
+// micOff cagrilari - bazen theme.danger, bazen theme.textMuted) dogru
+// gorunur, sabit bir arka plan rengi varsayilmaz.
 export function MicOffIcon({ size = 24, color = "#F5F5F7" }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
@@ -50,11 +70,9 @@ export function MicOffIcon({ size = 24, color = "#F5F5F7" }: Props) {
         </Mask>
       </Defs>
       <G mask="url(#micOffCut)">
-        <Path d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z" fill={color} />
-        <Path
-          d="M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.709v2.291h3a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5h3v-2.291a6.751 6.751 0 0 1-6-6.709v-1.5A.75.75 0 0 1 6 10.5Z"
-          fill={color}
-        />
+        {MIC_PATHS.map((d) => (
+          <Path key={d} d={d} fill={color} />
+        ))}
       </G>
       <Line x1={3.5} y1={3.5} x2={20.5} y2={20.5} stroke={color} strokeWidth={2} strokeLinecap="round" />
     </Svg>
@@ -110,6 +128,30 @@ export function CompassBadgeIcon({ size = 24, color = "#F5F5F7" }: Props) {
         </Mask>
       </Defs>
       <Circle cx={12} cy={12} r={10} fill={color} mask="url(#compassCut)" />
+    </Svg>
+  );
+}
+
+// "Paylas kutu" ikonu - Heroicons'un ORIJINAL ArrowUpOnSquareIcon sekli
+// (kutu + ok) birebir AYNI kaliyor, HICBIR SEY yeniden cizilmedi - SADECE
+// okun (ust taraftaki ok basi) rengi mavi (#38BDF8), kutu kendi rengi
+// (beyaz/color) kaliyor. "share" (ag/3-nokta glyph'i) ise HIC KULLANILMADIGI
+// icin tamamen kaldirildi (bkz. Icon.tsx).
+export function ShareBoxIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M11.47 1.72a.75.75 0 0 1 1.06 0l3 3a.75.75 0 0 1-1.06 1.06l-1.72-1.72V7.5h-1.5V4.06L9.53 5.78a.75.75 0 0 1-1.06-1.06l3-3Z"
+        fill="#38BDF8"
+      />
+      <Path
+        d="M11.25 7.5V15a.75.75 0 0 0 1.5 0V7.5h3.75a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3h3.75Z"
+        fill={color}
+      />
+      {/* Kutunun icindeki, okun gectigi seffaf yarik - kullanicinin istegi
+          uzerine arka plan yerine mavi dolduruluyor (okla gorsel olarak
+          birlesik, kesintisiz bir hat olusturuyor). */}
+      <Path d="M11.25 7.5V15a.75.75 0 0 0 1.5 0V7.5Z" fill="#38BDF8" />
     </Svg>
   );
 }

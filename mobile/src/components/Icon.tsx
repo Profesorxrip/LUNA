@@ -6,10 +6,7 @@ import {
 } from "react-native-heroicons/outline";
 import {
   Cog6ToothIcon,
-  MicrophoneIcon,
   PlusIcon,
-  ShareIcon,
-  ArrowUpOnSquareIcon,
   PencilIcon,
   ChevronRightIcon,
   ChevronLeftIcon,
@@ -44,7 +41,7 @@ import {
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart } from "lucide-react-native";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
-import { PaperPlaneIcon, ParticipantsIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon } from "./CustomIcons";
+import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon } from "./CustomIcons";
 import ModeratorBadge from "./ModeratorBadge";
 
 export type IconName =
@@ -59,7 +56,6 @@ export type IconName =
   | "mention"
   | "image"
   | "invite"
-  | "share"
   | "shareBox"
   | "globe"
   | "edit"
@@ -122,14 +118,7 @@ interface Props {
 // ama ayni "dolu/net" agirlikta oldugu icin yan yana durunca fark etmiyor.
 const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
   settings: Cog6ToothIcon,
-  mic: MicrophoneIcon,
   plus: PlusIcon,
-  share: ShareIcon,
-  // Discover ekranindaki (UsersIcon/ClockIcon gibi DOLU/simetrik) sekme
-  // ikonlarinin yaninda ShareIcon (3 noktali "ag" glyph'i) cok ince/dagili
-  // kaliyordu - bunun yerine klasik, dolu ve simetrik paylasim kutusu
-  // (bkz. FriendsScreen.tsx "Paylas" sekme ogesi).
-  shareBox: ArrowUpOnSquareIcon,
   edit: PencilIcon,
   chevronRight: ChevronRightIcon,
   chevronLeft: ChevronLeftIcon,
@@ -178,10 +167,12 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   shield: ModeratorBadge,
   send: PaperPlaneIcon,
   people: ParticipantsIcon,
+  mic: MicIcon,
   micOff: MicOffIcon,
   image: SquarePhotoIcon,
   invite: InvitePersonIcon,
   globe: CompassBadgeIcon,
+  shareBox: ShareBoxIcon,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
