@@ -245,7 +245,7 @@ export default function RoomSettingsSheet({
                 gorsel stil - tek fark sagda "ayril" degil sabit bir ikon. */}
             <Text style={styles.volumeLabel}>VİDEO SESİ</Text>
             <View style={[styles.volumeRow, styles.volumeRowNoTopBorder]}>
-              <Icon name="volumeMediumOff" size={20} color={theme.textMuted} />
+              <Icon name="volumeOff" size={20} color={theme.textMuted} />
               <View style={styles.volumeSlider}>
                 <SimpleSlider value={videoVolume} onValueChange={onVideoVolumeChange} />
               </View>
