@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView } from "react-native";
+import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
 import Icon, { IconName } from "./Icon";
 import SimpleSlider from "./SimpleSlider";
+import Toggle from "./Toggle";
 import { theme } from "../theme";
 
 interface Props {
@@ -245,12 +246,7 @@ export default function RoomSettingsSheet({
                 <Icon name="language" size={18} color={theme.text} />
                 <Text style={styles.translateLabel}>Sohbeti otomatik çevir</Text>
               </View>
-              <Switch
-                value={autoTranslateChat}
-                onValueChange={onToggleAutoTranslate}
-                trackColor={{ false: theme.border, true: theme.accent }}
-                thumbColor="#FFFFFF"
-              />
+              <Toggle value={autoTranslateChat} onValueChange={onToggleAutoTranslate} />
             </View>
 
             <View style={styles.translateRow}>
@@ -258,12 +254,7 @@ export default function RoomSettingsSheet({
                 <Icon name="adultOff" size={18} color={theme.text} />
                 <Text style={styles.translateLabel}>Yetişkin içeriğini gizle</Text>
               </View>
-              <Switch
-                value={hideAdultContent}
-                onValueChange={onToggleHideAdultContent}
-                trackColor={{ false: theme.border, true: theme.accent }}
-                thumbColor="#FFFFFF"
-              />
+              <Toggle value={hideAdultContent} onValueChange={onToggleHideAdultContent} />
             </View>
 
           </ScrollView>
