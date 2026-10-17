@@ -219,7 +219,7 @@ export default function FriendsScreen({
           <View style={styles.iconTouch} />
         ) : (
           <TouchableOpacity style={styles.iconTouch} onPress={onOpenSettings} hitSlop={8}>
-            <Icon name="settings" size={30} color={TEXT} />
+            <Icon name="person" size={30} color={TEXT} />
           </TouchableOpacity>
         )}
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
