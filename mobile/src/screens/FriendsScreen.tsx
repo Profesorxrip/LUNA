@@ -91,9 +91,9 @@ export default function FriendsScreen({
   const friendIds = useMemo(() => new Set(friends.map((f) => f.userId)), [friends]);
   // "Arkadaşlar"/"Son Zamanlarda" satirina BASILI TUTUNCA acilan kucuk
   // profil karti - RoomScreen.tsx/DiscoverScreen.tsx'teki AYNI bilesen, ama
-  // SADECE onOpenProfile/onBlock/onRemoveFriend verildigi icin (istek atma/
-  // iptal/engeli kaldirma/bildirme YOK) kart her zaman Profil + (arkadassa)
-  // "Arkadaşı sil" + Engelle disinda bir satir gostermez.
+  // engeli kaldirma/bildirme verilmedigi icin kart hep Profil + (arkadassa
+  // "Arkadaşı sil", degilse "İstek at"/"İsteği iptal et") + Engelle
+  // disinda bir satir gostermez.
   const [profileCardTarget, setProfileCardTarget] = useState<ProfileOptionsTarget | null>(null);
 
   const refresh = useCallback(() => {
@@ -176,7 +176,7 @@ export default function FriendsScreen({
       name: peer.name,
       handle: peer.handle ?? undefined,
       avatarUrl: peer.avatarUrl ?? undefined,
-      friendStatus: peer.isFriend ? "friends" : undefined,
+      friendStatus: peer.isFriend ? "friends" : sentRequests.has(peer.userId) ? "outgoing" : "none",
     });
   }
 
@@ -187,6 +187,16 @@ export default function FriendsScreen({
   function openProfileFromCard(target: ProfileOptionsTarget) {
     if (!target.userId) return;
     onOpenParticipant({ userId: target.userId, name: target.name, handle: target.handle ?? undefined });
+  }
+
+  function sendFriendRequestFromCard(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    sendFriendRequest(target.userId, target.name);
+  }
+
+  function cancelFriendRequestFromCard(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    cancelSentRequest(target.userId);
   }
 
   function blockFromCard(target: ProfileOptionsTarget) {
@@ -519,6 +529,8 @@ export default function FriendsScreen({
         canModerateTarget={false}
         onClose={closeProfileCard}
         onOpenProfile={openProfileFromCard}
+        onSendFriendRequest={sendFriendRequestFromCard}
+        onCancelFriendRequest={cancelFriendRequestFromCard}
         onBlock={blockFromCard}
         onRemoveFriend={removeFriendFromCard}
       />
