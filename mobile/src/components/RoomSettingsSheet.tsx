@@ -267,6 +267,9 @@ export default function RoomSettingsSheet({
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" },
   sheet: {
+    width: "100%",
+    maxWidth: 480,
+    alignSelf: "center",
     backgroundColor: "#1C1C1E",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
