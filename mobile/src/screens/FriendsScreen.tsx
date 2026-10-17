@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, Modal } from "react-native";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Check } from "lucide-react-native";
 import { getSocket, FriendUser, RecentRoommate, DMMessage } from "../services/socket";
 import { theme } from "../theme";
 import Avatar from "../components/Avatar";
@@ -530,7 +530,11 @@ export default function FriendsScreen({
                     <Icon name="close" size={16} color={MUTED} />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.requestAcceptBtn} onPress={() => accept(item.userId)} hitSlop={8}>
-                    <Icon name="check" size={16} color="#04140D" />
+                    {/* Icon.tsx'teki genel "check" (heroicons solid, dolgulu
+                        sabit sekil) kalinlik ayarlanamiyor - burada ozellikle
+                        lucide'in cizgili Check'i strokeWidth ile biraz daha
+                        kalin gosteriliyor. */}
+                    <Check size={16} color="#04140D" strokeWidth={3} />
                   </TouchableOpacity>
                 </View>
               </View>
