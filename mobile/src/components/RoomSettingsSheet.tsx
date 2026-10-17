@@ -231,12 +231,13 @@ export default function RoomSettingsSheet({
 
             {/* Video/medya sesi - sesli sohbet cubugunun hemen altinda, AYNI
                 gorsel stil - tek fark sagda "ayril" degil sabit bir ikon. */}
-            <View style={styles.volumeRow}>
-              <Icon name={videoVolume <= VOLUME_MUTE_THRESHOLD ? "volumeOff" : "volume"} size={18} color={theme.textMuted} />
+            <Text style={styles.volumeLabel}>VİDEO SESİ</Text>
+            <View style={[styles.volumeRow, styles.volumeRowNoTopBorder]}>
+              <Icon name={videoVolume <= VOLUME_MUTE_THRESHOLD ? "volumeOff" : "volume"} size={20} color={theme.textMuted} />
               <View style={styles.volumeSlider}>
                 <SimpleSlider value={videoVolume} onValueChange={onVideoVolumeChange} />
               </View>
-              <Icon name="play" size={18} color={theme.textMuted} />
+              <Icon name="volumeMedium" size={20} color="#FFFFFF" />
             </View>
 
             <View style={styles.translateRow}>

@@ -38,7 +38,7 @@ import {
   SparklesIcon,
   GlobeEuropeAfricaIcon,
 } from "react-native-heroicons/solid";
-import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote } from "lucide-react-native";
+import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, Volume1 } from "lucide-react-native";
 import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
@@ -82,6 +82,7 @@ export type IconName =
   | "crownFilled"
   | "phoneOff"
   | "phoneDevice"
+  | "volumeMedium"
   | "crown"
   | "fastForward"
   | "fastBackward"
@@ -162,6 +163,7 @@ const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: num
   collapse: Minimize,
   radar: Radar,
   playOnlyControl: CirclePlay,
+  volumeMedium: Volume1,
   autoplayQueue: ListVideo,
   voteBox: Vote,
 };
