@@ -332,6 +332,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.5,
+    textAlign: "center",
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: 1,
