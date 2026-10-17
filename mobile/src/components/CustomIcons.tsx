@@ -12,7 +12,7 @@ interface Props {
 export function PaperPlaneIcon({ size = 24, color = "#F5F5F7" }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M3 20l18-8L3 4v7l12 1-12 1v7z" />
+      <Path d="M3 20l18-8L3 4v6l9 2-9 2z" />
     </Svg>
   );
 }
