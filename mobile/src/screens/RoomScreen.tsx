@@ -1479,7 +1479,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onLayout={(e) => setTopBarHeight(e.nativeEvent.layout.height)}
       >
         <TouchableOpacity style={styles.iconTouch} onPress={() => setLeaveConfirmVisible(true)} hitSlop={8}>
-          <Icon name="close" size={30} color={theme.text} />
+          <Icon name="close" size={36} color={theme.text} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconTouch} onPress={() => setSettingsVisible(true)} hitSlop={8}>
           <Icon name="settings" size={30} color={theme.text} />
