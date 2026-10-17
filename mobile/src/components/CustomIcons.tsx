@@ -75,3 +75,41 @@ export function SquarePhotoIcon({ size = 24, color = "#F5F5F7" }: Props) {
     </Svg>
   );
 }
+
+// "Davet Et" ikonu - "people" (ParticipantsIcon) ile TUTARLI olsun diye,
+// Heroicons'un FARKLI iki-kisi siluetini kullanmak yerine AYNI tek kisi
+// (bas + govde) seklini alip sag-ustune Heroicons'un kendi "+" rozetini
+// (UserPlusIcon'daki AYNI yol, sadece yukari-saga tasinmis) ekliyoruz.
+// Artı rozeti govdenin yaninda (alt-sag), vurgu mavisiyle (theme.accentBright
+// ile AYNI deger, #38BDF8) - kullanicinin "C, mavi olsun" secimine gore.
+export function InvitePersonIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M18 21a8 8 0 0 0-16 0Z" fill={color} />
+      <Circle cx={10} cy={8} r={5} fill={color} />
+      <Path
+        d="M22.5 17.25a.75.75 0 0 0-1.5 0v2.25H18.75a.75.75 0 0 0 0 1.5H21v2.25a.75.75 0 0 0 1.5 0V21H24.75a.75.75 0 0 0 0-1.5H22.5v-2.25Z"
+        fill="#38BDF8"
+        transform="translate(-3,-2)"
+      />
+    </Svg>
+  );
+}
+
+// "Harita" (globe) butonu - lucide Compass'in CIZGILI hali yerine, ikon
+// gozden gecirmesinde secilen "B": cember TAM DOLU, ibre SVG Mask ile
+// arka plan rengiyle oyulmus (duz rozet hissi) - fotograf ikonundaki "A2"
+// mantigiyla ayni teknik.
+export function CompassBadgeIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Defs>
+        <Mask id="compassCut">
+          <Rect x={0} y={0} width={24} height={24} fill="white" />
+          <Path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z" fill="black" />
+        </Mask>
+      </Defs>
+      <Circle cx={12} cy={12} r={10} fill={color} mask="url(#compassCut)" />
+    </Svg>
+  );
+}
