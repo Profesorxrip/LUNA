@@ -266,17 +266,17 @@ export default function FriendsScreen({
 
   // "Son Zamanlarda"/"Engellendi" sekmeleri "Arkadaşlar"ın ALT sayfalari gibi
   // degil, bagimsiz sekmeler ama profil/kapat ikonu ikisi birden gereksiz
-  // kalabalik yapiyordu - bu iki sekmede tek bir sol-ust geri oku (AYNI
-  // X'in yaptigi gibi tum ekrani kapatip Discover'a doner) yeterli.
-  const showBackOnly = !inviteMode && (tab === "recent" || tab === "blocked");
+  // kalabalik yapiyordu - bu iki sekmede VE davet modunda (hangi sekmede
+  // olursa olsun - davette "Engellendi" zaten "Paylaş" ile degisiyor) tek
+  // bir sol-ust geri oku yeterli: normalde Discover'a, davet modunda ise
+  // odaya doner (onBack ikisinde de dogru yere baglanmis - bkz. RoomScreen.tsx
+  // Modal onRequestClose'u).
+  const showBackOnly = inviteMode || tab === "recent" || tab === "blocked";
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        {inviteMode ? (
-          // Davet modunda ayarlara gidilemez - sol taraf bos, logo ortalanmis kalsin diye.
-          <View style={styles.iconTouch} />
-        ) : showBackOnly ? (
+        {showBackOnly ? (
           <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
             <Icon name="chevronLeft" size={26} color={TEXT} />
           </TouchableOpacity>
@@ -286,12 +286,9 @@ export default function FriendsScreen({
           </TouchableOpacity>
         )}
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
-        {inviteMode || showBackOnly ? (
-          // Davet modunda kapatma ikonu yok - SADECE cihazin kendi geri
-          // tusuyla/hareketiyle kapanir (bkz. RoomScreen.tsx'teki Modal'in
-          // onRequestClose'u, Android donanim geri tusunu zaten yakalar).
-          // showBackOnly'de de sag taraf bos - geri oku zaten solda tek
-          // basina ayni isi goruyor, logo ortalanmis kalsin diye.
+        {showBackOnly ? (
+          // Geri oku zaten solda tek basina ayni isi goruyor, sag taraf bos
+          // kalip logo ortalanmis kaliyor.
           <View style={styles.iconTouch} />
         ) : (
           <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
