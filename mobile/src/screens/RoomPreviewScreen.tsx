@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import { Info } from "lucide-react-native";
 import { BlurView } from "expo-blur";
 import { getSocket, PublicRoomSummary, RoomParticipantDetail, PrivacyLevel } from "../services/socket";
 import { theme } from "../theme";
@@ -175,8 +176,11 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
           <Text style={styles.statusText}>{formatOpenedTime(room.createdAtMs)}'de açıldı</Text>
         </View>
         {isExternal && (
+          // ÜSTTEKI "Bildir" butonuyla (ayni "warning" ucgen ikonu) AYNI
+          // gorunup kafa karistiriyordu - bu bir sikayet degil, bilgi notu
+          // (senkron yok uyarisi), o yuzden "i" bilgi ikonuna cevrildi.
           <TouchableOpacity style={styles.warningBadge} onPress={showSyncNotice} hitSlop={8}>
-            <Icon name="warning" size={18} color={theme.info} />
+            <Info size={18} color={theme.info} />
           </TouchableOpacity>
         )}
       </View>
