@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
 import Icon, { IconName } from "./Icon";
 import SimpleSlider from "./SimpleSlider";
@@ -36,6 +37,10 @@ interface Props {
   // Su an izlenen videonun/medyanin sesi - ayri bir cubuk (bkz. RoomScreen.tsx).
   videoVolume: number;
   onVideoVolumeChange: (v: number) => void;
+  // Panel videonun ALT KENARINDA baslasin diye (bkz. RoomScreen.tsx
+  // topBarHeight + videoNaturalHeight) - video gizlendiginde (videoHidden)
+  // bu deger topBarHeight'a duser, panel en yukari kadar cikar.
+  topOffset: number;
 }
 
 // Kaydirici tam sola cekilince dokunma hassasiyeti yuzunden TAM 0 yerine
@@ -96,7 +101,9 @@ export default function RoomSettingsSheet({
   onVoiceVolumeChange,
   videoVolume,
   onVideoVolumeChange,
+  topOffset,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState<"privacy" | "playback" | "mic" | null>(null);
 
   const currentPrivacy = PRIVACY_OPTIONS.find((o) => o.key === privacy)!;
@@ -111,7 +118,11 @@ export default function RoomSettingsSheet({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[styles.sheet, { top: topOffset, paddingBottom: 30 + insets.bottom }]}
+          onPress={() => {}}
+        >
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.header}>AYARLAR</Text>
 
@@ -265,17 +276,20 @@ export default function RoomSettingsSheet({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)" },
+  // Panel artik sabit bir yuzde yukseklik yerine, videonun ALT KENARINDAN
+  // (topOffset, inline style ile verilir) ekranin gercek altina kadar
+  // uzaniyor - koseler de video ile ayni hizada SIVRI (yuvarlatma yok).
   sheet: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
     width: "100%",
     maxWidth: 480,
     alignSelf: "center",
     backgroundColor: "#1C1C1E",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
     paddingTop: 18,
     paddingBottom: 30,
-    maxHeight: "78%",
   },
   // DIKKAT: yatay padding artik "sheet"te DEGIL, her satirin KENDI
   // stilinde - boylece asagidaki ayirici cizgiler (borderTopWidth) sheet'in

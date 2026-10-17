@@ -1965,6 +1965,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onVoiceVolumeChange={handleVoiceVolumeChange}
         videoVolume={videoVolume}
         onVideoVolumeChange={handleVideoVolumeChange}
+        topOffset={topBarHeight + (videoHidden ? 0 : videoNaturalHeight ?? 0)}
       />
 
       <VideoSettingsSheet
