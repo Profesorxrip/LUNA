@@ -113,6 +113,9 @@ export interface RoomState {
   // ayni yonde birikince sunucu eylemi gercekten uygular.
   nextVideoVoteCount: number;
   previousVideoVoteCount: number;
+  // Su an oynayan videoyu kalbe basarak "begenen" katilimci sayisi (bkz.
+  // server/src/rooms.ts likeVideo/unlikeVideo) - video degisince sifirlanir.
+  likeCount: number;
   // "Sadece Oynat" modunda beklemede olan videolar (bkz. server/src/rooms.ts
   // enqueueSource/advanceQueue) - diger modlarda hep bos dizi gelir.
   videoQueue: MediaSource[];

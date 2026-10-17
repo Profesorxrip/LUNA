@@ -28,6 +28,8 @@ import {
   goToPreviousVideo,
   voteSkipToNext,
   voteGoToPrevious,
+  likeVideo,
+  unlikeVideo,
   applyVotedGoToPrevious,
   setPlaybackRate,
   canEnqueueSource,
@@ -668,6 +670,10 @@ io.on("connection", (socket: Socket) => {
     if (!eventId) return ack?.({ ok: false, error: "Begenilemedi, tekrar dene." });
     const { error } = await myDb!.from("room_event_likes").insert({ event_id: eventId, user_id: myUserId });
     if (error) return ack?.({ ok: false, error: "Begenilemedi, tekrar dene." });
+    // Kalp butonunun odadaki PAYLASIMLI begeni sayaci (bkz. rooms.ts
+    // likeVideo) - DB kaydindan bagimsiz, sadece su anki videoya ozel.
+    likeVideo(room, socket.id);
+    broadcastRoom(currentRoomCode!);
     ack?.({ ok: true, eventId });
   });
 
@@ -676,6 +682,13 @@ io.on("connection", (socket: Socket) => {
     // RLS zaten "user_id = auth.uid()" ile sinirliyor - baskasinin begenisini
     // silemezsin, ekstra kontrole gerek yok.
     await myDb!.from("room_event_likes").delete().eq("event_id", eventId).eq("user_id", myUserId);
+    if (currentRoomCode) {
+      const room = getRoom(currentRoomCode);
+      if (room) {
+        unlikeVideo(room, socket.id);
+        broadcastRoom(currentRoomCode);
+      }
+    }
     ack?.({ ok: true });
   });
 

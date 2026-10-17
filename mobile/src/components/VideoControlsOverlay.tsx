@@ -9,6 +9,10 @@ interface Props {
   canControlTransport: boolean;
   liked: boolean;
   onToggleLike: () => void;
+  // Su an oynayan videoyu begenen TUM katilimcilarin paylasimli sayisi (bkz.
+  // server/src/rooms.ts likeVideo) - sadece "liked" (benim begenim) true
+  // ikenki kalbin TAM ORTASINA yaziliyor.
+  likeCount?: number;
   onPlayPause: () => void;
   onSkip: (deltaSeconds: number) => void;
   // Onceki video / sıradakine gec butonlari artik HER modda HERKESE
@@ -59,6 +63,7 @@ export default function VideoControlsOverlay({
   canControlTransport,
   liked,
   onToggleLike,
+  likeCount,
   onPlayPause,
   onSkip,
   canSkip,
@@ -135,6 +140,11 @@ export default function VideoControlsOverlay({
             </TouchableOpacity>
             <TouchableOpacity style={styles.framedIconTouch} onPress={onToggleLike} hitSlop={10}>
               <Icon name={liked ? "heart" : "heartOutline"} size={27} color={liked ? "#E34848" : "#FFFFFF"} />
+              {liked && !!likeCount && (
+                <View style={styles.likeCountBox}>
+                  <Text style={styles.likeCountText}>{likeCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.framedIconTouch} onPress={onSkipNext} disabled={!canSkip} hitSlop={10}>
               <SkipForwardIcon size={25} color={canSkip ? "#FFFFFF" : "rgba(255,255,255,0.35)"} filled={showVoteBadges && !!nextVoteCount} />
@@ -233,6 +243,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   voteCountText: { color: "#04140D", fontSize: 9, fontWeight: "800", lineHeight: 11 },
+  // Kalp dolunca (liked=true) TAM ORTASINA binen paylasimli begeni sayisi -
+  // ucgendeki gibi kaydirmaya gerek yok, kalp zaten kendi kutusunun (framedIconTouch)
+  // merkezinde oldugu icin kutunun kendisi de ayni merkezde.
+  likeCountBox: {
+    position: "absolute",
+    left: 9,
+    top: 9,
+    width: 14,
+    height: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  likeCountText: { color: "#FFFFFF", fontSize: 9, fontWeight: "800", lineHeight: 11 },
   centerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 28 },
   // Ayarlar carkiyla (smallIconTouch) AYNI mantik - tek bir cerceve yerine
   // her butonun kendi tekli, dairesel arka plani var.

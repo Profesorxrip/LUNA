@@ -168,6 +168,10 @@ export interface Room {
   // voteSkipToNext/voteGoToPrevious). Video degisince ikisi de sifirlanir.
   nextVideoVotes: Set<string>;
   previousVideoVotes: Set<string>;
+  // Su an oynayan videoyu kalbe basarak "begenen" katilimcilarin (socketId)
+  // kumesi - paylasimli begeni SAYACI icin (bkz. likeVideo/unlikeVideo).
+  // SADECE su anki videoya ozel, video degisince sifirlanir (bkz. applyPlayback).
+  videoLikes: Set<string>;
 }
 
 const rooms = new Map<string, Room>();
@@ -239,6 +243,7 @@ export function createRoom(
     adultSkipVotes: new Set(),
     nextVideoVotes: new Set(),
     previousVideoVotes: new Set(),
+    videoLikes: new Set(),
   };
   rooms.set(code, room);
   return room;
@@ -574,6 +579,7 @@ function applyPlayback(room: Room, update: Partial<PlaybackState>, recordHistory
     room.adultSkipVotes.clear();
     room.nextVideoVotes.clear();
     room.previousVideoVotes.clear();
+    room.videoLikes.clear();
     // Yeni video "normal" hizda baslasin - bir onceki videoda 2x izleniyor
     // olmasi yeni secilen videoyu da sessizce 2x baslatmasin diye.
     room.playback.playbackRate = 1;
@@ -627,6 +633,20 @@ export interface SkipVoteResult {
   count: number;
   total: number;
   passed: boolean;
+}
+
+/** Su an oynayan videoyu "begen" - cogunluk oyu DEGIL, herkesin ayni anda
+ * birikebilecegi basit bir sayac (bkz. roomToPublicState likeCount). Ayni
+ * kisi tekrar basarsa (Set oldugu icin) sayi degismez - "unlikeVideo" ile
+ * geri alinmasi gerekir (bkz. RoomScreen.tsx toggleLike). */
+export function likeVideo(room: Room, likerSocketId: string): number {
+  room.videoLikes.add(likerSocketId);
+  return room.videoLikes.size;
+}
+
+export function unlikeVideo(room: Room, likerSocketId: string): number {
+  room.videoLikes.delete(likerSocketId);
+  return room.videoLikes.size;
 }
 
 /** "Sıradakine geç" - "Liderin Secimi" DISINDAKI modlarda bu artik bir OY:
@@ -930,5 +950,8 @@ export function roomToPublicState(room: Room) {
     // voteSkipToNext/voteGoToPrevious) - "Liderin Secimi" modunda hep 0 gelir.
     nextVideoVoteCount: room.nextVideoVotes.size,
     previousVideoVoteCount: room.previousVideoVotes.size,
+    // Su an oynayan videoyu begenen katilimci sayisi (bkz. likeVideo) -
+    // kimlerin begendigini DEGIL, sadece sayiyi paylasiyoruz.
+    likeCount: room.videoLikes.size,
   };
 }

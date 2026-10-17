@@ -1602,6 +1602,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   canControlTransport={canControlTransport}
                   liked={Boolean(likedEventId)}
                   onToggleLike={toggleLike}
+                  likeCount={room.likeCount}
                   onPlayPause={togglePlayPause}
                   onSkip={skipBy}
                   canSkip={canSkip}
