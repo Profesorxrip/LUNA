@@ -7,6 +7,7 @@ import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import ShareRoomContent from "../components/ShareRoomContent";
+import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
 import { DMPeer } from "./DMScreen";
 
 interface Props {
@@ -88,6 +89,12 @@ export default function FriendsScreen({
   // "Son Zamanlarda" sekmesindeki kisi GERCEKTEN arkadasimiz da olabilir -
   // o satirda da mavi "arkadas halkasi" (bkz. Avatar.tsx isFriend) gorunsun.
   const friendIds = useMemo(() => new Set(friends.map((f) => f.userId)), [friends]);
+  // "Arkadaşlar"/"Son Zamanlarda" satirina BASILI TUTUNCA acilan kucuk
+  // profil karti - RoomScreen.tsx/DiscoverScreen.tsx'teki AYNI bilesen, ama
+  // SADECE onOpenProfile/onBlock/onRemoveFriend verildigi icin (istek atma/
+  // iptal/engeli kaldirma/bildirme YOK) kart her zaman Profil + (arkadassa)
+  // "Arkadaşı sil" + Engelle disinda bir satir gostermez.
+  const [profileCardTarget, setProfileCardTarget] = useState<ProfileOptionsTarget | null>(null);
 
   const refresh = useCallback(() => {
     socket.emit("friends:list", {}, (res: any) => {
@@ -161,6 +168,42 @@ export default function FriendsScreen({
           }),
       },
     ]);
+  }
+
+  function openProfileCard(peer: { userId: string; name: string; handle?: string | null; avatarUrl?: string | null; isFriend: boolean }) {
+    setProfileCardTarget({
+      userId: peer.userId,
+      name: peer.name,
+      handle: peer.handle ?? undefined,
+      avatarUrl: peer.avatarUrl ?? undefined,
+      friendStatus: peer.isFriend ? "friends" : undefined,
+    });
+  }
+
+  function closeProfileCard() {
+    setProfileCardTarget(null);
+  }
+
+  function openProfileFromCard(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    onOpenParticipant({ userId: target.userId, name: target.name, handle: target.handle ?? undefined });
+  }
+
+  function blockFromCard(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    socket.emit("friend:block", { userId: target.userId }, (res: any) => {
+      if (res?.ok) {
+        showAlert("Engellendi", `${target.name} engellendi.`);
+        refresh();
+      }
+    });
+  }
+
+  function removeFriendFromCard(target: ProfileOptionsTarget) {
+    if (!target.userId) return;
+    socket.emit("friend:remove", { userId: target.userId }, (res: any) => {
+      if (res?.ok) setFriends((prev) => prev.filter((f) => f.userId !== target.userId));
+    });
   }
 
   function selectTab(next: Tab) {
@@ -283,6 +326,7 @@ export default function FriendsScreen({
                     ? toggleSelect(item.userId)
                     : onOpenDM({ userId: item.userId, name: item.name, handle: item.handle ?? undefined })
                 }
+                onLongPress={() => !inviteMode && openProfileCard({ ...item, isFriend: true })}
               >
                 <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} isFriend />
                 <View style={styles.rowText}>
@@ -325,6 +369,7 @@ export default function FriendsScreen({
                       ? toggleSelect(item.userId)
                       : onOpenParticipant({ userId: item.userId, name: item.name, handle: item.handle ?? undefined })
                   }
+                  onLongPress={() => !inviteMode && openProfileCard({ ...item, isFriend: friendIds.has(item.userId) })}
                 >
                   <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} isFriend={friendIds.has(item.userId)} />
                   <View style={styles.rowText}>
@@ -466,6 +511,17 @@ export default function FriendsScreen({
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      <ProfileOptionsSheet
+        visible={!!profileCardTarget}
+        target={profileCardTarget}
+        isHost={false}
+        canModerateTarget={false}
+        onClose={closeProfileCard}
+        onOpenProfile={openProfileFromCard}
+        onBlock={blockFromCard}
+        onRemoveFriend={removeFriendFromCard}
+      />
     </View>
   );
 }
