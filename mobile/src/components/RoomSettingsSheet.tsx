@@ -43,17 +43,17 @@ interface Props {
 const VOLUME_MUTE_THRESHOLD = 0.02;
 
 const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
-  { key: "open", icon: "worldOpen", label: "AÇIK" },
-  { key: "nearby", icon: "radar", label: "YAKINDAKİLER" },
-  { key: "friends", icon: "people", label: "SADECE\nARKADAŞLAR" },
-  { key: "invite", icon: "inviteKey", label: "SADECE\nDAVET İLE" },
+  { key: "open", icon: "worldOpen", label: "HERKESE\nAÇIK" },
+  { key: "nearby", icon: "radar", label: "YAKIN\nÇEVRE" },
+  { key: "friends", icon: "people", label: "ARKADAŞ\nÇEMBERİ" },
+  { key: "invite", icon: "inviteKey", label: "ANAHTARLI\nKAPI" },
 ];
 
 const PRIVACY_DESC: Record<PrivacyLevel, string> = {
-  open: "Odaya herkes katılabilir",
-  nearby: "Sadece yakınındaki kullanıcılar katılabilir",
-  friends: "Sadece arkadaşların katılabilir",
-  invite: "Sadece davet linki/koduyla katılınır",
+  open: "Odanın kapısı herkese açık, davetsiz de gelinir",
+  nearby: "Sadece senin civarındaki kullanıcılar bulup katılabilir",
+  friends: "Kapı yalnızca arkadaş listendekilere açık",
+  invite: "Kapı sadece elinde davet anahtarı (link/kod) olana açılır",
 };
 
 const PLAYBACK_OPTIONS: { key: PlaybackMode; icon: IconName; label: string }[] = [
