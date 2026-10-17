@@ -1,11 +1,13 @@
 import React from "react";
-import { XMarkIcon as XMarkIconOutline, MagnifyingGlassIcon as MagnifyingGlassIconOutline } from "react-native-heroicons/outline";
+import {
+  XMarkIcon as XMarkIconOutline,
+  MagnifyingGlassIcon as MagnifyingGlassIconOutline,
+  AtSymbolIcon as AtSymbolIconOutline,
+} from "react-native-heroicons/outline";
 import {
   Cog6ToothIcon,
   MicrophoneIcon,
   PlusIcon,
-  AtSymbolIcon,
-  PhotoIcon,
   UserPlusIcon,
   ShareIcon,
   ArrowUpOnSquareIcon,
@@ -44,7 +46,7 @@ import {
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart } from "lucide-react-native";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
-import { PaperPlaneIcon, ParticipantsIcon, MicOffIcon } from "./CustomIcons";
+import { PaperPlaneIcon, ParticipantsIcon, MicOffIcon, SquarePhotoIcon } from "./CustomIcons";
 import ModeratorBadge from "./ModeratorBadge";
 
 export type IconName =
@@ -124,8 +126,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   settings: Cog6ToothIcon,
   mic: MicrophoneIcon,
   plus: PlusIcon,
-  mention: AtSymbolIcon,
-  image: PhotoIcon,
   invite: UserPlusIcon,
   share: ShareIcon,
   // Discover ekranindaki (UsersIcon/ClockIcon gibi DOLU/simetrik) sekme
@@ -183,6 +183,7 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   send: PaperPlaneIcon,
   people: ParticipantsIcon,
   micOff: MicOffIcon,
+  image: SquarePhotoIcon,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
@@ -197,6 +198,7 @@ export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
   // kullaniliyor, bkz. LUCIDE_FALLBACK render'i asagida - tutarli dursun diye).
   if (name === "close") return <XMarkIconOutline size={size} color={color} strokeWidth={2.8} />;
   if (name === "search") return <MagnifyingGlassIconOutline size={size} color={color} strokeWidth={2.8} />;
+  if (name === "mention") return <AtSymbolIconOutline size={size} color={color} strokeWidth={2.1} />;
   const HeroGlyph = HEROICONS[name];
   if (HeroGlyph) return <HeroGlyph size={size} color={color} />;
   const LucideGlyph = LUCIDE_FALLBACK[name];

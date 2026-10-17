@@ -60,3 +60,18 @@ export function MicOffIcon({ size = 24, color = "#F5F5F7" }: Props) {
     </Svg>
   );
 }
+
+// "Fotograf" ikonu - Heroicons'un PhotoIcon'u DIKDORTGEN (21x12) bir cerceve
+// kullaniyordu, kullanici kare istedi. Ikon gozden gecirmesinde secilen "A1":
+// lucide "image" ikonunun KARE (18x18) cercevesi + ayni gunes/dag dili, ama
+// Heroicons'taki gibi cerceve ICI BOS (kalin cizgi), gunes+dag TAM DOLU -
+// boylece hem kare oran hem de uygulamanin genel dolu/net agirligi korunuyor.
+export function SquarePhotoIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x={3} y={3} width={18} height={18} rx={3} stroke={color} strokeWidth={2} />
+      <Circle cx={9} cy={9} r={2} fill={color} />
+      <Path d="M21 15 17.914 11.914A2 2 0 0 0 15.086 11.914L6 21 21 21Z" fill={color} />
+    </Svg>
+  );
+}
