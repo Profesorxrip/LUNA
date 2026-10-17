@@ -123,7 +123,7 @@ export default function VideoControlsOverlay({
               hitSlop={10}
             >
               <SkipBackIcon
-                size={18}
+                size={22}
                 color={canSkip && hasPreviousVideo ? "#FFFFFF" : "rgba(255,255,255,0.35)"}
                 filled={showVoteBadges && !!previousVoteCount}
               />
@@ -134,10 +134,10 @@ export default function VideoControlsOverlay({
               )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.framedIconTouch} onPress={onToggleLike} hitSlop={10}>
-              <Icon name={liked ? "heart" : "heartOutline"} size={20} color={liked ? "#E34848" : "#FFFFFF"} />
+              <Icon name={liked ? "heart" : "heartOutline"} size={24} color={liked ? "#E34848" : "#FFFFFF"} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.framedIconTouch} onPress={onSkipNext} disabled={!canSkip} hitSlop={10}>
-              <SkipForwardIcon size={18} color={canSkip ? "#FFFFFF" : "rgba(255,255,255,0.35)"} filled={showVoteBadges && !!nextVoteCount} />
+              <SkipForwardIcon size={22} color={canSkip ? "#FFFFFF" : "rgba(255,255,255,0.35)"} filled={showVoteBadges && !!nextVoteCount} />
               {showVoteBadges && !!nextVoteCount && (
                 <View style={styles.voteCountBoxForward}>
                   <Text style={styles.voteCountText}>{nextVoteCount}</Text>
@@ -157,7 +157,7 @@ export default function VideoControlsOverlay({
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.smallIconTouch} onPress={onSettings} hitSlop={10}>
-              <Icon name="settings" size={18} color="#FFFFFF" />
+              <Icon name="settings" size={21} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
   // ortalanmis oluyor.
   voteCountBoxForward: {
     position: "absolute",
-    left: 4.5,
-    top: 7,
+    left: 3.7,
+    top: 9,
     width: 14,
     height: 14,
     alignItems: "center",
@@ -225,8 +225,8 @@ const styles = StyleSheet.create({
   },
   voteCountBoxBack: {
     position: "absolute",
-    left: 11.5,
-    top: 7,
+    left: 12.3,
+    top: 9,
     width: 14,
     height: 14,
     alignItems: "center",
