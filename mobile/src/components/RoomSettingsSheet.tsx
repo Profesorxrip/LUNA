@@ -225,7 +225,7 @@ export default function RoomSettingsSheet({
                 <SimpleSlider value={voiceVolume} onValueChange={onVoiceVolumeChange} />
               </View>
               <TouchableOpacity onPress={onLeaveVoice} hitSlop={8}>
-                <Icon name="phone" size={22} color={micConnected ? theme.danger : theme.textMuted} />
+                <Icon name="phoneDevice" size={22} color={micConnected ? theme.danger : theme.textMuted} />
               </TouchableOpacity>
             </View>
 
