@@ -40,7 +40,6 @@ import {
   SparklesIcon,
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart } from "lucide-react-native";
-import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import { PaperPlaneIcon, ParticipantsIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ShareBoxIcon } from "./CustomIcons";
 import ModeratorBadge from "./ModeratorBadge";
 
@@ -77,12 +76,6 @@ export type IconName =
   | "crown"
   | "fastForward"
   | "fastBackward"
-  // Video kontrol panelindeki ("sıradakine geç"/"onceki video") ayri bir
-  // ikon ailesi - "fastForward"/"fastBackward" (Heroicons solid, otomatik
-  // oynat modu ikonu vb. yerlerde kullaniliyor) ile KARISTIRMA, bu ikisi
-  // kullanicinin gonderdigi referans gorselden potrace ile BIREBIR izlenmis
-  // ozel bir sekil (bkz. SkipIcons.tsx) - hazir bir ikon kutuphanesi glyph'i
-  // DEGIL.
   | "skipForward"
   | "skipBack"
   | "phone"
@@ -138,6 +131,8 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   pin: MapPinIcon,
   fastForward: ForwardIcon,
   fastBackward: BackwardIcon,
+  skipForward: ForwardIcon,
+  skipBack: BackwardIcon,
   volume: SpeakerWaveIcon,
   volumeOff: SpeakerXMarkIcon,
   phone: PhoneIcon,
@@ -159,11 +154,7 @@ const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: num
   rotateCw: RotateCw,
 };
 
-// Hazir kutuphanelerde olmayan, kullanicinin kendi gorselinden birebir
-// izlenmis ozel ikonlar (bkz. SkipIcons.tsx).
 const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
-  skipForward: SkipForwardIcon,
-  skipBack: SkipBackIcon,
   shield: ModeratorBadge,
   send: PaperPlaneIcon,
   people: ParticipantsIcon,
