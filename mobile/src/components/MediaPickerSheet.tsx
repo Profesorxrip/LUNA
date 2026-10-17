@@ -230,17 +230,20 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
       <View style={[styles.screen, { paddingTop: insets.top + 16 }]}>
-        {mode !== "grid" && (
-          <View style={styles.topBar}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={10}>
-              <ChevronLeft size={28} color="#FFFFFF" strokeWidth={3} />
-            </TouchableOpacity>
-            <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.topBarLogo} resizeMode="contain" />
-            {/* Geri butonuyla AYNI genislikte gorunmez bir bosluk - logo
-                gercekten ORTALANSIN diye (bkz. RoomMapSheet.tsx ayni kalip). */}
-            <View style={styles.backButton} />
-          </View>
-        )}
+        {/* Grid (ana platform listesi) ekraninda da ayni ustbar - geri
+            okuna basinca grid'den bir ALT ekrandaysak (youtube/weburl/
+            history/liked) grid'e, grid'in KENDISINDEYSEK sheet'i kapatiyor
+            (artik "ARA" cubugunun solunda kapatma icin TEK dokunulacak yer
+            buydu, oncesinde hicbir ikon yoktu). */}
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.backButton} onPress={mode === "grid" ? handleClose : handleBack} hitSlop={10}>
+            <ChevronLeft size={28} color="#FFFFFF" strokeWidth={3} />
+          </TouchableOpacity>
+          <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.topBarLogo} resizeMode="contain" />
+          {/* Geri butonuyla AYNI genislikte gorunmez bir bosluk - logo
+              gercekten ORTALANSIN diye (bkz. RoomMapSheet.tsx ayni kalip). */}
+          <View style={styles.backButton} />
+        </View>
 
         {mode === "grid" ? (
           <>
