@@ -329,21 +329,34 @@ export default function DMScreen({ peer, onBack }: Props) {
         ListEmptyComponent={
           loading ? <LoadingView /> : <Text style={styles.mediaEmpty}>Henüz mesaj yok, ilk mesajı sen gönder!</Text>
         }
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const isMine = item.fromUserId === myUserId;
           const seen = isMine && item.createdAt <= seenUpTo;
+          // Oda sohbetindeki (RoomScreen.tsx) gruplama ile AYNI mantik: arka
+          // arkaya gelen mesajlarda gonderici avatari sadece grubun ilkinde
+          // gosterilir, devaminda bubble hizasini bozmamak icin ayni genislikte
+          // bos bir spacer konur, satirlar arasi bosluk da daraltilir.
+          const prev = visibleMessages[index - 1];
+          const groupedWithPrev = !!prev && prev.fromUserId === item.fromUserId;
           return (
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => handleMessageTap(item)}
               onLongPress={() => startReply(item)}
-              style={[styles.messageRow, isMine ? styles.messageRowMine : styles.messageRowTheirs]}
+              style={[
+                styles.messageRow,
+                isMine ? styles.messageRowMine : styles.messageRowTheirs,
+                !groupedWithPrev && styles.messageRowNewGroup,
+              ]}
             >
-              {!isMine && (
-                <View style={styles.avatarSmall}>
-                  <Text style={styles.avatarSmallInitial}>{item.fromName.charAt(0).toUpperCase()}</Text>
-                </View>
-              )}
+              {!isMine &&
+                (!groupedWithPrev ? (
+                  <View style={styles.avatarSmall}>
+                    <Text style={styles.avatarSmallInitial}>{item.fromName.charAt(0).toUpperCase()}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.avatarSmallSpacer} />
+                ))}
               <View style={styles.bubbleWrap}>
                 {item.replyTo && (
                   <View style={styles.replyQuote}>
@@ -536,11 +549,16 @@ const styles = StyleSheet.create({
   headerTextBlock: { flex: 1 },
   headerName: { color: TEXT, fontSize: 16, fontWeight: "700" },
   headerHandle: { color: MUTED, fontSize: 11, marginTop: 1 },
-  listContent: { padding: 16, gap: 10 },
+  // Satirlar arasi varsayilan bosluk DAR tutulup (4) ayni gondericiden arka
+  // arkaya gelen mesajlar birbirine yakin durur, yeni bir grup basladiginda
+  // (messageRowNewGroup) ekstra ust bosluk eklenir - RoomScreen.tsx'teki
+  // gruplama hissiyle AYNI.
+  listContent: { padding: 16, gap: 4 },
   // "flex-start" (en ustten hizali) - "flex-end" iken fotograf gibi uzun
   // balonlarda gonderici avatari balonun ALT ucuna kayiyordu, oysa UST ucuyla
   // hizali olmali (bkz. RoomScreen.tsx messageRow'daki AYNI tercih).
   messageRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, maxWidth: "100%" },
+  messageRowNewGroup: { marginTop: 8 },
   messageRowMine: { justifyContent: "flex-end" },
   messageRowTheirs: { justifyContent: "flex-start" },
   avatarSmall: {
@@ -552,6 +570,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarSmallInitial: { color: ACCENT, fontSize: 11, fontWeight: "700" },
+  avatarSmallSpacer: { width: 26 },
   bubbleWrap: { maxWidth: "75%" },
   replyQuote: {
     backgroundColor: "rgba(14,165,233,0.1)",
