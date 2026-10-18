@@ -190,7 +190,7 @@ function PendingImageThumb({ uri, onRemove, disabled }: { uri: string; onRemove:
           }}
           hitSlop={6}
         >
-          <Icon name="trash" size={18} color="#FFFFFF" />
+          <Icon name="trash" size={14} color="#FFFFFF" />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -2555,9 +2555,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: theme.border,
   },
-  pendingImageBarContent: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  pendingImageThumbWrap: { width: 48, height: 48, borderRadius: 10, overflow: "hidden", position: "relative" },
-  pendingImageThumb: { width: 48, height: 48, backgroundColor: theme.surface },
+  pendingImageBarContent: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 5 },
+  pendingImageThumbWrap: { width: 34, height: 34, borderRadius: 8, overflow: "hidden", position: "relative" },
+  pendingImageThumb: { width: 34, height: 34, backgroundColor: theme.surface },
   // Fotografin ustune basilinca beliren cop kovasi katmani - butun
   // onizlemeyi kaplayan yari saydam bir karartma (bkz. PendingImageThumb).
   pendingImageTrashOverlay: {
