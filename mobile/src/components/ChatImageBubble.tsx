@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Image, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
 import Icon from "./Icon";
+import PhotoViewerModal from "./PhotoViewerModal";
 import { theme } from "../theme";
 
 interface Props {
@@ -13,28 +14,34 @@ interface Props {
 /** Chat/DM'de gonderilen fotograf - "+18 icerik" isaretliyse varsayilan
  * olarak bulanik gelir, dokununca o mesaj icin acilir (ekran/bilesen
  * yeniden monte olunca tekrar bulanik baslar - kalici bir "goruldu" hali
- * yok, her acilista yeniden karar verilir). */
+ * yok, her acilista yeniden karar verilir). Bulanik degilken (ya da bir kez
+ * acildiktan sonra) dokununca PhotoViewerModal ile tam ekran acilir - profil
+ * galerisi/avatar ile AYNI bilesen. */
 export default function ChatImageBubble({ uri, isAdult, size = 200 }: Props) {
   const [revealed, setRevealed] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const blurred = isAdult && !revealed;
   const small = size < 150;
 
   return (
-    <TouchableOpacity
-      activeOpacity={blurred ? 0.85 : 1}
-      onPress={() => blurred && setRevealed(true)}
-      style={[styles.wrap, { width: size, height: size }]}
-    >
-      <Image source={{ uri }} style={styles.image} resizeMode="cover" />
-      {blurred && (
-        <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFill}>
-          <View style={styles.revealHint}>
-            <Icon name="eyeOff" size={small ? 16 : 22} color="#FFFFFF" />
-            {!small && <Text style={styles.revealText}>+18 içerik{"\n"}göstermek için dokun</Text>}
-          </View>
-        </BlurView>
-      )}
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => (blurred ? setRevealed(true) : setViewerOpen(true))}
+        style={[styles.wrap, { width: size, height: size }]}
+      >
+        <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+        {blurred && (
+          <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFill}>
+            <View style={styles.revealHint}>
+              <Icon name="eyeOff" size={small ? 16 : 22} color="#FFFFFF" />
+              {!small && <Text style={styles.revealText}>+18 içerik{"\n"}göstermek için dokun</Text>}
+            </View>
+          </BlurView>
+        )}
+      </TouchableOpacity>
+      <PhotoViewerModal uri={viewerOpen ? uri : null} onClose={() => setViewerOpen(false)} />
+    </>
   );
 }
 

@@ -11,17 +11,16 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
-  Platform,
 } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
-import { File, Paths } from "expo-file-system";
 import { supabase } from "../services/supabase";
 import { getSocket, PublicRoomSummary, HistoryItem, MediaSource, SourceType, RoomState } from "../services/socket";
 import Icon, { IconName } from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import CountryFlag from "../components/CountryFlag";
 import RoomCard from "../components/RoomCard";
+import PhotoViewerModal from "../components/PhotoViewerModal";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 
 interface Props {
@@ -120,10 +119,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [isOnline, setIsOnline] = useState(own); // kendi profilin her zaman cevrimici
   const [joinDateMs, setJoinDateMs] = useState<number | null>(null);
   const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
-  // Galeride bir fotografa basinca tam ekran buyuk haliyle acilir (bkz.
-  // asagidaki Modal, gallery thumb'in onPress'i).
+  // Galeride bir fotografa ya da avatara basinca PhotoViewerModal ile tam
+  // ekran buyuk haliyle acilir.
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
-  const [downloadingPhoto, setDownloadingPhoto] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editingField, setEditingField] = useState<"name" | "handle" | "bio" | null>(null);
   const [galleryVisible, setGalleryVisible] = useState(true);
@@ -437,39 +435,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     }
   }
 
-  // Buyutulmus foto gorunumundeki "Indir" butonu - web'de expo-file-system
-  // ve expo-media-library desteklenmedigi icin oradaki tarayicinin kendi
-  // indirme davranisina birakiyoruz, native'de ise dosyayi once cache'e
-  // indirip sonra cihazin galerisine kaydediyoruz.
-  async function downloadPhoto(url: string) {
-    if (downloadingPhoto) return;
-    setDownloadingPhoto(true);
-    try {
-      if (Platform.OS === "web") {
-        window.open(url, "_blank");
-        return;
-      }
-      // expo-media-library'nin yeni sinif tabanli API'sinin web karsiligi yok -
-      // modulu PAKETIN KENDISI import edilir edilmez (web'de bile) native
-      // modulu aramaya calisip cokuyordu, bu yuzden sadece native'de calisan
-      // bu dalda DINAMIK import ediyoruz (web dalindan yukarida return ile
-      // cikildigi icin buraya hic ulasilmiyor).
-      const MediaLibrary = await import("expo-media-library");
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== "granted") {
-        showAlert("İzin gerekli", "Fotoğrafı galerine kaydetmek için fotoğraf iznine ihtiyacımız var.");
-        return;
-      }
-      const downloaded = await File.downloadFileAsync(url, Paths.cache);
-      await MediaLibrary.Asset.create(downloaded.uri);
-      showAlert("Kaydedildi", "Fotoğraf galerine kaydedildi.");
-    } catch (err: any) {
-      showAlert("Kaydedilemedi", err?.message || "Fotoğraf kaydedilirken bir hata oluştu, tekrar dene.");
-    } finally {
-      setDownloadingPhoto(false);
-    }
-  }
-
   // GEÇMİŞ'teki bir video kartına dokununca, o videoyla GERÇEK yeni bir oda
   // açıp dogrudan icine giriyoruz - "+" ile yeni oda acma (DiscoverScreen.tsx
   // createRoomWithSource) ile AYNI room:create cagrisi, sadece kaynak
@@ -605,9 +570,11 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 
         <TouchableOpacity
           style={[styles.avatarWrap, !showPresenceRing && styles.avatarWrapCompact]}
-          activeOpacity={own ? 0.8 : 1}
-          onPress={() => own && setAvatarSheetVisible(true)}
-          disabled={!own}
+          activeOpacity={avatarUrl || own ? 0.8 : 1}
+          onPress={() => (avatarUrl ? setViewingPhotoUrl(avatarUrl) : own && setAvatarSheetVisible(true))}
+          onLongPress={() => own && setAvatarSheetVisible(true)}
+          delayLongPress={350}
+          disabled={!avatarUrl && !own}
         >
           <Animated.View
             style={[
@@ -958,47 +925,10 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         </TouchableOpacity>
       </Modal>
 
-      {/* Galeride bir fotografa basinca acilan buyutulmus hali - ekranin alt
-          %70'ini (tam genislikte) kaplayan bir panel olarak asagidan acilir,
-          karartilmis ust alana dokununca kapanir. Geri ve Indir, fotografin
-          USTUNDE AYRI bir bar icinde duruyor (fotografin kendisine binmiyor) -
-          bkz. downloadPhoto. */}
-      <Modal
-        visible={!!viewingPhotoUrl}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setViewingPhotoUrl(null)}
-        statusBarTranslucent
-      >
-        <TouchableOpacity
-          style={styles.photoViewerOverlay}
-          activeOpacity={1}
-          onPress={() => setViewingPhotoUrl(null)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.photoViewerBox}>
-            <View style={styles.photoViewerBar}>
-              <TouchableOpacity style={styles.photoViewerIconBtn} onPress={() => setViewingPhotoUrl(null)} hitSlop={6}>
-                <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2.5} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.photoViewerIconBtn}
-                onPress={() => viewingPhotoUrl && downloadPhoto(viewingPhotoUrl)}
-                disabled={downloadingPhoto}
-                hitSlop={6}
-              >
-                {downloadingPhoto ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Icon name="download" size={18} color="#FFFFFF" />
-                )}
-              </TouchableOpacity>
-            </View>
-            {viewingPhotoUrl && (
-              <Image source={{ uri: viewingPhotoUrl }} style={styles.photoViewerBoxImage} resizeMode="contain" />
-            )}
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+      {/* Galeride bir fotografa ya da avatara basinca acilan ortak tam ekran
+          gorunumu (bkz. components/PhotoViewerModal.tsx) - Oda/DM sohbetindeki
+          ChatImageBubble ile AYNI bilesen. */}
+      <PhotoViewerModal uri={viewingPhotoUrl} onClose={() => setViewingPhotoUrl(null)} />
     </View>
   );
 }
@@ -1122,34 +1052,6 @@ const styles = StyleSheet.create({
   galleryRow: { gap: 10 },
   galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
   galleryThumbImage: { width: "100%", height: "100%" },
-  photoViewerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)", justifyContent: "flex-end" },
-  photoViewerBox: {
-    width: "100%",
-    height: "70%",
-    backgroundColor: "#121212",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: "hidden",
-  },
-  photoViewerBar: {
-    height: 64,
-    flexGrow: 0,
-    flexShrink: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    backgroundColor: "#121212",
-  },
-  photoViewerBoxImage: { flex: 1, width: "100%" },
-  photoViewerIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#1E1E1E",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   emptyHistoryText: { color: MUTED, fontSize: 12, marginBottom: 24 },
   fullDivider: { height: 1, backgroundColor: "#1C1C1C", marginHorizontal: -16 },
   statsBlock: {
