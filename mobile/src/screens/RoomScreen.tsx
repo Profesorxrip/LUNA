@@ -49,6 +49,7 @@ import Icon, { IconName } from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import { isHideLocationEnabled } from "../utils/locationSettings";
 import { isMuteOnOtherAudioEnabled, setMuteOnOtherAudioEnabled } from "../utils/audioSettings";
+import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
 import { useVoiceChat } from "../hooks/useVoiceChat";
 import { theme } from "../theme";
@@ -1250,7 +1251,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         return false;
       }
       for (const img of pendingImages) {
-        const arrayBuffer = await fetch(img.uri).then((res) => res.arrayBuffer());
+        const arrayBuffer = await uriToArrayBuffer(img.uri);
         const ext = img.uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
         const contentType = ext === "png" ? "image/png" : "image/jpeg";
         const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;

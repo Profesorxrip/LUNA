@@ -18,6 +18,7 @@ import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import SendMediaSheet from "../components/SendMediaSheet";
+import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import ChatImageBubble from "../components/ChatImageBubble";
 
 const EXPIRY_OPTIONS: { label: string; ms: number | null }[] = [
@@ -184,7 +185,7 @@ export default function DMScreen({ peer, onBack }: Props) {
     if (!pendingImageUri || !myUserId) return;
     setUploadingImage(true);
     try {
-      const arrayBuffer = await fetch(pendingImageUri).then((res) => res.arrayBuffer());
+      const arrayBuffer = await uriToArrayBuffer(pendingImageUri);
       const ext = pendingImageUri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
       const contentType = ext === "png" ? "image/png" : "image/jpeg";
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;

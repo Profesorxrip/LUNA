@@ -20,6 +20,7 @@ import Icon, { IconName } from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import CountryFlag from "../components/CountryFlag";
 import RoomCard from "../components/RoomCard";
+import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 
 interface Props {
   own?: boolean;
@@ -360,7 +361,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     if (!userId) return;
     setUploadingAvatar(true);
     try {
-      const arrayBuffer = await fetch(uri).then((res) => res.arrayBuffer());
+      const arrayBuffer = await uriToArrayBuffer(uri);
       const ext = uri.split(".").pop()?.toLowerCase() || "jpg";
       const contentType = ext === "png" ? "image/png" : "image/jpeg";
       const path = `${userId}/avatar.${ext}`;
@@ -410,7 +411,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   async function uploadGalleryPhoto(uri: string) {
     if (!myUserId) return;
     try {
-      const arrayBuffer = await fetch(uri).then((res) => res.arrayBuffer());
+      const arrayBuffer = await uriToArrayBuffer(uri);
       const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
       const contentType = ext === "png" ? "image/png" : "image/jpeg";
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
