@@ -482,13 +482,17 @@ io.on("connection", (socket: Socket) => {
 
     // Ulke bilgisi kritik degil - basarisiz olursa/gecikirse akisi bloklamaz.
     const ip = clientIpFromHandshake(socket.handshake);
+    console.log("[ULKE-TESPIT] GEÇİCİ TEŞHİS - x-forwarded-for:", socket.handshake.headers["x-forwarded-for"], "| handshake.address:", socket.handshake.address, "| kullanilan ip:", ip);
     ensureCountry(myDb, myUserId, ip, lookupCountry)
       .then((country) => {
+        console.log("[ULKE-TESPIT] GEÇİCİ TEŞHİS - sonuc:", country, "(userId:", myUserId, ")");
         myCountry = country;
         const meta = connectionMeta.get(socket.id);
         if (meta) meta.country = country;
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.log("[ULKE-TESPIT] GEÇİCİ TEŞHİS - HATA:", err);
+      });
 
     // Kayitli "Konumu Gizle" tercihini yukle - SADECE kapaliysa (paylasmayi
     // sectiyse) il tespiti (ensureCity) calistirilir, aciksa (varsayilan) il
