@@ -259,13 +259,14 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
                 <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
               </>
             ) : (
-              <View style={styles.ownMessageRow}>
-                <TouchableOpacity
-                  activeOpacity={1}
-                  onPress={handleTap}
-                  onLongPress={onLongPressMessage}
-                  style={styles.ownMessageTextWrap}
-                >
+              <View style={!groupedWithPrev && styles.ownMessageWithBadgeSpace}>
+                {!groupedWithPrev && (
+                  <View style={styles.ownNameBadgeOverlay}>
+                    <Text style={styles.chatMsgOwn}>:</Text>
+                    <Text style={styles.nameBadgeInline}>{item.from}</Text>
+                  </View>
+                )}
+                <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
                   <Text style={styles.chatMsgOwn} selectable={false}>
                     {displayText}
                   </Text>
@@ -275,18 +276,14 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
                     </TouchableOpacity>
                   )}
                 </TouchableOpacity>
-                {!groupedWithPrev && (
-                  <View style={styles.ownNameBadgeRow}>
-                    <Text style={styles.chatMsgOwn}>:</Text>
-                    <Text style={styles.nameBadgeInline}>{item.from}</Text>
-                  </View>
-                )}
               </View>
             )}
             {reactionBadges}
           </View>
-          {!groupedWithPrev && (
+          {!groupedWithPrev ? (
             <ChatAvatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} isFriend={isFriend} isHost={senderIsHost} isModerator={senderIsModerator} />
+          ) : (
+            <View style={styles.avatarSpacer} />
           )}
         </>
       ) : (
@@ -2414,14 +2411,19 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   // Kendi mesajimda rozet, metnin SONUNA tek bir Text icine gomulseydi, uzun
-  // (coklu satira kayan) mesajlarda metnin kaydigi EN ALT satira dusuyordu -
-  // avatar her zaman EN UST satirla hizali oldugu icin bu rozeti avatardan
-  // kopuk, altta birakiyordu. Bunun yerine mesaj govdesi ile rozet YAN YANA
-  // iki ayri flex eleman: govde (flexShrink ile kendi icinde coklu satira
-  // kayar) + rozet (satirin EN USTUNE, alignItems:"flex-start" ile sabitlenir).
-  ownMessageRow: { flexDirection: "row", alignItems: "flex-start", gap: 4 },
-  ownMessageTextWrap: { flexShrink: 1 },
-  ownNameBadgeRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  // (coklu satira kayan) mesajlarda metnin kaydigi EN ALT satira dusuyordu.
+  // Rozeti govdeyle AYNI satirin flex-elemani yapmak da olmuyor - RN'de CSS
+  // "float" yok, govde o zaman TUM satirlar icin (sadece 1. satir degil)
+  // rozetin genisligi kadar daralip 2+. satirlar rozetin sutununa kadar
+  // UZANMIYORDU (bkz. kullanici geri bildirimi). Cozum: rozeti govdenin
+  // UZERINE, sag-ust kosede MUTLAK konumla bindirmek (govde ustunde rozet
+  // kadar bosluk birakarak CARPISMAYI onluyoruz) - govde o zaman TEK
+  // basina, sutunun TAM genisligini kullanarak satirlara ayriliyor, her
+  // satirin SAG kenari (textAlign:"right") ayni hizada oluyor, ayrica
+  // AYNI mantikla farkli mesajlar arasinda da (rozetli/rozetsiz) sag kenar
+  // hep avatara yapisik oldugu icin birbirine hizali kaliyor.
+  ownMessageWithBadgeSpace: { position: "relative", paddingTop: 22 },
+  ownNameBadgeOverlay: { position: "absolute", top: 0, right: 0, flexDirection: "row", alignItems: "center", gap: 4 },
   // "katildi"/"ayrildi" karti - isim + duz metin AYNI TEK kutunun icinde
   // (bkz. kind==="joined"/"left") - rozet sadece ismi degil butun cumleyi
   // sarmalar.
