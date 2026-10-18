@@ -23,6 +23,11 @@ export interface Participant {
   userId?: string | null;
   avatarUrl?: string | null;
   handle?: string | null;
+  // Sunucu baglanirken IP'den (ya da kayitli profilden) belirliyor - bkz.
+  // server/src/geoip.ts. RoomParticipantDetail'deki (RoomPreviewScreen.tsx)
+  // AYNI alan, ama buraya (canli oda - ParticipantsModal.tsx) hic
+  // eklenmemisti, bu yuzden sunucu gonderiyor olsa bile hic gosterilmiyordu.
+  country?: string | null;
   // Oda haritasi icin - sadece "Konumu Gizle" kapali olup paylasmayi
   // SECEN katilimcilarda dolu (bkz. RoomMapSheet.tsx).
   location?: { lat: number; lng: number } | null;

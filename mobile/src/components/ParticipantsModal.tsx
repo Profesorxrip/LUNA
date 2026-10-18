@@ -5,6 +5,7 @@ import Avatar from "./Avatar";
 import Icon from "./Icon";
 import CrownBadge from "./CrownBadge";
 import ModeratorBadge from "./ModeratorBadge";
+import CountryFlag from "./CountryFlag";
 import { theme } from "../theme";
 
 interface Props {
@@ -105,6 +106,7 @@ export default function ParticipantsModal({
                       </Text>
                     )}
                   </View>
+                  <CountryFlag country={item.country} size={14} />
                   </TouchableOpacity>
                   {/* Mikrofon durumu - HERKES gorur (kim susturulmus/liderin
                       mikrofonu acik mi bilsin diye). Tiklayip degistirmek ise
