@@ -1078,6 +1078,10 @@ io.on("connection", (socket: Socket) => {
 
   function handleLeave() {
     if (!currentRoomCode) return;
+    // leaveRoom() katilimciyi room.participants'tan SILER - ismi/avatarini
+    // "ayrildi" karti icin SILINMEDEN ONCE alalim (bkz. room:create/room:join
+    // "joined" karti - ayni desen).
+    const leavingParticipant = getRoom(currentRoomCode)?.participants.get(socket.id);
     const { room, newHostId, roomDeleted } = leaveRoom(currentRoomCode, socket.id);
     const code = currentRoomCode;
     currentRoomCode = null;
@@ -1085,6 +1089,17 @@ io.on("connection", (socket: Socket) => {
     if (roomDeleted || !room) {
       clearPollTimer(code);
       return;
+    }
+    if (leavingParticipant) {
+      io.to(code).emit("room:chat", {
+        system: true,
+        kind: "left",
+        targetSocketId: socket.id,
+        targetName: leavingParticipant.name || "Misafir",
+        targetAvatarUrl: leavingParticipant.avatarUrl ?? null,
+        text: `${leavingParticipant.name || "Misafir"} odadan ayrildi.`,
+        ts: Date.now(),
+      });
     }
     if (newHostId) {
       io.to(code).emit("room:chat", {

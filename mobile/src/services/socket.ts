@@ -157,15 +157,15 @@ export interface ChatMessage {
   /** "text" her zaman duz bir yedek ozet tasir (bildirim/erisilebilirlik icin) -
    * "kind" verilmisse istemci asagidaki alanlarla Rave'deki gibi zengin
    * (ikonlu, kalin isimli) bir sistem mesaji ciziyor. */
-  kind?: "nowPlaying" | "kicked" | "settings" | "joined";
+  kind?: "nowPlaying" | "kicked" | "settings" | "joined" | "left";
   title?: string; // nowPlaying
   // nowPlaying - buyuk ikon/aciklama secimi icin (bkz. RoomScreen.tsx
   // NOW_PLAYING_META) - "picked"/"previous" kisiye ozel (byName dolu),
   // "vote"/"queue"/"autoplay" sistem kaynakli (byName yok).
   nowPlayingReason?: "picked" | "previous" | "vote" | "queue" | "autoplay";
-  targetName?: string; // kicked, joined
-  targetAvatarUrl?: string | null; // joined
-  // joined - bu "katildi" karti BENIMLE mi ilgili (kendi katilma anim) -
+  targetName?: string; // kicked, joined, left
+  targetAvatarUrl?: string | null; // joined, left
+  // joined/left - bu kart BENIMLE mi ilgili (kendi katilma/ayrilma anim) -
   // oyleyse RoomScreen.tsx karti saga, ChatBubbleRow'daki kendi mesaj
   // balonlarimla AYNI hizaya yaslar.
   targetSocketId?: string;

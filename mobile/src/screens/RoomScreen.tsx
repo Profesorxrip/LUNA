@@ -250,6 +250,11 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
       {isOwn ? (
         <>
           <View style={styles.messageTextCol}>
+            {!groupedWithPrev && (
+              <View style={[styles.nameBadge, styles.nameBadgeOwn]}>
+                <Text style={styles.nameBadgeText}>{item.from}</Text>
+              </View>
+            )}
             {replyQuote}
             {item.mediaUrl ? (
               <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
@@ -279,16 +284,17 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
             <View style={styles.avatarSpacer} />
           )}
           <View style={styles.messageTextCol}>
+            {!groupedWithPrev && (
+              <View style={styles.nameBadge}>
+                <Text style={styles.nameBadgeText}>{item.from}</Text>
+              </View>
+            )}
             {replyQuote}
             {item.mediaUrl ? (
-              <>
-                {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}</Text>}
-                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
-              </>
+              <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
             ) : (
               <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
                 <Text style={styles.chatMsg} selectable={false}>
-                  {!groupedWithPrev && <Text style={styles.chatFrom}>{item.from}: </Text>}
                   {displayText}
                 </Text>
                 {translation && (
@@ -1851,20 +1857,24 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               senderIsModerator={Boolean(sender?.isModerator)}
               onReactWithEmoji={(emoji) => reactToMessageWithEmoji(item, emoji)}
             />
-          ) : item.kind === "joined" ? (
+          ) : item.kind === "joined" || item.kind === "left" ? (
             (() => {
-              const isOwnJoin = item.targetSocketId === socket.id;
+              const isOwnEvent = item.targetSocketId === socket.id;
+              const suffix = item.kind === "joined" ? "odaya katıldı" : "odadan ayrıldı";
               const textCol = (
                 <View style={styles.messageTextCol}>
-                  <Text style={styles.chatMsg}>
-                    <Text style={styles.chatFrom}>{item.targetName}</Text> odaya katıldı
-                  </Text>
+                  <View style={[styles.joinLeaveLine, isOwnEvent && { justifyContent: "flex-end" }]}>
+                    <View style={[styles.nameBadge, isOwnEvent && styles.nameBadgeOwn, { marginBottom: 0 }]}>
+                      <Text style={styles.nameBadgeText}>{item.targetName}</Text>
+                    </View>
+                    <Text style={styles.chatMsg}>{suffix}</Text>
+                  </View>
                 </View>
               );
               const avatar = <Avatar name={item.targetName || "?"} avatarUrl={item.targetAvatarUrl} size={32} />;
               return (
-                <View style={isOwnJoin ? styles.messageRowOwn : styles.messageRow}>
-                  {isOwnJoin ? (
+                <View style={isOwnEvent ? styles.messageRowOwn : styles.messageRow}>
+                  {isOwnEvent ? (
                     <>
                       {textCol}
                       {avatar}
@@ -2370,6 +2380,24 @@ const styles = StyleSheet.create({
   },
   reactionBadgeEmoji: { fontSize: 17 },
   chatFrom: { color: theme.text, fontSize: 14, fontWeight: "700" },
+  // Gonderici ismini mesaj metninden ayirip kucuk bir rozetin icine alir -
+  // hem normal sohbet balonlarinin ustunde hem "katildi"/"ayrildi"
+  // kartlarinda AYNI gorunum (bkz. ChatBubbleRow, kind==="joined"/"left").
+  nameBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: theme.surfaceAlt,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    marginBottom: 3,
+  },
+  nameBadgeOwn: { alignSelf: "flex-end" },
+  nameBadgeText: { color: theme.text, fontSize: 12, fontWeight: "700" },
+  // "katildi"/"ayrildi" kartlarinda rozet + duz metni AYNI satirda yan yana
+  // tutan sarmalayici (bkz. kind==="joined"/"left").
+  joinLeaveLine: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5 },
   translatedHint: { color: theme.accentBright, fontSize: 10, fontWeight: "600", marginTop: 2 },
   systemMsg: { color: theme.textMuted, fontSize: 12, fontStyle: "italic", textAlign: "center" },
   // Mesaji kaydirirken (reply) beliren kucuk ok ikonu - satirin disina,
