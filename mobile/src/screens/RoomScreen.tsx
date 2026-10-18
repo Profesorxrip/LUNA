@@ -2020,7 +2020,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       <Modal visible={inviteFriendsVisible} animationType="slide" onRequestClose={() => setInviteFriendsVisible(false)} statusBarTranslucent>
         <FriendsScreen
           onBack={() => setInviteFriendsVisible(false)}
-          onOpenSettings={() => {}}
           onOpenDM={() => {}}
           onOpenParticipant={() => {}}
           inviteMode

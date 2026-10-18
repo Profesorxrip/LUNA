@@ -13,7 +13,6 @@ import { DMPeer } from "./DMScreen";
 
 interface Props {
   onBack: () => void;
-  onOpenSettings: () => void;
   onOpenDM: (peer: DMPeer) => void;
   onOpenParticipant: (peer: { userId: string; name: string; handle?: string }) => void;
   // Oda icindeki Katilimcilar panelinin davet ikonundan acildiginda true -
@@ -57,7 +56,6 @@ function relativeTime(ts: number): string {
  * "Istekler" butonuyla acilan ayri bir sheet'te (bkz. asagisi). */
 export default function FriendsScreen({
   onBack,
-  onOpenSettings,
   onOpenDM,
   onOpenParticipant,
   inviteMode = false,
@@ -287,40 +285,23 @@ export default function FriendsScreen({
     });
   }
 
-  // "Son Zamanlarda"/"Engellendi" sekmeleri "Arkadaşlar"ın ALT sayfalari gibi
-  // degil, bagimsiz sekmeler ama profil/kapat ikonu ikisi birden gereksiz
-  // kalabalik yapiyordu - bu iki sekmede VE davet modunda (hangi sekmede
-  // olursa olsun - davette "Engellendi" zaten "Paylaş" ile degisiyor) tek
-  // bir sol-ust geri oku yeterli: normalde Discover'a, davet modunda ise
-  // odaya doner (onBack ikisinde de dogru yere baglanmis - bkz. RoomScreen.tsx
-  // Modal onRequestClose'u).
-  const showBackOnly = inviteMode || tab === "recent" || tab === "blocked";
-
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        {showBackOnly ? (
-          // MediaPickerSheet.tsx'teki (platform secim ekrani) "‹ Geri"
-          // okuyla AYNI kalinlik (lucide ChevronLeft, strokeWidth 3) -
-          // Icon.tsx'teki "chevronLeft" (heroicons solid, ince) degil.
-          <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
-            <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.iconTouch} onPress={onOpenSettings} hitSlop={8}>
-            <Icon name="person" size={30} color={TEXT} />
-          </TouchableOpacity>
-        )}
+        {/* Hangi sekmede olunursa olunsun (Arkadaşlar/Son Zamanlarda/
+            Engellendi) VE davet modunda tek bir sol-ust geri oku -
+            MediaPickerSheet.tsx'teki (platform secim ekrani) "‹ Geri"
+            okuyla AYNI kalinlik (lucide ChevronLeft, strokeWidth 3).
+            Normalde Discover'a, davet modunda ise odaya doner (onBack
+            ikisinde de dogru yere baglanmis - bkz. RoomScreen.tsx Modal
+            onRequestClose'u). */}
+        <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
+          <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
+        </TouchableOpacity>
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
-        {showBackOnly ? (
-          // Geri oku zaten solda tek basina ayni isi goruyor, sag taraf bos
-          // kalip logo ortalanmis kaliyor.
-          <View style={styles.iconTouch} />
-        ) : (
-          <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
-            <Icon name="close" size={30} color={TEXT} />
-          </TouchableOpacity>
-        )}
+        {/* Geri oku solda tek basina ayni isi goruyor, sag taraf bos kalip
+            logo ortalanmis kaliyor. */}
+        <View style={styles.iconTouch} />
       </View>
 
       <View style={styles.searchRow}>
