@@ -2550,7 +2550,14 @@ const styles = StyleSheet.create({
   replyBarBody: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
   // replyBar ile AYNI desen - secilen fotograflarin alt barin HEMEN
   // UZERINDE uzanan, yatayda kayan onizleme seridi (bkz. pendingImages).
+  // "height" SABIT verilmezse ScrollView (horizontal olsa bile) native'de
+  // ust flex sutununun TUM kalan dikey alanini kaplayip sohbet ekranini
+  // tamamen oruyordu - bu yuzden yukseklik icerige (34'luk kucuk resim +
+  // dikey bosluklar) gore SABITLENIYOR, flexGrow/flexShrink KAPALI.
   pendingImageBar: {
+    height: 44,
+    flexGrow: 0,
+    flexShrink: 0,
     backgroundColor: theme.surfaceAlt,
     borderTopWidth: 1,
     borderColor: theme.border,
