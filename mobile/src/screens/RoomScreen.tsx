@@ -1852,14 +1852,32 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               onReactWithEmoji={(emoji) => reactToMessageWithEmoji(item, emoji)}
             />
           ) : item.kind === "joined" ? (
-            <View style={styles.messageRow}>
-              <Avatar name={item.targetName || "?"} avatarUrl={item.targetAvatarUrl} size={32} />
-              <View style={styles.messageTextCol}>
-                <Text style={styles.chatMsg}>
-                  <Text style={styles.chatFrom}>{item.targetName}</Text> odaya katıldı
-                </Text>
-              </View>
-            </View>
+            (() => {
+              const isOwnJoin = item.targetSocketId === socket.id;
+              const textCol = (
+                <View style={styles.messageTextCol}>
+                  <Text style={styles.chatMsg}>
+                    <Text style={styles.chatFrom}>{item.targetName}</Text> odaya katıldı
+                  </Text>
+                </View>
+              );
+              const avatar = <Avatar name={item.targetName || "?"} avatarUrl={item.targetAvatarUrl} size={32} />;
+              return (
+                <View style={isOwnJoin ? styles.messageRowOwn : styles.messageRow}>
+                  {isOwnJoin ? (
+                    <>
+                      {textCol}
+                      {avatar}
+                    </>
+                  ) : (
+                    <>
+                      {avatar}
+                      {textCol}
+                    </>
+                  )}
+                </View>
+              );
+            })()
           ) : item.kind === "nowPlaying" ? (
             (() => {
               const meta = NOW_PLAYING_META[item.nowPlayingReason || "picked"];

@@ -165,6 +165,10 @@ export interface ChatMessage {
   nowPlayingReason?: "picked" | "previous" | "vote" | "queue" | "autoplay";
   targetName?: string; // kicked, joined
   targetAvatarUrl?: string | null; // joined
+  // joined - bu "katildi" karti BENIMLE mi ilgili (kendi katilma anim) -
+  // oyleyse RoomScreen.tsx karti saga, ChatBubbleRow'daki kendi mesaj
+  // balonlarimla AYNI hizaya yaslar.
+  targetSocketId?: string;
   byName?: string; // kicked, settings, nowPlaying
   byAvatarUrl?: string | null; // settings, nowPlaying
   settingLabel?: string; // settings - orn. "Gizlilik"

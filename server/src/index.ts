@@ -934,6 +934,7 @@ io.on("connection", (socket: Socket) => {
       io.to(room.code).emit("room:chat", {
         system: true,
         kind: "joined",
+        targetSocketId: socket.id,
         targetName: name || myName || "Host",
         targetAvatarUrl: hostProfile?.avatarUrl ?? null,
         text: `${name || myName || "Host"} odaya katildi.`,
@@ -1048,6 +1049,7 @@ io.on("connection", (socket: Socket) => {
     io.to(room.code).emit("room:chat", {
       system: true,
       kind: "joined",
+      targetSocketId: socket.id,
       targetName: name || "Misafir",
       targetAvatarUrl: joinAvatarUrl,
       text: `${name || "Misafir"} odaya katildi.`,
