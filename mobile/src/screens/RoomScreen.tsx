@@ -259,18 +259,29 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
                 <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
               </>
             ) : (
-              <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
-                <Text style={styles.chatMsgOwn} selectable={false}>
-                  {displayText}
-                  {!groupedWithPrev ? " :" : ""}
-                  {!groupedWithPrev && <Text style={styles.nameBadgeInline}>{item.from}</Text>}
-                </Text>
-                {translation && (
-                  <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
-                    <Text style={styles.translatedHint}>{showOriginal ? "Çeviriyi gör" : "Orijinalini gör"}</Text>
-                  </TouchableOpacity>
+              <View style={styles.ownMessageRow}>
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={handleTap}
+                  onLongPress={onLongPressMessage}
+                  style={styles.ownMessageTextWrap}
+                >
+                  <Text style={styles.chatMsgOwn} selectable={false}>
+                    {displayText}
+                  </Text>
+                  {translation && (
+                    <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
+                      <Text style={styles.translatedHint}>{showOriginal ? "Çeviriyi gör" : "Orijinalini gör"}</Text>
+                    </TouchableOpacity>
+                  )}
+                </TouchableOpacity>
+                {!groupedWithPrev && (
+                  <View style={styles.ownNameBadgeRow}>
+                    <Text style={styles.chatMsgOwn}>:</Text>
+                    <Text style={styles.nameBadgeInline}>{item.from}</Text>
+                  </View>
                 )}
-              </TouchableOpacity>
+              </View>
             )}
             {reactionBadges}
           </View>
@@ -2402,6 +2413,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
+  // Kendi mesajimda rozet, metnin SONUNA tek bir Text icine gomulseydi, uzun
+  // (coklu satira kayan) mesajlarda metnin kaydigi EN ALT satira dusuyordu -
+  // avatar her zaman EN UST satirla hizali oldugu icin bu rozeti avatardan
+  // kopuk, altta birakiyordu. Bunun yerine mesaj govdesi ile rozet YAN YANA
+  // iki ayri flex eleman: govde (flexShrink ile kendi icinde coklu satira
+  // kayar) + rozet (satirin EN USTUNE, alignItems:"flex-start" ile sabitlenir).
+  ownMessageRow: { flexDirection: "row", alignItems: "flex-start", gap: 4 },
+  ownMessageTextWrap: { flexShrink: 1 },
+  ownNameBadgeRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   // "katildi"/"ayrildi" karti - isim + duz metin AYNI TEK kutunun icinde
   // (bkz. kind==="joined"/"left") - rozet sadece ismi degil butun cumleyi
   // sarmalar.
