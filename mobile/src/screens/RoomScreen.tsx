@@ -1232,15 +1232,22 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // iletilir. "+18 icerik" isareti artik BURADA elle belirlenmiyor - sunucu
   // fotografi indirip nsfwjs ile kendisi siniflandiriyor (bkz.
   // server/src/nsfwDetector.ts).
-  async function sendPickedImages() {
-    if (pendingImages.length === 0) return;
+  // Fotograflari SIRAYLA yukleyip gonderir - her biri icin sunucunun
+  // yayinlamayi BITIRDIGINE dair ack'ini bekliyoruz (bkz. server/src/index.ts
+  // chat:sendImage) ki hem fotograflar birbirleri arasinda dogru sirada
+  // gorunsun, hem de ayni anda yazilmis bir metin varsa (bkz.
+  // sendPendingImagesAndText) o metin fotograflardan SONRA cikabilsin.
+  // Basari/basarisizlik donduruyor ki metin, fotograflar BASARIYLA
+  // gonderilmeden gonderilmesin.
+  async function sendPickedImages(): Promise<boolean> {
+    if (pendingImages.length === 0) return true;
     setUploadingImage(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       if (!userId) {
         showAlert("Giriş gerekli", "Fotoğraf göndermek için giriş yapmış olman gerekiyor.");
-        return;
+        return false;
       }
       for (const img of pendingImages) {
         const arrayBuffer = await fetch(img.uri).then((res) => res.arrayBuffer());
@@ -1251,14 +1258,24 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         const { error: uploadError } = await supabase.storage.from("chat-media").upload(path, arrayBuffer, { contentType });
         if (uploadError) throw uploadError;
         const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
-        socket.emit("chat:sendImage", { mediaUrl: publicUrlData.publicUrl });
+        await new Promise<void>((resolve) => socket.emit("chat:sendImage", { mediaUrl: publicUrlData.publicUrl }, resolve));
       }
       setPendingImages([]);
+      return true;
     } catch (err: any) {
       showAlert("Gönderilemedi", err?.message || "Fotoğraf gönderilirken bir hata oluştu, tekrar dene.");
+      return false;
     } finally {
       setUploadingImage(false);
     }
+  }
+
+  // Alt bardaki gonder okuna, bekleyen fotograf(lar) VARKEN basilirsa cagrilir
+  // - mesaj kutusunda yazi da yazilmissa onu fotograflardan HEMEN SONRA
+  // gonderir (sohbette ustte fotograf(lar), altta yazi seklinde gorunur).
+  async function sendPendingImagesAndText() {
+    const ok = await sendPickedImages();
+    if (ok) sendChat();
   }
 
   // Oda haritasi - react-native-maps YERINE WebView+Leaflet kullaniyoruz
@@ -2054,7 +2071,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
           // Bekleyen fotograf(lar) varsa gonder oku METNI DEGIL onlari yollar.
           <TouchableOpacity
             style={styles.iconTouchSm}
-            onPress={() => sendPickedImages()}
+            onPress={() => sendPendingImagesAndText()}
             hitSlop={4}
             disabled={uploadingImage}
           >

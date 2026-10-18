@@ -1526,10 +1526,13 @@ io.on("connection", (socket: Socket) => {
   // "+18 icerik" isareti artik kullanicinin kendi beyanina DEGIL, fotografin
   // kendisinden nsfwjs ile OTOMATIK tespitine dayaniyor (bkz. nsfwDetector.ts)
   // - bu yuzden mesaj, indirip siniflandirma bitene kadar KUCUK bir gecikmeyle
-  // gonderiliyor.
-  socket.on("chat:sendImage", async ({ mediaUrl }: { mediaUrl: string }) => {
-    if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000)) return;
-    if (!allow("chat:send", 20, 10_000)) return;
+  // gonderiliyor. Ack, fotograf(lar) SEÇIliyken ayni anda yazi da gonderilmis
+  // olursa (bkz. RoomScreen.tsx sendPendingImagesAndText) istemcinin "once
+  // fotograf, SONRA yazi" sirasini garanti edebilmesi icin var - yazi, bu
+  // ack gelmeden gonderilmiyor.
+  socket.on("chat:sendImage", async ({ mediaUrl }: { mediaUrl: string }, ack) => {
+    if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000)) return ack?.();
+    if (!allow("chat:send", 20, 10_000)) return ack?.();
     const code = currentRoomCode;
     const participant = getRoom(code)?.participants.get(socket.id);
     const fromName = participant?.name || "?";
@@ -1542,7 +1545,7 @@ io.on("connection", (socket: Socket) => {
     } catch (err) {
       console.error("fotograf indirilemedi, +18 tespiti atlaniyor:", err);
     }
-    if (!getRoom(code)) return; // siniflandirma surerken oda kapanmis olabilir
+    if (!getRoom(code)) return ack?.(); // siniflandirma surerken oda kapanmis olabilir
     io.to(code).emit("room:chat", {
       id: randomUUID(),
       system: false,
@@ -1554,6 +1557,7 @@ io.on("connection", (socket: Socket) => {
       isAdult,
       ts: Date.now(),
     });
+    ack?.();
   });
 
   // Oda sohbetinde bir mesaja (cift-tiklayarak VEYA bir tepki kartina
