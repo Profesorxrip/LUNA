@@ -369,9 +369,7 @@ export default function DMScreen({ peer, onBack }: Props) {
                 {item.mediaUrl ? (
                   <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
                 ) : (
-                  <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
-                    <Text style={styles.bubbleText}>{item.text}</Text>
-                  </View>
+                  <Text style={[styles.bubbleText, isMine && styles.bubbleTextMine]}>{item.text}</Text>
                 )}
                 {(item.myReaction || item.peerReaction) && (
                   <View style={styles.reactionBadgeRow}>
@@ -583,10 +581,10 @@ const styles = StyleSheet.create({
   },
   replyQuoteFrom: { color: ACCENT, fontSize: 10, fontWeight: "700" },
   replyQuoteText: { color: MUTED, fontSize: 11, marginTop: 1 },
-  bubble: { borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9 },
-  bubbleMine: { backgroundColor: "#1F3D24" },
-  bubbleTheirs: { backgroundColor: "#17130F" },
+  // RoomScreen.tsx'teki balonsuz duz metin sohbetle AYNI - renkli kutu yok,
+  // sadece kendi mesajlarimiz sagdan hizali.
   bubbleText: { color: TEXT, fontSize: 14, lineHeight: 19 },
+  bubbleTextMine: { textAlign: "right" },
   reactionBadgeRow: {
     position: "absolute",
     bottom: -10,
