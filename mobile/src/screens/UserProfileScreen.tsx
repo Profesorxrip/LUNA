@@ -960,9 +960,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 
       {/* Galeride bir fotografa basinca acilan buyutulmus hali - ekranin alt
           %70'ini (tam genislikte) kaplayan bir panel olarak asagidan acilir,
-          karartilmis ust alana dokununca kapanir. Geri ve Indir fotografin
-          USTUNE bindirilmis iki yuvarlak ikon butonu (sol ustte Geri, sag
-          ustte Indir) - bkz. downloadPhoto. */}
+          karartilmis ust alana dokununca kapanir. Geri ve Indir, fotografin
+          USTUNDE AYRI bir bar icinde duruyor (fotografin kendisine binmiyor) -
+          bkz. downloadPhoto. */}
       <Modal
         visible={!!viewingPhotoUrl}
         transparent
@@ -976,28 +976,26 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           onPress={() => setViewingPhotoUrl(null)}
         >
           <TouchableOpacity activeOpacity={1} style={styles.photoViewerBox}>
+            <View style={styles.photoViewerBar}>
+              <TouchableOpacity style={styles.photoViewerIconBtn} onPress={() => setViewingPhotoUrl(null)} hitSlop={6}>
+                <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2.5} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.photoViewerIconBtn}
+                onPress={() => viewingPhotoUrl && downloadPhoto(viewingPhotoUrl)}
+                disabled={downloadingPhoto}
+                hitSlop={6}
+              >
+                {downloadingPhoto ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Icon name="download" size={18} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+            </View>
             {viewingPhotoUrl && (
               <Image source={{ uri: viewingPhotoUrl }} style={styles.photoViewerBoxImage} resizeMode="contain" />
             )}
-            <TouchableOpacity
-              style={[styles.photoViewerIconBtn, styles.photoViewerIconBtnLeft]}
-              onPress={() => setViewingPhotoUrl(null)}
-              hitSlop={6}
-            >
-              <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2.5} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.photoViewerIconBtn, styles.photoViewerIconBtnRight]}
-              onPress={() => viewingPhotoUrl && downloadPhoto(viewingPhotoUrl)}
-              disabled={downloadingPhoto}
-              hitSlop={6}
-            >
-              {downloadingPhoto ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Icon name="download" size={18} color="#FFFFFF" />
-              )}
-            </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -1133,19 +1131,25 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     overflow: "hidden",
   },
-  photoViewerBoxImage: { width: "100%", height: "100%" },
+  photoViewerBar: {
+    height: 64,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    backgroundColor: "#121212",
+  },
+  photoViewerBoxImage: { flex: 1, width: "100%" },
   photoViewerIconBtn: {
-    position: "absolute",
-    top: 16,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "#1E1E1E",
     alignItems: "center",
     justifyContent: "center",
   },
-  photoViewerIconBtnLeft: { left: 16 },
-  photoViewerIconBtnRight: { right: 16 },
   emptyHistoryText: { color: MUTED, fontSize: 12, marginBottom: 24 },
   fullDivider: { height: 1, backgroundColor: "#1C1C1C", marginHorizontal: -16 },
   statsBlock: {
