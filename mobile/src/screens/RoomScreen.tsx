@@ -15,6 +15,7 @@ import {
   Modal,
   Keyboard,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
@@ -164,6 +165,35 @@ function ChatAvatar({ name, avatarUrl, isFriend, isHost, isModerator }: { name: 
         </View>
       )}
     </View>
+  );
+}
+
+/** Gondermeyi bekleyen fotograflardan biri - ustune basinca bir cop kovasi
+ * ikonu belirir, ona basinca o fotograf listeden kaldirilir (bkz.
+ * pendingImages/removePendingImage). */
+function PendingImageThumb({ uri, onRemove, disabled }: { uri: string; onRemove: () => void; disabled: boolean }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => setRevealed((v) => !v)}
+      style={styles.pendingImageThumbWrap}
+      disabled={disabled}
+    >
+      <Image source={{ uri }} style={styles.pendingImageThumb} />
+      {revealed && (
+        <TouchableOpacity
+          style={styles.pendingImageTrashOverlay}
+          onPress={() => {
+            setRevealed(false);
+            onRemove();
+          }}
+          hitSlop={6}
+        >
+          <Icon name="trash" size={18} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -356,7 +386,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   }, []);
   const [replyingTo, setReplyingTo] = useState<DMReply | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  // Gonderilmeyi bekleyen fotograflar - birden fazla secilebilir, her biri
+  // kendi "id"siyle tutulur ki ayni dosya iki kere secilse bile BIRBIRINDEN
+  // AYRI silinebilsin (bkz. PendingImageThumb, removePendingImage).
+  const [pendingImages, setPendingImages] = useState<{ id: string; uri: string }[]>([]);
   const [mapVisible, setMapVisible] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [participantsVisible, setParticipantsVisible] = useState(false);
@@ -1176,18 +1209,31 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       showAlert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
-    if (result.canceled || !result.assets?.[0]) return;
-    setPendingImageUri(result.assets[0].uri);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+      allowsMultipleSelection: true,
+      selectionLimit: 10,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    setPendingImages((prev) => [
+      ...prev,
+      ...result.assets.map((a) => ({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, uri: a.uri })),
+    ]);
+  }
+
+  function removePendingImage(id: string) {
+    setPendingImages((prev) => prev.filter((img) => img.id !== id));
   }
 
   // "chat-media" bucket'ina gonderen kullanicinin KENDI klasorune (avatars/
-  // gallery ile ayni desen, bkz. 0015_chat_media.sql) yukler, ortaya cikan
-  // public URL'i sonra "chat:sendImage" ile odadaki herkese iletilir. "+18
-  // icerik" isareti artik BURADA elle belirlenmiyor - sunucu fotografi
-  // indirip nsfwjs ile kendisi siniflandiriyor (bkz. server/src/nsfwDetector.ts).
-  async function sendPickedImage() {
-    if (!pendingImageUri) return;
+  // gallery ile ayni desen, bkz. 0015_chat_media.sql) TEK TEK yukler, her
+  // birinin public URL'i ayri bir "chat:sendImage" ile odadaki herkese
+  // iletilir. "+18 icerik" isareti artik BURADA elle belirlenmiyor - sunucu
+  // fotografi indirip nsfwjs ile kendisi siniflandiriyor (bkz.
+  // server/src/nsfwDetector.ts).
+  async function sendPickedImages() {
+    if (pendingImages.length === 0) return;
     setUploadingImage(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -1196,16 +1242,18 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         showAlert("Giriş gerekli", "Fotoğraf göndermek için giriş yapmış olman gerekiyor.");
         return;
       }
-      const arrayBuffer = await fetch(pendingImageUri).then((res) => res.arrayBuffer());
-      const ext = pendingImageUri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
-      const contentType = ext === "png" ? "image/png" : "image/jpeg";
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const path = `${userId}/${fileName}`;
-      const { error: uploadError } = await supabase.storage.from("chat-media").upload(path, arrayBuffer, { contentType });
-      if (uploadError) throw uploadError;
-      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
-      socket.emit("chat:sendImage", { mediaUrl: publicUrlData.publicUrl });
-      setPendingImageUri(null);
+      for (const img of pendingImages) {
+        const arrayBuffer = await fetch(img.uri).then((res) => res.arrayBuffer());
+        const ext = img.uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
+        const contentType = ext === "png" ? "image/png" : "image/jpeg";
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const path = `${userId}/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from("chat-media").upload(path, arrayBuffer, { contentType });
+        if (uploadError) throw uploadError;
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        socket.emit("chat:sendImage", { mediaUrl: publicUrlData.publicUrl });
+      }
+      setPendingImages([]);
     } catch (err: any) {
       showAlert("Gönderilemedi", err?.message || "Fotoğraf gönderilirken bir hata oluştu, tekrar dene.");
     } finally {
@@ -1955,20 +2003,25 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         </View>
       )}
 
-      {/* Secilen fotografin onizlemesi - eskiden ayri bir onay modali
+      {/* Secilen fotograflarin onizlemesi - eskiden ayri bir onay modali
           (SendMediaSheet) acardik, simdi replyBar ile AYNI desende alt
-          bari uzatan bir satir: kucuk onizleme + silme (X). "+18 icerik"
-          isareti artik ELLE isaretlenmiyor, sunucu fotografi otomatik
-          siniflandiriyor (bkz. sendPickedImage). Gondermek icin alt
-          bardaki gonder okuna basiliyor. */}
-      {pendingImageUri && (
-        <View style={styles.pendingImageBar}>
-          <Image source={{ uri: pendingImageUri }} style={styles.pendingImageThumb} />
-          <Text style={styles.pendingImageLabel}>Fotoğraf</Text>
-          <TouchableOpacity onPress={() => setPendingImageUri(null)} hitSlop={8} disabled={uploadingImage}>
-            <Icon name="close" size={16} color={theme.textMuted} />
-          </TouchableOpacity>
-        </View>
+          bari uzatan bir satir. Birden fazla fotograf yan yana kayan bir
+          serit olarak durur; silmek icin X YOK - fotografin USTUNE basinca
+          beliren cop kovasina basiliyor (bkz. PendingImageThumb). "+18
+          icerik" isareti artik ELLE isaretlenmiyor, sunucu fotografi
+          otomatik siniflandiriyor (bkz. sendPickedImages). Gondermek icin
+          alt bardaki gonder okuna basiliyor. */}
+      {pendingImages.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.pendingImageBar}
+          contentContainerStyle={styles.pendingImageBarContent}
+        >
+          {pendingImages.map((img) => (
+            <PendingImageThumb key={img.id} uri={img.uri} onRemove={() => removePendingImage(img.id)} disabled={uploadingImage} />
+          ))}
+        </ScrollView>
       )}
 
       {/* Alt bar - mikrofon / mesaj kutusu / etiket / galeri / davet / paylas / gonder (Rave'deki alt bar duzeni) */}
@@ -1997,11 +2050,11 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
           onBlur={() => setChatFocused(false)}
           editable={!me?.chatBanned}
         />
-        {pendingImageUri ? (
-          // Bekleyen bir fotograf varsa gonder oku METNI DEGIL fotografi yollar.
+        {pendingImages.length > 0 ? (
+          // Bekleyen fotograf(lar) varsa gonder oku METNI DEGIL onlari yollar.
           <TouchableOpacity
             style={styles.iconTouchSm}
-            onPress={() => sendPickedImage()}
+            onPress={() => sendPickedImages()}
             hitSlop={4}
             disabled={uploadingImage}
           >
@@ -2478,20 +2531,28 @@ const styles = StyleSheet.create({
   replyBarText: { flex: 1 },
   replyBarFrom: { color: theme.accent, fontSize: 12, fontWeight: "700" },
   replyBarBody: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
-  // replyBar ile AYNI desen - secilen fotografin alt barin HEMEN UZERINDE
-  // uzanan onizleme satiri (bkz. pendingImageUri).
+  // replyBar ile AYNI desen - secilen fotograflarin alt barin HEMEN
+  // UZERINDE uzanan, yatayda kayan onizleme seridi (bkz. pendingImages).
   pendingImageBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
     backgroundColor: theme.surfaceAlt,
     borderTopWidth: 1,
     borderColor: theme.border,
   },
-  pendingImageThumb: { width: 40, height: 40, borderRadius: 8, backgroundColor: theme.surface },
-  pendingImageLabel: { flex: 1, color: theme.text, fontSize: 13, fontWeight: "700" },
+  pendingImageBarContent: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 8 },
+  pendingImageThumbWrap: { width: 48, height: 48, borderRadius: 10, overflow: "hidden", position: "relative" },
+  pendingImageThumb: { width: 48, height: 48, backgroundColor: theme.surface },
+  // Fotografin ustune basilinca beliren cop kovasi katmani - butun
+  // onizlemeyi kaplayan yari saydam bir karartma (bkz. PendingImageThumb).
+  pendingImageTrashOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   eventRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 4 },
   eventText: { color: theme.textMuted, fontSize: 12, flexShrink: 1 },
   eventBold: { color: theme.text, fontWeight: "700" },
