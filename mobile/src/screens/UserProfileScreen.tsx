@@ -1031,7 +1031,11 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   activeRoomCard: { margin: 0, marginTop: 14, marginBottom: 24 },
   sectionHeaderActions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  galleryScroll: { marginTop: 14, marginBottom: 24 },
+  // "height" SABIT verilmezse bu yatay ScrollView, DIKEY ScrollView'in
+  // (sayfanin kendisi) icine ic ice girince native'de SIFIRA YAKIN
+  // yukseklige collapse olup fotograflari GORUNMEZ yapiyordu (bkz.
+  // RoomScreen.tsx pendingImageBar'daki AYNI sinif hata).
+  galleryScroll: { height: 84, flexGrow: 0, flexShrink: 0, marginTop: 14, marginBottom: 24 },
   galleryRow: { gap: 10 },
   galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
   galleryThumbImage: { width: "100%", height: "100%" },
