@@ -11,9 +11,11 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Platform,
 } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import { File, Paths } from "expo-file-system";
 import { supabase } from "../services/supabase";
 import { getSocket, PublicRoomSummary, HistoryItem, MediaSource, SourceType, RoomState } from "../services/socket";
 import Icon, { IconName } from "../components/Icon";
@@ -121,6 +123,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   // Galeride bir fotografa basinca tam ekran buyuk haliyle acilir (bkz.
   // asagidaki Modal, gallery thumb'in onPress'i).
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
+  const [downloadingPhoto, setDownloadingPhoto] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editingField, setEditingField] = useState<"name" | "handle" | "bio" | null>(null);
   const [galleryVisible, setGalleryVisible] = useState(true);
@@ -431,6 +434,39 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       setGalleryPhotos((prev) => [{ id: row.id, url: row.url, createdAt: new Date(row.created_at).getTime() }, ...prev]);
     } catch (err: any) {
       showAlert("Yüklenemedi", err?.message || "Fotoğraf yüklenirken bir hata oluştu, tekrar dene.");
+    }
+  }
+
+  // Buyutulmus foto gorunumundeki "Indir" butonu - web'de expo-file-system
+  // ve expo-media-library desteklenmedigi icin oradaki tarayicinin kendi
+  // indirme davranisina birakiyoruz, native'de ise dosyayi once cache'e
+  // indirip sonra cihazin galerisine kaydediyoruz.
+  async function downloadPhoto(url: string) {
+    if (downloadingPhoto) return;
+    setDownloadingPhoto(true);
+    try {
+      if (Platform.OS === "web") {
+        window.open(url, "_blank");
+        return;
+      }
+      // expo-media-library'nin yeni sinif tabanli API'sinin web karsiligi yok -
+      // modulu PAKETIN KENDISI import edilir edilmez (web'de bile) native
+      // modulu aramaya calisip cokuyordu, bu yuzden sadece native'de calisan
+      // bu dalda DINAMIK import ediyoruz (web dalindan yukarida return ile
+      // cikildigi icin buraya hic ulasilmiyor).
+      const MediaLibrary = await import("expo-media-library");
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        showAlert("İzin gerekli", "Fotoğrafı galerine kaydetmek için fotoğraf iznine ihtiyacımız var.");
+        return;
+      }
+      const downloaded = await File.downloadFileAsync(url, Paths.cache);
+      await MediaLibrary.Asset.create(downloaded.uri);
+      showAlert("Kaydedildi", "Fotoğraf galerine kaydedildi.");
+    } catch (err: any) {
+      showAlert("Kaydedilemedi", err?.message || "Fotoğraf kaydedilirken bir hata oluştu, tekrar dene.");
+    } finally {
+      setDownloadingPhoto(false);
     }
   }
 
@@ -922,8 +958,10 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         </TouchableOpacity>
       </Modal>
 
-      {/* Galeride bir fotografa basinca acilan tam ekran buyutulmus hali -
-          herhangi bir yere (resmin ustune dahil) dokununca kapanir. */}
+      {/* Galeride bir fotografa basinca acilan buyutulmus hali - ekranin
+          disina (karartilmis alana) dokununca kapanir, kutunun kendisine
+          dokunmak kapatmaz. Alt kisimdaki butonlarla geri donulebilir veya
+          fotograf galeriye indirilebilir (bkz. downloadPhoto). */}
       <Modal
         visible={!!viewingPhotoUrl}
         transparent
@@ -936,11 +974,30 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           activeOpacity={1}
           onPress={() => setViewingPhotoUrl(null)}
         >
-          {viewingPhotoUrl && (
-            <Image source={{ uri: viewingPhotoUrl }} style={styles.photoViewerImage} resizeMode="contain" />
-          )}
-          <TouchableOpacity style={styles.photoViewerClose} onPress={() => setViewingPhotoUrl(null)} hitSlop={10}>
-            <Icon name="close" size={22} color="#FFFFFF" />
+          <TouchableOpacity activeOpacity={1} style={styles.photoViewerBox}>
+            {viewingPhotoUrl && (
+              <Image source={{ uri: viewingPhotoUrl }} style={styles.photoViewerBoxImage} resizeMode="contain" />
+            )}
+            <View style={styles.photoViewerButtonRow}>
+              <TouchableOpacity style={styles.photoViewerBtn} onPress={() => setViewingPhotoUrl(null)}>
+                <ChevronLeft size={18} color={TEXT} strokeWidth={2.5} />
+                <Text style={styles.photoViewerBtnText}>Geri</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.photoViewerBtn, styles.photoViewerBtnPrimary]}
+                onPress={() => viewingPhotoUrl && downloadPhoto(viewingPhotoUrl)}
+                disabled={downloadingPhoto}
+              >
+                {downloadingPhoto ? (
+                  <ActivityIndicator color="#04140D" size="small" />
+                ) : (
+                  <>
+                    <Icon name="download" size={16} color="#04140D" />
+                    <Text style={[styles.photoViewerBtnText, styles.photoViewerBtnTextPrimary]}>İndir</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -1068,8 +1125,29 @@ const styles = StyleSheet.create({
   galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
   galleryThumbImage: { width: "100%", height: "100%" },
   photoViewerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)", alignItems: "center", justifyContent: "center" },
-  photoViewerImage: { width: "100%", height: "80%" },
-  photoViewerClose: { position: "absolute", top: 48, right: 20, padding: 8 },
+  photoViewerBox: {
+    width: "88%",
+    height: "70%",
+    backgroundColor: "#121212",
+    borderRadius: 18,
+    overflow: "hidden",
+    padding: 12,
+  },
+  photoViewerBoxImage: { flex: 1, borderRadius: 10 },
+  photoViewerButtonRow: { flexDirection: "row", gap: 10, marginTop: 12 },
+  photoViewerBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#1E1E1E",
+    borderRadius: 10,
+    paddingVertical: 12,
+  },
+  photoViewerBtnPrimary: { backgroundColor: ACCENT },
+  photoViewerBtnText: { color: TEXT, fontSize: 14, fontWeight: "700" },
+  photoViewerBtnTextPrimary: { color: "#04140D" },
   emptyHistoryText: { color: MUTED, fontSize: 12, marginBottom: 24 },
   fullDivider: { height: 1, backgroundColor: "#1C1C1C", marginHorizontal: -16 },
   statsBlock: {

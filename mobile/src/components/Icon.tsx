@@ -31,6 +31,7 @@ import {
   ClipboardDocumentIcon,
   TrashIcon,
   SparklesIcon,
+  ArrowDownTrayIcon,
   GlobeEuropeAfricaIcon,
   LanguageIcon,
 } from "react-native-heroicons/solid";
@@ -103,7 +104,8 @@ export type IconName =
   | "block"
   | "shield"
   | "trash"
-  | "sparkles";
+  | "sparkles"
+  | "download";
 
 interface Props {
   name: IconName;
@@ -132,6 +134,7 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   warning: ExclamationTriangleIcon,
   trash: TrashIcon,
   sparkles: SparklesIcon,
+  download: ArrowDownTrayIcon,
   language: LanguageIcon,
   worldOpen: GlobeEuropeAfricaIcon,
   check: CheckIcon,
