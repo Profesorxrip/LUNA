@@ -42,9 +42,21 @@ export async function lookupCity(ip: string): Promise<string | null> {
   }
 }
 
-// Socket.io handshake'inden gercek istemci IP'sini cikarir - ters proxy
-// arkasindaysa (orn. Render/Heroku) X-Forwarded-For'un ilk adresini kullanir.
+// Socket.io handshake'inden gercek istemci IP'sini cikarir. "cf-connecting-ip"
+// ONCE kontrol edilir - Cloudflare (tunnel dahil) her zaman bu basligi GERCEK
+// istemci IP'siyle ekler, "x-forwarded-for" ise bazi Cloudflare Tunnel
+// surumlerinde/yapilandirmalarinda hic gelmeyebilir ve bu durumda koda
+// handshake.address (tunnel'in sunucuya BAGLANDIGI yerel adres, yani
+// "127.0.0.1") kalirdi - ki bu da lookupCountry tarafindan loopback diye
+// reddedilip ulke HICBIR ZAMAN tespit edilemezdi (bayragin hic gorunmemesinin
+// sebebi buydu, bkz. GEÇİCİ teshis loglari). Ters proxy arkasinda degilse
+// (orn. Render/Heroku gibi dogrudan X-Forwarded-For ekleyen platformlar) o
+// da yedek olarak kontrol edilir.
 export function clientIpFromHandshake(handshake: { address: string; headers: Record<string, unknown> }): string {
+  const cfConnectingIp = handshake.headers["cf-connecting-ip"];
+  if (typeof cfConnectingIp === "string" && cfConnectingIp.trim()) {
+    return cfConnectingIp.trim();
+  }
   const forwarded = handshake.headers["x-forwarded-for"];
   if (typeof forwarded === "string" && forwarded.trim()) {
     return forwarded.split(",")[0].trim();
