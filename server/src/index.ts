@@ -88,6 +88,7 @@ import { logRoomEvent, logLikeEvent } from "./analytics";
 import { registerPushToken, unregisterPushToken, notifyIfOffline, PushPlatform } from "./notifications";
 import { isNonEmptyString, isOptionalString, isBoolean, isFiniteNumber, isOneOf } from "./validate";
 import { translateToLanguages } from "./translate";
+import { isImageAdult, warmUpNsfwModel } from "./nsfwDetector";
 
 const SOURCE_TYPES = ["youtube", "hls", "mp4", "external"] as const;
 // Herkes AYNI mesaja en fazla bu kadar FARKLI emojiyle tepki verebilir
@@ -1522,21 +1523,35 @@ io.on("connection", (socket: Socket) => {
   // Oda sohbetinde GERCEK fotograf gonderme - oda mesajlari hic kalici
   // olmadigi icin (bkz. rooms.ts) burada DB yok, sadece client'in "chat-media"
   // bucket'ina yukledigi public URL'i digerlerine anlik olarak iletiyoruz.
-  socket.on("chat:sendImage", ({ mediaUrl, isAdult }: { mediaUrl: string; isAdult?: boolean }) => {
+  // "+18 icerik" isareti artik kullanicinin kendi beyanina DEGIL, fotografin
+  // kendisinden nsfwjs ile OTOMATIK tespitine dayaniyor (bkz. nsfwDetector.ts)
+  // - bu yuzden mesaj, indirip siniflandirma bitene kadar KUCUK bir gecikmeyle
+  // gonderiliyor.
+  socket.on("chat:sendImage", async ({ mediaUrl }: { mediaUrl: string }) => {
     if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000)) return;
-    if (isAdult !== undefined && !isBoolean(isAdult)) return;
     if (!allow("chat:send", 20, 10_000)) return;
-    const room = getRoom(currentRoomCode);
-    const participant = room?.participants.get(socket.id);
-    io.to(currentRoomCode).emit("room:chat", {
+    const code = currentRoomCode;
+    const participant = getRoom(code)?.participants.get(socket.id);
+    const fromName = participant?.name || "?";
+    const fromAvatarUrl = participant?.avatarUrl ?? null;
+    let isAdult = false;
+    try {
+      const res = await fetch(mediaUrl, { signal: AbortSignal.timeout(10_000) });
+      const buffer = Buffer.from(await res.arrayBuffer());
+      isAdult = await isImageAdult(buffer);
+    } catch (err) {
+      console.error("fotograf indirilemedi, +18 tespiti atlaniyor:", err);
+    }
+    if (!getRoom(code)) return; // siniflandirma surerken oda kapanmis olabilir
+    io.to(code).emit("room:chat", {
       id: randomUUID(),
       system: false,
-      from: participant?.name || "?",
+      from: fromName,
       fromSocketId: socket.id,
-      fromAvatarUrl: participant?.avatarUrl ?? null,
+      fromAvatarUrl,
       text: "📷 Fotoğraf",
       mediaUrl,
-      isAdult: isAdult === true,
+      isAdult,
       ts: Date.now(),
     });
   });
@@ -1768,4 +1783,5 @@ server.listen(PORT, () => {
   if (!isSupabaseConfigured()) {
     console.warn("UYARI: SUPABASE_URL / SUPABASE_ANON_KEY tanimli degil - arkadaslik/DM ozellikleri calismayacak.");
   }
+  warmUpNsfwModel();
 });

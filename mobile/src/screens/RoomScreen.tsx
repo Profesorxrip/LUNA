@@ -357,10 +357,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   const [replyingTo, setReplyingTo] = useState<DMReply | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
-  // Secilen fotografin "+18 icerik" isaretli gonderilip gonderilmeyecegi -
-  // artik ayri bir onay modali (SendMediaSheet) yerine alt bar'in UZANAN
-  // onizleme satirinda kucuk bir anahtar olarak duruyor (bkz. pendingImageBar).
-  const [pendingImageAdult, setPendingImageAdult] = useState(false);
   const [mapVisible, setMapVisible] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [participantsVisible, setParticipantsVisible] = useState(false);
@@ -1182,14 +1178,15 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
     if (result.canceled || !result.assets?.[0]) return;
-    setPendingImageAdult(false);
     setPendingImageUri(result.assets[0].uri);
   }
 
   // "chat-media" bucket'ina gonderen kullanicinin KENDI klasorune (avatars/
   // gallery ile ayni desen, bkz. 0015_chat_media.sql) yukler, ortaya cikan
-  // public URL'i sonra "chat:sendImage" ile odadaki herkese iletilir.
-  async function sendPickedImage(isAdult: boolean) {
+  // public URL'i sonra "chat:sendImage" ile odadaki herkese iletilir. "+18
+  // icerik" isareti artik BURADA elle belirlenmiyor - sunucu fotografi
+  // indirip nsfwjs ile kendisi siniflandiriyor (bkz. server/src/nsfwDetector.ts).
+  async function sendPickedImage() {
     if (!pendingImageUri) return;
     setUploadingImage(true);
     try {
@@ -1207,7 +1204,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       const { error: uploadError } = await supabase.storage.from("chat-media").upload(path, arrayBuffer, { contentType });
       if (uploadError) throw uploadError;
       const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
-      socket.emit("chat:sendImage", { mediaUrl: publicUrlData.publicUrl, isAdult });
+      socket.emit("chat:sendImage", { mediaUrl: publicUrlData.publicUrl });
       setPendingImageUri(null);
     } catch (err: any) {
       showAlert("Gönderilemedi", err?.message || "Fotoğraf gönderilirken bir hata oluştu, tekrar dene.");
@@ -1960,22 +1957,14 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
       {/* Secilen fotografin onizlemesi - eskiden ayri bir onay modali
           (SendMediaSheet) acardik, simdi replyBar ile AYNI desende alt
-          bari uzatan bir satir: kucuk onizleme + "+18" anahtari + silme
-          (X). Gondermek icin alt bardaki gonder okuna basiliyor. */}
+          bari uzatan bir satir: kucuk onizleme + silme (X). "+18 icerik"
+          isareti artik ELLE isaretlenmiyor, sunucu fotografi otomatik
+          siniflandiriyor (bkz. sendPickedImage). Gondermek icin alt
+          bardaki gonder okuna basiliyor. */}
       {pendingImageUri && (
         <View style={styles.pendingImageBar}>
           <Image source={{ uri: pendingImageUri }} style={styles.pendingImageThumb} />
-          <View style={styles.pendingImageInfo}>
-            <Text style={styles.pendingImageLabel}>Fotoğraf</Text>
-            <TouchableOpacity
-              onPress={() => setPendingImageAdult((v) => !v)}
-              style={[styles.adultToggle, pendingImageAdult && styles.adultToggleActive]}
-              hitSlop={4}
-              disabled={uploadingImage}
-            >
-              <Text style={[styles.adultToggleText, pendingImageAdult && styles.adultToggleTextActive]}>+18 içerik</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.pendingImageLabel}>Fotoğraf</Text>
           <TouchableOpacity onPress={() => setPendingImageUri(null)} hitSlop={8} disabled={uploadingImage}>
             <Icon name="close" size={16} color={theme.textMuted} />
           </TouchableOpacity>
@@ -2012,7 +2001,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
           // Bekleyen bir fotograf varsa gonder oku METNI DEGIL fotografi yollar.
           <TouchableOpacity
             style={styles.iconTouchSm}
-            onPress={() => sendPickedImage(pendingImageAdult)}
+            onPress={() => sendPickedImage()}
             hitSlop={4}
             disabled={uploadingImage}
           >
@@ -2502,18 +2491,7 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
   },
   pendingImageThumb: { width: 40, height: 40, borderRadius: 8, backgroundColor: theme.surface },
-  pendingImageInfo: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  pendingImageLabel: { color: theme.text, fontSize: 13, fontWeight: "700" },
-  adultToggle: {
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  adultToggleActive: { backgroundColor: theme.danger, borderColor: theme.danger },
-  adultToggleText: { color: theme.textMuted, fontSize: 11, fontWeight: "700" },
-  adultToggleTextActive: { color: "#FFFFFF" },
+  pendingImageLabel: { flex: 1, color: theme.text, fontSize: 13, fontWeight: "700" },
   eventRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 4 },
   eventText: { color: theme.textMuted, fontSize: 12, flexShrink: 1 },
   eventBold: { color: theme.text, fontWeight: "700" },
