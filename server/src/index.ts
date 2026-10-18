@@ -924,6 +924,31 @@ io.on("connection", (socket: Socket) => {
       socket.join(room.code);
       ack?.({ ok: true, room: roomToPublicState(room) });
       broadcastRoomsList();
+      // room:join'deki "katildi" mesaji ve diger video degisimlerindeki
+      // "nowPlaying" karti ile AYNI - host yeni bir oda actiginda da sohbetin
+      // basinda hem "katildi" hem "simdi X oynatiliyor" kartlari gorunsun diye
+      // (eskiden room:create HICBIR sohbet mesaji GONDERMIYORDU).
+      // source.label BOS olabilir (yukaridaki logRoomEvent uyarisiyla AYNI
+      // sebep) - room.title HER ZAMAN dolu (createRoom icinde garantili).
+      const createTitle = room.title;
+      io.to(room.code).emit("room:chat", {
+        system: true,
+        kind: "joined",
+        targetName: name || myName || "Host",
+        targetAvatarUrl: hostProfile?.avatarUrl ?? null,
+        text: `${name || myName || "Host"} odaya katildi.`,
+        ts: Date.now(),
+      });
+      io.to(room.code).emit("room:chat", {
+        system: true,
+        kind: "nowPlaying",
+        title: createTitle,
+        byName: name || myName || "Host",
+        byAvatarUrl: hostProfile?.avatarUrl ?? null,
+        nowPlayingReason: "picked",
+        text: `Simdi ${createTitle} oynatiliyor`,
+        ts: Date.now(),
+      });
       if (myDb && myUserId)
         // DIKKAT: source.label BOS olabilir (orn. ozel bir URL yapistirilip
         // baslik otomatik tespit edilemediginde) - room.title ise HER ZAMAN
