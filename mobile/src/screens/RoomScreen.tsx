@@ -261,9 +261,9 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
             ) : (
               <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
                 <Text style={styles.chatMsgOwn} selectable={false}>
-                  {!groupedWithPrev && <Text style={styles.nameBadgeInline}>{item.from}</Text>}
-                  {!groupedWithPrev ? " " : ""}
                   {displayText}
+                  {!groupedWithPrev ? " " : ""}
+                  {!groupedWithPrev && <Text style={styles.nameBadgeInline}>{item.from}</Text>}
                 </Text>
                 {translation && (
                   <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
