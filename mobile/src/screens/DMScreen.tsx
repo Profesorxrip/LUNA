@@ -537,7 +537,10 @@ const styles = StyleSheet.create({
   headerName: { color: TEXT, fontSize: 16, fontWeight: "700" },
   headerHandle: { color: MUTED, fontSize: 11, marginTop: 1 },
   listContent: { padding: 16, gap: 10 },
-  messageRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, maxWidth: "100%" },
+  // "flex-start" (en ustten hizali) - "flex-end" iken fotograf gibi uzun
+  // balonlarda gonderici avatari balonun ALT ucuna kayiyordu, oysa UST ucuyla
+  // hizali olmali (bkz. RoomScreen.tsx messageRow'daki AYNI tercih).
+  messageRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, maxWidth: "100%" },
   messageRowMine: { justifyContent: "flex-end" },
   messageRowTheirs: { justifyContent: "flex-start" },
   avatarSmall: {
