@@ -182,7 +182,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       supabase
         .from("profiles")
         .select(
-          "name,handle,bio,avatar_url,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,is_premium"
+          "name,handle,bio,avatar_url,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,is_premium"
         )
         .eq("id", userId)
         .maybeSingle()
@@ -192,6 +192,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           if (profile.handle) setHandle(profile.handle);
           setBio(profile.bio || "");
           if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
+          setCountry(profile.country || null);
           if (profile.created_at) setJoinDateMs(new Date(profile.created_at).getTime());
           if (profile.stat_visibility) setStatVisibility(profile.stat_visibility);
           if (profile.gallery_visible !== undefined) setGalleryVisible(profile.gallery_visible !== false);
@@ -630,7 +631,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("handle")}>
               <View style={styles.handleRow}>
                 <Text style={styles.handle}>@{handle}</Text>
-                {!own && <CountryFlag country={country} size={13} />}
+                <CountryFlag country={country} size={13} />
               </View>
             </TouchableOpacity>
           )}
