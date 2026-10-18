@@ -190,7 +190,7 @@ function PendingImageThumb({ uri, onRemove, disabled }: { uri: string; onRemove:
           }}
           hitSlop={6}
         >
-          <Icon name="trash" size={14} color="#FFFFFF" />
+          <Icon name="trash" size={18} color="#FFFFFF" />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -2552,19 +2552,19 @@ const styles = StyleSheet.create({
   // UZERINDE uzanan, yatayda kayan onizleme seridi (bkz. pendingImages).
   // "height" SABIT verilmezse ScrollView (horizontal olsa bile) native'de
   // ust flex sutununun TUM kalan dikey alanini kaplayip sohbet ekranini
-  // tamamen oruyordu - bu yuzden yukseklik icerige (34'luk kucuk resim +
+  // tamamen oruyordu - bu yuzden yukseklik icerige (44'luk kucuk resim +
   // dikey bosluklar) gore SABITLENIYOR, flexGrow/flexShrink KAPALI.
   pendingImageBar: {
-    height: 44,
+    height: 60,
     flexGrow: 0,
     flexShrink: 0,
     backgroundColor: theme.surfaceAlt,
     borderTopWidth: 1,
     borderColor: theme.border,
   },
-  pendingImageBarContent: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 5 },
-  pendingImageThumbWrap: { width: 34, height: 34, borderRadius: 8, overflow: "hidden", position: "relative" },
-  pendingImageThumb: { width: 34, height: 34, backgroundColor: theme.surface },
+  pendingImageBarContent: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  pendingImageThumbWrap: { width: 44, height: 44, borderRadius: 10, overflow: "hidden", position: "relative" },
+  pendingImageThumb: { width: 44, height: 44, backgroundColor: theme.surface },
   // Fotografin ustune basilinca beliren cop kovasi katmani - butun
   // onizlemeyi kaplayan yari saydam bir karartma (bkz. PendingImageThumb).
   pendingImageTrashOverlay: {
