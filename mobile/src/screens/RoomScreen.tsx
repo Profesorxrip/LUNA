@@ -259,24 +259,18 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
                 <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
               </>
             ) : (
-              <View style={!groupedWithPrev && styles.ownMessageWithBadgeSpace}>
-                {!groupedWithPrev && (
-                  <View style={styles.ownNameBadgeOverlay}>
-                    <Text style={styles.chatMsgOwn}>:</Text>
-                    <Text style={styles.nameBadgeInline}>{item.from}</Text>
-                  </View>
+              <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
+                <Text style={styles.chatMsgOwn} selectable={false}>
+                  {!groupedWithPrev && <Text style={styles.nameBadgeInline}>{item.from}</Text>}
+                  {!groupedWithPrev ? ": " : ""}
+                  {displayText}
+                </Text>
+                {translation && (
+                  <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
+                    <Text style={styles.translatedHint}>{showOriginal ? "Çeviriyi gör" : "Orijinalini gör"}</Text>
+                  </TouchableOpacity>
                 )}
-                <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
-                  <Text style={styles.chatMsgOwn} selectable={false}>
-                    {displayText}
-                  </Text>
-                  {translation && (
-                    <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
-                      <Text style={styles.translatedHint}>{showOriginal ? "Çeviriyi gör" : "Orijinalini gör"}</Text>
-                    </TouchableOpacity>
-                  )}
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             )}
             {reactionBadges}
           </View>
@@ -2410,20 +2404,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
-  // Kendi mesajimda rozet, metnin SONUNA tek bir Text icine gomulseydi, uzun
-  // (coklu satira kayan) mesajlarda metnin kaydigi EN ALT satira dusuyordu.
-  // Rozeti govdeyle AYNI satirin flex-elemani yapmak da olmuyor - RN'de CSS
-  // "float" yok, govde o zaman TUM satirlar icin (sadece 1. satir degil)
-  // rozetin genisligi kadar daralip 2+. satirlar rozetin sutununa kadar
-  // UZANMIYORDU (bkz. kullanici geri bildirimi). Cozum: rozeti govdenin
-  // UZERINE, sag-ust kosede MUTLAK konumla bindirmek (govde ustunde rozet
-  // kadar bosluk birakarak CARPISMAYI onluyoruz) - govde o zaman TEK
-  // basina, sutunun TAM genisligini kullanarak satirlara ayriliyor, her
-  // satirin SAG kenari (textAlign:"right") ayni hizada oluyor, ayrica
-  // AYNI mantikla farkli mesajlar arasinda da (rozetli/rozetsiz) sag kenar
-  // hep avatara yapisik oldugu icin birbirine hizali kaliyor.
-  ownMessageWithBadgeSpace: { position: "relative", paddingTop: 22 },
-  ownNameBadgeOverlay: { position: "absolute", top: 0, right: 0, flexDirection: "row", alignItems: "center", gap: 4 },
+  // Kendi mesajimda rozeti govdenin flex-kardesi (yan yana) ya da govdenin
+  // UZERINE mutlak konumla bindirilen ayri bir eleman yapmak iki yoldan da
+  // calismadi: RN'de CSS "float" olmadigi icin govde ya TUM satirlar icin
+  // (sadece 1. satir degil) rozet kadar daralip 2+. satirlar rozetin
+  // sutununa kadar UZANAMIYOR, ya da rozet govdeyle AYNI satirda paylasilinca
+  // (govde daralmadan) 1. satirdaki metinle CAKISIYOR. Tek guvenilir cozum -
+  // "diger kullanici" mesajlarinda zaten calisan AYNI desen: rozet TEK bir
+  // Text'in EN BASINA gomulu nested Text (govde gibi flex kardes/overlay
+  // DEGIL) - boylece govde TEK PARCA olarak kendi icerigine gore (max %88
+  // sinirinda) olculuyor, textAlign:"right" sayesinde HER satirin sag kenari
+  // ayni hizada oluyor, rozet HER ZAMAN ilk satirda, cakisma da yok.
   // "katildi"/"ayrildi" karti - isim + duz metin AYNI TEK kutunun icinde
   // (bkz. kind==="joined"/"left") - rozet sadece ismi degil butun cumleyi
   // sarmalar.
