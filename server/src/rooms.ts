@@ -22,6 +22,11 @@ export interface Participant {
   // Katilim anindaki profil sorgusuyla doldurulur (bkz. avatarUrl) -
   // Katilimcilar panelinde isim altinda @handle gosterebilmek icin.
   handle?: string | null;
+  // Baglanirken IP'den tespit edilen ulke (bkz. index.ts ensureCountry) -
+  // Katilimcilar panelinde (ParticipantsModal.tsx) CountryFlag icin. Daha
+  // once bu alan hic doldurulmuyordu (sadece room:participants - oda
+  // onizlemesi - ayri bir DB sorgusuyla kendi country'sini gonderiyordu).
+  country?: string | null;
   // Oda haritasinda ("Haritayi Goster") gosterilecek GERCEK GPS konumu -
   // SADECE katilimci kendi Ayarlar'indaki "Konumu Gizle"yi KAPATIP
   // paylasmayi secerse dolar (bkz. index.ts "room:location"), hicbir yerde
@@ -222,6 +227,7 @@ export function createRoom(
           userId: hostUserId ?? null,
           avatarUrl: hostAvatarUrl ?? null,
           handle: hostHandle ?? null,
+          country: hostCountry ?? null,
           joinedAtMs: Date.now(),
         },
       ],
@@ -401,7 +407,8 @@ export function joinRoom(
   name: string,
   userId?: string | null,
   avatarUrl?: string | null,
-  handle?: string | null
+  handle?: string | null,
+  country?: string | null
 ): Room | null {
   const room = getRoom(code);
   if (!room) return null;
@@ -413,6 +420,7 @@ export function joinRoom(
     userId: userId ?? null,
     avatarUrl: avatarUrl ?? null,
     handle: handle ?? null,
+    country: country ?? null,
     joinedAtMs: Date.now(),
   });
   return room;

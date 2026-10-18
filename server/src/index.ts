@@ -994,7 +994,7 @@ io.on("connection", (socket: Socket) => {
 
     const joinProfile = myUserId && myDb ? await getPublicProfile(myDb, myUserId) : null;
     const joinAvatarUrl = joinProfile?.avatarUrl ?? null;
-    const room = joinRoom(code, socket.id, name || myName || "Misafir", myUserId, joinAvatarUrl, joinProfile?.handle ?? null);
+    const room = joinRoom(code, socket.id, name || myName || "Misafir", myUserId, joinAvatarUrl, joinProfile?.handle ?? null, myCountry);
     if (!room) {
       ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
       return;
