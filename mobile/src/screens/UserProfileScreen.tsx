@@ -958,10 +958,11 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         </TouchableOpacity>
       </Modal>
 
-      {/* Galeride bir fotografa basinca acilan buyutulmus hali - ekranin
-          disina (karartilmis alana) dokununca kapanir, kutunun kendisine
-          dokunmak kapatmaz. Alt kisimdaki butonlarla geri donulebilir veya
-          fotograf galeriye indirilebilir (bkz. downloadPhoto). */}
+      {/* Galeride bir fotografa basinca acilan buyutulmus hali - ekranin alt
+          %70'ini (tam genislikte) kaplayan bir panel olarak asagidan acilir,
+          karartilmis ust alana dokununca kapanir. Geri ve Indir fotografin
+          USTUNE bindirilmis iki yuvarlak ikon butonu (sol ustte Geri, sag
+          ustte Indir) - bkz. downloadPhoto. */}
       <Modal
         visible={!!viewingPhotoUrl}
         transparent
@@ -978,26 +979,25 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             {viewingPhotoUrl && (
               <Image source={{ uri: viewingPhotoUrl }} style={styles.photoViewerBoxImage} resizeMode="contain" />
             )}
-            <View style={styles.photoViewerButtonRow}>
-              <TouchableOpacity style={styles.photoViewerBtn} onPress={() => setViewingPhotoUrl(null)}>
-                <ChevronLeft size={18} color={TEXT} strokeWidth={2.5} />
-                <Text style={styles.photoViewerBtnText}>Geri</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.photoViewerBtn, styles.photoViewerBtnPrimary]}
-                onPress={() => viewingPhotoUrl && downloadPhoto(viewingPhotoUrl)}
-                disabled={downloadingPhoto}
-              >
-                {downloadingPhoto ? (
-                  <ActivityIndicator color="#04140D" size="small" />
-                ) : (
-                  <>
-                    <Icon name="download" size={16} color="#04140D" />
-                    <Text style={[styles.photoViewerBtnText, styles.photoViewerBtnTextPrimary]}>İndir</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={[styles.photoViewerIconBtn, styles.photoViewerIconBtnLeft]}
+              onPress={() => setViewingPhotoUrl(null)}
+              hitSlop={6}
+            >
+              <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2.5} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.photoViewerIconBtn, styles.photoViewerIconBtnRight]}
+              onPress={() => viewingPhotoUrl && downloadPhoto(viewingPhotoUrl)}
+              disabled={downloadingPhoto}
+              hitSlop={6}
+            >
+              {downloadingPhoto ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Icon name="download" size={18} color="#FFFFFF" />
+              )}
+            </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -1124,30 +1124,28 @@ const styles = StyleSheet.create({
   galleryRow: { gap: 10 },
   galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
   galleryThumbImage: { width: "100%", height: "100%" },
-  photoViewerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)", alignItems: "center", justifyContent: "center" },
+  photoViewerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)", justifyContent: "flex-end" },
   photoViewerBox: {
-    width: "88%",
+    width: "100%",
     height: "70%",
     backgroundColor: "#121212",
-    borderRadius: 18,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     overflow: "hidden",
-    padding: 12,
   },
-  photoViewerBoxImage: { flex: 1, borderRadius: 10 },
-  photoViewerButtonRow: { flexDirection: "row", gap: 10, marginTop: 12 },
-  photoViewerBtn: {
-    flex: 1,
-    flexDirection: "row",
+  photoViewerBoxImage: { width: "100%", height: "100%" },
+  photoViewerIconBtn: {
+    position: "absolute",
+    top: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.55)",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    backgroundColor: "#1E1E1E",
-    borderRadius: 10,
-    paddingVertical: 12,
   },
-  photoViewerBtnPrimary: { backgroundColor: ACCENT },
-  photoViewerBtnText: { color: TEXT, fontSize: 14, fontWeight: "700" },
-  photoViewerBtnTextPrimary: { color: "#04140D" },
+  photoViewerIconBtnLeft: { left: 16 },
+  photoViewerIconBtnRight: { right: 16 },
   emptyHistoryText: { color: MUTED, fontSize: 12, marginBottom: 24 },
   fullDivider: { height: 1, backgroundColor: "#1C1C1C", marginHorizontal: -16 },
   statsBlock: {
