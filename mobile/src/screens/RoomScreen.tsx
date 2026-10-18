@@ -190,7 +190,7 @@ function PendingImageThumb({ uri, onRemove, disabled }: { uri: string; onRemove:
           }}
           hitSlop={6}
         >
-          <Icon name="trash" size={18} color="#FFFFFF" />
+          <Icon name="trash" size={22} color="#FFFFFF" />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -2555,16 +2555,16 @@ const styles = StyleSheet.create({
   // tamamen oruyordu - bu yuzden yukseklik icerige (44'luk kucuk resim +
   // dikey bosluklar) gore SABITLENIYOR, flexGrow/flexShrink KAPALI.
   pendingImageBar: {
-    height: 60,
+    height: 76,
     flexGrow: 0,
     flexShrink: 0,
     backgroundColor: theme.surfaceAlt,
     borderTopWidth: 1,
     borderColor: theme.border,
   },
-  pendingImageBarContent: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  pendingImageThumbWrap: { width: 44, height: 44, borderRadius: 10, overflow: "hidden", position: "relative" },
-  pendingImageThumb: { width: 44, height: 44, backgroundColor: theme.surface },
+  pendingImageBarContent: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  pendingImageThumbWrap: { width: 56, height: 56, borderRadius: 12, overflow: "hidden", position: "relative" },
+  pendingImageThumb: { width: 56, height: 56, backgroundColor: theme.surface },
   // Fotografin ustune basilinca beliren cop kovasi katmani - butun
   // onizlemeyi kaplayan yari saydam bir karartma (bkz. PendingImageThumb).
   pendingImageTrashOverlay: {
