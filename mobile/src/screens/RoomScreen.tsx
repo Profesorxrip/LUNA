@@ -284,17 +284,19 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
             <View style={styles.avatarSpacer} />
           )}
           <View style={styles.messageTextCol}>
-            {!groupedWithPrev && (
-              <View style={styles.nameBadge}>
-                <Text style={styles.nameBadgeText}>{item.from}</Text>
-              </View>
-            )}
             {replyQuote}
             {item.mediaUrl ? (
-              <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
+              <>
+                {!groupedWithPrev && (
+                  <Text style={styles.nameBadgeInline}>{item.from}</Text>
+                )}
+                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
+              </>
             ) : (
               <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
                 <Text style={styles.chatMsg} selectable={false}>
+                  {!groupedWithPrev && <Text style={styles.nameBadgeInline}>{item.from}</Text>}
+                  {!groupedWithPrev ? " " : ""}
                   {displayText}
                 </Text>
                 {translation && (
@@ -1863,11 +1865,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               const suffix = item.kind === "joined" ? "odaya katıldı" : "odadan ayrıldı";
               const textCol = (
                 <View style={styles.messageTextCol}>
-                  <View style={[styles.joinLeaveLine, isOwnEvent && { justifyContent: "flex-end" }]}>
-                    <View style={[styles.nameBadge, isOwnEvent && styles.nameBadgeOwn, { marginBottom: 0 }]}>
-                      <Text style={styles.nameBadgeText}>{item.targetName}</Text>
-                    </View>
-                    <Text style={styles.chatMsg}>{suffix}</Text>
+                  <View style={[styles.joinLeaveBadge, isOwnEvent && styles.nameBadgeOwn]}>
+                    <Text style={styles.joinLeaveBadgeText}>
+                      <Text style={styles.joinLeaveBadgeName}>{item.targetName}</Text> {suffix}
+                    </Text>
                   </View>
                 </View>
               );
@@ -2395,9 +2396,35 @@ const styles = StyleSheet.create({
   },
   nameBadgeOwn: { alignSelf: "flex-end" },
   nameBadgeText: { color: theme.text, fontSize: 12, fontWeight: "700" },
-  // "katildi"/"ayrildi" kartlarinda rozet + duz metni AYNI satirda yan yana
-  // tutan sarmalayici (bkz. kind==="joined"/"left").
-  joinLeaveLine: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5 },
+  // "Diger misafir" sohbet balonlarinda ismi mesajin USTUNE AYRI bir satir
+  // olarak koymak yerine (nameBadge View'i gibi), mesajla AYNI satirda akan
+  // bir Text rozeti - Text ic ice gecebildigi icin satir icinde "akar", View
+  // gibi kendi satirini acip yukarida durmaz (bkz. ChatBubbleRow diger dal).
+  nameBadgeInline: {
+    color: theme.text,
+    fontSize: 12,
+    fontWeight: "700",
+    backgroundColor: theme.surfaceAlt,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  // "katildi"/"ayrildi" karti - isim + duz metin AYNI TEK kutunun icinde
+  // (bkz. kind==="joined"/"left") - rozet sadece ismi degil butun cumleyi
+  // sarmalar.
+  joinLeaveBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: theme.surfaceAlt,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  joinLeaveBadgeText: { color: theme.text, fontSize: 13 },
+  joinLeaveBadgeName: { fontWeight: "700" },
   translatedHint: { color: theme.accentBright, fontSize: 10, fontWeight: "600", marginTop: 2 },
   systemMsg: { color: theme.textMuted, fontSize: 12, fontStyle: "italic", textAlign: "center" },
   // Mesaji kaydirirken (reply) beliren kucuk ok ikonu - satirin disina,
