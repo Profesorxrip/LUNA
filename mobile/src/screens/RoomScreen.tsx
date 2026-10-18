@@ -2062,7 +2062,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
           placeholderTextColor={theme.textMuted}
           value={chatInput}
           onChangeText={setChatInput}
-          onSubmitEditing={sendChat}
+          onSubmitEditing={() => sendPendingImagesAndText()}
           onFocus={() => setChatFocused(true)}
           onBlur={() => setChatFocused(false)}
           editable={!me?.chatBanned}
