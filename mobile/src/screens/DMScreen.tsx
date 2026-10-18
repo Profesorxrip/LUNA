@@ -20,6 +20,7 @@ import LoadingView from "../components/LoadingView";
 import SendMediaSheet from "../components/SendMediaSheet";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import ChatImageBubble from "../components/ChatImageBubble";
+import Avatar from "../components/Avatar";
 
 const EXPIRY_OPTIONS: { label: string; ms: number | null }[] = [
   { label: "Kapalı", ms: null },
@@ -71,6 +72,12 @@ export default function DMScreen({ peer, onBack }: Props) {
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
   // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
+  // Mesaj gecmisi avatar URL'ini TASIMIYOR (dm_messages satirlari sadece
+  // gonderi anindaki isim/metni saklar) - bu yuzden iki tarafin GUNCEL profil
+  // fotografini ayrica, konusma bazinda bir kez cekip her mesajda kullaniyoruz
+  // (RoomScreen.tsx'teki ChatAvatar ile AYNI Avatar bileseni).
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
+  const [peerAvatarUrl, setPeerAvatarUrl] = useState<string | null>(null);
   const lastTapRef = useRef<Record<string, number>>({});
   const listRef = useRef<FlatList<DMMessage>>(null);
   const muteStorageKey = `dm_muted_${peer.userId}`;
@@ -82,11 +89,21 @@ export default function DMScreen({ peer, onBack }: Props) {
       setMyUserId(data.user.id);
       supabase
         .from("profiles")
-        .select("default_reaction_emoji")
+        .select("default_reaction_emoji, avatar_url")
         .eq("id", data.user.id)
         .maybeSingle()
         .then(({ data: profile }) => {
-          if (!cancelled && profile?.default_reaction_emoji) setQuickReactionEmoji(profile.default_reaction_emoji);
+          if (cancelled) return;
+          if (profile?.default_reaction_emoji) setQuickReactionEmoji(profile.default_reaction_emoji);
+          if (profile?.avatar_url) setMyAvatarUrl(profile.avatar_url);
+        });
+      supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", peer.userId)
+        .maybeSingle()
+        .then(({ data: profile }) => {
+          if (!cancelled && profile?.avatar_url) setPeerAvatarUrl(profile.avatar_url);
         });
       socket.emit("dm:open", { withUserId: peer.userId }, (res: any) => {
         if (res?.ok) {
@@ -338,6 +355,44 @@ export default function DMScreen({ peer, onBack }: Props) {
           // bos bir spacer konur, satirlar arasi bosluk da daraltilir.
           const prev = visibleMessages[index - 1];
           const groupedWithPrev = !!prev && prev.fromUserId === item.fromUserId;
+          // RoomScreen.tsx'teki ChatAvatar ile AYNI desen: kendi mesajimizda
+          // avatar SAGDA, karsi tarafinkinde SOLDA - ikisi de gosterilir,
+          // grubun ilkinde GERCEK fotograf (ya da yoksa bas harf), devaminda
+          // bubble hizasini koruyan bos bir spacer.
+          const avatarNode = !groupedWithPrev ? (
+            <Avatar name={isMine ? "Sen" : item.fromName} avatarUrl={isMine ? myAvatarUrl : peerAvatarUrl} size={26} />
+          ) : (
+            <View style={styles.avatarSmallSpacer} />
+          );
+          const bubbleCol = (
+            <View style={styles.bubbleWrap}>
+              {item.replyTo && (
+                <View style={styles.replyQuote}>
+                  <Text style={styles.replyQuoteFrom}>{item.replyTo.fromName}</Text>
+                  <Text style={styles.replyQuoteText} numberOfLines={1}>
+                    {item.replyTo.text}
+                  </Text>
+                </View>
+              )}
+              {item.mediaUrl ? (
+                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
+              ) : (
+                <Text style={[styles.bubbleText, isMine && styles.bubbleTextMine]}>{item.text}</Text>
+              )}
+              {(item.myReaction || item.peerReaction) && (
+                <View style={styles.reactionBadgeRow}>
+                  {item.peerReaction && <Text style={styles.reactionBadgeEmoji}>{item.peerReaction}</Text>}
+                  {item.myReaction && <Text style={styles.reactionBadgeEmoji}>{item.myReaction}</Text>}
+                </View>
+              )}
+              <View style={[styles.metaRow, isMine ? styles.metaRowMine : styles.metaRowTheirs]}>
+                <Text style={styles.metaTime}>
+                  {new Date(item.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                </Text>
+                {isMine && <Text style={[styles.metaTick, seen && styles.metaTickSeen]}>{seen ? "✓✓" : "✓"}</Text>}
+              </View>
+            </View>
+          );
           return (
             <TouchableOpacity
               activeOpacity={0.7}
@@ -349,41 +404,17 @@ export default function DMScreen({ peer, onBack }: Props) {
                 !groupedWithPrev && styles.messageRowNewGroup,
               ]}
             >
-              {!isMine &&
-                (!groupedWithPrev ? (
-                  <View style={styles.avatarSmall}>
-                    <Text style={styles.avatarSmallInitial}>{item.fromName.charAt(0).toUpperCase()}</Text>
-                  </View>
-                ) : (
-                  <View style={styles.avatarSmallSpacer} />
-                ))}
-              <View style={styles.bubbleWrap}>
-                {item.replyTo && (
-                  <View style={styles.replyQuote}>
-                    <Text style={styles.replyQuoteFrom}>{item.replyTo.fromName}</Text>
-                    <Text style={styles.replyQuoteText} numberOfLines={1}>
-                      {item.replyTo.text}
-                    </Text>
-                  </View>
-                )}
-                {item.mediaUrl ? (
-                  <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
-                ) : (
-                  <Text style={[styles.bubbleText, isMine && styles.bubbleTextMine]}>{item.text}</Text>
-                )}
-                {(item.myReaction || item.peerReaction) && (
-                  <View style={styles.reactionBadgeRow}>
-                    {item.peerReaction && <Text style={styles.reactionBadgeEmoji}>{item.peerReaction}</Text>}
-                    {item.myReaction && <Text style={styles.reactionBadgeEmoji}>{item.myReaction}</Text>}
-                  </View>
-                )}
-                <View style={[styles.metaRow, isMine ? styles.metaRowMine : styles.metaRowTheirs]}>
-                  <Text style={styles.metaTime}>
-                    {new Date(item.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
-                  </Text>
-                  {isMine && <Text style={[styles.metaTick, seen && styles.metaTickSeen]}>{seen ? "✓✓" : "✓"}</Text>}
-                </View>
-              </View>
+              {isMine ? (
+                <>
+                  {bubbleCol}
+                  {avatarNode}
+                </>
+              ) : (
+                <>
+                  {avatarNode}
+                  {bubbleCol}
+                </>
+              )}
             </TouchableOpacity>
           );
         }}
@@ -559,15 +590,6 @@ const styles = StyleSheet.create({
   messageRowNewGroup: { marginTop: 8 },
   messageRowMine: { justifyContent: "flex-end" },
   messageRowTheirs: { justifyContent: "flex-start" },
-  avatarSmall: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#3A2F22",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarSmallInitial: { color: ACCENT, fontSize: 11, fontWeight: "700" },
   avatarSmallSpacer: { width: 26 },
   bubbleWrap: { maxWidth: "75%" },
   replyQuote: {
