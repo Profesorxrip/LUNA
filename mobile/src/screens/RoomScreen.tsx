@@ -14,6 +14,7 @@ import {
   useWindowDimensions,
   Modal,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
@@ -35,7 +36,6 @@ import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import VideoSettingsSheet from "../components/VideoSettingsSheet";
 import MessageOptionsSheet from "../components/MessageOptionsSheet";
 import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
-import SendMediaSheet from "../components/SendMediaSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
 import RoomMapSheet from "../components/RoomMapSheet";
 import RoomQuickCards, { PRIVACY_OPTIONS, PLAYBACK_INFO } from "../components/RoomQuickCards";
@@ -357,6 +357,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   const [replyingTo, setReplyingTo] = useState<DMReply | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  // Secilen fotografin "+18 icerik" isaretli gonderilip gonderilmeyecegi -
+  // artik ayri bir onay modali (SendMediaSheet) yerine alt bar'in UZANAN
+  // onizleme satirinda kucuk bir anahtar olarak duruyor (bkz. pendingImageBar).
+  const [pendingImageAdult, setPendingImageAdult] = useState(false);
   const [mapVisible, setMapVisible] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [participantsVisible, setParticipantsVisible] = useState(false);
@@ -1178,6 +1182,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
     if (result.canceled || !result.assets?.[0]) return;
+    setPendingImageAdult(false);
     setPendingImageUri(result.assets[0].uri);
   }
 
@@ -1953,6 +1958,30 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         </View>
       )}
 
+      {/* Secilen fotografin onizlemesi - eskiden ayri bir onay modali
+          (SendMediaSheet) acardik, simdi replyBar ile AYNI desende alt
+          bari uzatan bir satir: kucuk onizleme + "+18" anahtari + silme
+          (X). Gondermek icin alt bardaki gonder okuna basiliyor. */}
+      {pendingImageUri && (
+        <View style={styles.pendingImageBar}>
+          <Image source={{ uri: pendingImageUri }} style={styles.pendingImageThumb} />
+          <View style={styles.pendingImageInfo}>
+            <Text style={styles.pendingImageLabel}>Fotoğraf</Text>
+            <TouchableOpacity
+              onPress={() => setPendingImageAdult((v) => !v)}
+              style={[styles.adultToggle, pendingImageAdult && styles.adultToggleActive]}
+              hitSlop={4}
+              disabled={uploadingImage}
+            >
+              <Text style={[styles.adultToggleText, pendingImageAdult && styles.adultToggleTextActive]}>+18 içerik</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={() => setPendingImageUri(null)} hitSlop={8} disabled={uploadingImage}>
+            <Icon name="close" size={16} color={theme.textMuted} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Alt bar - mikrofon / mesaj kutusu / etiket / galeri / davet / paylas / gonder (Rave'deki alt bar duzeni) */}
       <View style={styles.bottomBar}>
         {!chatFocused && (
@@ -1979,7 +2008,21 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
           onBlur={() => setChatFocused(false)}
           editable={!me?.chatBanned}
         />
-        {chatFocused ? (
+        {pendingImageUri ? (
+          // Bekleyen bir fotograf varsa gonder oku METNI DEGIL fotografi yollar.
+          <TouchableOpacity
+            style={styles.iconTouchSm}
+            onPress={() => sendPickedImage(pendingImageAdult)}
+            hitSlop={4}
+            disabled={uploadingImage}
+          >
+            {uploadingImage ? (
+              <ActivityIndicator color={theme.accentBright} size="small" />
+            ) : (
+              <Icon name="send" size={30} color={theme.accentBright} />
+            )}
+          </TouchableOpacity>
+        ) : chatFocused ? (
           // Yaziyorken: Rave'deki gibi sadece gonder oku gorunur.
           <TouchableOpacity style={styles.iconTouchSm} onPress={sendChat} hitSlop={4}>
             <Icon name="send" size={30} color={theme.accentBright} />
@@ -2009,13 +2052,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onClose={() => setPickerVisible(false)}
         onSelect={selectSource}
         relatedVideosFor={pollRelatedVideoId}
-      />
-      <SendMediaSheet
-        visible={!!pendingImageUri}
-        imageUri={pendingImageUri}
-        uploading={uploadingImage}
-        onCancel={() => setPendingImageUri(null)}
-        onSend={sendPickedImage}
       />
       <RoomMapSheet
         visible={mapVisible}
@@ -2453,6 +2489,31 @@ const styles = StyleSheet.create({
   replyBarText: { flex: 1 },
   replyBarFrom: { color: theme.accent, fontSize: 12, fontWeight: "700" },
   replyBarBody: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
+  // replyBar ile AYNI desen - secilen fotografin alt barin HEMEN UZERINDE
+  // uzanan onizleme satiri (bkz. pendingImageUri).
+  pendingImageBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: theme.surfaceAlt,
+    borderTopWidth: 1,
+    borderColor: theme.border,
+  },
+  pendingImageThumb: { width: 40, height: 40, borderRadius: 8, backgroundColor: theme.surface },
+  pendingImageInfo: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  pendingImageLabel: { color: theme.text, fontSize: 13, fontWeight: "700" },
+  adultToggle: {
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  adultToggleActive: { backgroundColor: theme.danger, borderColor: theme.danger },
+  adultToggleText: { color: theme.textMuted, fontSize: 11, fontWeight: "700" },
+  adultToggleTextActive: { color: "#FFFFFF" },
   eventRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 4 },
   eventText: { color: theme.textMuted, fontSize: 12, flexShrink: 1 },
   eventBold: { color: theme.text, fontWeight: "700" },
