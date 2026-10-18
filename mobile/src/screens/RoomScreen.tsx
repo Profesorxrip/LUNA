@@ -252,17 +252,10 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
           <View style={styles.messageTextCol}>
             {replyQuote}
             {item.mediaUrl ? (
-              <>
-                {!groupedWithPrev && (
-                  <Text style={styles.nameBadgeInline}>{item.from}</Text>
-                )}
-                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
-              </>
+              <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
             ) : (
               <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
                 <Text style={styles.chatMsgOwn} selectable={false}>
-                  {!groupedWithPrev && <Text style={styles.nameBadgeInline}>{item.from}</Text>}
-                  {!groupedWithPrev ? ": " : ""}
                   {displayText}
                 </Text>
                 {translation && (
