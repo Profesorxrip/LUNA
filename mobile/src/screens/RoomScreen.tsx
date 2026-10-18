@@ -250,17 +250,19 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
       {isOwn ? (
         <>
           <View style={styles.messageTextCol}>
-            {!groupedWithPrev && (
-              <View style={[styles.nameBadge, styles.nameBadgeOwn]}>
-                <Text style={styles.nameBadgeText}>{item.from}</Text>
-              </View>
-            )}
             {replyQuote}
             {item.mediaUrl ? (
-              <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
+              <>
+                {!groupedWithPrev && (
+                  <Text style={styles.nameBadgeInline}>{item.from}</Text>
+                )}
+                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
+              </>
             ) : (
               <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
                 <Text style={styles.chatMsgOwn} selectable={false}>
+                  {!groupedWithPrev && <Text style={styles.nameBadgeInline}>{item.from}</Text>}
+                  {!groupedWithPrev ? " " : ""}
                   {displayText}
                 </Text>
                 {translation && (
@@ -2384,22 +2386,11 @@ const styles = StyleSheet.create({
   // Gonderici ismini mesaj metninden ayirip kucuk bir rozetin icine alir -
   // hem normal sohbet balonlarinin ustunde hem "katildi"/"ayrildi"
   // kartlarinda AYNI gorunum (bkz. ChatBubbleRow, kind==="joined"/"left").
-  nameBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: theme.surfaceAlt,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    marginBottom: 3,
-  },
   nameBadgeOwn: { alignSelf: "flex-end" },
-  nameBadgeText: { color: theme.text, fontSize: 12, fontWeight: "700" },
-  // "Diger misafir" sohbet balonlarinda ismi mesajin USTUNE AYRI bir satir
-  // olarak koymak yerine (nameBadge View'i gibi), mesajla AYNI satirda akan
+  // Sohbet balonlarinda (kendi mesajim/diger kisinin mesaji) ismi mesajin
+  // USTUNE AYRI bir satir olarak koymak yerine, mesajla AYNI satirda akan
   // bir Text rozeti - Text ic ice gecebildigi icin satir icinde "akar", View
-  // gibi kendi satirini acip yukarida durmaz (bkz. ChatBubbleRow diger dal).
+  // gibi kendi satirini acip yukarida durmaz (bkz. ChatBubbleRow her iki dal).
   nameBadgeInline: {
     color: theme.text,
     fontSize: 12,
