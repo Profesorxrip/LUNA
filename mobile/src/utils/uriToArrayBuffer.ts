@@ -19,27 +19,5 @@ export async function uriToArrayBuffer(uri: string): Promise<ArrayBuffer> {
     const res = await fetch(uri);
     return res.arrayBuffer();
   }
-  // GEÇİCİ TEŞHİS - gercek cihazlarda yuklenen fotograflarin 14 byte gibi
-  // anlamsiz kucuk boyutlarda gitmesi sorununu izlemek icin. Hem yeni
-  // (File.arrayBuffer) hem eski (fetch) yontemin sonuclarini kiyasliyoruz.
-  console.log("[FOTO-TESHIS] uri:", uri);
-  try {
-    const file = new File(uri);
-    console.log("[FOTO-TESHIS] File.exists:", file.exists, "File.size:", file.size);
-    const buf = await file.arrayBuffer();
-    console.log("[FOTO-TESHIS] File.arrayBuffer() byteLength:", buf.byteLength);
-    if (buf.byteLength > 1000) return buf;
-    console.log("[FOTO-TESHIS] File.arrayBuffer() COK KUCUK, fetch ile deneniyor...");
-  } catch (err) {
-    console.log("[FOTO-TESHIS] File.arrayBuffer() HATA:", err);
-  }
-  try {
-    const res = await fetch(uri);
-    const buf = await res.arrayBuffer();
-    console.log("[FOTO-TESHIS] fetch(uri).arrayBuffer() byteLength:", buf.byteLength);
-    return buf;
-  } catch (err) {
-    console.log("[FOTO-TESHIS] fetch(uri) HATA:", err);
-    throw err;
-  }
+  return new File(uri).arrayBuffer();
 }

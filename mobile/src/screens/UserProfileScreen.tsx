@@ -118,6 +118,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [isOnline, setIsOnline] = useState(own); // kendi profilin her zaman cevrimici
   const [joinDateMs, setJoinDateMs] = useState<number | null>(null);
   const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
+  // Galeride bir fotografa basinca tam ekran buyuk haliyle acilir (bkz.
+  // asagidaki Modal, gallery thumb'in onPress'i).
+  const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editingField, setEditingField] = useState<"name" | "handle" | "bio" | null>(null);
   const [galleryVisible, setGalleryVisible] = useState(true);
@@ -748,7 +751,8 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                   <TouchableOpacity
                     key={photo.id}
                     style={styles.galleryThumb}
-                    activeOpacity={own ? 0.7 : 1}
+                    activeOpacity={0.7}
+                    onPress={() => setViewingPhotoUrl(photo.url)}
                     onLongPress={own ? () => confirmDeleteGalleryPhoto(photo) : undefined}
                   >
                     <Image source={{ uri: photo.url }} style={styles.galleryThumbImage} />
@@ -917,6 +921,29 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* Galeride bir fotografa basinca acilan tam ekran buyutulmus hali -
+          herhangi bir yere (resmin ustune dahil) dokununca kapanir. */}
+      <Modal
+        visible={!!viewingPhotoUrl}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewingPhotoUrl(null)}
+        statusBarTranslucent
+      >
+        <TouchableOpacity
+          style={styles.photoViewerOverlay}
+          activeOpacity={1}
+          onPress={() => setViewingPhotoUrl(null)}
+        >
+          {viewingPhotoUrl && (
+            <Image source={{ uri: viewingPhotoUrl }} style={styles.photoViewerImage} resizeMode="contain" />
+          )}
+          <TouchableOpacity style={styles.photoViewerClose} onPress={() => setViewingPhotoUrl(null)} hitSlop={10}>
+            <Icon name="close" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -1040,6 +1067,9 @@ const styles = StyleSheet.create({
   galleryRow: { gap: 10 },
   galleryThumb: { width: 84, height: 84, borderRadius: 10, overflow: "hidden" },
   galleryThumbImage: { width: "100%", height: "100%" },
+  photoViewerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)", alignItems: "center", justifyContent: "center" },
+  photoViewerImage: { width: "100%", height: "80%" },
+  photoViewerClose: { position: "absolute", top: 48, right: 20, padding: 8 },
   emptyHistoryText: { color: MUTED, fontSize: 12, marginBottom: 24 },
   fullDivider: { height: 1, backgroundColor: "#1C1C1C", marginHorizontal: -16 },
   statsBlock: {
