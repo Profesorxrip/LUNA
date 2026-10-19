@@ -205,8 +205,17 @@ function buildPlayerHtml(initialVideoId: string | null): string {
       if (msg.type === 'setPlaybackRate') player.setPlaybackRate(msg.rate);
       if (msg.type === 'setQuality') player.setPlaybackQuality(msg.quality);
       if (msg.type === 'setSubtitles') {
-        if (msg.enabled) player.loadModule('captions');
-        else player.unloadModule('captions');
+        if (msg.enabled) {
+          // loadModule('captions') SADECE modulu yukler (tracklist
+          // sorgulanabilsin diye, bkz. onReady) - altyazi GORUNMEZ. Gercekten
+          // EKRANDA GOSTERMEK icin setOption('captions','track', {}) GEREKLI
+          // (bos obje = varsayilan/otomatik track'i secer) - bu olmadan
+          // "Altyazilar" anahtari hicbir gorsel etki yapmiyordu.
+          player.loadModule('captions');
+          player.setOption('captions', 'track', {});
+        } else {
+          player.unloadModule('captions');
+        }
       }
       if (msg.type === 'getCurrentTime') {
         window.ReactNativeWebView.postMessage(JSON.stringify({
