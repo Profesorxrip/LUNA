@@ -1733,7 +1733,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                     style={StyleSheet.absoluteFill}
                     resizeMode="cover"
                   />
-                  <View style={[StyleSheet.absoluteFill, styles.pausedCoverTint]} />
                 </View>
               )}
               {syncable && !videoHidden && (
@@ -2288,9 +2287,6 @@ const styles = StyleSheet.create({
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   adultBlurFallbackBg: { backgroundColor: theme.surface },
-  // Video durduruldugunda YouTube'un kendi arayuzunu gizleyen kapak
-  // resminin UZERINDEKI karartma - kontrol ikonlarinin okunurlugu icin.
-  pausedCoverTint: { backgroundColor: "rgba(0,0,0,0.35)" },
   adultBlurHint: {
     position: "absolute",
     top: 0,
