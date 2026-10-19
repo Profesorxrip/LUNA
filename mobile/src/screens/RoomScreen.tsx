@@ -2129,6 +2129,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onMuteParticipant={muteParticipant}
         onLongPressParticipant={openProfileOptions}
         hostMicOpen={room.micOpenToAll}
+        myMicOpen={voice.connected && !voice.muted}
         onToggleOwnMic={handleMicPress}
         topOffset={topBarHeight}
         onShowMap={() => {

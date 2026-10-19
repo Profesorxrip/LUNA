@@ -24,10 +24,20 @@ interface Props {
   // Bir katilimciya BASILI TUTUNCA (bkz. ProfileOptionsSheet.tsx) - Rave'deki
   // gibi Profil/Liderlik/Engelle/Bildir vb. iceren panel acilir.
   onLongPressParticipant: (participant: Participant) => void;
-  // Liderin kendi mikrofonu su an acik mi (bkz. RoomScreen.tsx
-  // room.micOpenToAll) - HERKES gorur, ama tiklayip degistirmek (kendi
-  // mikrofonunu acip kapatmak) SADECE liderin kendisine ozel.
+  // Liderin mikrofonu su an acik mi (bkz. RoomScreen.tsx room.micOpenToAll) -
+  // liderin SATIRINI baskalari gorduklerinde bunu kullanir (rolu ne olursa
+  // olsun HERKES liderin durumunu boyle gorur).
   hostMicOpen: boolean;
+  // KENDI satirimda gosterilecek canli mikrofon durumum - rolum (lider/
+  // moderator/uye) FARK ETMEKSIZIN ayni degeri kullanir (bkz. RoomScreen.tsx
+  // voice.connected && !voice.muted). Lider icin hostMicOpen ile zaten AYNI
+  // deger (lider bunu dogrudan bu formulden yayinlar), ama diger roller icin
+  // tek canli kaynak budur.
+  myMicOpen: boolean;
+  // Kendi mikrofonumu acip/kapatmak - rol FARK ETMEKSIZIN HERKESE ait:
+  // lider/moderator/uye, kendi satirinda HER ZAMAN bunu tetikler (acmak
+  // izne tabi olabilir - bkz. RoomScreen.tsx handleMicPress - ama kapatmak
+  // her zaman serbesttir, o da ayni fonksiyonun icinde yonetiliyor).
   onToggleOwnMic: () => void;
   // Panel ust barin (X/ayarlar/logo/ara/katilimci ikonlarinin oldugu satir)
   // UZERINE binmesin, hemen altindan baslasin diye (bkz. RoomScreen.tsx
@@ -57,6 +67,7 @@ export default function ParticipantsModal({
   onMuteParticipant,
   onLongPressParticipant,
   hostMicOpen,
+  myMicOpen,
   onToggleOwnMic,
   topOffset,
   onShowMap,
@@ -82,6 +93,9 @@ export default function ParticipantsModal({
               // herkesi, moderator ise SADECE baska bir moderator/lider
               // OLMAYAN birini susturabilir.
               const canModerateThisTarget = isHost || (isModerator && !item.isModerator && !item.isHost);
+              // Baskasinin satirindaki ikon - lideriyse hostMicOpen (oda
+              // geneline yayinladigi deger), degilse zorla susturulmamis mi.
+              const otherMicOpen = item.isHost ? hostMicOpen : !item.muted;
               return (
                 <View style={styles.row}>
                   <TouchableOpacity
@@ -120,23 +134,17 @@ export default function ParticipantsModal({
                   <CountryFlag country={item.country} size={14} />
                   </TouchableOpacity>
                   {/* Mikrofon durumu - HERKES gorur (kim susturulmus/liderin
-                      mikrofonu acik mi bilsin diye). Tiklayip degistirmek ise
-                      HER ZAMAN o mikrofonun "sahibine" ozel: liderin kendi
-                      satirinda SADECE lider kendisi degistirebilir (bkz.
-                      RoomScreen.tsx handleMicPress), diger katilimcilarin
-                      satirinda lider VEYA (hedef moderator/lider degilse)
-                      moderator degistirebilir (bkz. server/src/rooms.ts
-                      canModerate/setParticipantMuted - buradaki yetki ayni
-                      kurali kullanir, eskiden SADECE isHost'a bakip
-                      moderatorleri disliyordu). */}
-                  {item.isHost ? (
-                    <TouchableOpacity
-                      style={styles.micBtn}
-                      onPress={() => isSelf && onToggleOwnMic()}
-                      disabled={!isSelf}
-                      hitSlop={8}
-                    >
-                      <Icon name={hostMicOpen ? "mic" : "micOff"} size={20} color={hostMicOpen ? theme.textMuted : theme.danger} />
+                      mikrofonu acik mi bilsin diye). Tiklayip degistirmek:
+                      KENDI satirimda rolum NE OLURSA OLSUN (lider/moderator/
+                      uye) HER ZAMAN kendi mikrofonumu acip kapatirim (bkz.
+                      RoomScreen.tsx handleMicPress - acmak izne tabi
+                      olabilir, kapatmak her zaman serbest). Baskasinin
+                      satirinda ise lider VEYA (hedef moderator/lider
+                      degilse) moderator degistirebilir (bkz.
+                      server/src/rooms.ts canModerate/setParticipantMuted). */}
+                  {isSelf ? (
+                    <TouchableOpacity style={styles.micBtn} onPress={onToggleOwnMic} hitSlop={8}>
+                      <Icon name={myMicOpen ? "mic" : "micOff"} size={20} color={myMicOpen ? theme.textMuted : theme.danger} />
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
@@ -145,7 +153,7 @@ export default function ParticipantsModal({
                       disabled={!canModerateThisTarget}
                       hitSlop={8}
                     >
-                      <Icon name={item.muted ? "micOff" : "mic"} size={20} color={item.muted ? theme.danger : theme.textMuted} />
+                      <Icon name={otherMicOpen ? "mic" : "micOff"} size={20} color={otherMicOpen ? theme.textMuted : theme.danger} />
                     </TouchableOpacity>
                   )}
                 </View>
