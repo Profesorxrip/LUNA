@@ -14,6 +14,12 @@ interface Props {
   participants: Participant[];
   mySocketId?: string;
   isHost: boolean;
+  // Lider olmasam da moderatorsem baskalarinin mikrofonunu susturabilirim
+  // (bkz. rooms.ts canModerate - ProfileOptionsSheet.tsx'teki uzun-basma
+  // menusunde zaten boyle calisiyordu, ama bu satirdaki hizli mikrofon
+  // ikonu eskiden SADECE isHost'a bakip moderatorleri yanlislikla
+  // disliyordu).
+  isModerator: boolean;
   onMuteParticipant: (targetSocketId: string, muted: boolean) => void;
   // Bir katilimciya BASILI TUTUNCA (bkz. ProfileOptionsSheet.tsx) - Rave'deki
   // gibi Profil/Liderlik/Engelle/Bildir vb. iceren panel acilir.
@@ -47,6 +53,7 @@ export default function ParticipantsModal({
   participants,
   mySocketId,
   isHost,
+  isModerator,
   onMuteParticipant,
   onLongPressParticipant,
   hostMicOpen,
@@ -71,6 +78,10 @@ export default function ParticipantsModal({
               keyExtractor={(p) => p.socketId}
               renderItem={({ item }) => {
               const isSelf = item.socketId === mySocketId;
+              // server/src/rooms.ts canModerate ile AYNI kural: lider
+              // herkesi, moderator ise SADECE baska bir moderator/lider
+              // OLMAYAN birini susturabilir.
+              const canModerateThisTarget = isHost || (isModerator && !item.isModerator && !item.isHost);
               return (
                 <View style={styles.row}>
                   <TouchableOpacity
@@ -113,8 +124,11 @@ export default function ParticipantsModal({
                       HER ZAMAN o mikrofonun "sahibine" ozel: liderin kendi
                       satirinda SADECE lider kendisi degistirebilir (bkz.
                       RoomScreen.tsx handleMicPress), diger katilimcilarin
-                      satirinda SADECE lider degistirebilir (bkz.
-                      server/src/rooms.ts setParticipantMuted). */}
+                      satirinda lider VEYA (hedef moderator/lider degilse)
+                      moderator degistirebilir (bkz. server/src/rooms.ts
+                      canModerate/setParticipantMuted - buradaki yetki ayni
+                      kurali kullanir, eskiden SADECE isHost'a bakip
+                      moderatorleri disliyordu). */}
                   {item.isHost ? (
                     <TouchableOpacity
                       style={styles.micBtn}
@@ -127,8 +141,8 @@ export default function ParticipantsModal({
                   ) : (
                     <TouchableOpacity
                       style={styles.micBtn}
-                      onPress={() => isHost && onMuteParticipant(item.socketId, !item.muted)}
-                      disabled={!isHost}
+                      onPress={() => canModerateThisTarget && onMuteParticipant(item.socketId, !item.muted)}
+                      disabled={!canModerateThisTarget}
                       hitSlop={8}
                     >
                       <Icon name={item.muted ? "micOff" : "mic"} size={20} color={item.muted ? theme.danger : theme.textMuted} />

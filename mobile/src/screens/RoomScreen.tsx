@@ -2125,6 +2125,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         participants={room.participants}
         mySocketId={socket.id}
         isHost={isHost}
+        isModerator={isModerator}
         onMuteParticipant={muteParticipant}
         onLongPressParticipant={openProfileOptions}
         hostMicOpen={room.micOpenToAll}

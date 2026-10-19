@@ -1750,7 +1750,7 @@ io.on("connection", (socket: Socket) => {
     const room = getRoom(currentRoomCode);
     if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
     const applied = setParticipantMuted(room, socket.id, targetSocketId, muted);
-    if (!applied) return ack?.({ ok: false, error: "Bu islemi sadece lider yapabilir." });
+    if (!applied) return ack?.({ ok: false, error: "Bu islemi sadece lider/moderator yapabilir." });
     ack?.({ ok: true });
     broadcastRoom(currentRoomCode);
     // Hedefin CANLI LiveKit iznini guncelle - susturuluyorsa HER ZAMAN
