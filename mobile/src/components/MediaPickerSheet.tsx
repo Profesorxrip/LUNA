@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   // kutusunun neredeyse tabanina kadar uzaniyor - kutular alttan hizlansa
   // bile yazi daha asagida GORUNUYORDU (piksel olculdu). marginBottom bunu
   // yukari kaydirip gercek GORSEL tabanlari esitliyor.
-  topBarLogo: { width: 68, height: 30, marginBottom: 5, tintColor: "#FFFFFF" },
+  topBarLogo: { width: 68, height: 30, marginBottom: 10, tintColor: "#FFFFFF" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
