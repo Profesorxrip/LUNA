@@ -602,16 +602,21 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    // "flex-end" (alttan hizali) - ikonlar (iconTouch, 38x38) ile logo
+    // FARKLI yukseklikte (34) oldugu icin "center" ile ortalanirlarsa
+    // gorsel olarak ayni hizada DURMUYORLARDI (bkz. headerLogo).
+    alignItems: "flex-end",
     paddingHorizontal: 18,
     paddingTop: 50,
     paddingBottom: 10,
   },
-  // lavin-icon-mark.png'nin gorsel agirlik merkezi (yildiz susleme + "LUNA"
-  // yazisi) kutunun geometrik ortasinin ~6px altinda - ikonlarla ayni
-  // hizaya gelmesi icin bu kadar yukari kaydiriyoruz (piksel analiziyle
-  // olculdu, tahmini degil).
-  headerLogo: { width: 74, height: 34, marginTop: -6, tintColor: "#FFFFFF" },
+  // header "flex-end" (alttan hizali) - ama ikon GLYPH'leri kendi 38x38
+  // kutusunun icinde tabanindan boslukluyken logo PNG'sindeki "LUNA" yazisi
+  // kendi kutusunun neredeyse tabanina kadar uzaniyor - kutular alttan
+  // hizlansa bile yazi daha asagida GORUNUYORDU (piksel olculdu, ~7-8px,
+  // bkz. DiscoverScreen.tsx headerLogo AYNI olcum). marginBottom bunu
+  // yukari kaydirip gercek GORSEL tabanlari esitliyor.
+  headerLogo: { width: 74, height: 34, marginBottom: 7, tintColor: "#FFFFFF" },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   avatarWrap: { alignItems: "center", marginTop: 24 },
   avatar: {

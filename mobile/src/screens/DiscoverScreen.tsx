@@ -379,17 +379,22 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    // "flex-end" (alttan hizali) - ikonlar (iconTouch, 38x38) ile logo
+    // FARKLI yukseklikte (34) oldugu icin "center" ile ortalanirlarsa
+    // gorsel olarak ayni hizada DURMUYORLARDI (bkz. headerLogo).
+    alignItems: "flex-end",
     paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 12,
   },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
-  // lavin-icon-mark.png'nin gorsel agirlik merkezi (yildiz susleme + "LUNA"
-  // yazisi) kutunun geometrik ortasinin ~6px altinda - ikonlarla ayni
-  // hizaya gelmesi icin bu kadar yukari kaydiriyoruz (piksel analiziyle
-  // olculdu, tahmini degil).
-  headerLogo: { width: 74, height: 34, marginTop: -6, tintColor: "#FFFFFF" },
+  // header "flex-end" (alttan hizali) - ama ikon GLYPH'leri (orn. kisi
+  // silueti) kendi 38x38 kutusunun icinde TABANINDAN BOSLUKLU dururken
+  // logo PNG'sindeki "LUNA" yazisi kendi 34'luk kutusunun NEREDEYSE
+  // TABANINA kadar uzaniyor - bu yuzden kutular alttan hizlansa bile YAZI
+  // ikon glyph'inden daha asagida GORUNUYORDU (piksel olculdu, ~7-8px).
+  // marginBottom bunu yukari kaydirip gercek GORSEL tabanlari esitliyor.
+  headerLogo: { width: 74, height: 34, marginBottom: 7, tintColor: "#FFFFFF" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",

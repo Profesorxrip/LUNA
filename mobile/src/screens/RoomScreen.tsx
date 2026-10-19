@@ -2320,7 +2320,11 @@ const styles = StyleSheet.create({
   adultSkipBtnText: { color: "#FFFFFF", fontWeight: "700", fontSize: 14 },
   topBar: {
     flexDirection: "row",
-    alignItems: "center",
+    // "flex-end" (alttan hizali) - ikonlar (iconTouch/participantsBadge,
+    // 38x38) ile logo FARKLI yukseklikte (34) oldugu icin "center" ile
+    // ortalanirlarsa gorsel olarak ayni hizada DURMUYORLARDI, kullanici
+    // ozellikle alttan hizalanmasini istedi (bkz. logo stilindeki marginTop).
+    alignItems: "flex-end",
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingTop: 50,
@@ -2362,11 +2366,13 @@ const styles = StyleSheet.create({
   actionGroup: { flexDirection: "row", alignItems: "center" },
   iconTouchSm: { width: 30, height: 38, justifyContent: "center", alignItems: "center", flexShrink: 0 },
   topIconDim: { opacity: 0.35 },
-  // lavin-icon-mark.png'nin gorsel agirlik merkezi (yildiz susleme + "LUNA"
-  // yazisi) kutunun geometrik ortasinin ~6px altinda - ikonlarla ayni
-  // hizaya gelmesi icin bu kadar yukari kaydiriyoruz (piksel analiziyle
-  // olculdu, tahmini degil).
-  logo: { width: 74, height: 34, marginTop: -6, tintColor: "#FFFFFF" },
+  // topBar "flex-end" (alttan hizali) - ama ikon GLYPH'leri kendi 38x38
+  // kutusunun icinde tabanindan boslukluyken logo PNG'sindeki "LUNA" yazisi
+  // kendi 34'luk kutusunun neredeyse tabanina kadar uzaniyor - kutular
+  // alttan hizlansa bile yazi ikon glyph'inden daha asagida GORUNUYORDU
+  // (piksel olculdu, ~7-8px, bkz. DiscoverScreen.tsx headerLogo AYNI olcum).
+  // marginBottom bunu yukari kaydirip gercek GORSEL tabanlari esitliyor.
+  logo: { width: 74, height: 34, marginBottom: 7, tintColor: "#FFFFFF" },
   participantsBadge: { position: "relative", width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   countBubble: {
     position: "absolute",

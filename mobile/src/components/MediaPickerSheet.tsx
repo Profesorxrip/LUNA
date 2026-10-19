@@ -350,9 +350,17 @@ const styles = StyleSheet.create({
   // paddingTop statusBarTranslucent nedeniyle inline veriliyor (insets.top +
   // ekstra boşluk) - arama çubuğu durum çubuğunun/çentiğin altında kalmasın.
   screen: { flex: 1, backgroundColor: "#0A0A0C", padding: 20 },
-  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 38, marginBottom: 12 },
+  // "flex-end" (alttan hizali) - geri ikonu (backButton, 38x38) ile logo
+  // FARKLI yukseklikte (30) oldugu icin "center" ile ortalanirlarsa gorsel
+  // olarak ayni hizada DURMUYORLARDI (bkz. topBarLogo).
+  topBar: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 38, marginBottom: 12 },
   backButton: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
-  topBarLogo: { width: 68, height: 30, tintColor: "#FFFFFF" },
+  // topBar "flex-end" (alttan hizali) - ama geri ikonu kendi 38x38 kutusunun
+  // icinde tabanindan boslukluyken logo PNG'sindeki "LUNA" yazisi kendi
+  // kutusunun neredeyse tabanina kadar uzaniyor - kutular alttan hizlansa
+  // bile yazi daha asagida GORUNUYORDU (piksel olculdu). marginBottom bunu
+  // yukari kaydirip gercek GORSEL tabanlari esitliyor.
+  topBarLogo: { width: 68, height: 30, marginBottom: 5, tintColor: "#FFFFFF" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
