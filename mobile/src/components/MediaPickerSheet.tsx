@@ -352,8 +352,14 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0A0A0C", padding: 20 },
   // "flex-end" (alttan hizali) - geri ikonu (backButton, 38x38) ile logo
   // FARKLI yukseklikte (30) oldugu icin "center" ile ortalanirlarsa gorsel
-  // olarak ayni hizada DURMUYORLARDI (bkz. topBarLogo).
-  topBar: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 38, marginBottom: 12 },
+  // olarak ayni hizada DURMUYORLARDI (bkz. topBarLogo). SABIT "height: 38"
+  // KALDIRILDI - logo'nun gorsel tabanini ikonlarla hizalamak icin asagida
+  // eklenen marginBottom, satirin yuksekligini kendi (30+marginBottom)
+  // toplamindan DAHA FAZLA gerektiriyordu, sabit 38'lik yukseklikte bu
+  // tasma/kirpilma riski yaratiyordu (logo kucuk/kirpilmis GORUNEBILIYORDU).
+  // Yukseklik artik en uzun cocuga (en buyuk ihtiyaca) gore KENDILIGINDEN
+  // hesaplaniyor.
+  topBar: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 },
   backButton: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   // topBar "flex-end" (alttan hizali) - ama geri ikonu kendi 38x38 kutusunun
   // icinde tabanindan boslukluyken logo PNG'sindeki "LUNA" yazisi kendi
