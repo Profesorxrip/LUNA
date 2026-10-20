@@ -28,7 +28,40 @@ interface Props {
   relatedVideosFor?: string | null;
 }
 
-type Mode = "grid" | "youtube" | "weburl" | "history" | "liked";
+type Mode = "grid" | "youtube" | "weburl" | "history" | "liked" | "external";
+
+// Netflix/Disney+/Prime/HBO Max gibi DRM'li sitelerin bot/cihaz korumasi
+// varsayilan WebView kimligini reddedebiliyor - masaustu Chrome gibi
+// gorunmek bu ilk engeli asma ihtimalini artirir (bkz. DrmWebViewPlayer.tsx
+// AYNI User-Agent, orada da ayni sebeple var).
+const DESKTOP_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+// DRM'li platformlarda GERCEK bir <video> etiketi belirene kadar (host
+// GERCEKTEN bir seyi oynatmaya baslayana kadar) secim sayilmiyor - bu
+// sayede YouTube'daki gibi, host odaya girmeden ONCE TEK BASINA gezinip
+// izleyecegi seyi bulabiliyor; gezinme/cerez onay ekranlari ODAYA HIC
+// YANSIMIYOR. URL kalibina (orn. "/watch/") GUVENMIYORUZ - her platformun
+// kendi, degisebilen bir deseni var, ama hepsi oynatirken GERCEK bir
+// <video> etiketi olusturur, bu yuzden platform-bagimsiz ve guvenilir.
+const EXTERNAL_VIDEO_DETECT_JS = `
+(function () {
+  if (window.__lunaVideoDetect) return;
+  window.__lunaVideoDetect = true;
+  function check() {
+    if (document.querySelector('video')) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'videoDetected' }));
+      return true;
+    }
+    return false;
+  }
+  if (!check()) {
+    var obs = new MutationObserver(function () { if (check()) obs.disconnect(); });
+    obs.observe(document.documentElement, { childList: true, subtree: true });
+  }
+  true;
+})();
+`;
 
 interface GridItem {
   key: string;
@@ -67,12 +100,17 @@ const ALL_ITEMS: GridItem[] = [
  * Link yapistirma YOK - YouTube secildiginde uygulama icinde GERCEK YouTube
  * gezinilir (WebView), host normal sekilde bir videoya dokunur dokunmaz o
  * videonun basligi otomatik cekilip odanin/kartin ismi olur. Netflix/Prime/
- * Disney+/HBO Max/Twitch gibi DRM'li platformlarda video secimini
- * uygulama icinden GOREMEDIGIMIZ icin (bkz. MediaPlayer.tsx aciklamasi) host
- * ismi kendi yazamaz - platforma dokununca oda dogrudan platformun adiyla
- * acilir, ayrica bir "ne izliyorsun" isim/kapak sorma adimi YOK - bunlarda
- * SENKRON da KURULMAZ, sadece "external" kaynak olarak isaretlenip harici
- * acilir. */
+ * Disney+/HBO Max/Twitch gibi DRM'li platformlarda da AYNI mantik: platforma
+ * dokununca host odaya HENUZ girmeden, TEK BASINA (kimse gormeden) o
+ * platformun GERCEK sitesinde gezinir - cerez onayi/arama/menu gezintisi
+ * odaya hic yansimaz. Host GERCEKTEN bir seyi oynatmaya baslayip bir <video>
+ * etiketi belirince (bkz. EXTERNAL_VIDEO_DETECT_JS - URL kalibina degil,
+ * platform-bagimsiz bu sinyale guveniyoruz) o anki sayfa host'un "secimi"
+ * sayilir, oda o noktadan acilir ve SENKRON (play/pause/saniye) oradan
+ * itibaren kurulur (bkz. DrmWebViewPlayer.tsx). Isim/kapak sorma adimi hala
+ * YOK - DRM'li platformlarda video basligini uygulama icinden GOREMEDIGIMIZ
+ * icin (bkz. MediaPlayer.tsx aciklamasi) oda/kart ismi platformun kendi adi
+ * olarak kalir. */
 export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVideosFor }: Props) {
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>("grid");
@@ -81,6 +119,14 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   const [loadingTitle, setLoadingTitle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const detectedVideoRef = useRef<string | null>(null);
+  // Secilen DRM'li platform (Netflix/Disney+ vb.) - "external" modunda
+  // gezinme WebView'inin hangi adresten baslayacagini ve secim aninda
+  // hangi isimle oda acilacagini belirler.
+  const [externalPlatform, setExternalPlatform] = useState<{ label: string; url: string } | null>(null);
+  // "external" modundaki WebView'in O ANKI adresi - video algilaninca
+  // (EXTERNAL_VIDEO_DETECT_JS) secim olarak bu adres kullanilir, platformun
+  // genel ana sayfasi degil (host navigasyonunu TAKIP eder).
+  const externalCurrentUrlRef = useRef<string | null>(null);
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [likedItems, setLikedItems] = useState<HistoryItem[]>([]);
@@ -113,6 +159,8 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     setLoadingTitle(false);
     setError(null);
     detectedVideoRef.current = null;
+    setExternalPlatform(null);
+    externalCurrentUrlRef.current = null;
   }
 
   function handleClose() {
@@ -123,7 +171,20 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   function handleBack() {
     setError(null);
     detectedVideoRef.current = null;
+    setExternalPlatform(null);
+    externalCurrentUrlRef.current = null;
     setMode("grid");
+  }
+
+  // DRM'li platformun (Netflix/Disney+ vb.) gezinme WebView'inde GERCEK bir
+  // <video> etiketi belirince (bkz. EXTERNAL_VIDEO_DETECT_JS) cagrilir - o an
+  // host'un durdugu sayfa (externalCurrentUrlRef, platformun genel ana
+  // sayfasi DEGIL) secim olarak kullanilir.
+  function handleExternalVideoDetected() {
+    if (!externalPlatform) return;
+    const url = externalCurrentUrlRef.current || externalPlatform.url;
+    onSelect({ type: "external", url, label: externalPlatform.label });
+    handleClose();
   }
 
   // YouTube gezinme WebView'i her URL degisiminde bunu cagirir - "izle"
@@ -142,9 +203,12 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     handleClose();
   }
 
-  // Platforma dokununca isim/kapak sormadan dogrudan oda aciliyor - oda/kart
-  // adi platformun kendi adi oluyor (YouTube disindaki DRM'li platformlarda
-  // uygulama icinden gercek video basligini goremedigimiz icin).
+  // Platforma dokununca YouTube'daki gibi ONCE uygulama ICINDE (odaya
+  // girmeden) o platformun GERCEK sitesinde gezinilir - isim/kapak sormadan
+  // oda ancak host GERCEKTEN bir seyi oynatmaya baslayinca acilir (bkz.
+  // handleExternalVideoDetected), oda/kart adi platformun kendi adi olarak
+  // kalir (DRM'li platformlarda uygulama icinden gercek video basligini
+  // goremedigimiz icin).
   function selectItem(key: string) {
     if (key === "youtube") {
       setMode("youtube");
@@ -161,8 +225,9 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     }
     const platform = EXTERNAL_PLATFORMS.find((p) => p.key === key);
     if (!platform) return;
-    onSelect({ type: "external", url: platform.url, label: platform.label });
-    handleClose();
+    externalCurrentUrlRef.current = platform.url;
+    setExternalPlatform(platform);
+    setMode("external");
   }
 
   // "Geçmiş"/"Beğenilenler" karti acilinca kendi gecmisimizi/begenilerimizi
@@ -318,6 +383,28 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                 <Text style={styles.youtubeLoadingText}>Video yukleniyor...</Text>
               </View>
             )}
+          </View>
+        ) : mode === "external" && externalPlatform ? (
+          <View style={styles.youtubeContainer}>
+            <WebView
+              source={{ uri: externalPlatform.url }}
+              style={styles.webview}
+              userAgent={DESKTOP_USER_AGENT}
+              injectedJavaScriptBeforeContentLoaded={EXTERNAL_VIDEO_DETECT_JS}
+              onNavigationStateChange={(navState) => {
+                externalCurrentUrlRef.current = navState.url;
+              }}
+              onMessage={(event) => {
+                try {
+                  const data = JSON.parse(event.nativeEvent.data);
+                  if (data.type === "videoDetected") handleExternalVideoDetected();
+                } catch {
+                  // yoksay - beklenmeyen mesaj formati
+                }
+              }}
+              javaScriptEnabled
+              domStorageEnabled
+            />
           </View>
         ) : (
           <View style={styles.formBox}>

@@ -800,11 +800,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       socket.emit("room:enqueueSource", { source }, () => {});
       return;
     }
-    // "external" icin isPlaying hala false - platform az once secildi, henuz
-    // kimse bir basliga girip oynatmadi (bkz. DrmWebViewPlayer.tsx), ama
-    // loadVideo ARTIK onun icin de cagriliyor (WebView'i platformun
-    // sayfasina yonlendirir).
-    socket.emit("playback:update", { source, isPlaying: source.type !== "external", positionSeconds: 0 });
+    // "external" (Netflix/Disney+ vb.) icin de artik isPlaying true - host bu
+    // kaynagi MediaPickerSheet icinde TEK BASINA gezinip GERCEKTEN bir seyi
+    // oynatmaya basladiktan (bir <video> etiketi belirdikten) SONRA secmis
+    // oluyor (bkz. MediaPickerSheet.tsx handleExternalVideoDetected), yani
+    // oda acildiginda zaten oynatimin ortasindayiz.
+    socket.emit("playback:update", { source, isPlaying: true, positionSeconds: 0 });
     console.log("[LUNA-DEBUG] selectSource: DOGRUDAN loadVideo cagriliyor", { url: source.url });
     playerRef.current?.loadVideo(source.url, 0);
   }
