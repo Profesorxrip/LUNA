@@ -68,7 +68,7 @@ export default function LoginScreen() {
           disabled={loadingProvider !== null}
         >
           <View style={[styles.providerIconBox, styles.googleIconBox]}>
-            {loadingProvider === "google" ? <ActivityIndicator color="#1C1C1E" /> : <GoogleIcon size={20} />}
+            {loadingProvider === "google" ? <ActivityIndicator color="#1C1C1E" /> : <GoogleIcon size={22} />}
           </View>
           <Text style={styles.providerLabel}>Google</Text>
         </TouchableOpacity>
@@ -79,7 +79,7 @@ export default function LoginScreen() {
           disabled={loadingProvider !== null}
         >
           <View style={[styles.providerIconBox, styles.appleIconBox]}>
-            {loadingProvider === "apple" ? <ActivityIndicator color="#FFFFFF" /> : <AppleIcon size={20} />}
+            {loadingProvider === "apple" ? <ActivityIndicator color="#FFFFFF" /> : <AppleIcon size={22} />}
           </View>
           <Text style={styles.providerLabel}>Apple</Text>
         </TouchableOpacity>
@@ -93,7 +93,7 @@ export default function LoginScreen() {
             {loadingProvider === "discord" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <FontAwesome5 name="discord" size={22} color="#FFFFFF" />
+              <FontAwesome5 name="discord" size={24} color="#FFFFFF" />
             )}
           </View>
           <Text style={styles.providerLabel}>Discord</Text>
@@ -108,7 +108,7 @@ export default function LoginScreen() {
             {loadingProvider === "facebook" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <FontAwesome5 name="facebook-f" size={20} color="#FFFFFF" />
+              <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
             )}
           </View>
           <Text style={styles.providerLabel}>Facebook</Text>
@@ -123,7 +123,7 @@ export default function LoginScreen() {
             {loadingProvider === "twitter" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <FontAwesome6 name="x-twitter" size={20} color="#FFFFFF" />
+              <FontAwesome6 name="x-twitter" size={22} color="#FFFFFF" />
             )}
           </View>
           <Text style={styles.providerLabel}>X</Text>
@@ -144,10 +144,10 @@ const styles = StyleSheet.create({
   // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
   // appButton/appIconCircle) AYNI kare ikon + alt yazi kalibi - tutarlilik
   // icin kose yuvarlakligi ayni (squircle). Bes buton TEK satira sigsin diye
-  // (eskiden X asagi sariyordu) kutu/bosluk kuculdu: 56/kose 16, columnGap 12.
-  providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 12, marginTop: 44 },
-  providerButton: { alignItems: "center", gap: 8, width: 56 },
-  providerIconBox: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  // 64/kose 18'den biraz kucuk tutuldu: 62/kose 18, columnGap 10.
+  providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 10, marginTop: 64 },
+  providerButton: { alignItems: "center", gap: 8, width: 62 },
+  providerIconBox: { width: 62, height: 62, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   googleIconBox: { backgroundColor: "#FFFFFF" },
   appleIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   discordIconBox: { backgroundColor: "#5865F2" },
@@ -156,5 +156,5 @@ const styles = StyleSheet.create({
   // ayirt edilsin diye) ince beyaz cerceve (bkz. ShareRoomContent.tsx
   // appIconBlack AYNI kural).
   xIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
-  providerLabel: { color: theme.text, fontSize: 11, fontWeight: "600" },
+  providerLabel: { color: theme.text, fontSize: 12, fontWeight: "600" },
 });
