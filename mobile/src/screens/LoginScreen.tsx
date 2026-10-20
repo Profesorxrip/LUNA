@@ -167,7 +167,7 @@ export default function LoginScreen() {
       </View>
 
       <Text style={styles.termsText}>
-        DEVAM EDEREK HİZMET KOŞULLARI'NI VE GİZLİLİK POLİTİKASI'NI KABUL ETMİŞ OLURSUNUZ.
+        Devam ederek Hizmet Koşulları'nı ve Gizlilik Politikası'nı kabul etmiş olursunuz.
       </Text>
     </View>
   );
