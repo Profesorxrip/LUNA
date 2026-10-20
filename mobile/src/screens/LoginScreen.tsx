@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -8,6 +8,15 @@ import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
 import { GoogleIcon } from "../components/SocialAuthIcons";
+import TermsScreen from "./TermsScreen";
+import PrivacyScreen from "./PrivacyScreen";
+
+// Giris ekrani App.tsx'te NavigationContainer'in DISINDA render ediliyor
+// (oturum acilmadan once) - yani normal "navigation.navigate('Privacy')"
+// burada KULLANILAMAZ. Bunun yerine Terms/Privacy ekranlarini (ikisi de
+// navigasyona bagli olmayan SADE sunum bilesenleri) dogrudan bir Modal
+// icinde aciyoruz - ayri bir route/navigasyon kurulumuna gerek kalmadan.
+type InfoModal = "terms" | "privacy" | null;
 
 // app.json'daki "scheme": "luna" ile eslesiyor - Supabase, OAuth sonrasi
 // kullaniciyi tarayicidan buraya (uygulamanin kendisine) geri yonlendirir.
@@ -53,6 +62,7 @@ export default function LoginScreen() {
   // tek satirlik slogan oldugu icin yukleme anindaki "atlama" neredeyse
   // fark edilmiyor).
   const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
+  const [infoModal, setInfoModal] = useState<InfoModal>(null);
 
   // Supabase Dashboard > Authentication > Providers'ta Google/Apple
   // ETKINLESTIRILMEDIYSE (kendi OAuth client id/secret'lari girilmediyse)
@@ -183,8 +193,27 @@ export default function LoginScreen() {
       </View>
 
       <Text style={styles.termsText}>
-        Devam ederek Hizmet Koşulları'nı ve Gizlilik Politikası'nı kabul etmiş olursunuz.
+        Devam ederek{" "}
+        <Text style={styles.termsLink} onPress={() => setInfoModal("terms")}>
+          Hizmet Koşulları'nı
+        </Text>{" "}
+        ve{" "}
+        <Text style={styles.termsLink} onPress={() => setInfoModal("privacy")}>
+          Gizlilik Politikası'nı
+        </Text>{" "}
+        kabul etmiş olursunuz.
       </Text>
+
+      <Modal
+        visible={infoModal !== null}
+        animationType="slide"
+        onRequestClose={() => setInfoModal(null)}
+      >
+        {infoModal === "terms" ? <TermsScreen /> : <PrivacyScreen />}
+        <TouchableOpacity style={styles.infoModalClose} onPress={() => setInfoModal(null)} hitSlop={10}>
+          <Text style={styles.infoModalCloseText}>✕</Text>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -269,4 +298,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 17,
   },
+  // Tiklanabilir oldugunu belli etsin diye alttaki duz metinden daha acik
+  // ve alti cizili - RN'de bir paragraf icinde sadece BAZI kelimelerin
+  // tiklanabilir olmasi boyle, ic ice <Text onPress> ile yapilir.
+  termsLink: { color: theme.text, textDecorationLine: "underline" },
+  // InfoScreen (Terms/Privacy) kendi geri butonu/basligi tasimiyor (normalde
+  // navigasyon yiginindan native geri ile kapanmasi bekleniyor) - burada bir
+  // Modal icinde actigimiz icin kendi kapatma butonumuzu ustune biniyoruz.
+  infoModalClose: {
+    position: "absolute",
+    top: 54,
+    right: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  infoModalCloseText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
 });
