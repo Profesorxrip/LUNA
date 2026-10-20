@@ -60,7 +60,6 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logoMark} resizeMode="contain" />
-      <Text style={styles.subtitle}>Devam etmek için giriş yap</Text>
 
       <View style={styles.providerRow}>
         <TouchableOpacity
@@ -69,7 +68,7 @@ export default function LoginScreen() {
           disabled={loadingProvider !== null}
         >
           <View style={[styles.providerIconBox, styles.googleIconBox]}>
-            {loadingProvider === "google" ? <ActivityIndicator color="#1C1C1E" /> : <GoogleIcon size={24} />}
+            {loadingProvider === "google" ? <ActivityIndicator color="#1C1C1E" /> : <GoogleIcon size={20} />}
           </View>
           <Text style={styles.providerLabel}>Google</Text>
         </TouchableOpacity>
@@ -80,7 +79,7 @@ export default function LoginScreen() {
           disabled={loadingProvider !== null}
         >
           <View style={[styles.providerIconBox, styles.appleIconBox]}>
-            {loadingProvider === "apple" ? <ActivityIndicator color="#FFFFFF" /> : <AppleIcon size={24} />}
+            {loadingProvider === "apple" ? <ActivityIndicator color="#FFFFFF" /> : <AppleIcon size={20} />}
           </View>
           <Text style={styles.providerLabel}>Apple</Text>
         </TouchableOpacity>
@@ -94,7 +93,7 @@ export default function LoginScreen() {
             {loadingProvider === "discord" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <FontAwesome5 name="discord" size={26} color="#FFFFFF" />
+              <FontAwesome5 name="discord" size={22} color="#FFFFFF" />
             )}
           </View>
           <Text style={styles.providerLabel}>Discord</Text>
@@ -109,7 +108,7 @@ export default function LoginScreen() {
             {loadingProvider === "facebook" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <FontAwesome5 name="facebook-f" size={24} color="#FFFFFF" />
+              <FontAwesome5 name="facebook-f" size={20} color="#FFFFFF" />
             )}
           </View>
           <Text style={styles.providerLabel}>Facebook</Text>
@@ -124,7 +123,7 @@ export default function LoginScreen() {
             {loadingProvider === "twitter" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <FontAwesome6 name="x-twitter" size={24} color="#FFFFFF" />
+              <FontAwesome6 name="x-twitter" size={20} color="#FFFFFF" />
             )}
           </View>
           <Text style={styles.providerLabel}>X</Text>
@@ -139,17 +138,16 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "transparent", padding: 24, justifyContent: "center" },
   // Logo artik beyaz siluet - tintColor, PNG'nin seffaf olmayan tum
   // piksellerini bu renge boyar (bkz. MediaPickerSheet.tsx topBarLogo
-  // AYNI teknik).
-  logoMark: { width: 220, height: 103, alignSelf: "center", marginBottom: 12, tintColor: "#FFFFFF" },
-  subtitle: { color: theme.textMuted, fontSize: 16, textAlign: "center", marginBottom: 32 },
+  // AYNI teknik). Altyazi kaldirildigi icin logo biraz yukari, satir
+  // biraz asagi kaydi (marginBottom negatif/providerRow marginTop buyuk).
+  logoMark: { width: 220, height: 103, alignSelf: "center", marginBottom: -8, tintColor: "#FFFFFF" },
   // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
   // appButton/appIconCircle) AYNI kare ikon + alt yazi kalibi - tutarlilik
-  // icin kose yuvarlakligi ayni (squircle). 5 buton tek satira sigmadigi
-  // icin flexWrap ile 3+2 seklinde sariyor (bkz. appsRow'dan farkli olarak
-  // burada sabit sayida platform yok, kutu boyutu da biraz kuculdu: 64/kose 18).
-  providerRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", rowGap: 20, columnGap: 20 },
-  providerButton: { alignItems: "center", gap: 8, width: 64 },
-  providerIconBox: { width: 64, height: 64, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  // icin kose yuvarlakligi ayni (squircle). Bes buton TEK satira sigsin diye
+  // (eskiden X asagi sariyordu) kutu/bosluk kuculdu: 56/kose 16, columnGap 12.
+  providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 12, marginTop: 44 },
+  providerButton: { alignItems: "center", gap: 8, width: 56 },
+  providerIconBox: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   googleIconBox: { backgroundColor: "#FFFFFF" },
   appleIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   discordIconBox: { backgroundColor: "#5865F2" },
@@ -158,5 +156,5 @@ const styles = StyleSheet.create({
   // ayirt edilsin diye) ince beyaz cerceve (bkz. ShareRoomContent.tsx
   // appIconBlack AYNI kural).
   xIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
-  providerLabel: { color: theme.text, fontSize: 13, fontWeight: "600" },
+  providerLabel: { color: theme.text, fontSize: 11, fontWeight: "600" },
 });
