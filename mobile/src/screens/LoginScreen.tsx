@@ -24,8 +24,9 @@ const REDIRECT_URL = "luna://login-callback";
 // gercekten yayina alinirken eklenecek. Telegram da BILEREK yok -
 // Supabase'in listesinde Telegram diye bir OAuth saglayicisi YOK (Telegram
 // kendi "Login Widget" mekanizmasini kullanir, standart OAuth2 degil, ayri
-// bir backend entegrasyonu gerektirir).
-type Provider = "google" | "spotify" | "facebook" | "twitter";
+// bir backend entegrasyonu gerektirir). Apple'in bosluguna Twitch kondu -
+// zaten "+" menusunde bir platform olarak var (tutarli), kurulumu basit.
+type Provider = "google" | "spotify" | "facebook" | "twitter" | "twitch";
 
 // Logo kenar golgesi icin 8 yonlu kucuk kaydirma (bkz. asagidaki render) -
 // capraz olanlar biraz daha az kaydirilir (koseler "sivri" durmasin diye).
@@ -116,6 +117,20 @@ export default function LoginScreen() {
         >
           <View style={[styles.providerIconBox, styles.googleIconBox]}>
             {loadingProvider === "google" ? <ActivityIndicator color="#1C1C1E" /> : <GoogleIcon size={32} />}
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.providerButton}
+          onPress={() => signInWithProvider("twitch")}
+          disabled={loadingProvider !== null}
+        >
+          <View style={[styles.providerIconBox, styles.twitchIconBox]}>
+            {loadingProvider === "twitch" ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <FontAwesome5 name="twitch" size={30} color="#FFFFFF" />
+            )}
           </View>
         </TouchableOpacity>
 
@@ -228,6 +243,7 @@ const styles = StyleSheet.create({
   providerButton: { alignItems: "center", width: 62 },
   providerIconBox: { width: 62, height: 62, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   googleIconBox: { backgroundColor: "#FFFFFF" },
+  twitchIconBox: { backgroundColor: "#9146FF" },
   spotifyIconBox: { backgroundColor: "#1DB954" },
   facebookIconBox: { backgroundColor: "#1877F2" },
   // X'in marka rengi saf siyah - Apple ile aynı sebeple (koyu arka planda
