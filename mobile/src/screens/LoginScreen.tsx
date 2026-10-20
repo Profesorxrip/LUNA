@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
 import * as WebBrowser from "expo-web-browser";
+import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { supabase } from "../services/supabase";
@@ -35,6 +36,11 @@ const EDGE_SHADOW_OFFSETS: [number, number][] = [
 
 export default function LoginScreen() {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
+  // Slogan icin ozel bir yazi tipi (Bebas Neue - sik, dar/condensed buyuk
+  // harf karakteri) - yuklenene kadar sistem fontuyla gosteriyoruz (kisa bir
+  // tek satirlik slogan oldugu icin yukleme anindaki "atlama" neredeyse
+  // fark edilmiyor).
+  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
 
   // Supabase Dashboard > Authentication > Providers'ta Google/Apple
   // ETKINLESTIRILMEDIYSE (kendi OAuth client id/secret'lari girilmediyse)
@@ -92,7 +98,9 @@ export default function LoginScreen() {
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logoMark} resizeMode="contain" />
       </View>
 
-      <Text style={styles.tagline}>Birlikte izlemenin en güzel hali</Text>
+      <Text style={[styles.tagline, fontsLoaded && styles.taglineFontLoaded]}>
+        BİRLİKTE İZLEMENİN EN GÜZEL HALİ
+      </Text>
 
       <View style={styles.providerRow}>
         <TouchableOpacity
@@ -185,16 +193,31 @@ const styles = StyleSheet.create({
   // taban konumuna GORECELI).
   logoShadow: { tintColor: "#030508", opacity: 0.14 },
   // Logo artik kendi basligini tasimiyor (eskiden "Devam etmek icin giris
-  // yap" vardi, kaldirildi) - yerine marka sloganini koyuyoruz. Harf
-  // araligi (letterSpacing) + ince agirlik, kalin logonun ALTINDA zit bir
-  // "ikinci ses" gibi dursun diye.
+  // yap" vardi, kaldirildi) - yerine marka sloganini koyuyoruz. Genislik
+  // 280 - logoMark'in GERCEK genisligiyle (ve logonun L...A harf araliginin
+  // tam kendisiyle, bkz. kaynak PNG'nin bbox analizi - harfler PNG'nin tam
+  // kenarina kadar uzaniyor, bosluksuz) BIREBIR ayni, alignSelf "center" ile
+  // logoWrap'le AYNI eksende ortalaniyor - boylece metin L'nin hizasinda
+  // baslayip A'nin hizasinda bitiyor (letterSpacing bu genisligi doldurmak
+  // icin ayarlandi).
   tagline: {
+    width: 280,
+    alignSelf: "center",
     color: "rgba(255,255,255,0.75)",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "500",
-    letterSpacing: 0.4,
+    letterSpacing: 1,
     textAlign: "center",
-    marginTop: 2,
+    marginTop: 14,
+  },
+  // Bebas Neue (condensed/buyuk harf) yuklenince harf araligi ve boyut
+  // bu fonta GORE yeniden ayarlanir - sistem fontuyla olculen letterSpacing
+  // Bebas Neue'nin cok daha dar harflerine uymuyor.
+  taglineFontLoaded: {
+    fontFamily: "BebasNeue_400Regular",
+    fontWeight: "400",
+    fontSize: 13,
+    letterSpacing: 1.1,
   },
   // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
   // appButton/appIconCircle) AYNI kare ikon kalibi (squircle) - isimler
