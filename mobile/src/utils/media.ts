@@ -3,12 +3,25 @@ import type { MediaSource } from "../services/socket";
 import { SERVER_URL } from "../services/socket";
 
 /** "+"" menusundeki DRM'li platformlar - otomatik senkron desteklenmez,
- * sadece harici olarak acilir; sohbet/sesli sohbet odada acik kalir. */
-export const EXTERNAL_PLATFORMS: { key: string; label: string; url: string; logo: PlatformKey }[] = [
-  { key: "netflix", label: "Netflix", url: "https://www.netflix.com", logo: "netflix" },
-  { key: "prime", label: "Prime Video", url: "https://www.primevideo.com", logo: "primevideo" },
-  { key: "disney", label: "Disney+", url: "https://www.disneyplus.com", logo: "disneyplus" },
-  { key: "hbomax", label: "HBO Max", url: "https://www.max.com", logo: "hbomax" },
+ * sadece harici olarak acilir; sohbet/sesli sohbet odada acik kalir.
+ * drmLocked: true olanlar (Netflix/Prime/Disney+/HBO Max) GERCEK cihazda
+ * denendi - WebView icinde ASLA oynamiyorlar: masaustu kimligiyle DRM
+ * (Widevine) saglamlik seviyesi uyusmazligindan sonsuza kadar "yukleniyor"
+ * kaliyor, Android Chrome kimligiyle ise bu platformlar "mobil tarayicida
+ * izlenemez, uygulamayi ac" diye BILEREK engelliyor (Netflix'in native
+ * uygulamasi AYNI cihazda sorunsuz oynuyor - yani cihazin DRM sertifikasi
+ * degil, platformun kendi mobil-web politikasi engel). Sektordeki TUM
+ * "watch party" urunleri (Netflix Party/Teleparty, JustParty, Watch Party)
+ * de bunu SADECE masaustu tarayici EKLENTISIYLE (gercek, sahte olmayan bir
+ * Chrome sekmesinin DOM'una enjekte ederek) basariyor - mobilde eklenti
+ * kavrami YOK, bu yuzden bu platformlar mobilde SADECE kendi native
+ * uygulamalarinda acilabiliyor (bkz. MediaPickerSheet.tsx selectItem,
+ * DrmWebViewPlayer.tsx isDrmLocked). */
+export const EXTERNAL_PLATFORMS: { key: string; label: string; url: string; logo: PlatformKey; drmLocked?: boolean }[] = [
+  { key: "netflix", label: "Netflix", url: "https://www.netflix.com", logo: "netflix", drmLocked: true },
+  { key: "prime", label: "Prime Video", url: "https://www.primevideo.com", logo: "primevideo", drmLocked: true },
+  { key: "disney", label: "Disney+", url: "https://www.disneyplus.com", logo: "disneyplus", drmLocked: true },
+  { key: "hbomax", label: "HBO Max", url: "https://www.max.com", logo: "hbomax", drmLocked: true },
   { key: "twitch", label: "Twitch", url: "https://www.twitch.tv", logo: "twitch" },
   { key: "drive", label: "Drive", url: "https://drive.google.com", logo: "drive" },
   { key: "icloud", label: "iCloud", url: "https://www.icloud.com", logo: "icloud" },
@@ -20,6 +33,14 @@ export const EXTERNAL_PLATFORMS: { key: string; label: string; url: string; logo
 // basit bir alan adi karsilastirmasi icin.
 export function bareDomain(url: string): string {
   return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+}
+
+/** Bir "external" kaynagin URL'i drmLocked bir platforma mi ait - bkz.
+ * EXTERNAL_PLATFORMS yorumu. DrmWebViewPlayer.tsx bunu WebView denemeden
+ * ONCE kontrol eder (zaten calismayacagini biliyoruz). */
+export function isDrmLockedUrl(url: string): boolean {
+  const domain = bareDomain(url);
+  return EXTERNAL_PLATFORMS.some((p) => p.drmLocked && domain.includes(bareDomain(p.url)));
 }
 
 export interface SourceBadgeInfo {

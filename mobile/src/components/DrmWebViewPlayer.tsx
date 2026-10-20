@@ -2,6 +2,7 @@ import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "reac
 import { StyleSheet, View, ActivityIndicator, Linking, Text, TouchableOpacity } from "react-native";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { theme } from "../theme";
+import { isDrmLockedUrl } from "../utils/media";
 
 export interface DrmWebViewPlayerHandle {
   play: () => void;
@@ -219,6 +220,26 @@ const DrmWebViewPlayer = forwardRef<DrmWebViewPlayerHandle, Props>(
 
     if (!currentUri || !source) return null;
 
+    // Netflix/Prime/Disney+/HBO Max gibi drmLocked platformlar GERCEK
+    // cihazda denendi - WebView icinde ASLA oynamiyorlar (bkz.
+    // utils/media.ts EXTERNAL_PLATFORMS yorumu, isDrmLockedUrl). Bunlar icin
+    // hic WebView denemiyoruz (bos yere sonsuza kadar donen bir yukleniyor
+    // ekrani gostermek yerine), dogrudan "kendi uygulamanda ac" karti.
+    if (isDrmLockedUrl(currentUri)) {
+      return (
+        <View style={[styles.container, styles.lockedContainer, fullscreen && styles.containerFullscreen]}>
+          <Text style={styles.lockedTitle}>{label || "Bu platform"}</Text>
+          <Text style={styles.lockedText}>
+            Bu platform telif/DRM koruması nedeniyle uygulama içinde oynatılamıyor. Kendi {label || "platform"}{" "}
+            uygulamandan açıp izleyebilirsin - sohbet ve sesli sohbet burada açık kalır.
+          </Text>
+          <TouchableOpacity style={styles.lockedOpenBtn} onPress={() => Linking.openURL(currentUri)}>
+            <Text style={styles.lockedOpenBtnText}>↗ {label || "Harici"}'de aç</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     return (
       <View style={[styles.container, fullscreen && styles.containerFullscreen]}>
         <WebView
@@ -294,4 +315,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   openExternalBtnText: { color: "#FFFFFF", fontSize: 11, fontWeight: "700" },
+  lockedContainer: { alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
+  lockedTitle: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
+  lockedText: { color: "rgba(255,255,255,0.7)", fontSize: 13, textAlign: "center", lineHeight: 18 },
+  lockedOpenBtn: { backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20, marginTop: 4 },
+  lockedOpenBtnText: { color: "#04140D", fontSize: 14, fontWeight: "700" },
 });

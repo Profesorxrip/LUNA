@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { ChevronLeft } from "lucide-react-native";
@@ -214,7 +214,11 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   // oda ancak host GERCEKTEN bir seyi oynatmaya baslayinca acilir (bkz.
   // handleExternalVideoDetected), oda/kart adi platformun kendi adi olarak
   // kalir (DRM'li platformlarda uygulama icinden gercek video basligini
-  // goremedigimiz icin).
+  // goremedigimiz icin). drmLocked platformlar (Netflix/Prime/Disney+/HBO
+  // Max) bu gezinmeyi hic denemez - GERCEK cihazda dogrulandi, WebView
+  // icinde hicbir sekilde oynamiyorlar (bkz. EXTERNAL_PLATFORMS yorumu),
+  // bu yuzden host'u DOGRUDAN platformun kendi native uygulamasina/sitesine
+  // yonlendirip odayi hemen aciyoruz - sohbet/sesli sohbet LUNA'da kalir.
   function selectItem(key: string) {
     if (key === "youtube") {
       setMode("youtube");
@@ -231,6 +235,12 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     }
     const platform = EXTERNAL_PLATFORMS.find((p) => p.key === key);
     if (!platform) return;
+    if (platform.drmLocked) {
+      onSelect({ type: "external", url: platform.url, label: platform.label });
+      handleClose();
+      Linking.openURL(platform.url).catch(() => {});
+      return;
+    }
     externalCurrentUrlRef.current = platform.url;
     setExternalPlatform(platform);
     setMode("external");
