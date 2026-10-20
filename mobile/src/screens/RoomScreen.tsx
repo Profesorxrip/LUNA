@@ -2260,7 +2260,8 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.bg },
+  // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
+  container: { flex: 1, backgroundColor: "transparent" },
   mediaAnimatedFullscreen: { flex: 1 },
   mediaSection: { position: "relative" },
   // Tam ekran yatay modda bu View (video + kontroller) flex:1 ile roomBody'nin
@@ -2326,7 +2327,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 50,
     paddingBottom: 10,
-    backgroundColor: theme.bg,
+    // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor -
+    // videoColFullscreen'in AKSINE (bkz. asagisi) burasi video degil, ust
+    // bar oldugu icin seffaf kalip degradeyle kaynasmasi tercih edildi.
+    backgroundColor: "transparent",
   },
   // PC'de telefonun ust cenitk/durum cubugu boslugu olan paddingTop:50
   // gereksiz - masaustunde makul bir ust bosluk yeterli.

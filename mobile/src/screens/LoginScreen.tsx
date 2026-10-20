@@ -88,7 +88,8 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.bg, padding: 24, justifyContent: "center" },
+  // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
+  container: { flex: 1, backgroundColor: "transparent", padding: 24, justifyContent: "center" },
   logoMark: { width: 220, height: 103, alignSelf: "center", marginBottom: 12 },
   subtitle: { color: theme.textMuted, fontSize: 16, textAlign: "center", marginBottom: 32 },
   input: {

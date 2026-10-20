@@ -375,7 +375,8 @@ export default function DiscoverScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.bg },
+  // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
+  container: { flex: 1, backgroundColor: "transparent" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",

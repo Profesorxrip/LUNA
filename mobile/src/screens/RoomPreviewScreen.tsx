@@ -213,7 +213,8 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.bg },
+  // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
+  screen: { flex: 1, backgroundColor: "transparent" },
   participantList: { flex: 1 },
   emptyText: { color: theme.textMuted, fontSize: 13, textAlign: "center", marginTop: 40 },
   // paddingTop, lider rozetinin (hostBadge, top: -16) KIRPILMADAN tam

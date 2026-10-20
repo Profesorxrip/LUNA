@@ -7,6 +7,7 @@ import { supabase } from "./src/services/supabase";
 import LoginScreen from "./src/screens/LoginScreen";
 import RootNavigator from "./src/navigation/RootNavigator";
 import CustomAlertHost from "./src/components/CustomAlert";
+import AppBackground from "./src/components/AppBackground";
 import { getSocket } from "./src/services/socket";
 import { registerForPushNotifications } from "./src/services/notifications";
 import { loadStoredLanguage } from "./src/i18n";
@@ -47,28 +48,35 @@ export default function App() {
 
   if (checkingSession) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#0A0A0C", justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator color="#10B981" size="large" />
-        <CustomAlertHost />
+      <View style={{ flex: 1 }}>
+        <AppBackground />
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator color="#10B981" size="large" />
+          <CustomAlertHost />
+        </View>
       </View>
     );
   }
 
   if (!session && !PREVIEW_SKIP_AUTH) {
     return (
-      <>
+      <View style={{ flex: 1 }}>
+        <AppBackground />
         <LoginScreen />
         <CustomAlertHost />
         <StatusBar style="light" />
-      </>
+      </View>
     );
   }
 
   return (
-    <SafeAreaProvider>
-      <RootNavigator />
-      <CustomAlertHost />
-      <StatusBar style="light" />
-    </SafeAreaProvider>
+    <View style={{ flex: 1 }}>
+      <AppBackground />
+      <SafeAreaProvider>
+        <RootNavigator />
+        <CustomAlertHost />
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    </View>
   );
 }

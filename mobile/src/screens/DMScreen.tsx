@@ -41,7 +41,8 @@ interface Props {
 }
 
 const ACCENT = "#0EA5E9";
-const BG = "#000000";
+// Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
+const BG = "transparent";
 const TEXT = "#F5F0E6";
 const MUTED = "#9A8F80";
 

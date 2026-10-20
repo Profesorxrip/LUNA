@@ -14,7 +14,6 @@ import DMScreen, { DMPeer } from "../screens/DMScreen";
 import RoomPreviewScreen from "../screens/RoomPreviewScreen";
 import RoomScreen from "../screens/RoomScreen";
 import { getSocket, PublicRoomSummary, RoomState } from "../services/socket";
-import { theme } from "../theme";
 
 type PeerParam = { userId: string; name: string; handle?: string };
 
@@ -186,10 +185,12 @@ export default function RootNavigator() {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          // Rave/LUNA her ekranda zaten kendi koyu arka planini ciziyor -
-          // gecis sirasinda beyaz bir "cam" gorunmesin diye native-stack'in
-          // kendi arka plani da koyu.
-          contentStyle: { backgroundColor: theme.bg },
+          // Artik App.tsx'teki TEK, paylasilan AppBackground (degrade) her
+          // ekranin ARKASINDA sabit duruyor - ekranlarin kendi kok kaplari
+          // artik seffaf, gecis sirasinda beyaz/bos bir an gorunmesin diye
+          // native-stack'in kendi arka plani da seffaf (opak bir renk
+          // koyarsak degrade gecis sirasinda bir an kaybolurdu).
+          contentStyle: { backgroundColor: "transparent" },
         }}
       >
         <Stack.Screen name="Discover" component={DiscoverRoute} />
