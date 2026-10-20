@@ -7,7 +7,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
-import { GoogleIcon, AppleIcon } from "../components/SocialAuthIcons";
+import { GoogleIcon } from "../components/SocialAuthIcons";
 
 // app.json'daki "scheme": "luna" ile eslesiyor - Supabase, OAuth sonrasi
 // kullaniciyi tarayicidan buraya (uygulamanin kendisine) geri yonlendirir.
@@ -19,11 +19,13 @@ const REDIRECT_URL = "luna://login-callback";
 // captcha sorunu) ve Microsoft/Azure (kurulumda baska bir engel) SIRAYLA
 // denendi, ikisi de kullanicinin OWN DEVELOPER HESABI acarken tikandi -
 // Spotify'a gecildi, onun gelistirici paneli (sadece isim+redirect URI,
-// onay/captcha yok) cok daha az surtunmeli. Telegram BILEREK yok -
+// onay/captcha yok) cok daha az surtunmeli. Apple BILEREK yok - Apple
+// Developer Program yillik ucretli uyelik gerektiriyor ($99), uygulama
+// gercekten yayina alinirken eklenecek. Telegram da BILEREK yok -
 // Supabase'in listesinde Telegram diye bir OAuth saglayicisi YOK (Telegram
 // kendi "Login Widget" mekanizmasini kullanir, standart OAuth2 degil, ayri
 // bir backend entegrasyonu gerektirir).
-type Provider = "google" | "apple" | "spotify" | "facebook" | "twitter";
+type Provider = "google" | "spotify" | "facebook" | "twitter";
 
 // Logo kenar golgesi icin 8 yonlu kucuk kaydirma (bkz. asagidaki render) -
 // capraz olanlar biraz daha az kaydirilir (koseler "sivri" durmasin diye).
@@ -114,16 +116,6 @@ export default function LoginScreen() {
         >
           <View style={[styles.providerIconBox, styles.googleIconBox]}>
             {loadingProvider === "google" ? <ActivityIndicator color="#1C1C1E" /> : <GoogleIcon size={32} />}
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.providerButton}
-          onPress={() => signInWithProvider("apple")}
-          disabled={loadingProvider !== null}
-        >
-          <View style={[styles.providerIconBox, styles.appleIconBox]}>
-            {loadingProvider === "apple" ? <ActivityIndicator color="#FFFFFF" /> : <AppleIcon size={32} />}
           </View>
         </TouchableOpacity>
 
@@ -236,7 +228,6 @@ const styles = StyleSheet.create({
   providerButton: { alignItems: "center", width: 62 },
   providerIconBox: { width: 62, height: 62, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   googleIconBox: { backgroundColor: "#FFFFFF" },
-  appleIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   spotifyIconBox: { backgroundColor: "#1DB954" },
   facebookIconBox: { backgroundColor: "#1877F2" },
   // X'in marka rengi saf siyah - Apple ile aynı sebeple (koyu arka planda
