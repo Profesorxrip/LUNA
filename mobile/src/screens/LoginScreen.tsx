@@ -27,8 +27,11 @@ const REDIRECT_URL = "luna://login-callback";
 // diye bir OAuth saglayicisi YOK (Telegram kendi "Login Widget"
 // mekanizmasini kullanir, standart OAuth2 degil, ayri bir backend
 // entegrasyonu gerektirir). Apple'in bosluguna Twitch kondu - zaten "+"
-// menusunde bir platform olarak var (tutarli), kurulumu basit.
-type Provider = "google" | "spotify" | "facebook" | "x" | "twitch";
+// menusunde bir platform olarak var (tutarli), kurulumu basit. Facebook'un
+// bosluguna GitHub kondu - Facebook kurulumu "alisilmadik cihaz" guvenlik
+// kilidine takildi (Meta tarafinda, bizim kodumuzla alakasiz), GitHub'in
+// kaydi cok daha az surtunmeli (isim+callback URL, onay/captcha yok).
+type Provider = "google" | "spotify" | "github" | "x" | "twitch";
 
 // Logo kenar golgesi icin 8 yonlu kucuk kaydirma (bkz. asagidaki render) -
 // capraz olanlar biraz daha az kaydirilir (koseler "sivri" durmasin diye).
@@ -152,14 +155,14 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           style={styles.providerButton}
-          onPress={() => signInWithProvider("facebook")}
+          onPress={() => signInWithProvider("github")}
           disabled={loadingProvider !== null}
         >
-          <View style={[styles.providerIconBox, styles.facebookIconBox]}>
-            {loadingProvider === "facebook" ? (
+          <View style={[styles.providerIconBox, styles.githubIconBox]}>
+            {loadingProvider === "github" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <FontAwesome5 name="facebook-f" size={32} color="#FFFFFF" />
+              <FontAwesome5 name="github" size={32} color="#FFFFFF" />
             )}
           </View>
         </TouchableOpacity>
@@ -247,10 +250,10 @@ const styles = StyleSheet.create({
   googleIconBox: { backgroundColor: "#FFFFFF" },
   twitchIconBox: { backgroundColor: "#9146FF" },
   spotifyIconBox: { backgroundColor: "#1DB954" },
-  facebookIconBox: { backgroundColor: "#1877F2" },
-  // X'in marka rengi saf siyah - Apple ile aynı sebeple (koyu arka planda
-  // ayirt edilsin diye) ince beyaz cerceve (bkz. ShareRoomContent.tsx
-  // appIconBlack AYNI kural).
+  // GitHub ve X'in marka rengi saf siyah - koyu arka planda ayirt edilsin
+  // diye ince beyaz cerceve (bkz. ShareRoomContent.tsx appIconBlack AYNI
+  // kural).
+  githubIconBox: { backgroundColor: "#181717", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   xIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   // SafeAreaProvider YOK bu dalda (bkz. App.tsx - sadece oturum acildiktan
   // sonraki ana dal SafeAreaProvider'a sarili), bu yuzden sabit bir alt
