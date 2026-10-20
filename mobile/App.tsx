@@ -12,8 +12,10 @@ import { getSocket } from "./src/services/socket";
 import { registerForPushNotifications } from "./src/services/notifications";
 import { loadStoredLanguage } from "./src/i18n";
 
-// Roadmap AŞAMA 3: gercek authentication artik zorunlu.
-const PREVIEW_SKIP_AUTH = true;
+// Roadmap AŞAMA 3: gercek authentication artik zorunlu. Google OAuth
+// Supabase'de etkinlestirildigi icin artik gercekten test edilebilir,
+// bu yuzden atlama KALICI olarak kapatildi.
+const PREVIEW_SKIP_AUTH = false;
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
