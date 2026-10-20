@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
+import { theme } from "../theme";
 import { GoogleIcon, AppleIcon } from "../components/SocialAuthIcons";
 
 // app.json'daki "scheme": "luna" ile eslesiyor - Supabase, OAuth sonrasi
@@ -123,6 +124,10 @@ export default function LoginScreen() {
           </View>
         </TouchableOpacity>
       </View>
+
+      <Text style={styles.termsText}>
+        Devam ederek Hizmet Koşulları'nı ve Gizlilik Politikası'nı kabul etmiş olursunuz.
+      </Text>
     </View>
   );
 }
@@ -150,4 +155,18 @@ const styles = StyleSheet.create({
   // ayirt edilsin diye) ince beyaz cerceve (bkz. ShareRoomContent.tsx
   // appIconBlack AYNI kural).
   xIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
+  // SafeAreaProvider YOK bu dalda (bkz. App.tsx - sadece oturum acildiktan
+  // sonraki ana dal SafeAreaProvider'a sarili), bu yuzden sabit bir alt
+  // bosluk (useSafeAreaInsets degil) - ekranin en altina, logo/butonlardan
+  // BAGIMSIZ sabit konumda.
+  termsText: {
+    position: "absolute",
+    left: 24,
+    right: 24,
+    bottom: 32,
+    color: theme.textMuted,
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 17,
+  },
 });
