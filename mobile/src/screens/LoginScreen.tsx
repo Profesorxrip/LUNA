@@ -92,6 +92,8 @@ export default function LoginScreen() {
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logoMark} resizeMode="contain" />
       </View>
 
+      <Text style={styles.tagline}>Birlikte izlemenin en güzel hali</Text>
+
       <View style={styles.providerRow}>
         <TouchableOpacity
           style={styles.providerButton}
@@ -182,6 +184,18 @@ const styles = StyleSheet.create({
   // (top/left JSX'te EDGE_SHADOW_OFFSETS'ten geliyor, logoMark'in 3,3'luk
   // taban konumuna GORECELI).
   logoShadow: { tintColor: "#030508", opacity: 0.14 },
+  // Logo artik kendi basligini tasimiyor (eskiden "Devam etmek icin giris
+  // yap" vardi, kaldirildi) - yerine marka sloganini koyuyoruz. Harf
+  // araligi (letterSpacing) + ince agirlik, kalin logonun ALTINDA zit bir
+  // "ikinci ses" gibi dursun diye.
+  tagline: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 0.4,
+    textAlign: "center",
+    marginTop: 2,
+  },
   // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
   // appButton/appIconCircle) AYNI kare ikon kalibi (squircle) - isimler
   // kaldirildi, artik sadece ikon kutulari var. Bes buton TEK satira sigsin
