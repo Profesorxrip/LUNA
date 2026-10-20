@@ -221,8 +221,8 @@ const styles = StyleSheet.create({
   taglineFontLoaded: {
     fontFamily: "BebasNeue_400Regular",
     fontWeight: "400",
-    fontSize: 21,
-    letterSpacing: 1.8,
+    fontSize: 13,
+    letterSpacing: 1.1,
   },
   // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
   // appButton/appIconCircle) AYNI kare ikon kalibi (squircle) - isimler
@@ -249,8 +249,8 @@ const styles = StyleSheet.create({
     right: 24,
     bottom: 32,
     color: theme.textMuted,
-    fontSize: 12,
+    fontSize: 10,
     textAlign: "center",
-    lineHeight: 17,
+    lineHeight: 14,
   },
 });
