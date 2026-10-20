@@ -89,8 +89,65 @@ const USER_AGENT_DATA_PATCH_JS = `
 })();
 `;
 
+// Netflix gibi platformlar userAgentData tutarli olsa BILE ayrica "Netflix
+// uygulamayla daha guzel / mobil cihazda izlemek icin uygulama gerekir" diye
+// DELIBERATE bir tam ekran tanitim karti gosterebiliyor - bu bir bot/DRM
+// kontrolu DEGIL, kozmetik bir "once bunu gor" katmani (cogu sitede boyle
+// tanitim kartlari ALTTAKI sayfayi/oynaticiyi engellemez, sadece ustune
+// biner). Bu yuzden bu karta BENZEYEN (bilinen Turkce/Ingilizce metinleri
+// iceren, ekranin buyuk kismini kaplayan sabit/mutlak konumlu) bir eleman
+// bulursak gizleyip altinda gercek bir <video> olusuyor mu diye devam
+// ediyoruz - deneysel bir sezgisel yontem, Netflix'in GERCEK DOM yapisini
+// bu sandbox'tan goremedigimiz icin kesin degil, cihazda test edilmeli.
+const APP_PROMO_DISMISS_JS = `
+(function () {
+  if (window.__lunaPromoDismiss) return;
+  window.__lunaPromoDismiss = true;
+  var PHRASES = [
+    "daha güzel", "daha guzel", "uygulaması gerekir", "uygulamasi gerekir",
+    "uygulamayı aç", "uygulamayi ac", "better in the app", "open the app",
+    "get the app", "download the app", "use the app"
+  ];
+  function textMatches(el) {
+    var t = (el.innerText || el.textContent || "").toLowerCase();
+    if (!t || t.length > 400) return false;
+    return PHRASES.some(function (p) { return t.indexOf(p) !== -1; });
+  }
+  function coversScreen(el) {
+    var r = el.getBoundingClientRect();
+    return r.width >= window.innerWidth * 0.8 && r.height >= window.innerHeight * 0.5;
+  }
+  function findOverlayAncestor(el) {
+    var node = el;
+    for (var i = 0; i < 6 && node; i++) {
+      var style = window.getComputedStyle(node);
+      if ((style.position === "fixed" || style.position === "absolute") && coversScreen(node)) return node;
+      node = node.parentElement;
+    }
+    return null;
+  }
+  function sweep() {
+    var all = document.querySelectorAll("div, section, main");
+    for (var i = 0; i < all.length; i++) {
+      if (!textMatches(all[i])) continue;
+      var overlay = findOverlayAncestor(all[i]);
+      if (overlay && overlay.style.display !== "none") {
+        overlay.style.display = "none";
+        document.documentElement.style.overflow = "";
+        document.body.style.overflow = "";
+      }
+    }
+  }
+  sweep();
+  new MutationObserver(sweep).observe(document.documentElement, { childList: true, subtree: true });
+  setInterval(sweep, 1500);
+  true;
+})();
+`;
+
 const INJECTED_JS = `
 ${USER_AGENT_DATA_PATCH_JS}
+${APP_PROMO_DISMISS_JS}
 (function () {
   if (window.__lunaInstalled) return;
   window.__lunaInstalled = true;
