@@ -230,6 +230,13 @@ const DrmWebViewPlayer = forwardRef<DrmWebViewPlayerHandle, Props>(
           domStorageEnabled
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
+          // Netflix/Disney+ gibi platformlar varsayilan WebView kimligini
+          // "desteklenmeyen tarayici" diye reddedip siteyi hic ACMAYABILIYOR
+          // (bot/cihaz korumasi) - masaustu Chrome'muş GIBI gorunmesi bu ilk
+          // engeli asma ihtimalini artirir. Gercek DRM'li (Widevine) oynatim
+          // bu TEK basina garanti etmez (sertifika seviyesi ayri bir konu),
+          // sadece sitenin ACILMASINI hedefler.
+          userAgent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
           style={styles.webview}
         />
         {loading && (
