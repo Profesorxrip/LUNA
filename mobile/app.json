@@ -9,9 +9,11 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0A0A0C",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.luna.app"
     },
     "android": {
+      "package": "com.luna.app",
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0C",
         "foregroundImage": "./assets/android-icon-foreground.png",
