@@ -67,7 +67,7 @@ export default function LoginScreen() {
           disabled={loadingProvider !== null}
         >
           <View style={[styles.providerIconBox, styles.googleIconBox]}>
-            {loadingProvider === "google" ? <ActivityIndicator color="#1C1C1E" /> : <GoogleIcon size={22} />}
+            {loadingProvider === "google" ? <ActivityIndicator color="#1C1C1E" /> : <GoogleIcon size={32} />}
           </View>
         </TouchableOpacity>
 
@@ -77,7 +77,7 @@ export default function LoginScreen() {
           disabled={loadingProvider !== null}
         >
           <View style={[styles.providerIconBox, styles.appleIconBox]}>
-            {loadingProvider === "apple" ? <ActivityIndicator color="#FFFFFF" /> : <AppleIcon size={22} />}
+            {loadingProvider === "apple" ? <ActivityIndicator color="#FFFFFF" /> : <AppleIcon size={32} />}
           </View>
         </TouchableOpacity>
 
@@ -90,7 +90,7 @@ export default function LoginScreen() {
             {loadingProvider === "discord" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <FontAwesome5 name="discord" size={24} color="#FFFFFF" />
+              <FontAwesome5 name="discord" size={34} color="#FFFFFF" />
             )}
           </View>
         </TouchableOpacity>
@@ -104,7 +104,7 @@ export default function LoginScreen() {
             {loadingProvider === "facebook" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
+              <FontAwesome5 name="facebook-f" size={32} color="#FFFFFF" />
             )}
           </View>
         </TouchableOpacity>
@@ -118,7 +118,7 @@ export default function LoginScreen() {
             {loadingProvider === "twitter" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <FontAwesome6 name="x-twitter" size={22} color="#FFFFFF" />
+              <FontAwesome6 name="x-twitter" size={32} color="#FFFFFF" />
             )}
           </View>
         </TouchableOpacity>
