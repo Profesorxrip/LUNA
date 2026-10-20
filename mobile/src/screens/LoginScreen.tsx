@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   // appButton/appIconCircle) AYNI kare ikon kalibi (squircle) - isimler
   // kaldirildi, artik sadece ikon kutulari var. Bes buton TEK satira sigsin
   // diye 64/kose 18'den biraz kucuk tutuldu: 62/kose 18, columnGap 10.
-  providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 10, marginTop: 180 },
+  providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 16, marginTop: 220 },
   providerButton: { alignItems: "center", width: 62 },
   providerIconBox: { width: 62, height: 62, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   googleIconBox: { backgroundColor: "#FFFFFF" },
