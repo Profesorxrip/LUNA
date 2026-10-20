@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   // appButton/appIconCircle) AYNI kare ikon + alt yazi kalibi - tutarlilik
   // icin kose yuvarlakligi ayni (squircle). Bes buton TEK satira sigsin diye
   // 64/kose 18'den biraz kucuk tutuldu: 62/kose 18, columnGap 10.
-  providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 10, marginTop: 64 },
+  providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 10, marginTop: 100 },
   providerButton: { alignItems: "center", gap: 8, width: 62 },
   providerIconBox: { width: 62, height: 62, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   googleIconBox: { backgroundColor: "#FFFFFF" },
