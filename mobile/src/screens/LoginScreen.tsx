@@ -20,6 +20,19 @@ const REDIRECT_URL = "luna://login-callback";
 // bir backend entegrasyonu gerektirir).
 type Provider = "google" | "apple" | "discord" | "facebook" | "twitter";
 
+// Logo kenar golgesi icin 8 yonlu kucuk kaydirma (bkz. asagidaki render) -
+// capraz olanlar biraz daha az kaydirilir (koseler "sivri" durmasin diye).
+const EDGE_SHADOW_OFFSETS: [number, number][] = [
+  [0, -3],
+  [0, 3],
+  [-3, 0],
+  [3, 0],
+  [-2, -2],
+  [2, -2],
+  [-2, 2],
+  [2, 2],
+];
+
 export default function LoginScreen() {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
 
@@ -60,16 +73,22 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.logoWrap}>
-        {/* Golge katmani: AYNI logo, koyu renge boyanmis, hafif asagi-saga
-            kaydirilmis - alttaki Image'in ASIL silueti takip ettigi icin
-            (dikdortgen degil, harflerin kendi seklinde) iOS/Android'de ayni
-            gorunur, elevation/shadowColor gibi platforma ozel API'lere
-            gerek kalmadan 3 boyutlu/kabartma hissi verir. */}
-        <Image
-          source={require("../../assets/lavin-icon-mark.png")}
-          style={[styles.logoMark, styles.logoShadow]}
-          resizeMode="contain"
-        />
+        {/* Kenar golgesi: TEK yonde kaydirilmis bir kopya "arkada duran ikinci
+            bir sekil" gibi gorunuyordu (bkz. onceki surum) - bunun yerine
+            logonun ETRAFINI saran, her yone (yukari/asagi/sag/sol/capraz)
+            kucuk mesafede kaydirilmis COK sayida sonuk kopya kullanilir -
+            her biri ayri ayri gorunmez ama ust uste binince harf
+            kenarlarinin TUMUNDE yumusak bir golge/hale olusturur (gercek
+            blur filtresi olmadan, iOS/Android'de ayni sekilde calisan tek
+            yontem). Ana (beyaz) logo EN USTTE render ediliyor. */}
+        {EDGE_SHADOW_OFFSETS.map(([dx, dy], i) => (
+          <Image
+            key={i}
+            source={require("../../assets/lavin-icon-mark.png")}
+            style={[styles.logoMark, styles.logoShadow, { top: 3 + dy, left: 3 + dx }]}
+            resizeMode="contain"
+          />
+        ))}
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logoMark} resizeMode="contain" />
       </View>
 
@@ -147,17 +166,22 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
   container: { flex: 1, backgroundColor: "transparent", padding: 24, justifyContent: "center" },
-  // logoShadow ile AYNI boyut/konumda cakismalari icin wrap'in kendisi de
-  // logo ile BIREBIR ayni boyutta (golge View'in disina tasmasin diye).
-  logoWrap: { width: 280, height: 131, alignSelf: "center", marginBottom: -8 },
+  // logoShadow kopyalari logoMark'tan en fazla 3px tasabiliyor - golge
+  // View'in disina kirpilmasin diye wrap, logodan biraz daha genis/yuksek.
+  // marginTop negatif: "logoyu hafif yukari al" - butun grup (logo+row+alt
+  // yazi) dikeyde ortalandigi icin (container: justifyContent "center")
+  // sadece logoWrap'e negatif ust bosluk vermek grubu YUKARI kaydiriyor.
+  logoWrap: { width: 286, height: 137, alignSelf: "center", marginTop: -24, marginBottom: -8 },
   // Logo artik beyaz siluet - tintColor, PNG'nin seffaf olmayan tum
   // piksellerini bu renge boyar (bkz. MediaPickerSheet.tsx topBarLogo
   // AYNI teknik). 220x103 -> 280x131 (ayni oran) buyutuldu.
-  logoMark: { position: "absolute", top: 0, left: 0, width: 280, height: 131, tintColor: "#FFFFFF" },
-  // Golge katmani: koyu lacivert tonu (arka plan degradesiyle uyumlu,
-  // saf siyah degil), birkac piksel asagi-saga kaydirilmis, ana logonun
-  // ALTINDA (JSX sirasinda once render edildigi icin).
-  logoShadow: { top: 5, left: 5, tintColor: "#030508", opacity: 0.55 },
+  logoMark: { position: "absolute", top: 3, left: 3, width: 280, height: 131, tintColor: "#FFFFFF" },
+  // Golge katmani: koyu lacivert tonu (arka plan degradesiyle uyumlu, saf
+  // siyah degil) - her kopya cok dusuk opaklikta (0.14), 8 tanesi UST USTE
+  // binince harf kenarlarinin TUMUNDE yumusak bir golge/hale olusturur
+  // (top/left JSX'te EDGE_SHADOW_OFFSETS'ten geliyor, logoMark'in 3,3'luk
+  // taban konumuna GORECELI).
+  logoShadow: { tintColor: "#030508", opacity: 0.14 },
   // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
   // appButton/appIconCircle) AYNI kare ikon kalibi (squircle) - isimler
   // kaldirildi, artik sadece ikon kutulari var. Bes buton TEK satira sigsin
