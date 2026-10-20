@@ -404,6 +404,13 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               }}
               javaScriptEnabled
               domStorageEnabled
+              // Android'de VARSAYILAN false - kapaliyken Netflix/Disney+ gibi
+              // DRM'li (Widevine) video hic baslamaz (sonsuza kadar
+              // "yukleniyor" kalir) - bkz. DrmWebViewPlayer.tsx AYNI bayrak,
+              // ayni sebep. Burada ayrica onemli: host bu gezinme asamasinda
+              // GERCEKTEN oynatmaya baslamazsa (bkz. EXTERNAL_VIDEO_DETECT_JS)
+              // secim hic tetiklenmez.
+              allowsProtectedMedia
             />
           </View>
         ) : (

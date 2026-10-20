@@ -237,6 +237,17 @@ const DrmWebViewPlayer = forwardRef<DrmWebViewPlayerHandle, Props>(
           // bu TEK basina garanti etmez (sertifika seviyesi ayri bir konu),
           // sadece sitenin ACILMASINI hedefler.
           userAgent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+          // Android'de VARSAYILAN false - kapaliyken Netflix/Disney+ gibi
+          // DRM'li (Widevine) video sonsuza kadar "yukleniyor" kalirdi,
+          // cunku WebView'in kendisi lisans isteginde bulunmaya/izin vermeye
+          // yetkili DEGILDI (kullanicinin kendi hesabiyla girip VIDEOYA
+          // basmasina ragmen oynatma hic baslamiyordu - bkz. react-native-
+          // webview'in android/.../RNCWebChromeClient.java
+          // onPermissionRequest'i, RESOURCE_PROTECTED_MEDIA_ID sadece bu
+          // bayrak acikken otomatik veriliyor). Sadece Android'de etkili
+          // (iOS'ta WKWebView DRM'i farkli ele aliyor, bu prop @platform
+          // android olarak belgeleniyor).
+          allowsProtectedMedia
           style={styles.webview}
         />
         {loading && (
