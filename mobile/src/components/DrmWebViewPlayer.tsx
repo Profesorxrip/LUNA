@@ -1,8 +1,8 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, ActivityIndicator, Linking, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, View, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { theme } from "../theme";
-import { isDrmLockedUrl } from "../utils/media";
+import { isDrmLockedUrl, openPlatformApp, platformForUrl } from "../utils/media";
 
 export interface DrmWebViewPlayerHandle {
   play: () => void;
@@ -233,7 +233,10 @@ const DrmWebViewPlayer = forwardRef<DrmWebViewPlayerHandle, Props>(
             Bu platform telif/DRM koruması nedeniyle uygulama içinde oynatılamıyor. Kendi {label || "platform"}{" "}
             uygulamandan açıp izleyebilirsin - sohbet ve sesli sohbet burada açık kalır.
           </Text>
-          <TouchableOpacity style={styles.lockedOpenBtn} onPress={() => Linking.openURL(currentUri)}>
+          <TouchableOpacity
+            style={styles.lockedOpenBtn}
+            onPress={() => openPlatformApp(platformForUrl(currentUri) || { url: currentUri })}
+          >
             <Text style={styles.lockedOpenBtnText}>↗ {label || "Harici"}'de aç</Text>
           </TouchableOpacity>
         </View>
@@ -284,7 +287,10 @@ const DrmWebViewPlayer = forwardRef<DrmWebViewPlayerHandle, Props>(
         {/* Kacis kapisi: WebView'de giris/oynatma sorun cikarirsa platformun
             KENDI uygulamasinda/tarayicida acabilsin - senkron o zaman durur,
             sohbet/sesli sohbet yine de acik kalir. */}
-        <TouchableOpacity style={styles.openExternalBtn} onPress={() => Linking.openURL(currentUri)}>
+        <TouchableOpacity
+          style={styles.openExternalBtn}
+          onPress={() => openPlatformApp(platformForUrl(currentUri) || { url: currentUri })}
+        >
           <Text style={styles.openExternalBtnText}>↗ {label || "Harici"}'de aç</Text>
         </TouchableOpacity>
       </View>

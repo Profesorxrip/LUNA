@@ -1,3 +1,4 @@
+import { Linking } from "react-native";
 import type { PlatformKey } from "../components/PlatformLogo";
 import type { MediaSource } from "../services/socket";
 import { SERVER_URL } from "../services/socket";
@@ -17,17 +18,60 @@ import { SERVER_URL } from "../services/socket";
  * kavrami YOK, bu yuzden bu platformlar mobilde SADECE kendi native
  * uygulamalarinda acilabiliyor (bkz. MediaPickerSheet.tsx selectItem,
  * DrmWebViewPlayer.tsx isDrmLocked). */
-export const EXTERNAL_PLATFORMS: { key: string; label: string; url: string; logo: PlatformKey; drmLocked?: boolean }[] = [
-  { key: "netflix", label: "Netflix", url: "https://www.netflix.com", logo: "netflix", drmLocked: true },
-  { key: "prime", label: "Prime Video", url: "https://www.primevideo.com", logo: "primevideo", drmLocked: true },
-  { key: "disney", label: "Disney+", url: "https://www.disneyplus.com", logo: "disneyplus", drmLocked: true },
-  { key: "hbomax", label: "HBO Max", url: "https://www.max.com", logo: "hbomax", drmLocked: true },
+export const EXTERNAL_PLATFORMS: {
+  key: string;
+  label: string;
+  url: string;
+  logo: PlatformKey;
+  drmLocked?: boolean;
+  // Uygulamanin KENDI ozel baglanti semasi (orn. "nflx://") - bir https://
+  // linki Android'de "varsayilan tarayici" ayarina gore UYGULAMA yerine
+  // TARAYICIYA dusebiliyor (App Links dogrulamasi/kullanici tercihi
+  // garanti degil). Bu sema SADECE o uygulama kuruluysa calisir, OS'a
+  // "bunu acabilecek baska hicbir sey yok" diye net bir sinyal verir -
+  // belirsizlik birakmaz (bkz. openPlatformApp: Linking.canOpenURL ile
+  // once bunu dener, olmazsa normal https:// linkine duser).
+  deepLink?: string;
+}[] = [
+  { key: "netflix", label: "Netflix", url: "https://www.netflix.com", logo: "netflix", drmLocked: true, deepLink: "nflx://www.netflix.com" },
+  { key: "prime", label: "Prime Video", url: "https://www.primevideo.com", logo: "primevideo", drmLocked: true, deepLink: "aiv://aiv/home" },
+  { key: "disney", label: "Disney+", url: "https://www.disneyplus.com", logo: "disneyplus", drmLocked: true, deepLink: "disneyplus://" },
+  { key: "hbomax", label: "HBO Max", url: "https://www.max.com", logo: "hbomax", drmLocked: true, deepLink: "hbomax://" },
   { key: "twitch", label: "Twitch", url: "https://www.twitch.tv", logo: "twitch" },
   { key: "drive", label: "Drive", url: "https://drive.google.com", logo: "drive" },
   { key: "icloud", label: "iCloud", url: "https://www.icloud.com", logo: "icloud" },
   { key: "spotify", label: "Spotify", url: "https://open.spotify.com", logo: "spotify" },
   { key: "x", label: "X", url: "https://www.x.com", logo: "x" },
 ];
+
+/** Bir platformu (varsa ozel baglanti semasiyla, bkz. yukarisi) GERCEKTEN
+ * kendi NATIVE uygulamasinda acmaya calisir - duz https:// linki Android'de
+ * tarayiciya dusebildigi icin (kullanicinin "varsayilan uygulama" tercihine
+ * bagli, garanti degil) once uygulamanin kendi semasini dener, SADECE o
+ * uygulama kurulu DEGILSE (canOpenURL false) normal https:// linkine
+ * (tarayici/Play Store/App Store yonlendirmesi) duser. */
+export async function openPlatformApp(platform: { url: string; deepLink?: string }): Promise<void> {
+  if (platform.deepLink) {
+    try {
+      const canOpen = await Linking.canOpenURL(platform.deepLink);
+      if (canOpen) {
+        await Linking.openURL(platform.deepLink);
+        return;
+      }
+    } catch {
+      // yoksay - sema gecersiz/desteklenmiyor, asagida https:// ile devam
+    }
+  }
+  await Linking.openURL(platform.url).catch(() => {});
+}
+
+/** Bir "external" kaynagin URL'i hangi bilinen platforma ait - bulunursa
+ * openPlatformApp'e deepLink'iyle birlikte gecirilebilir (bkz.
+ * DrmWebViewPlayer.tsx kacis kapisi butonlari). */
+export function platformForUrl(url: string): (typeof EXTERNAL_PLATFORMS)[number] | undefined {
+  const domain = bareDomain(url);
+  return EXTERNAL_PLATFORMS.find((p) => domain.includes(bareDomain(p.url)));
+}
 
 // "https://www.netflix.com" -> "netflix.com" - URL polyfiline bagli kalmadan
 // basit bir alan adi karsilastirmasi icin.

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { ChevronLeft } from "lucide-react-native";
@@ -8,7 +8,7 @@ import { getSocket, HistoryItem, SourceType } from "../services/socket";
 import type { MediaSource } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
-import { EXTERNAL_PLATFORMS, fetchWebPageTitle } from "../utils/media";
+import { EXTERNAL_PLATFORMS, fetchWebPageTitle, openPlatformApp } from "../utils/media";
 import { extractYouTubeId, fetchYouTubeMeta } from "../utils/youtube";
 import PlatformLogo from "./PlatformLogo";
 import Icon from "./Icon";
@@ -238,7 +238,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     if (platform.drmLocked) {
       onSelect({ type: "external", url: platform.url, label: platform.label });
       handleClose();
-      Linking.openURL(platform.url).catch(() => {});
+      openPlatformApp(platform);
       return;
     }
     externalCurrentUrlRef.current = platform.url;
