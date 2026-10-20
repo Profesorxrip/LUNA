@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Image,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -17,6 +28,13 @@ import PrivacyScreen from "./PrivacyScreen";
 // navigasyona bagli olmayan SADE sunum bilesenleri) dogrudan bir Modal
 // icinde aciyoruz - ayri bir route/navigasyon kurulumuna gerek kalmadan.
 type InfoModal = "terms" | "privacy" | null;
+
+// E-posta girisi sifresiz: kullanici sadece e-postasini yazar, Supabase ona
+// 6 haneli bir dogrulama kodu mail atar (sifre YOK, "magic link" de YOK -
+// mobil uygulamada derin linke guvenmek yerine kod girmek cok daha
+// guvenilir). "closed" -> sadece "E-posta ile devam et" linki gorunur,
+// "enter-email" -> e-posta kutusu, "enter-code" -> 6 haneli kod kutusu.
+type EmailStep = "closed" | "enter-email" | "enter-code";
 
 // app.json'daki "scheme": "luna" ile eslesiyor - Supabase, OAuth sonrasi
 // kullaniciyi tarayicidan buraya (uygulamanin kendisine) geri yonlendirir.
@@ -64,6 +82,11 @@ export default function LoginScreen() {
   const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
   const [infoModal, setInfoModal] = useState<InfoModal>(null);
 
+  const [emailStep, setEmailStep] = useState<EmailStep>("closed");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+
   // Supabase Dashboard > Authentication > Providers'ta Google/Apple
   // ETKINLESTIRILMEDIYSE (kendi OAuth client id/secret'lari girilmediyse)
   // bu cagri hata doner - kod tarafi hazir, sadece dashboard tarafinin
@@ -98,8 +121,52 @@ export default function LoginScreen() {
     // otomatik olarak kullaniciyi ana ekrana yonlendirecek.
   }
 
+  // Supabase'e "bu e-postaya 6 haneli bir kod gonder" der - hesap yoksa
+  // shouldCreateUser ile otomatik olusturulur (ayri bir "kayit ol" akisina
+  // gerek yok, tek akis hem giris hem kayit).
+  async function sendEmailCode() {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      showAlert("E-posta gerekli", "Devam etmek için e-posta adresini yaz.");
+      return;
+    }
+    setEmailLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({
+      email: trimmed,
+      options: { shouldCreateUser: true },
+    });
+    setEmailLoading(false);
+    if (error) {
+      showAlert("Kod gönderilemedi", error.message);
+      return;
+    }
+    setEmailStep("enter-code");
+  }
+
+  // Kullanicinin mailine gelen kodu Supabase'e dogrulatir - basarili olursa
+  // Supabase client oturumu kendisi kurar, App.tsx'teki onAuthStateChange
+  // otomatik olarak ana ekrana gecirir (OAuth akisiyla AYNI sekilde).
+  async function verifyEmailCode() {
+    const trimmed = code.trim();
+    if (!trimmed) {
+      showAlert("Kod gerekli", "Mailine gelen kodu yaz.");
+      return;
+    }
+    setEmailLoading(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: trimmed,
+      type: "email",
+    });
+    setEmailLoading(false);
+    if (error) {
+      showAlert("Doğrulama başarısız", error.message);
+      return;
+    }
+  }
+
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.logoWrap}>
         {/* Kenar golgesi: TEK yonde kaydirilmis bir kopya "arkada duran ikinci
             bir sekil" gibi gorunuyordu (bkz. onceki surum) - bunun yerine
@@ -192,6 +259,71 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.emailSection}>
+        {emailStep === "closed" && (
+          <TouchableOpacity onPress={() => setEmailStep("enter-email")} hitSlop={8}>
+            <Text style={styles.emailToggleText}>veya e-posta ile devam et</Text>
+          </TouchableOpacity>
+        )}
+
+        {emailStep === "enter-email" && (
+          <View style={styles.emailRow}>
+            <TextInput
+              style={styles.emailInput}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="E-posta adresin"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!emailLoading}
+            />
+            <TouchableOpacity style={styles.emailButton} onPress={sendEmailCode} disabled={emailLoading}>
+              {emailLoading ? (
+                <ActivityIndicator color="#1C1C1E" />
+              ) : (
+                <Text style={styles.emailButtonText}>Kod Gönder</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {emailStep === "enter-code" && (
+          <>
+            <Text style={styles.emailHint}>{email} adresine gönderilen kodu gir</Text>
+            <View style={styles.emailRow}>
+              <TextInput
+                style={styles.emailInput}
+                value={code}
+                onChangeText={setCode}
+                placeholder="6 haneli kod"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                keyboardType="number-pad"
+                maxLength={6}
+                editable={!emailLoading}
+              />
+              <TouchableOpacity style={styles.emailButton} onPress={verifyEmailCode} disabled={emailLoading}>
+                {emailLoading ? (
+                  <ActivityIndicator color="#1C1C1E" />
+                ) : (
+                  <Text style={styles.emailButtonText}>Doğrula</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                setEmailStep("enter-email");
+                setCode("");
+              }}
+              hitSlop={8}
+            >
+              <Text style={styles.emailToggleText}>Farklı bir e-posta kullan</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+
       <Text style={styles.termsText}>
         Devam ederek{" "}
         <Text style={styles.termsLink} onPress={() => setInfoModal("terms")}>
@@ -214,7 +346,7 @@ export default function LoginScreen() {
           <Text style={styles.infoModalCloseText}>✕</Text>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -274,6 +406,34 @@ const styles = StyleSheet.create({
   // kaldirildi, artik sadece ikon kutulari var. Bes buton TEK satira sigsin
   // diye 64/kose 18'den biraz kucuk tutuldu: 62/kose 18, columnGap 10.
   providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 16, marginTop: 220 },
+  // Sosyal butonlarin altinda, alt metinden once: once sadece tek satirlik
+  // "veya e-posta ile devam et" linki gorunur, tiklaninca YERINDE (ayri bir
+  // ekran/modal ACILMADAN) e-posta kutusuna donusur - kod adimi da ayni
+  // sekilde yerinde degisir.
+  emailSection: { marginTop: 24, alignItems: "center", paddingHorizontal: 8 },
+  emailToggleText: { color: "rgba(255,255,255,0.6)", fontSize: 13, textDecorationLine: "underline" },
+  emailHint: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginBottom: 10, textAlign: "center" },
+  emailRow: { flexDirection: "row", width: "100%", columnGap: 8 },
+  emailInput: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    color: "#FFFFFF",
+    fontSize: 15,
+  },
+  emailButton: {
+    height: 46,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emailButtonText: { color: "#1C1C1E", fontSize: 14, fontWeight: "700" },
   providerButton: { alignItems: "center", width: 62 },
   providerIconBox: { width: 62, height: 62, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   googleIconBox: { backgroundColor: "#FFFFFF" },
