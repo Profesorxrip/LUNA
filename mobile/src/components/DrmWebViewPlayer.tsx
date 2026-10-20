@@ -2,7 +2,7 @@ import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "reac
 import { StyleSheet, View, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { theme } from "../theme";
-import { isDrmLockedUrl, openPlatformApp, platformForUrl } from "../utils/media";
+import { openPlatformApp, platformForUrl } from "../utils/media";
 
 export interface DrmWebViewPlayerHandle {
   play: () => void;
@@ -44,7 +44,53 @@ interface Props {
 // burada ise React Native tarafi ZATEN bir soket tutuyor (services/socket.ts),
 // bu yuzden enjekte edilen script sadece postMessage ile DISARI bildiriyor/
 // disaridan gelen komutlari uyguluyor, kendi agini kurmuyor.
+// UA string'i "userAgent" prop'uyla degistirmek SADECE navigator.userAgent VE
+// HTTP User-Agent basligini degistiriyor - navigator.userAgentData (Client
+// Hints) bu degisiklige dahil DEGIL, cunku onu tarayici motorunun KENDISI
+// (gercek Chromium surumune gore) dolduruyor. Bir site UA string'ine "Android
+// Chrome 131" yazsa bile userAgentData tutarsiz/eksikse (orn. WebView'in
+// kendi kimligini belli etmesi) bu bir "gommulu WebView" sinyali olarak
+// algilanip bot/cihaz korumasina (Netflix'in "uygulamayi indir" engeli gibi)
+// takilabiliyor - Google'in kendi WebView belgeleri bunun GERCEKTEN boyle
+// kontrol edildigini dogruluyor. Bu yuzden UA string'iyle TUTARLI bir
+// userAgentData nesnesini de JS tarafinda taklit ediyoruz (HTTP Client Hints
+// basliklarini native kod olmadan degistiremiyoruz ama cogu tespit scripti
+// once bu JS nesnesine bakiyor).
+const USER_AGENT_DATA_PATCH_JS = `
+(function () {
+  try {
+    if (!navigator.userAgentData && !Object.getOwnPropertyDescriptor(navigator, 'userAgentData')) {
+      var brands = [
+        { brand: "Chromium", version: "131" },
+        { brand: "Google Chrome", version: "131" },
+        { brand: "Not_A Brand", version: "24" }
+      ];
+      var uaData = {
+        brands: brands,
+        mobile: true,
+        platform: "Android",
+        toJSON: function () { return { brands: brands, mobile: true, platform: "Android" }; },
+        getHighEntropyValues: function () {
+          return Promise.resolve({
+            brands: brands,
+            mobile: true,
+            platform: "Android",
+            platformVersion: "14.0.0",
+            architecture: "",
+            model: "Pixel 8 Pro",
+            uaFullVersion: "131.0.0.0",
+            fullVersionList: brands
+          });
+        }
+      };
+      Object.defineProperty(navigator, "userAgentData", { get: function () { return uaData; }, configurable: true });
+    }
+  } catch (e) {}
+})();
+`;
+
 const INJECTED_JS = `
+${USER_AGENT_DATA_PATCH_JS}
 (function () {
   if (window.__lunaInstalled) return;
   window.__lunaInstalled = true;
@@ -220,29 +266,6 @@ const DrmWebViewPlayer = forwardRef<DrmWebViewPlayerHandle, Props>(
 
     if (!currentUri || !source) return null;
 
-    // Netflix/Prime/Disney+/HBO Max gibi drmLocked platformlar GERCEK
-    // cihazda denendi - WebView icinde ASLA oynamiyorlar (bkz.
-    // utils/media.ts EXTERNAL_PLATFORMS yorumu, isDrmLockedUrl). Bunlar icin
-    // hic WebView denemiyoruz (bos yere sonsuza kadar donen bir yukleniyor
-    // ekrani gostermek yerine), dogrudan "kendi uygulamanda ac" karti.
-    if (isDrmLockedUrl(currentUri)) {
-      return (
-        <View style={[styles.container, styles.lockedContainer, fullscreen && styles.containerFullscreen]}>
-          <Text style={styles.lockedTitle}>{label || "Bu platform"}</Text>
-          <Text style={styles.lockedText}>
-            Bu platform telif/DRM koruması nedeniyle uygulama içinde oynatılamıyor. Kendi {label || "platform"}{" "}
-            uygulamandan açıp izleyebilirsin - sohbet ve sesli sohbet burada açık kalır.
-          </Text>
-          <TouchableOpacity
-            style={styles.lockedOpenBtn}
-            onPress={() => openPlatformApp(platformForUrl(currentUri) || { url: currentUri })}
-          >
-            <Text style={styles.lockedOpenBtnText}>↗ {label || "Harici"}'de aç</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
     return (
       <View style={[styles.container, fullscreen && styles.containerFullscreen]}>
         <WebView
@@ -321,9 +344,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   openExternalBtnText: { color: "#FFFFFF", fontSize: 11, fontWeight: "700" },
-  lockedContainer: { alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
-  lockedTitle: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
-  lockedText: { color: "rgba(255,255,255,0.7)", fontSize: 13, textAlign: "center", lineHeight: 18 },
-  lockedOpenBtn: { backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20, marginTop: 4 },
-  lockedOpenBtnText: { color: "#04140D", fontSize: 14, fontWeight: "700" },
 });

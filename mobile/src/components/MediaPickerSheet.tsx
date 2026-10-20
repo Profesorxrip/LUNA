@@ -50,7 +50,49 @@ const ANDROID_CHROME_USER_AGENT =
 // YANSIMIYOR. URL kalibina (orn. "/watch/") GUVENMIYORUZ - her platformun
 // kendi, degisebilen bir deseni var, ama hepsi oynatirken GERCEK bir
 // <video> etiketi olusturur, bu yuzden platform-bagimsiz ve guvenilir.
+// userAgent prop'u SADECE navigator.userAgent string'ini degistiriyor -
+// navigator.userAgentData (Client Hints) bu degisiklige dahil DEGIL, cunku
+// onu tarayici motorunun KENDISI dolduruyor. Bir site UA string'i tutarli
+// gorunse bile userAgentData eksik/tutarsizsa bu "gommulu WebView" sinyali
+// olarak algilanip bot korumasina takilabiliyor (bkz. DrmWebViewPlayer.tsx
+// AYNI bayrak, ayni sebep - Google'in kendi WebView belgeleri bunu
+// dogruluyor) - bu yuzden UA string'iyle TUTARLI bir userAgentData da
+// taklit ediyoruz.
+const USER_AGENT_DATA_PATCH_JS = `
+(function () {
+  try {
+    if (!navigator.userAgentData && !Object.getOwnPropertyDescriptor(navigator, 'userAgentData')) {
+      var brands = [
+        { brand: "Chromium", version: "131" },
+        { brand: "Google Chrome", version: "131" },
+        { brand: "Not_A Brand", version: "24" }
+      ];
+      var uaData = {
+        brands: brands,
+        mobile: true,
+        platform: "Android",
+        toJSON: function () { return { brands: brands, mobile: true, platform: "Android" }; },
+        getHighEntropyValues: function () {
+          return Promise.resolve({
+            brands: brands,
+            mobile: true,
+            platform: "Android",
+            platformVersion: "14.0.0",
+            architecture: "",
+            model: "Pixel 8 Pro",
+            uaFullVersion: "131.0.0.0",
+            fullVersionList: brands
+          });
+        }
+      };
+      Object.defineProperty(navigator, "userAgentData", { get: function () { return uaData; }, configurable: true });
+    }
+  } catch (e) {}
+})();
+`;
+
 const EXTERNAL_VIDEO_DETECT_JS = `
+${USER_AGENT_DATA_PATCH_JS}
 (function () {
   if (window.__lunaVideoDetect) return;
   window.__lunaVideoDetect = true;
@@ -214,11 +256,15 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   // oda ancak host GERCEKTEN bir seyi oynatmaya baslayinca acilir (bkz.
   // handleExternalVideoDetected), oda/kart adi platformun kendi adi olarak
   // kalir (DRM'li platformlarda uygulama icinden gercek video basligini
-  // goremedigimiz icin). drmLocked platformlar (Netflix/Prime/Disney+/HBO
-  // Max) bu gezinmeyi hic denemez - GERCEK cihazda dogrulandi, WebView
-  // icinde hicbir sekilde oynamiyorlar (bkz. EXTERNAL_PLATFORMS yorumu),
-  // bu yuzden host'u DOGRUDAN platformun kendi native uygulamasina/sitesine
-  // yonlendirip odayi hemen aciyoruz - sohbet/sesli sohbet LUNA'da kalir.
+  // goremedigimiz icin). Netflix/Prime/Disney+/HBO Max (drmLocked) de AYNI
+  // gezinmeyi dener artik - gercek bir watch-party uygulamasinin (Rave)
+  // ekran goruntuleriyle dogrulandigi uzere bu platformlar bazi cihazlarda
+  // GERCEKTEN bir WebView icinde oynayabiliyor (onceki "WebView'de asla
+  // oynamiyorlar" varsayimimiz YANLISTI - bkz. DrmWebViewPlayer.tsx
+  // USER_AGENT_DATA_PATCH_JS, asil eksik userAgentData/Client Hints
+  // tutarsizligiydi). Gezinme sirasinda video hic algilanmazsa host yine de
+  // kacis kapisi butonuyla platformun kendi uygulamasina gecebilir (bkz.
+  // asagidaki "external" render dalindaki buton).
   function selectItem(key: string) {
     if (key === "youtube") {
       setMode("youtube");
@@ -235,12 +281,6 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     }
     const platform = EXTERNAL_PLATFORMS.find((p) => p.key === key);
     if (!platform) return;
-    if (platform.drmLocked) {
-      onSelect({ type: "external", url: platform.url, label: platform.label });
-      handleClose();
-      openPlatformApp(platform);
-      return;
-    }
     externalCurrentUrlRef.current = platform.url;
     setExternalPlatform(platform);
     setMode("external");
@@ -420,6 +460,8 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               }}
               javaScriptEnabled
               domStorageEnabled
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
               // Android'de VARSAYILAN false - kapaliyken Netflix/Disney+ gibi
               // DRM'li (Widevine) video hic baslamaz (sonsuza kadar
               // "yukleniyor" kalir) - bkz. DrmWebViewPlayer.tsx AYNI bayrak,
@@ -428,6 +470,20 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               // secim hic tetiklenmez.
               allowsProtectedMedia
             />
+            {/* Kacis kapisi: bu platform gezinirken de video hic algilanmaz/
+                takilirsa host dogrudan kendi uygulamasina gecebilir - sohbete
+                hic girilmedigi icin burada "oda" kavrami yok, sadece sheet'i
+                kapatip uygulamayi aciyoruz. */}
+            <TouchableOpacity
+              style={styles.externalEscapeBtn}
+              onPress={() => {
+                const platform = externalPlatform;
+                handleClose();
+                if (platform) openPlatformApp(platform);
+              }}
+            >
+              <Text style={styles.externalEscapeBtnText}>↗ {externalPlatform.label}'de aç</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.formBox}>
@@ -544,6 +600,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   youtubeLoadingText: { color: "#FFFFFF", fontSize: 15 },
+  externalEscapeBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  externalEscapeBtnText: { color: "#FFFFFF", fontSize: 11, fontWeight: "700" },
   error: { color: theme.danger, fontSize: 13 },
   primaryButton: { backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 14, alignItems: "center" },
   primaryButtonText: { color: "#04140D", fontWeight: "700", fontSize: 16 },

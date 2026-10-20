@@ -3,27 +3,25 @@ import type { PlatformKey } from "../components/PlatformLogo";
 import type { MediaSource } from "../services/socket";
 import { SERVER_URL } from "../services/socket";
 
-/** "+"" menusundeki DRM'li platformlar - otomatik senkron desteklenmez,
- * sadece harici olarak acilir; sohbet/sesli sohbet odada acik kalir.
- * drmLocked: true olanlar (Netflix/Prime/Disney+/HBO Max) GERCEK cihazda
- * denendi - WebView icinde ASLA oynamiyorlar: masaustu kimligiyle DRM
- * (Widevine) saglamlik seviyesi uyusmazligindan sonsuza kadar "yukleniyor"
- * kaliyor, Android Chrome kimligiyle ise bu platformlar "mobil tarayicida
- * izlenemez, uygulamayi ac" diye BILEREK engelliyor (Netflix'in native
- * uygulamasi AYNI cihazda sorunsuz oynuyor - yani cihazin DRM sertifikasi
- * degil, platformun kendi mobil-web politikasi engel). Sektordeki TUM
- * "watch party" urunleri (Netflix Party/Teleparty, JustParty, Watch Party)
- * de bunu SADECE masaustu tarayici EKLENTISIYLE (gercek, sahte olmayan bir
- * Chrome sekmesinin DOM'una enjekte ederek) basariyor - mobilde eklenti
- * kavrami YOK, bu yuzden bu platformlar mobilde SADECE kendi native
- * uygulamalarinda acilabiliyor (bkz. MediaPickerSheet.tsx selectItem,
- * DrmWebViewPlayer.tsx isDrmLocked). */
+/** "+"" menusundeki harici platformlar - hepsi AYNI akistan gecer: host
+ * odaya girmeden ONCE uygulama ICINDEKI bir WebView'de o platformun GERCEK
+ * sitesinde tek basina gezinir, GERCEKTEN bir video oynatmaya baslayinca
+ * (bkz. MediaPickerSheet.tsx EXTERNAL_VIDEO_DETECT_JS) secim sayilir.
+ * Netflix/Prime/Disney+/HBO Max (DRM'li) icin ONCEDEN "WebView'de ASLA
+ * oynamiyorlar, sadece native uygulamada acilabilir" diye varsayilmisti -
+ * bu YANLISTI: gercek bir watch-party uygulamasinin (Rave) ekran
+ * goruntuleriyle DRM'li video icerigin bir WebView icinde gercekten
+ * oynayabildigi dogrulandi. Asil eksik, "userAgent" prop'uyla degistirilen
+ * UA string'inin navigator.userAgentData (Client Hints) ile TUTARSIZ
+ * kalmasiydi - bu da "gommulu WebView" sinyali verip bot korumasina
+ * takiliyordu (bkz. DrmWebViewPlayer.tsx/MediaPickerSheet.tsx
+ * USER_AGENT_DATA_PATCH_JS). Gezinme/oynatma yine de basarisiz olursa host
+ * asagidaki deepLink ile platformun kendi native uygulamasina gecebilir. */
 export const EXTERNAL_PLATFORMS: {
   key: string;
   label: string;
   url: string;
   logo: PlatformKey;
-  drmLocked?: boolean;
   // Uygulamanin KENDI ozel baglanti semasi (orn. "nflx://") - bir https://
   // linki Android'de "varsayilan tarayici" ayarina gore UYGULAMA yerine
   // TARAYICIYA dusebiliyor (App Links dogrulamasi/kullanici tercihi
@@ -33,10 +31,10 @@ export const EXTERNAL_PLATFORMS: {
   // once bunu dener, olmazsa normal https:// linkine duser).
   deepLink?: string;
 }[] = [
-  { key: "netflix", label: "Netflix", url: "https://www.netflix.com", logo: "netflix", drmLocked: true, deepLink: "nflx://www.netflix.com" },
-  { key: "prime", label: "Prime Video", url: "https://www.primevideo.com", logo: "primevideo", drmLocked: true, deepLink: "aiv://aiv/home" },
-  { key: "disney", label: "Disney+", url: "https://www.disneyplus.com", logo: "disneyplus", drmLocked: true, deepLink: "disneyplus://" },
-  { key: "hbomax", label: "HBO Max", url: "https://www.max.com", logo: "hbomax", drmLocked: true, deepLink: "hbomax://" },
+  { key: "netflix", label: "Netflix", url: "https://www.netflix.com", logo: "netflix", deepLink: "nflx://www.netflix.com" },
+  { key: "prime", label: "Prime Video", url: "https://www.primevideo.com", logo: "primevideo", deepLink: "aiv://aiv/home" },
+  { key: "disney", label: "Disney+", url: "https://www.disneyplus.com", logo: "disneyplus", deepLink: "disneyplus://" },
+  { key: "hbomax", label: "HBO Max", url: "https://www.max.com", logo: "hbomax", deepLink: "hbomax://" },
   { key: "twitch", label: "Twitch", url: "https://www.twitch.tv", logo: "twitch" },
   { key: "drive", label: "Drive", url: "https://drive.google.com", logo: "drive" },
   { key: "icloud", label: "iCloud", url: "https://www.icloud.com", logo: "icloud" },
@@ -77,14 +75,6 @@ export function platformForUrl(url: string): (typeof EXTERNAL_PLATFORMS)[number]
 // basit bir alan adi karsilastirmasi icin.
 export function bareDomain(url: string): string {
   return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
-}
-
-/** Bir "external" kaynagin URL'i drmLocked bir platforma mi ait - bkz.
- * EXTERNAL_PLATFORMS yorumu. DrmWebViewPlayer.tsx bunu WebView denemeden
- * ONCE kontrol eder (zaten calismayacagini biliyoruz). */
-export function isDrmLockedUrl(url: string): boolean {
-  const domain = bareDomain(url);
-  return EXTERNAL_PLATFORMS.some((p) => p.drmLocked && domain.includes(bareDomain(p.url)));
 }
 
 export interface SourceBadgeInfo {
