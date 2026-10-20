@@ -13,20 +13,22 @@ import { GoogleIcon } from "../components/SocialAuthIcons";
 // kullaniciyi tarayicidan buraya (uygulamanin kendisine) geri yonlendirir.
 const REDIRECT_URL = "luna://login-callback";
 
-// Supabase'in Provider turundeki GERCEK anahtarlar - X'in kendi anahtari
-// hala tarihi ismiyle "twitter" (marka degisikligine ragmen Supabase bunu
-// degistirmedi), buton metninde yine de "X" yaziyor. Discord (hesap acma
-// captcha sorunu) ve Microsoft/Azure (kurulumda baska bir engel) SIRAYLA
-// denendi, ikisi de kullanicinin OWN DEVELOPER HESABI acarken tikandi -
-// Spotify'a gecildi, onun gelistirici paneli (sadece isim+redirect URI,
-// onay/captcha yok) cok daha az surtunmeli. Apple BILEREK yok - Apple
-// Developer Program yillik ucretli uyelik gerektiriyor ($99), uygulama
-// gercekten yayina alinirken eklenecek. Telegram da BILEREK yok -
-// Supabase'in listesinde Telegram diye bir OAuth saglayicisi YOK (Telegram
-// kendi "Login Widget" mekanizmasini kullanir, standart OAuth2 degil, ayri
-// bir backend entegrasyonu gerektirir). Apple'in bosluguna Twitch kondu -
-// zaten "+" menusunde bir platform olarak var (tutarli), kurulumu basit.
-type Provider = "google" | "spotify" | "facebook" | "twitter" | "twitch";
+// Supabase'in Provider turundeki GERCEK anahtarlar - X icin IKI AYRI
+// anahtar var: "twitter" (eski, OAuth 1.0a, KULLANILMAMALI) ve "x" (yeni,
+// OAuth 2.0 - Supabase panelinde "X / Twitter (OAuth 2.0)" olarak etkin-
+// lestirdigimiz budur). Onceden yanlislikla "twitter" kullaniliyordu,
+// duzeltildi. Discord (hesap acma captcha sorunu) ve Microsoft/Azure
+// (kurulumda baska bir engel) SIRAYLA denendi, ikisi de kullanicinin OWN
+// DEVELOPER HESABI acarken tikandi - Spotify'a gecildi, onun gelistirici
+// paneli (sadece isim+redirect URI, onay/captcha yok) cok daha az
+// surtunmeli. Apple BILEREK yok - Apple Developer Program yillik ucretli
+// uyelik gerektiriyor ($99), uygulama gercekten yayina alinirken
+// eklenecek. Telegram da BILEREK yok - Supabase'in listesinde Telegram
+// diye bir OAuth saglayicisi YOK (Telegram kendi "Login Widget"
+// mekanizmasini kullanir, standart OAuth2 degil, ayri bir backend
+// entegrasyonu gerektirir). Apple'in bosluguna Twitch kondu - zaten "+"
+// menusunde bir platform olarak var (tutarli), kurulumu basit.
+type Provider = "google" | "spotify" | "facebook" | "x" | "twitch";
 
 // Logo kenar golgesi icin 8 yonlu kucuk kaydirma (bkz. asagidaki render) -
 // capraz olanlar biraz daha az kaydirilir (koseler "sivri" durmasin diye).
@@ -164,11 +166,11 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           style={styles.providerButton}
-          onPress={() => signInWithProvider("twitter")}
+          onPress={() => signInWithProvider("x")}
           disabled={loadingProvider !== null}
         >
           <View style={[styles.providerIconBox, styles.xIconBox]}>
-            {loadingProvider === "twitter" ? (
+            {loadingProvider === "x" ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <FontAwesome6 name="x-twitter" size={32} color="#FFFFFF" />
