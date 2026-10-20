@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
-import { theme } from "../theme";
 import { GoogleIcon, AppleIcon } from "../components/SocialAuthIcons";
 
 // app.json'daki "scheme": "luna" ile eslesiyor - Supabase, OAuth sonrasi
@@ -70,7 +69,6 @@ export default function LoginScreen() {
           <View style={[styles.providerIconBox, styles.googleIconBox]}>
             {loadingProvider === "google" ? <ActivityIndicator color="#1C1C1E" /> : <GoogleIcon size={22} />}
           </View>
-          <Text style={styles.providerLabel}>Google</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -81,7 +79,6 @@ export default function LoginScreen() {
           <View style={[styles.providerIconBox, styles.appleIconBox]}>
             {loadingProvider === "apple" ? <ActivityIndicator color="#FFFFFF" /> : <AppleIcon size={22} />}
           </View>
-          <Text style={styles.providerLabel}>Apple</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -96,7 +93,6 @@ export default function LoginScreen() {
               <FontAwesome5 name="discord" size={24} color="#FFFFFF" />
             )}
           </View>
-          <Text style={styles.providerLabel}>Discord</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -111,7 +107,6 @@ export default function LoginScreen() {
               <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
             )}
           </View>
-          <Text style={styles.providerLabel}>Facebook</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -126,7 +121,6 @@ export default function LoginScreen() {
               <FontAwesome6 name="x-twitter" size={22} color="#FFFFFF" />
             )}
           </View>
-          <Text style={styles.providerLabel}>X</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -142,11 +136,11 @@ const styles = StyleSheet.create({
   // biraz asagi kaydi (marginBottom negatif/providerRow marginTop buyuk).
   logoMark: { width: 220, height: 103, alignSelf: "center", marginBottom: -8, tintColor: "#FFFFFF" },
   // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
-  // appButton/appIconCircle) AYNI kare ikon + alt yazi kalibi - tutarlilik
-  // icin kose yuvarlakligi ayni (squircle). Bes buton TEK satira sigsin diye
-  // 64/kose 18'den biraz kucuk tutuldu: 62/kose 18, columnGap 10.
-  providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 10, marginTop: 140 },
-  providerButton: { alignItems: "center", gap: 8, width: 62 },
+  // appButton/appIconCircle) AYNI kare ikon kalibi (squircle) - isimler
+  // kaldirildi, artik sadece ikon kutulari var. Bes buton TEK satira sigsin
+  // diye 64/kose 18'den biraz kucuk tutuldu: 62/kose 18, columnGap 10.
+  providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 10, marginTop: 180 },
+  providerButton: { alignItems: "center", width: 62 },
   providerIconBox: { width: 62, height: 62, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   googleIconBox: { backgroundColor: "#FFFFFF" },
   appleIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
@@ -156,5 +150,4 @@ const styles = StyleSheet.create({
   // ayirt edilsin diye) ince beyaz cerceve (bkz. ShareRoomContent.tsx
   // appIconBlack AYNI kural).
   xIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
-  providerLabel: { color: theme.text, fontSize: 12, fontWeight: "600" },
 });
