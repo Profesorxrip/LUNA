@@ -1,115 +1,111 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Image,
-} from "react-native";
+import { useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
+import { GoogleIcon, AppleIcon } from "../components/SocialAuthIcons";
+
+// app.json'daki "scheme": "luna" ile eslesiyor - Supabase, OAuth sonrasi
+// kullaniciyi tarayicidan buraya (uygulamanin kendisine) geri yonlendirir.
+const REDIRECT_URL = "luna://login-callback";
+
+type Provider = "google" | "apple";
 
 export default function LoginScreen() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
 
-  async function handleSubmit() {
-    if (!email.trim() || !password) {
-      showAlert("Eksik bilgi", "E-posta ve sifre gerekli.");
+  // Supabase Dashboard > Authentication > Providers'ta Google/Apple
+  // ETKINLESTIRILMEDIYSE (kendi OAuth client id/secret'lari girilmediyse)
+  // bu cagri hata doner - kod tarafi hazir, sadece dashboard tarafinin
+  // ayarlanmasi gerekiyor.
+  async function signInWithProvider(provider: Provider) {
+    setLoadingProvider(provider);
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: REDIRECT_URL, skipBrowserRedirect: true },
+    });
+    if (error || !data?.url) {
+      setLoadingProvider(null);
+      showAlert("Giriş başarısız", error?.message || "Giriş başlatılamadı.");
       return;
     }
-    setLoading(true);
-    const { error } =
-      mode === "login"
-        ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
-        : await supabase.auth.signUp({ email: email.trim(), password });
-    setLoading(false);
-
-    if (error) {
-      showAlert("Hata", error.message);
+    const result = await WebBrowser.openAuthSessionAsync(data.url, REDIRECT_URL);
+    if (result.type !== "success" || !result.url) {
+      setLoadingProvider(null);
       return;
     }
-    if (mode === "signup") {
-      showAlert(
-        "Kayit basarili",
-        "E-postana dogrulama linki gonderildi (varsa) - onu onaylayip giris yapabilirsin."
-      );
-      setMode("login");
+    const fragment = result.url.split("#")[1] || result.url.split("?")[1] || "";
+    const params = new URLSearchParams(fragment);
+    const access_token = params.get("access_token");
+    const refresh_token = params.get("refresh_token");
+    setLoadingProvider(null);
+    if (!access_token || !refresh_token) {
+      showAlert("Giriş başarısız", "Oturum bilgisi alınamadı.");
+      return;
     }
-    // login basarili ise, App.tsx'teki onAuthStateChange dinleyicisi
+    await supabase.auth.setSession({ access_token, refresh_token });
+    // Basarili giristen sonra App.tsx'teki onAuthStateChange dinleyicisi
     // otomatik olarak kullaniciyi ana ekrana yonlendirecek.
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <View style={styles.container}>
       <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logoMark} resizeMode="contain" />
-      <Text style={styles.subtitle}>{mode === "login" ? "Giris yap" : "Hesap olustur"}</Text>
+      <Text style={styles.subtitle}>Devam etmek için giriş yap</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="E-posta"
-        placeholderTextColor="#888"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Sifre"
-        placeholderTextColor="#888"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
+      <TouchableOpacity
+        style={[styles.providerButton, styles.googleButton]}
+        onPress={() => signInWithProvider("google")}
+        disabled={loadingProvider !== null}
+      >
+        {loadingProvider === "google" ? (
+          <ActivityIndicator color="#1C1C1E" />
         ) : (
-          <Text style={styles.primaryButtonText}>{mode === "login" ? "Giris Yap" : "Kayit Ol"}</Text>
+          <>
+            <GoogleIcon size={18} />
+            <Text style={styles.googleButtonText}>Google ile devam et</Text>
+          </>
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => setMode(mode === "login" ? "signup" : "login")}>
-        <Text style={styles.switchText}>
-          {mode === "login" ? "Hesabin yok mu? Kayit ol" : "Zaten hesabin var mi? Giris yap"}
-        </Text>
+      <TouchableOpacity
+        style={[styles.providerButton, styles.appleButton]}
+        onPress={() => signInWithProvider("apple")}
+        disabled={loadingProvider !== null}
+      >
+        {loadingProvider === "apple" ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <>
+            <AppleIcon size={18} />
+            <Text style={styles.appleButtonText}>Apple ile devam et</Text>
+          </>
+        )}
       </TouchableOpacity>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
   container: { flex: 1, backgroundColor: "transparent", padding: 24, justifyContent: "center" },
-  logoMark: { width: 220, height: 103, alignSelf: "center", marginBottom: 12 },
+  // Logo artik beyaz siluet - tintColor, PNG'nin seffaf olmayan tum
+  // piksellerini bu renge boyar (bkz. MediaPickerSheet.tsx topBarLogo
+  // AYNI teknik).
+  logoMark: { width: 220, height: 103, alignSelf: "center", marginBottom: 12, tintColor: "#FFFFFF" },
   subtitle: { color: theme.textMuted, fontSize: 16, textAlign: "center", marginBottom: 32 },
-  input: {
-    backgroundColor: theme.surfaceAlt,
-    color: theme.text,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 12,
-    outlineWidth: 0,
-    outlineStyle: "none",
-  } as any,
-  primaryButton: {
-    backgroundColor: theme.accent,
-    borderRadius: 10,
-    paddingVertical: 14,
+  providerButton: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
+    justifyContent: "center",
+    gap: 10,
+    borderRadius: 10,
+    paddingVertical: 14,
+    marginBottom: 12,
   },
-  primaryButtonText: { color: "#04140D", fontSize: 16, fontWeight: "700" },
-  switchText: { color: theme.info, textAlign: "center", marginTop: 20 },
+  googleButton: { backgroundColor: "#FFFFFF" },
+  googleButtonText: { color: "#1C1C1E", fontSize: 16, fontWeight: "700" },
+  appleButton: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
+  appleButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
 });
