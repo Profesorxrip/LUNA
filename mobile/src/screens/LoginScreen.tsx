@@ -59,7 +59,19 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logoMark} resizeMode="contain" />
+      <View style={styles.logoWrap}>
+        {/* Golge katmani: AYNI logo, koyu renge boyanmis, hafif asagi-saga
+            kaydirilmis - alttaki Image'in ASIL silueti takip ettigi icin
+            (dikdortgen degil, harflerin kendi seklinde) iOS/Android'de ayni
+            gorunur, elevation/shadowColor gibi platforma ozel API'lere
+            gerek kalmadan 3 boyutlu/kabartma hissi verir. */}
+        <Image
+          source={require("../../assets/lavin-icon-mark.png")}
+          style={[styles.logoMark, styles.logoShadow]}
+          resizeMode="contain"
+        />
+        <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logoMark} resizeMode="contain" />
+      </View>
 
       <View style={styles.providerRow}>
         <TouchableOpacity
@@ -135,11 +147,17 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
   container: { flex: 1, backgroundColor: "transparent", padding: 24, justifyContent: "center" },
+  // logoShadow ile AYNI boyut/konumda cakismalari icin wrap'in kendisi de
+  // logo ile BIREBIR ayni boyutta (golge View'in disina tasmasin diye).
+  logoWrap: { width: 280, height: 131, alignSelf: "center", marginBottom: -8 },
   // Logo artik beyaz siluet - tintColor, PNG'nin seffaf olmayan tum
   // piksellerini bu renge boyar (bkz. MediaPickerSheet.tsx topBarLogo
-  // AYNI teknik). Altyazi kaldirildigi icin logo biraz yukari, satir
-  // biraz asagi kaydi (marginBottom negatif/providerRow marginTop buyuk).
-  logoMark: { width: 220, height: 103, alignSelf: "center", marginBottom: -8, tintColor: "#FFFFFF" },
+  // AYNI teknik). 220x103 -> 280x131 (ayni oran) buyutuldu.
+  logoMark: { position: "absolute", top: 0, left: 0, width: 280, height: 131, tintColor: "#FFFFFF" },
+  // Golge katmani: koyu lacivert tonu (arka plan degradesiyle uyumlu,
+  // saf siyah degil), birkac piksel asagi-saga kaydirilmis, ana logonun
+  // ALTINDA (JSX sirasinda once render edildigi icin).
+  logoShadow: { top: 5, left: 5, tintColor: "#030508", opacity: 0.55 },
   // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
   // appButton/appIconCircle) AYNI kare ikon kalibi (squircle) - isimler
   // kaldirildi, artik sadece ikon kutulari var. Bes buton TEK satira sigsin
