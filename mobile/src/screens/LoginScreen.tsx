@@ -249,8 +249,8 @@ const styles = StyleSheet.create({
     right: 24,
     bottom: 32,
     color: theme.textMuted,
-    fontSize: 10,
+    fontSize: 12,
     textAlign: "center",
-    lineHeight: 14,
+    lineHeight: 17,
   },
 });
