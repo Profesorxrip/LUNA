@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
 import * as WebBrowser from "expo-web-browser";
+import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
@@ -10,7 +12,13 @@ import { GoogleIcon, AppleIcon } from "../components/SocialAuthIcons";
 // kullaniciyi tarayicidan buraya (uygulamanin kendisine) geri yonlendirir.
 const REDIRECT_URL = "luna://login-callback";
 
-type Provider = "google" | "apple";
+// Supabase'in Provider turundeki GERCEK anahtarlar - X'in kendi anahtari
+// hala tarihi ismiyle "twitter" (marka degisikligine ragmen Supabase bunu
+// degistirmedi), buton metninde yine de "X" yaziyor. Telegram BILEREK yok -
+// Supabase'in listesinde Telegram diye bir OAuth saglayicisi YOK (Telegram
+// kendi "Login Widget" mekanizmasini kullanir, standart OAuth2 degil, ayri
+// bir backend entegrasyonu gerektirir).
+type Provider = "google" | "apple" | "discord" | "facebook" | "twitter";
 
 export default function LoginScreen() {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
@@ -76,6 +84,51 @@ export default function LoginScreen() {
           </View>
           <Text style={styles.providerLabel}>Apple</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.providerButton}
+          onPress={() => signInWithProvider("discord")}
+          disabled={loadingProvider !== null}
+        >
+          <View style={[styles.providerIconBox, styles.discordIconBox]}>
+            {loadingProvider === "discord" ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <FontAwesome5 name="discord" size={26} color="#FFFFFF" />
+            )}
+          </View>
+          <Text style={styles.providerLabel}>Discord</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.providerButton}
+          onPress={() => signInWithProvider("facebook")}
+          disabled={loadingProvider !== null}
+        >
+          <View style={[styles.providerIconBox, styles.facebookIconBox]}>
+            {loadingProvider === "facebook" ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <FontAwesome5 name="facebook-f" size={24} color="#FFFFFF" />
+            )}
+          </View>
+          <Text style={styles.providerLabel}>Facebook</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.providerButton}
+          onPress={() => signInWithProvider("twitter")}
+          disabled={loadingProvider !== null}
+        >
+          <View style={[styles.providerIconBox, styles.xIconBox]}>
+            {loadingProvider === "twitter" ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <FontAwesome6 name="x-twitter" size={24} color="#FFFFFF" />
+            )}
+          </View>
+          <Text style={styles.providerLabel}>X</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -91,11 +144,19 @@ const styles = StyleSheet.create({
   subtitle: { color: theme.textMuted, fontSize: 16, textAlign: "center", marginBottom: 32 },
   // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
   // appButton/appIconCircle) AYNI kare ikon + alt yazi kalibi - tutarlilik
-  // icin boyut/kose yuvarlakligi birebir ayni (squircle, 72x72/kose 20).
-  providerRow: { flexDirection: "row", justifyContent: "center", gap: 28 },
-  providerButton: { alignItems: "center", gap: 8 },
-  providerIconBox: { width: 72, height: 72, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  // icin kose yuvarlakligi ayni (squircle). 5 buton tek satira sigmadigi
+  // icin flexWrap ile 3+2 seklinde sariyor (bkz. appsRow'dan farkli olarak
+  // burada sabit sayida platform yok, kutu boyutu da biraz kuculdu: 64/kose 18).
+  providerRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", rowGap: 20, columnGap: 20 },
+  providerButton: { alignItems: "center", gap: 8, width: 64 },
+  providerIconBox: { width: 64, height: 64, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   googleIconBox: { backgroundColor: "#FFFFFF" },
   appleIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
+  discordIconBox: { backgroundColor: "#5865F2" },
+  facebookIconBox: { backgroundColor: "#1877F2" },
+  // X'in marka rengi saf siyah - Apple ile aynı sebeple (koyu arka planda
+  // ayirt edilsin diye) ince beyaz cerceve (bkz. ShareRoomContent.tsx
+  // appIconBlack AYNI kural).
+  xIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   providerLabel: { color: theme.text, fontSize: 13, fontWeight: "600" },
 });
