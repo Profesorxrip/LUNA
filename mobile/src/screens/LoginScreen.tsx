@@ -7,7 +7,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
-import { GoogleIcon, AppleIcon, MicrosoftIcon } from "../components/SocialAuthIcons";
+import { GoogleIcon, AppleIcon } from "../components/SocialAuthIcons";
 
 // app.json'daki "scheme": "luna" ile eslesiyor - Supabase, OAuth sonrasi
 // kullaniciyi tarayicidan buraya (uygulamanin kendisine) geri yonlendirir.
@@ -15,14 +15,15 @@ const REDIRECT_URL = "luna://login-callback";
 
 // Supabase'in Provider turundeki GERCEK anahtarlar - X'in kendi anahtari
 // hala tarihi ismiyle "twitter" (marka degisikligine ragmen Supabase bunu
-// degistirmedi), buton metninde yine de "X" yaziyor. Microsoft'un anahtari
-// "azure" (Supabase bunu Azure AD uzerinden sunuyor). Discord, kullanicinin
-// kendi hesabi olmadigi icin (Discord Developer Portal kurulumu hesap
-// gerektiriyor) Microsoft ile DEGISTIRILDI - hesap acmasi daha kolay.
-// Telegram BILEREK yok - Supabase'in listesinde Telegram diye bir OAuth
-// saglayicisi YOK (Telegram kendi "Login Widget" mekanizmasini kullanir,
-// standart OAuth2 degil, ayri bir backend entegrasyonu gerektirir).
-type Provider = "google" | "apple" | "azure" | "facebook" | "twitter";
+// degistirmedi), buton metninde yine de "X" yaziyor. Discord (hesap acma
+// captcha sorunu) ve Microsoft/Azure (kurulumda baska bir engel) SIRAYLA
+// denendi, ikisi de kullanicinin OWN DEVELOPER HESABI acarken tikandi -
+// Spotify'a gecildi, onun gelistirici paneli (sadece isim+redirect URI,
+// onay/captcha yok) cok daha az surtunmeli. Telegram BILEREK yok -
+// Supabase'in listesinde Telegram diye bir OAuth saglayicisi YOK (Telegram
+// kendi "Login Widget" mekanizmasini kullanir, standart OAuth2 degil, ayri
+// bir backend entegrasyonu gerektirir).
+type Provider = "google" | "apple" | "spotify" | "facebook" | "twitter";
 
 // Logo kenar golgesi icin 8 yonlu kucuk kaydirma (bkz. asagidaki render) -
 // capraz olanlar biraz daha az kaydirilir (koseler "sivri" durmasin diye).
@@ -128,11 +129,15 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           style={styles.providerButton}
-          onPress={() => signInWithProvider("azure")}
+          onPress={() => signInWithProvider("spotify")}
           disabled={loadingProvider !== null}
         >
-          <View style={[styles.providerIconBox, styles.microsoftIconBox]}>
-            {loadingProvider === "azure" ? <ActivityIndicator color="#1C1C1E" /> : <MicrosoftIcon size={30} />}
+          <View style={[styles.providerIconBox, styles.spotifyIconBox]}>
+            {loadingProvider === "spotify" ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <FontAwesome5 name="spotify" size={34} color="#FFFFFF" />
+            )}
           </View>
         </TouchableOpacity>
 
@@ -232,7 +237,7 @@ const styles = StyleSheet.create({
   providerIconBox: { width: 62, height: 62, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   googleIconBox: { backgroundColor: "#FFFFFF" },
   appleIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
-  microsoftIconBox: { backgroundColor: "#FFFFFF" },
+  spotifyIconBox: { backgroundColor: "#1DB954" },
   facebookIconBox: { backgroundColor: "#1877F2" },
   // X'in marka rengi saf siyah - Apple ile aynı sebeple (koyu arka planda
   // ayirt edilsin diye) ince beyaz cerceve (bkz. ShareRoomContent.tsx
