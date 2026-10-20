@@ -54,35 +54,29 @@ export default function LoginScreen() {
       <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logoMark} resizeMode="contain" />
       <Text style={styles.subtitle}>Devam etmek için giriş yap</Text>
 
-      <TouchableOpacity
-        style={[styles.providerButton, styles.googleButton]}
-        onPress={() => signInWithProvider("google")}
-        disabled={loadingProvider !== null}
-      >
-        {loadingProvider === "google" ? (
-          <ActivityIndicator color="#1C1C1E" />
-        ) : (
-          <>
-            <GoogleIcon size={18} />
-            <Text style={styles.googleButtonText}>Google ile devam et</Text>
-          </>
-        )}
-      </TouchableOpacity>
+      <View style={styles.providerRow}>
+        <TouchableOpacity
+          style={styles.providerButton}
+          onPress={() => signInWithProvider("google")}
+          disabled={loadingProvider !== null}
+        >
+          <View style={[styles.providerIconBox, styles.googleIconBox]}>
+            {loadingProvider === "google" ? <ActivityIndicator color="#1C1C1E" /> : <GoogleIcon size={24} />}
+          </View>
+          <Text style={styles.providerLabel}>Google</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.providerButton, styles.appleButton]}
-        onPress={() => signInWithProvider("apple")}
-        disabled={loadingProvider !== null}
-      >
-        {loadingProvider === "apple" ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <>
-            <AppleIcon size={18} />
-            <Text style={styles.appleButtonText}>Apple ile devam et</Text>
-          </>
-        )}
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.providerButton}
+          onPress={() => signInWithProvider("apple")}
+          disabled={loadingProvider !== null}
+        >
+          <View style={[styles.providerIconBox, styles.appleIconBox]}>
+            {loadingProvider === "apple" ? <ActivityIndicator color="#FFFFFF" /> : <AppleIcon size={24} />}
+          </View>
+          <Text style={styles.providerLabel}>Apple</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -95,17 +89,13 @@ const styles = StyleSheet.create({
   // AYNI teknik).
   logoMark: { width: 220, height: 103, alignSelf: "center", marginBottom: 12, tintColor: "#FFFFFF" },
   subtitle: { color: theme.textMuted, fontSize: 16, textAlign: "center", marginBottom: 32 },
-  providerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    borderRadius: 10,
-    paddingVertical: 14,
-    marginBottom: 12,
-  },
-  googleButton: { backgroundColor: "#FFFFFF" },
-  googleButtonText: { color: "#1C1C1E", fontSize: 16, fontWeight: "700" },
-  appleButton: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
-  appleButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
+  // appButton/appIconCircle) AYNI kare ikon + alt yazi kalibi - tutarlilik
+  // icin boyut/kose yuvarlakligi birebir ayni (squircle, 72x72/kose 20).
+  providerRow: { flexDirection: "row", justifyContent: "center", gap: 28 },
+  providerButton: { alignItems: "center", gap: 8 },
+  providerIconBox: { width: 72, height: 72, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  googleIconBox: { backgroundColor: "#FFFFFF" },
+  appleIconBox: { backgroundColor: "#000000", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
+  providerLabel: { color: theme.text, fontSize: 13, fontWeight: "600" },
 });
