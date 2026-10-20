@@ -31,11 +31,17 @@ interface Props {
 type Mode = "grid" | "youtube" | "weburl" | "history" | "liked" | "external";
 
 // Netflix/Disney+/Prime/HBO Max gibi DRM'li sitelerin bot/cihaz korumasi
-// varsayilan WebView kimligini reddedebiliyor - masaustu Chrome gibi
-// gorunmek bu ilk engeli asma ihtimalini artirir (bkz. DrmWebViewPlayer.tsx
-// AYNI User-Agent, orada da ayni sebeple var).
-const DESKTOP_USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+// varsayilan WebView kimligini reddedebiliyor - gercek bir Android Chrome
+// gibi gorunmek bu ilk engeli asma ihtimalini artirir (bkz.
+// DrmWebViewPlayer.tsx AYNI User-Agent, orada da ayni sebeple var).
+// ONEMLI: MASAUSTU (Windows) DEGIL, Android Chrome - cihaz GERCEKTEN Android
+// oldugu icin Netflix'in web oynaticisi platformu Windows sanirsa masaustune
+// ozel bir Widevine saglamlik (robustness) seviyesi istiyor, bu da Android
+// WebView'in GERCEKTE sagladigi mobil seviyeyle uyusmayip videonun sonsuza
+// kadar "yukleniyor" kalmasina yol acabiliyor - kullanici kendi hesabiyla
+// girip Netflix'in NATIVE uygulamasi ayni cihazda sorunsuz oynatirken bile.
+const ANDROID_CHROME_USER_AGENT =
+  "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
 
 // DRM'li platformlarda GERCEK bir <video> etiketi belirene kadar (host
 // GERCEKTEN bir seyi oynatmaya baslayana kadar) secim sayilmiyor - bu
@@ -389,7 +395,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
             <WebView
               source={{ uri: externalPlatform.url }}
               style={styles.webview}
-              userAgent={DESKTOP_USER_AGENT}
+              userAgent={ANDROID_CHROME_USER_AGENT}
               injectedJavaScriptBeforeContentLoaded={EXTERNAL_VIDEO_DETECT_JS}
               onNavigationStateChange={(navState) => {
                 externalCurrentUrlRef.current = navState.url;

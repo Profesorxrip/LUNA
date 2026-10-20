@@ -232,11 +232,16 @@ const DrmWebViewPlayer = forwardRef<DrmWebViewPlayerHandle, Props>(
           mediaPlaybackRequiresUserAction={false}
           // Netflix/Disney+ gibi platformlar varsayilan WebView kimligini
           // "desteklenmeyen tarayici" diye reddedip siteyi hic ACMAYABILIYOR
-          // (bot/cihaz korumasi) - masaustu Chrome'muş GIBI gorunmesi bu ilk
-          // engeli asma ihtimalini artirir. Gercek DRM'li (Widevine) oynatim
-          // bu TEK basina garanti etmez (sertifika seviyesi ayri bir konu),
-          // sadece sitenin ACILMASINI hedefler.
-          userAgent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+          // (bot/cihaz korumasi) - gercek bir Android Chrome gibi gorunmek bu
+          // ilk engeli asma ihtimalini artirir. MASAUSTU (Windows) DEGIL,
+          // Android Chrome kullaniyoruz: cihaz GERCEKTEN Android oldugu icin
+          // Netflix'in web oynaticisi platformu Windows sanirsa masaustune
+          // ozel bir Widevine saglamlik (robustness) seviyesi ister, bu da
+          // Android WebView'in GERCEKTE sagladigi mobil seviyeyle uyusmayip
+          // videonun sonsuza kadar "yukleniyor" kalmasina yol acabiliyor -
+          // kullanici kendi hesabiyla girip Netflix'in NATIVE uygulamasi ayni
+          // cihazda sorunsuz oynatirken bile.
+          userAgent="Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
           // Android'de VARSAYILAN false - kapaliyken Netflix/Disney+ gibi
           // DRM'li (Widevine) video sonsuza kadar "yukleniyor" kalirdi,
           // cunku WebView'in kendisi lisans isteginde bulunmaya/izin vermeye
