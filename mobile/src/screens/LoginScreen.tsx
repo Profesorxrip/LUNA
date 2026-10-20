@@ -200,8 +200,12 @@ const styles = StyleSheet.create({
   // logoWrap'le AYNI eksende ortalaniyor - boylece metin L'nin hizasinda
   // baslayip A'nin hizasinda bitiyor (letterSpacing bu genisligi doldurmak
   // icin ayarlandi).
+  // Sabit bir "width: 280" ONCEDEN vardi ama bu, metni kutunun icinde
+  // ORTALIYORDU - metnin KENDI genisligi 280'den kucuk kaldigi surece
+  // (logoyla ayni genislikte GORUNMUYORDU, sadece ayni kutuda ortalaniyordu).
+  // Simdi sabit genislik YOK - fontSize/letterSpacing dogrudan logo
+  // genisligine (280) ulasacak sekilde olculup ayarlandi (bkz. asagisi).
   tagline: {
-    width: 280,
     alignSelf: "center",
     color: "rgba(255,255,255,0.75)",
     fontSize: 15,
@@ -211,13 +215,14 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   // Bebas Neue (condensed/buyuk harf) yuklenince harf araligi ve boyut
-  // bu fonta GORE yeniden ayarlanir - sistem fontuyla olculen letterSpacing
-  // Bebas Neue'nin cok daha dar harflerine uymuyor.
+  // bu fonta GORE yeniden ayarlanir. 280 CSS piksellik logo genisligine
+  // (ekran goruntusu uzerinde piksel olculerek) eslesecek sekilde
+  // fontSize/letterSpacing ayarlandi.
   taglineFontLoaded: {
     fontFamily: "BebasNeue_400Regular",
     fontWeight: "400",
-    fontSize: 13,
-    letterSpacing: 1.1,
+    fontSize: 21,
+    letterSpacing: 1.8,
   },
   // Paylas ekranindaki ("Uygulamayla paylaş" satiri, bkz. ShareRoomContent.tsx
   // appButton/appIconCircle) AYNI kare ikon kalibi (squircle) - isimler
