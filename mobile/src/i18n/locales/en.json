@@ -290,5 +290,17 @@
     "deleteRoomBody": "Remove this room from your Discover list? The room won't close, it'll just be hidden for you.",
     "remove": "Remove",
     "roomReportedBody": "This room has been reported to our moderation team, thank you."
+  },
+  "mediaPicker": {
+    "videoUnavailableBody": "This video can no longer be opened.",
+    "enterUrlError": "Enter a website link.",
+    "noLikedVideos": "You haven't liked any videos yet.",
+    "noHistoryVideos": "You don't have any watch history yet.",
+    "loadingVideo": "Loading video...",
+    "openInApp": "↗ Open in {{label}}",
+    "webUrlTitle": "Website link",
+    "webUrlPlaceholder": "e.g. wikipedia.org",
+    "continue": "Continue",
+    "youtubeFallbackTitle": "YouTube Video"
   }
 }

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import { getSocket, HistoryItem, SourceType } from "../services/socket";
 import type { MediaSource } from "../services/socket";
 import { supabase } from "../services/supabase";
@@ -179,24 +180,28 @@ function ext(key: string): GridItem {
 // Prime ve Disney+ BILINCLI olarak ayni satirda yan yana - ikisinin de
 // yazi govdesi gercekten AYNI HIZADA gorunsun diye kendi gorsellerine
 // asimetrik dolgu eklendi (bkz. PlatformLogo.tsx).
-const ALL_ITEMS: GridItem[] = [
-  { key: "youtube", label: "YouTube", logo: "youtube" },
-  ext("netflix"),
-  ext("hbomax"),
-  ext("twitch"),
-  ext("drive"),
-  ext("icloud"),
-  ext("spotify"),
-  { key: "web", label: "Web", logo: "web" },
-  ext("prime"),
-  ext("disney"),
-  { key: "history", label: "Geçmiş", logo: "gecmis" },
-  { key: "liked", label: "Beğenilenler", logo: "begenilenler" },
-  // X icin ayri bir kart YOK - zaten "Web" ile x.com linki yapistirilinca
-  // ayni sekilde acilabiliyor (EXTERNAL_PLATFORMS'ta "x" hala duruyor, o
-  // sayede Web'den girilen bir X linki de dogru rozet/logo ile eslesiyor,
-  // bkz. RoomCard.tsx/RoomPreviewScreen.tsx domain eslestirme).
-];
+// Marka isimleri (YouTube/Web) cevrilmiyor - "Gecmis"/"Begenilenler" ise
+// dil degisiminde guncellensin diye bir fonksiyonla (sabit degil) uretiliyor.
+function getAllItems(t: (key: string) => string): GridItem[] {
+  return [
+    { key: "youtube", label: "YouTube", logo: "youtube" },
+    ext("netflix"),
+    ext("hbomax"),
+    ext("twitch"),
+    ext("drive"),
+    ext("icloud"),
+    ext("spotify"),
+    { key: "web", label: "Web", logo: "web" },
+    ext("prime"),
+    ext("disney"),
+    { key: "history", label: t("userProfile.tabHistory"), logo: "gecmis" },
+    { key: "liked", label: t("userProfile.tabLiked"), logo: "begenilenler" },
+    // X icin ayri bir kart YOK - zaten "Web" ile x.com linki yapistirilinca
+    // ayni sekilde acilabiliyor (EXTERNAL_PLATFORMS'ta "x" hala duruyor, o
+    // sayede Web'den girilen bir X linki de dogru rozet/logo ile eslesiyor,
+    // bkz. RoomCard.tsx/RoomPreviewScreen.tsx domain eslestirme).
+  ];
+}
 
 /** Rave'in gercek "ne izlemek istersin" ekranina benzer TAM SAYFA ekran -
  * degrade arka plan + ust arama cubugu + 2 sutunlu marka logosu listesi.
@@ -215,6 +220,7 @@ const ALL_ITEMS: GridItem[] = [
  * icin (bkz. MediaPlayer.tsx aciklamasi) oda/kart ismi platformun kendi adi
  * olarak kalir. */
 export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVideosFor }: Props) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>("grid");
   const [search, setSearch] = useState("");
@@ -251,8 +257,8 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   }, [visible, relatedVideosFor]);
 
   const visibleItems = useMemo(
-    () => ALL_ITEMS.filter((i) => i.label.toLowerCase().includes(search.trim().toLowerCase())),
-    [search]
+    () => getAllItems(t).filter((i) => i.label.toLowerCase().includes(search.trim().toLowerCase())),
+    [search, t]
   );
 
   function reset() {
@@ -302,7 +308,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     setLoadingTitle(true);
     const meta = await fetchYouTubeMeta(videoId);
     setLoadingTitle(false);
-    onSelect({ type: "youtube", url: videoId, label: meta.title || "YouTube Videosu", channelName: meta.channelName || undefined });
+    onSelect({ type: "youtube", url: videoId, label: meta.title || t("mediaPicker.youtubeFallbackTitle"), channelName: meta.channelName || undefined });
     handleClose();
   }
 
@@ -359,7 +365,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
 
   function selectHistoryItem(item: HistoryItem) {
     if (!item.mediaUrl || !item.mediaType) {
-      showAlert("Açılamadı", "Bu video artık açılamıyor.");
+      showAlert(t("userProfile.videoUnavailableTitle"), t("mediaPicker.videoUnavailableBody"));
       return;
     }
     onSelect({
@@ -374,7 +380,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   async function handleWebUrlSubmit() {
     const trimmed = webUrlInput.trim();
     if (!trimmed) {
-      setError("Bir web sitesi linki yaz.");
+      setError(t("mediaPicker.enterUrlError"));
       return;
     }
     const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
@@ -432,7 +438,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               <Icon name="search" size={18} color="rgba(255,255,255,0.85)" />
               <TextInput
                 style={styles.searchInput}
-                placeholder="ARA"
+                placeholder={t("friends.searchPlaceholder")}
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 value={search}
                 onChangeText={setSearch}
@@ -450,12 +456,12 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
           </>
         ) : mode === "history" || mode === "liked" ? (
           <ScrollView style={styles.historyScreen} showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>{mode === "liked" ? "Beğenilenler" : "Geçmiş"}</Text>
+            <Text style={styles.title}>{mode === "liked" ? t("userProfile.tabLiked") : t("userProfile.tabHistory")}</Text>
             {loadingHistory ? (
               <ActivityIndicator color="#FFFFFF" size="large" style={styles.historyLoading} />
             ) : (mode === "liked" ? likedItems : historyItems).length === 0 ? (
               <Text style={styles.historyEmptyText}>
-                {mode === "liked" ? "Henüz beğendiğin bir video yok." : "Henüz izleme geçmişin yok."}
+                {mode === "liked" ? t("mediaPicker.noLikedVideos") : t("mediaPicker.noHistoryVideos")}
               </Text>
             ) : (
               <View style={styles.historyGrid}>
@@ -471,7 +477,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                     <Text style={styles.historyTitle} numberOfLines={2}>
                       {item.mediaLabel}
                     </Text>
-                    <Text style={styles.historyMeta}>{item.participantCount} kişi</Text>
+                    <Text style={styles.historyMeta}>{t("userProfile.peopleCount", { count: item.participantCount })}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -491,7 +497,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
             {loadingTitle && (
               <View style={styles.youtubeLoadingOverlay}>
                 <ActivityIndicator color="#FFFFFF" size="large" />
-                <Text style={styles.youtubeLoadingText}>Video yukleniyor...</Text>
+                <Text style={styles.youtubeLoadingText}>{t("mediaPicker.loadingVideo")}</Text>
               </View>
             )}
           </View>
@@ -537,15 +543,15 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                 if (platform) openPlatformApp(platform);
               }}
             >
-              <Text style={styles.externalEscapeBtnText}>↗ {externalPlatform.label}'de aç</Text>
+              <Text style={styles.externalEscapeBtnText}>{t("mediaPicker.openInApp", { label: externalPlatform.label })}</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.formBox}>
-            <Text style={styles.title}>Web sitesi linki</Text>
+            <Text style={styles.title}>{t("mediaPicker.webUrlTitle")}</Text>
             <TextInput
               style={styles.input}
-              placeholder="orn. wikipedia.org"
+              placeholder={t("mediaPicker.webUrlPlaceholder")}
               placeholderTextColor={theme.textMuted}
               value={webUrlInput}
               onChangeText={setWebUrlInput}
@@ -557,7 +563,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               {loadingTitle ? (
                 <ActivityIndicator color="#04140D" />
               ) : (
-                <Text style={styles.primaryButtonText}>Devam</Text>
+                <Text style={styles.primaryButtonText}>{t("mediaPicker.continue")}</Text>
               )}
             </TouchableOpacity>
           </View>

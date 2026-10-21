@@ -290,5 +290,17 @@
     "deleteRoomBody": "¿Quitar esta sala de tu lista de Descubrir? La sala no se cerrará, solo se ocultará para ti.",
     "remove": "Quitar",
     "roomReportedBody": "Esta sala ha sido reportada a nuestro equipo de moderación, gracias."
+  },
+  "mediaPicker": {
+    "videoUnavailableBody": "Este video ya no se puede abrir.",
+    "enterUrlError": "Escribe un enlace de un sitio web.",
+    "noLikedVideos": "Todavía no te ha gustado ningún video.",
+    "noHistoryVideos": "Todavía no tienes historial de reproducción.",
+    "loadingVideo": "Cargando video...",
+    "openInApp": "↗ Abrir en {{label}}",
+    "webUrlTitle": "Enlace de sitio web",
+    "webUrlPlaceholder": "ej. wikipedia.org",
+    "continue": "Continuar",
+    "youtubeFallbackTitle": "Video de YouTube"
   }
 }

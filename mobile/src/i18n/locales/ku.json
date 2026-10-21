@@ -290,5 +290,17 @@
     "deleteRoomBody": "Ev ode ji lîsteya te ya Vedîtinê were rakirin? Ode nayê girtin, tenê ji bo te were veşartin.",
     "remove": "Rake",
     "roomReportedBody": "Ev ode ji tîma me ya moderasyonê re hat ragihandin, spas."
+  },
+  "mediaPicker": {
+    "videoUnavailableBody": "Ev vîdyo êdî nayê vekirin.",
+    "enterUrlError": "Girêdana malperê binivîse.",
+    "noLikedVideos": "Hêj tu vîdyoyek ji te re xweş nehatiye.",
+    "noHistoryVideos": "Hêj dîroka te ya temaşekirinê tune ye.",
+    "loadingVideo": "Vîdyo tê barkirin...",
+    "openInApp": "↗ Di {{label}} de veke",
+    "webUrlTitle": "Girêdana malperê",
+    "webUrlPlaceholder": "mînak. wikipedia.org",
+    "continue": "Bidomîne",
+    "youtubeFallbackTitle": "Vîdyoya YouTube"
   }
 }

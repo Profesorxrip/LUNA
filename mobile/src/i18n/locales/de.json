@@ -290,5 +290,17 @@
     "deleteRoomBody": "Diesen Raum aus deiner Entdecken-Liste entfernen? Der Raum wird nicht geschlossen, er wird nur für dich ausgeblendet.",
     "remove": "Entfernen",
     "roomReportedBody": "Dieser Raum wurde an unser Moderationsteam gemeldet, danke."
+  },
+  "mediaPicker": {
+    "videoUnavailableBody": "Dieses Video kann nicht mehr geöffnet werden.",
+    "enterUrlError": "Gib einen Website-Link ein.",
+    "noLikedVideos": "Du hast noch keine Videos geliked.",
+    "noHistoryVideos": "Du hast noch keinen Wiedergabeverlauf.",
+    "loadingVideo": "Video wird geladen...",
+    "openInApp": "↗ In {{label}} öffnen",
+    "webUrlTitle": "Website-Link",
+    "webUrlPlaceholder": "z. B. wikipedia.org",
+    "continue": "Weiter",
+    "youtubeFallbackTitle": "YouTube-Video"
   }
 }

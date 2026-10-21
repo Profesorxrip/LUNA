@@ -290,5 +290,17 @@
     "deleteRoomBody": "هل تريد إزالة هذه الغرفة من قائمة استكشافك؟ لن تُغلق الغرفة، ستُخفى عنك فقط.",
     "remove": "إزالة",
     "roomReportedBody": "تم إبلاغ فريق الإشراف بهذه الغرفة، شكرًا لك."
+  },
+  "mediaPicker": {
+    "videoUnavailableBody": "لم يعد بالإمكان فتح هذا الفيديو.",
+    "enterUrlError": "اكتب رابط موقع ويب.",
+    "noLikedVideos": "لم تُعجب بأي فيديو بعد.",
+    "noHistoryVideos": "ليس لديك سجل مشاهدة بعد.",
+    "loadingVideo": "جارٍ تحميل الفيديو...",
+    "openInApp": "↗ افتح في {{label}}",
+    "webUrlTitle": "رابط موقع ويب",
+    "webUrlPlaceholder": "مثال: wikipedia.org",
+    "continue": "متابعة",
+    "youtubeFallbackTitle": "فيديو YouTube"
   }
 }

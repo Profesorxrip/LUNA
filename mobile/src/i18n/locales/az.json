@@ -290,5 +290,17 @@
     "deleteRoomBody": "Bu otaq Kəşf et siyahından silinsin? Otaq bağlanmır, yalnız sənin üçün gizlədilir.",
     "remove": "Sil",
     "roomReportedBody": "Bu otaq moderasiya komandamıza bildirildi, təşəkkürlər."
+  },
+  "mediaPicker": {
+    "videoUnavailableBody": "Bu video artıq açıla bilmir.",
+    "enterUrlError": "Veb sayt linki yaz.",
+    "noLikedVideos": "Hələ bəyəndiyin video yoxdur.",
+    "noHistoryVideos": "Hələ izləmə tarixçən yoxdur.",
+    "loadingVideo": "Video yüklənir...",
+    "openInApp": "↗ {{label}}-də aç",
+    "webUrlTitle": "Veb sayt linki",
+    "webUrlPlaceholder": "məs. wikipedia.org",
+    "continue": "Davam",
+    "youtubeFallbackTitle": "YouTube Videosu"
   }
 }

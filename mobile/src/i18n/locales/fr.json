@@ -290,5 +290,17 @@
     "deleteRoomBody": "Retirer ce salon de ta liste Découvrir ? Le salon ne se fermera pas, il sera juste masqué pour toi.",
     "remove": "Retirer",
     "roomReportedBody": "Ce salon a été signalé à notre équipe de modération, merci."
+  },
+  "mediaPicker": {
+    "videoUnavailableBody": "Cette vidéo ne peut plus être ouverte.",
+    "enterUrlError": "Saisis un lien de site web.",
+    "noLikedVideos": "Tu n'as encore aimé aucune vidéo.",
+    "noHistoryVideos": "Tu n'as pas encore d'historique de visionnage.",
+    "loadingVideo": "Chargement de la vidéo...",
+    "openInApp": "↗ Ouvrir dans {{label}}",
+    "webUrlTitle": "Lien du site web",
+    "webUrlPlaceholder": "ex. wikipedia.org",
+    "continue": "Continuer",
+    "youtubeFallbackTitle": "Vidéo YouTube"
   }
 }

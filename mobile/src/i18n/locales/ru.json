@@ -290,5 +290,17 @@
     "deleteRoomBody": "Удалить эту комнату из списка «Обзор»? Комната не закроется, она просто будет скрыта для тебя.",
     "remove": "Удалить",
     "roomReportedBody": "Эта комната передана нашей команде модерации, спасибо."
+  },
+  "mediaPicker": {
+    "videoUnavailableBody": "Это видео больше нельзя открыть.",
+    "enterUrlError": "Введи ссылку на сайт.",
+    "noLikedVideos": "Тебе пока не понравилось ни одно видео.",
+    "noHistoryVideos": "У тебя пока нет истории просмотра.",
+    "loadingVideo": "Загрузка видео...",
+    "openInApp": "↗ Открыть в {{label}}",
+    "webUrlTitle": "Ссылка на сайт",
+    "webUrlPlaceholder": "напр. wikipedia.org",
+    "continue": "Продолжить",
+    "youtubeFallbackTitle": "Видео YouTube"
   }
 }

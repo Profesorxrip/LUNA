@@ -290,5 +290,17 @@
     "deleteRoomBody": "Bu oda Keşfet listenden kaldırılsın mı? Oda kapanmaz, sadece senin için gizlenir.",
     "remove": "Kaldır",
     "roomReportedBody": "Bu oda moderasyon ekibine iletildi, teşekkürler."
+  },
+  "mediaPicker": {
+    "videoUnavailableBody": "Bu video artık açılamıyor.",
+    "enterUrlError": "Bir web sitesi linki yaz.",
+    "noLikedVideos": "Henüz beğendiğin bir video yok.",
+    "noHistoryVideos": "Henüz izleme geçmişin yok.",
+    "loadingVideo": "Video yükleniyor...",
+    "openInApp": "↗ {{label}}'de aç",
+    "webUrlTitle": "Web sitesi linki",
+    "webUrlPlaceholder": "örn. wikipedia.org",
+    "continue": "Devam",
+    "youtubeFallbackTitle": "YouTube Videosu"
   }
 }

@@ -290,5 +290,17 @@
     "deleteRoomBody": "Να αφαιρεθεί αυτό το δωμάτιο από τη λίστα Εξερεύνησης; Το δωμάτιο δεν θα κλείσει, απλώς θα κρυφτεί για εσένα.",
     "remove": "Αφαίρεση",
     "roomReportedBody": "Αυτό το δωμάτιο αναφέρθηκε στην ομάδα διαχείρισης μας, ευχαριστούμε."
+  },
+  "mediaPicker": {
+    "videoUnavailableBody": "Αυτό το βίντεο δεν μπορεί πλέον να ανοιχτεί.",
+    "enterUrlError": "Γράψε έναν σύνδεσμο ιστότοπου.",
+    "noLikedVideos": "Δεν έχεις βάλει «μου αρέσει» σε κανένα βίντεο ακόμα.",
+    "noHistoryVideos": "Δεν έχεις ακόμα ιστορικό παρακολούθησης.",
+    "loadingVideo": "Φόρτωση βίντεο...",
+    "openInApp": "↗ Άνοιγμα στο {{label}}",
+    "webUrlTitle": "Σύνδεσμος ιστότοπου",
+    "webUrlPlaceholder": "π.χ. wikipedia.org",
+    "continue": "Συνέχεια",
+    "youtubeFallbackTitle": "Βίντεο YouTube"
   }
 }
