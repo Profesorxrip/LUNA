@@ -1,7 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { EMOJI_CATEGORIES } from "../data/emojiCategories";
+import { useTranslation } from "react-i18next";
+import { getEmojiCategories } from "../data/emojiCategories";
 import { searchEmojis } from "../data/emojiSearch";
 import Icon from "./Icon";
 
@@ -30,10 +31,12 @@ interface Props {
  * edildigi icin 1900+ emoji olmasina ragmen akici kaydiriliyor, ustteki
  * kategori sekmelerine basinca ilgili bolume aninda ziplanabiliyor. */
 export default function EmojiPickerSheet({ visible, selected, onSelect, onClose }: Props) {
+  const { t, i18n } = useTranslation();
   const listRef = useRef<FlatList<ListItem>>(null);
   const [query, setQuery] = useState("");
   const searching = query.trim().length > 0;
   const searchResults = useMemo(() => searchEmojis(query), [query]);
+  const emojiCategories = useMemo(() => getEmojiCategories(), [i18n.language]);
 
   function handleClose() {
     setQuery("");
@@ -45,7 +48,7 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
     const sectionStartIndex: number[] = [];
     const layouts: { length: number; offset: number }[] = [];
     let offset = 0;
-    EMOJI_CATEGORIES.forEach((cat) => {
+    emojiCategories.forEach((cat) => {
       sectionStartIndex.push(items.length);
       items.push({ type: "header", title: cat.label });
       layouts.push({ length: HEADER_HEIGHT, offset });
@@ -57,7 +60,7 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
       });
     });
     return { items, sectionStartIndex, layouts };
-  }, []);
+  }, [emojiCategories]);
 
   function jumpTo(categoryIndex: number) {
     listRef.current?.scrollToIndex({ index: sectionStartIndex[categoryIndex], animated: true });
@@ -70,7 +73,7 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
           <TouchableOpacity onPress={handleClose} hitSlop={10}>
             <Icon name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.title}>HIZLI TEPKİ</Text>
+          <Text style={styles.title}>{t("emoji.quickReactionTitle")}</Text>
           <Text style={styles.currentEmoji}>{selected}</Text>
         </View>
 
@@ -84,7 +87,7 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="EMOJİ ARA"
+            placeholder={t("emoji.searchPlaceholder")}
             placeholderTextColor="rgba(255,255,255,0.5)"
             style={styles.searchInput}
           />
@@ -102,7 +105,7 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
             style={styles.tabsRow}
             contentContainerStyle={styles.tabsRowContent}
           >
-            {EMOJI_CATEGORIES.map((cat, i) => (
+            {emojiCategories.map((cat, i) => (
               <TouchableOpacity key={cat.key} style={styles.tabButton} onPress={() => jumpTo(i)}>
                 <Text style={styles.tabIcon}>{cat.icon}</Text>
               </TouchableOpacity>
@@ -112,7 +115,7 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
 
         {searching ? (
           searchResults.length === 0 ? (
-            <Text style={styles.noResults}>Sonuç bulunamadı</Text>
+            <Text style={styles.noResults}>{t("emoji.noResults")}</Text>
           ) : (
             <ScrollView contentContainerStyle={styles.searchGrid}>
               {searchResults.map((emoji) => (

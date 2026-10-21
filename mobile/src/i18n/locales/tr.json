@@ -392,5 +392,26 @@
     "unblock": "Engeli Kaldır",
     "block": "Engelle",
     "report": "Bildir"
+  },
+  "emoji": {
+    "quickReactionTitle": "HIZLI TEPKİ",
+    "searchPlaceholder": "EMOJİ ARA",
+    "noResults": "Sonuç bulunamadı",
+    "faces": "Yüz İfadeleri",
+    "people": "İnsanlar",
+    "animalsNature": "Hayvanlar & Doğa",
+    "foodDrink": "Yiyecek & İçecek",
+    "travelPlaces": "Seyahat & Mekanlar",
+    "activities": "Aktiviteler",
+    "objects": "Nesneler",
+    "symbols": "Semboller",
+    "flags": "Bayraklar"
+  },
+  "messageOptions": {
+    "searchPlaceholder": "Ara",
+    "backToQuickReactions": "Hızlı tepkilere dön",
+    "searchAllEmojis": "Tüm emojileri ara",
+    "copy": "Kopyala",
+    "reply": "Yanıtla"
   }
 }

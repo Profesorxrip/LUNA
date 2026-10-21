@@ -392,5 +392,26 @@
     "unblock": "Blockierung aufheben",
     "block": "Blockieren",
     "report": "Melden"
+  },
+  "emoji": {
+    "quickReactionTitle": "SCHNELLE REAKTION",
+    "searchPlaceholder": "EMOJI SUCHEN",
+    "noResults": "Keine Ergebnisse gefunden",
+    "faces": "Smileys & Emotionen",
+    "people": "Menschen",
+    "animalsNature": "Tiere & Natur",
+    "foodDrink": "Essen & Trinken",
+    "travelPlaces": "Reisen & Orte",
+    "activities": "Aktivitäten",
+    "objects": "Objekte",
+    "symbols": "Symbole",
+    "flags": "Flaggen"
+  },
+  "messageOptions": {
+    "searchPlaceholder": "Suchen",
+    "backToQuickReactions": "Zurück zu Schnellreaktionen",
+    "searchAllEmojis": "Alle Emojis durchsuchen",
+    "copy": "Kopieren",
+    "reply": "Antworten"
   }
 }

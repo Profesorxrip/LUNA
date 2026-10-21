@@ -1,4 +1,4 @@
-import { ALL_EMOJIS } from "./emojiCategories";
+import { getAllEmojis } from "./emojiCategories";
 
 // unicode-emoji-json sadece INGILIZCE resmi isim veriyor (Turkce lokalizasyonlu
 // bir emoji veri seti yok) - bu yuzden en sik kullanilan ~100 tepki emojisi
@@ -141,10 +141,15 @@ function normalizeTr(s: string): string {
     .replace(/ç/g, "c");
 }
 
-const SEARCH_INDEX = ALL_EMOJIS.map((item) => ({
-  emoji: item.emoji,
-  haystack: normalizeTr([item.name, item.categoryLabel, ...(TR_KEYWORDS[item.emoji] || [])].join(" ")),
-}));
+// Aktif dile gore yeniden olusuyor (kategori basliklari dile bagli) - arama
+// kutusuna her yazildiginda cagriliyor, ~1900 emojilik liste icin maliyeti
+// ihmal edilebilir.
+function buildSearchIndex() {
+  return getAllEmojis().map((item) => ({
+    emoji: item.emoji,
+    haystack: normalizeTr([item.name, item.categoryLabel, ...(TR_KEYWORDS[item.emoji] || [])].join(" ")),
+  }));
+}
 
 /** Bosluklarla ayrilmis her kelimenin haystack'te gecmesini arar (sirali
  * eslesme sartlamadan) - "kirmizi kalp" gibi birden fazla kelimeli aramalarda
@@ -156,7 +161,7 @@ export function searchEmojis(query: string): string[] {
     .filter(Boolean);
   if (words.length === 0) return [];
   const results: string[] = [];
-  for (const item of SEARCH_INDEX) {
+  for (const item of buildSearchIndex()) {
     if (words.every((w) => item.haystack.includes(w))) results.push(item.emoji);
   }
   return results;

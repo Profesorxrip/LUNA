@@ -392,5 +392,26 @@
     "unblock": "Разблокировать",
     "block": "Заблокировать",
     "report": "Пожаловаться"
+  },
+  "emoji": {
+    "quickReactionTitle": "БЫСТРАЯ РЕАКЦИЯ",
+    "searchPlaceholder": "ПОИСК ЭМОДЗИ",
+    "noResults": "Результатов не найдено",
+    "faces": "Смайлы и эмоции",
+    "people": "Люди",
+    "animalsNature": "Животные и природа",
+    "foodDrink": "Еда и напитки",
+    "travelPlaces": "Путешествия и места",
+    "activities": "Активности",
+    "objects": "Предметы",
+    "symbols": "Символы",
+    "flags": "Флаги"
+  },
+  "messageOptions": {
+    "searchPlaceholder": "Поиск",
+    "backToQuickReactions": "Назад к быстрым реакциям",
+    "searchAllEmojis": "Искать по всем эмодзи",
+    "copy": "Копировать",
+    "reply": "Ответить"
   }
 }

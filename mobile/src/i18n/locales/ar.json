@@ -392,5 +392,26 @@
     "unblock": "إلغاء الحظر",
     "block": "حظر",
     "report": "إبلاغ"
+  },
+  "emoji": {
+    "quickReactionTitle": "رد فعل سريع",
+    "searchPlaceholder": "ابحث عن رمز تعبيري",
+    "noResults": "لا توجد نتائج",
+    "faces": "الوجوه والمشاعر",
+    "people": "الأشخاص",
+    "animalsNature": "الحيوانات والطبيعة",
+    "foodDrink": "الطعام والشراب",
+    "travelPlaces": "السفر والأماكن",
+    "activities": "الأنشطة",
+    "objects": "الأشياء",
+    "symbols": "الرموز",
+    "flags": "الأعلام"
+  },
+  "messageOptions": {
+    "searchPlaceholder": "بحث",
+    "backToQuickReactions": "العودة لردود الفعل السريعة",
+    "searchAllEmojis": "البحث في جميع الرموز التعبيرية",
+    "copy": "نسخ",
+    "reply": "الرد"
   }
 }

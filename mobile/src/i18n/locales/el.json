@@ -392,5 +392,26 @@
     "unblock": "Άρση αποκλεισμού",
     "block": "Αποκλεισμός",
     "report": "Αναφορά"
+  },
+  "emoji": {
+    "quickReactionTitle": "ΓΡΗΓΟΡΗ ΑΝΤΙΔΡΑΣΗ",
+    "searchPlaceholder": "ΑΝΑΖΗΤΗΣΗ EMOJI",
+    "noResults": "Δεν βρέθηκαν αποτελέσματα",
+    "faces": "Χαμόγελα & Συναισθήματα",
+    "people": "Άνθρωποι",
+    "animalsNature": "Ζώα & Φύση",
+    "foodDrink": "Φαγητό & Ποτό",
+    "travelPlaces": "Ταξίδια & Μέρη",
+    "activities": "Δραστηριότητες",
+    "objects": "Αντικείμενα",
+    "symbols": "Σύμβολα",
+    "flags": "Σημαίες"
+  },
+  "messageOptions": {
+    "searchPlaceholder": "Αναζήτηση",
+    "backToQuickReactions": "Επιστροφή στις γρήγορες αντιδράσεις",
+    "searchAllEmojis": "Αναζήτηση σε όλα τα emoji",
+    "copy": "Αντιγραφή",
+    "reply": "Απάντηση"
   }
 }

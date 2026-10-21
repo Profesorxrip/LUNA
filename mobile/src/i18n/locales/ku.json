@@ -392,5 +392,26 @@
     "unblock": "Astengê Rake",
     "block": "Asteng Bike",
     "report": "Ragihîne"
+  },
+  "emoji": {
+    "quickReactionTitle": "BERSIVA LEZ",
+    "searchPlaceholder": "EMOJIYÊ BIGERE",
+    "noResults": "Encam nehat dîtin",
+    "faces": "Rûyên Hestan",
+    "people": "Mirov",
+    "animalsNature": "Ajal û Xweza",
+    "foodDrink": "Xwarin û Vexwarin",
+    "travelPlaces": "Rêwîtî û Cih",
+    "activities": "Çalakî",
+    "objects": "Tişt",
+    "symbols": "Sembol",
+    "flags": "Ala"
+  },
+  "messageOptions": {
+    "searchPlaceholder": "Lêgerîn",
+    "backToQuickReactions": "Vegere bersivên lez",
+    "searchAllEmojis": "Di hemû emojiyan de bigere",
+    "copy": "Kopî bike",
+    "reply": "Bersivê bide"
   }
 }

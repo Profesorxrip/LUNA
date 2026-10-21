@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from "react-native";
+import { useTranslation } from "react-i18next";
 import Icon from "./Icon";
 import Avatar from "./Avatar";
-import { ALL_EMOJIS } from "../data/emojiCategories";
+import { getAllEmojis } from "../data/emojiCategories";
 import { searchEmojis } from "../data/emojiSearch";
 import type { ChatMessage } from "../services/socket";
 
 const COLS = 7;
-const ALL_EMOJI_LIST = ALL_EMOJIS.map((e) => e.emoji);
 const QUICK_EMOJIS = ["😂", "❤️", "😮", "😢", "🙏", "👍"];
 
 function formatTime(ts: number): string {
@@ -32,10 +32,12 @@ interface Props {
  * arama butonuna basilinca TAM emoji klavyesi (ayni veri kaynagi,
  * EmojiPickerSheet'teki gibi) bu panelin icinde acilir. */
 export default function MessageOptionsSheet({ visible, message, onClose, onCopy, onReply, onReport, onSelectEmoji }: Props) {
+  const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
   const searching = query.trim().length > 0;
-  const emojis = useMemo(() => (searching ? searchEmojis(query) : ALL_EMOJI_LIST), [query, searching]);
+  const allEmojiList = useMemo(() => getAllEmojis().map((e) => e.emoji), [i18n.language]);
+  const emojis = useMemo(() => (searching ? searchEmojis(query) : allEmojiList), [query, searching, allEmojiList]);
 
   function handleClose() {
     setExpanded(false);
@@ -72,14 +74,14 @@ export default function MessageOptionsSheet({ visible, message, onClose, onCopy,
           {expanded ? (
             <>
               <View style={styles.searchBar}>
-                <TouchableOpacity onPress={collapse} hitSlop={10} accessibilityLabel="Hızlı tepkilere dön">
+                <TouchableOpacity onPress={collapse} hitSlop={10} accessibilityLabel={t("messageOptions.backToQuickReactions")}>
                   <Icon name="close" size={16} color="rgba(255,255,255,0.7)" />
                 </TouchableOpacity>
                 <Icon name="search" size={14} color="rgba(255,255,255,0.6)" />
                 <TextInput
                   value={query}
                   onChangeText={setQuery}
-                  placeholder="Ara"
+                  placeholder={t("messageOptions.searchPlaceholder")}
                   placeholderTextColor="rgba(255,255,255,0.5)"
                   style={styles.searchInput}
                   autoCorrect={false}
@@ -87,7 +89,7 @@ export default function MessageOptionsSheet({ visible, message, onClose, onCopy,
                 />
               </View>
               {searching && emojis.length === 0 ? (
-                <Text style={styles.noResults}>Sonuç bulunamadı</Text>
+                <Text style={styles.noResults}>{t("emoji.noResults")}</Text>
               ) : (
                 <FlatList
                   data={emojis}
@@ -119,7 +121,7 @@ export default function MessageOptionsSheet({ visible, message, onClose, onCopy,
                   style={styles.expandButton}
                   onPress={() => setExpanded(true)}
                   hitSlop={6}
-                  accessibilityLabel="Tüm emojileri ara"
+                  accessibilityLabel={t("messageOptions.searchAllEmojis")}
                 >
                   <Icon name="search" size={16} color="rgba(255,255,255,0.7)" />
                 </TouchableOpacity>
@@ -130,15 +132,15 @@ export default function MessageOptionsSheet({ visible, message, onClose, onCopy,
               <View style={styles.actionsList}>
                 <TouchableOpacity style={styles.actionRow} onPress={onCopy}>
                   <Icon name="clipboard" size={18} color="#FFFFFF" />
-                  <Text style={styles.actionLabel}>Kopyala</Text>
+                  <Text style={styles.actionLabel}>{t("messageOptions.copy")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.actionRow} onPress={onReply}>
                   <Icon name="reply" size={18} color="#FFFFFF" />
-                  <Text style={styles.actionLabel}>Yanıtla</Text>
+                  <Text style={styles.actionLabel}>{t("messageOptions.reply")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionRow, styles.actionRowLast]} onPress={onReport}>
                   <Icon name="warning" size={18} color="#FFFFFF" />
-                  <Text style={styles.actionLabel}>Bildir</Text>
+                  <Text style={styles.actionLabel}>{t("profileOptions.report")}</Text>
                 </TouchableOpacity>
               </View>
             </>

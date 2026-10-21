@@ -392,5 +392,26 @@
     "unblock": "Blokdan Çıxar",
     "block": "Blokla",
     "report": "Bildir"
+  },
+  "emoji": {
+    "quickReactionTitle": "SÜRƏTLİ REAKSİYA",
+    "searchPlaceholder": "EMOJİ AXTAR",
+    "noResults": "Nəticə tapılmadı",
+    "faces": "Üz İfadələri",
+    "people": "İnsanlar",
+    "animalsNature": "Heyvanlar & Təbiət",
+    "foodDrink": "Yemək & İçki",
+    "travelPlaces": "Səyahət & Yerlər",
+    "activities": "Fəaliyyətlər",
+    "objects": "Əşyalar",
+    "symbols": "Simvollar",
+    "flags": "Bayraqlar"
+  },
+  "messageOptions": {
+    "searchPlaceholder": "Axtar",
+    "backToQuickReactions": "Sürətli reaksiyalara qayıt",
+    "searchAllEmojis": "Bütün emojilərdə axtar",
+    "copy": "Kopyala",
+    "reply": "Cavabla"
   }
 }

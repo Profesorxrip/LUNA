@@ -1,4 +1,5 @@
 import emojiGroups from "unicode-emoji-json/data-by-group.json";
+import i18n from "../i18n";
 
 export interface EmojiCategory {
   key: string;
@@ -14,19 +15,23 @@ export interface EmojiEntry {
 }
 
 // unicode-emoji-json'un grup sirasi (0-8) Unicode'un resmi kategori sirasi -
-// Turkce etiket + sekme ikonu burada eslestiriliyor. Her Hizli Tepki secimi
-// bu TAM unicode emoji setinden (1900+ emoji) yapilabiliyor.
-const GROUP_META: Record<string, { label: string; icon: string }> = {
-  "0": { label: "Yüz İfadeleri", icon: "😀" },
-  "1": { label: "İnsanlar", icon: "👋" },
-  "2": { label: "Hayvanlar & Doğa", icon: "🐱" },
-  "3": { label: "Yiyecek & İçecek", icon: "🍔" },
-  "4": { label: "Seyahat & Mekanlar", icon: "✈️" },
-  "5": { label: "Aktiviteler", icon: "⚽" },
-  "6": { label: "Nesneler", icon: "💡" },
-  "7": { label: "Semboller", icon: "❤️" },
-  "8": { label: "Bayraklar", icon: "🏁" },
-};
+// aktif dile gore etiket + sekme ikonu burada eslestiriliyor. Her Hizli
+// Tepki secimi bu TAM unicode emoji setinden (1900+ emoji) yapilabiliyor.
+// Fonksiyon olarak tanimli - dil degisiminde yeniden cagrilip guncel
+// cevirileri okuyor (bkz. getEmojiCategories/getAllEmojis asagida).
+function getGroupMeta(): Record<string, { label: string; icon: string }> {
+  return {
+    "0": { label: i18n.t("emoji.faces"), icon: "😀" },
+    "1": { label: i18n.t("emoji.people"), icon: "👋" },
+    "2": { label: i18n.t("emoji.animalsNature"), icon: "🐱" },
+    "3": { label: i18n.t("emoji.foodDrink"), icon: "🍔" },
+    "4": { label: i18n.t("emoji.travelPlaces"), icon: "✈️" },
+    "5": { label: i18n.t("emoji.activities"), icon: "⚽" },
+    "6": { label: i18n.t("emoji.objects"), icon: "💡" },
+    "7": { label: i18n.t("emoji.symbols"), icon: "❤️" },
+    "8": { label: i18n.t("emoji.flags"), icon: "🏁" },
+  };
+}
 
 const GROUPS = emojiGroups as unknown as Record<string, { name: string; emojis: { emoji: string; name: string }[] }>;
 
@@ -52,23 +57,30 @@ const UNSUPPORTED_EMOJI = new Set([
   "🛘", // landslide
 ]);
 
-export const EMOJI_CATEGORIES: EmojiCategory[] = Object.keys(GROUPS)
-  .sort((a, b) => Number(a) - Number(b))
-  .map((key) => {
-    const group = GROUPS[key];
-    const meta = GROUP_META[key] || { label: group.name, icon: group.emojis[0]?.emoji || "❔" };
-    return {
-      key,
-      label: meta.label,
-      icon: meta.icon,
-      emojis: group.emojis.map((e) => e.emoji).filter((e) => !UNSUPPORTED_EMOJI.has(e)),
-    };
-  });
+export function getEmojiCategories(): EmojiCategory[] {
+  const groupMeta = getGroupMeta();
+  return Object.keys(GROUPS)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((key) => {
+      const group = GROUPS[key];
+      const meta = groupMeta[key] || { label: group.name, icon: group.emojis[0]?.emoji || "❔" };
+      return {
+        key,
+        label: meta.label,
+        icon: meta.icon,
+        emojis: group.emojis.map((e) => e.emoji).filter((e) => !UNSUPPORTED_EMOJI.has(e)),
+      };
+    });
+}
 
 // Arama (EmojiPickerSheet'teki search cubugu) icin duz liste - her emojinin
-// ingilizce resmi adini ve hangi Turkce kategori basligina ait oldugunu tutar.
-export const ALL_EMOJIS: EmojiEntry[] = EMOJI_CATEGORIES.flatMap((cat) =>
-  GROUPS[cat.key].emojis
-    .filter((e) => !UNSUPPORTED_EMOJI.has(e.emoji))
-    .map((e) => ({ emoji: e.emoji, name: e.name, categoryLabel: cat.label }))
-);
+// ingilizce resmi adini ve hangi (aktif dildeki) kategori basligina ait
+// oldugunu tutar.
+export function getAllEmojis(): EmojiEntry[] {
+  const categories = getEmojiCategories();
+  return categories.flatMap((cat) =>
+    GROUPS[cat.key].emojis
+      .filter((e) => !UNSUPPORTED_EMOJI.has(e.emoji))
+      .map((e) => ({ emoji: e.emoji, name: e.name, categoryLabel: cat.label }))
+  );
+}
