@@ -355,5 +355,23 @@
     "playbackPlayOnly": "Любой может включить",
     "playbackAutoplay": "Поток не останавливается",
     "playbackVote": "Комната голосует"
+  },
+  "videoSettings": {
+    "header": "Настройки",
+    "hideVideo": "Скрыть видео",
+    "showVideo": "Показать видео",
+    "videoDetails": "Информация о видео",
+    "detailTitle": "Название",
+    "detailPlatform": "Платформа",
+    "detailChannel": "Канал",
+    "detailType": "Тип",
+    "playbackSpeed": "Скорость воспроизведения",
+    "videoQuality": "Качество видео",
+    "qualityAuto": "Авто",
+    "subtitles": "Субтитры",
+    "unavailable": "Недоступно",
+    "dub": "Дубляж",
+    "hideAdultContentLabel": "Размывать контент 18+",
+    "muteOtherAudioLabel": "Приглушать при воспроизведении другого звука"
   }
 }

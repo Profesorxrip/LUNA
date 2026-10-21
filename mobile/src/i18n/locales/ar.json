@@ -355,5 +355,23 @@
     "playbackPlayOnly": "الجميع يمكنه التشغيل",
     "playbackAutoplay": "البث لا يتوقف",
     "playbackVote": "الغرفة تصوّت"
+  },
+  "videoSettings": {
+    "header": "الإعدادات",
+    "hideVideo": "إخفاء الفيديو",
+    "showVideo": "إظهار الفيديو",
+    "videoDetails": "تفاصيل الفيديو",
+    "detailTitle": "العنوان",
+    "detailPlatform": "المنصة",
+    "detailChannel": "القناة",
+    "detailType": "النوع",
+    "playbackSpeed": "سرعة التشغيل",
+    "videoQuality": "جودة الفيديو",
+    "qualityAuto": "تلقائي",
+    "subtitles": "الترجمة",
+    "unavailable": "غير متاح",
+    "dub": "الدبلجة",
+    "hideAdultContentLabel": "تمويه محتوى +18",
+    "muteOtherAudioLabel": "كتم الصوت عند تشغيل صوت آخر"
   }
 }

@@ -355,5 +355,23 @@
     "playbackPlayOnly": "Cualquiera puede reproducir",
     "playbackAutoplay": "El flujo nunca para",
     "playbackVote": "La sala vota"
+  },
+  "videoSettings": {
+    "header": "Ajustes",
+    "hideVideo": "Ocultar video",
+    "showVideo": "Mostrar video",
+    "videoDetails": "Detalles del video",
+    "detailTitle": "Título",
+    "detailPlatform": "Plataforma",
+    "detailChannel": "Canal",
+    "detailType": "Tipo",
+    "playbackSpeed": "Velocidad de reproducción",
+    "videoQuality": "Calidad de video",
+    "qualityAuto": "Automática",
+    "subtitles": "Subtítulos",
+    "unavailable": "No disponible",
+    "dub": "Doblaje",
+    "hideAdultContentLabel": "Difuminar contenido +18",
+    "muteOtherAudioLabel": "Silenciar cuando suena otro audio"
   }
 }

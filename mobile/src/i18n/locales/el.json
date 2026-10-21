@@ -355,5 +355,23 @@
     "playbackPlayOnly": "Όλοι μπορούν να παίξουν",
     "playbackAutoplay": "Η ροή δεν σταματάει ποτέ",
     "playbackVote": "Το δωμάτιο ψηφίζει"
+  },
+  "videoSettings": {
+    "header": "Ρυθμίσεις",
+    "hideVideo": "Απόκρυψη βίντεο",
+    "showVideo": "Εμφάνιση βίντεο",
+    "videoDetails": "Λεπτομέρειες βίντεο",
+    "detailTitle": "Τίτλος",
+    "detailPlatform": "Πλατφόρμα",
+    "detailChannel": "Κανάλι",
+    "detailType": "Τύπος",
+    "playbackSpeed": "Ταχύτητα αναπαραγωγής",
+    "videoQuality": "Ποιότητα βίντεο",
+    "qualityAuto": "Αυτόματο",
+    "subtitles": "Υπότιτλοι",
+    "unavailable": "Μη διαθέσιμο",
+    "dub": "Μεταγλώττιση",
+    "hideAdultContentLabel": "Θόλωμα περιεχομένου +18",
+    "muteOtherAudioLabel": "Σίγαση όταν παίζει άλλος ήχος"
   }
 }

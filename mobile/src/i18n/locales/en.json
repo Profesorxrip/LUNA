@@ -355,5 +355,23 @@
     "playbackPlayOnly": "Anyone Can Play",
     "playbackAutoplay": "Stream Never Stops",
     "playbackVote": "Room Votes"
+  },
+  "videoSettings": {
+    "header": "Settings",
+    "hideVideo": "Hide video",
+    "showVideo": "Show video",
+    "videoDetails": "Video details",
+    "detailTitle": "Title",
+    "detailPlatform": "Platform",
+    "detailChannel": "Channel",
+    "detailType": "Type",
+    "playbackSpeed": "Playback speed",
+    "videoQuality": "Video quality",
+    "qualityAuto": "Auto",
+    "subtitles": "Subtitles",
+    "unavailable": "Unavailable",
+    "dub": "Dubbing",
+    "hideAdultContentLabel": "Blur adult content",
+    "muteOtherAudioLabel": "Mute while other audio is playing"
   }
 }

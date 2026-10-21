@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { useTranslation } from "react-i18next";
 import type { MediaSource } from "../services/socket";
 import { badgeInfoForSource } from "../utils/media";
 import Icon from "./Icon";
@@ -55,13 +56,16 @@ interface Props {
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-const QUALITY_OPTIONS: { key: string; label: string }[] = [
-  { key: "default", label: "Otomatik" },
-  { key: "hd1080", label: "1080p" },
-  { key: "hd720", label: "720p" },
-  { key: "large", label: "480p" },
-  { key: "medium", label: "360p" },
-];
+// Cozunurluk degerleri evrensel (1080p vb.) - sadece "Otomatik" cevriliyor.
+function getQualityOptions(t: (key: string) => string): { key: string; label: string }[] {
+  return [
+    { key: "default", label: t("videoSettings.qualityAuto") },
+    { key: "hd1080", label: "1080p" },
+    { key: "hd720", label: "720p" },
+    { key: "large", label: "480p" },
+    { key: "medium", label: "360p" },
+  ];
+}
 
 function formatSpeed(rate: number): string {
   return rate === 1 ? "1x" : `${rate}x`;
@@ -109,11 +113,13 @@ export default function VideoSettingsSheet({
   muteOtherAudio,
   onToggleMuteOtherAudio,
 }: Props) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState<"details" | "speed" | "quality" | "dub" | null>(null);
   const isYoutube = source?.type === "youtube";
   const isHlsOrMp4 = source?.type === "hls" || source?.type === "mp4";
   const badge = badgeInfoForSource(source);
-  const currentQualityLabel = QUALITY_OPTIONS.find((o) => o.key === videoQuality)?.label || "Otomatik";
+  const qualityOptions = getQualityOptions(t);
+  const currentQualityLabel = qualityOptions.find((o) => o.key === videoQuality)?.label || t("videoSettings.qualityAuto");
   const hasDub = dubTracks.length > 0;
 
   function toggle(section: "details" | "speed" | "quality" | "dub") {
@@ -125,7 +131,7 @@ export default function VideoSettingsSheet({
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.header}>Ayarlar</Text>
+            <Text style={styles.header}>{t("videoSettings.header")}</Text>
 
             <TouchableOpacity
               style={styles.row}
@@ -134,7 +140,7 @@ export default function VideoSettingsSheet({
                 onClose();
               }}
             >
-              <Text style={styles.rowLabel}>{videoHidden ? "Videoyu göster" : "Videoyu gizle"}</Text>
+              <Text style={styles.rowLabel}>{videoHidden ? t("videoSettings.showVideo") : t("videoSettings.hideVideo")}</Text>
               <Icon name="chevronLeft" size={16} color={theme.textMuted} />
             </TouchableOpacity>
 
@@ -148,22 +154,22 @@ export default function VideoSettingsSheet({
             {(isYoutube || isHlsOrMp4) && (
               <>
                 <TouchableOpacity style={styles.row} onPress={() => toggle("details")}>
-                  <Text style={styles.rowLabel}>Video ayrıntıları</Text>
+                  <Text style={styles.rowLabel}>{t("videoSettings.videoDetails")}</Text>
                   <Icon name={expanded === "details" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />
                 </TouchableOpacity>
                 {expanded === "details" && (
                   <View style={styles.detailsBox}>
-                    {isYoutube && <DetailLine label="Başlık" value={source?.label || "—"} />}
-                    <DetailLine label="Platform" value={badge?.label || "Web"} />
-                    {isYoutube && !!source?.channelName && <DetailLine label="Kanal" value={source.channelName} />}
-                    <DetailLine label="Tür" value={source?.type || "—"} />
+                    {isYoutube && <DetailLine label={t("videoSettings.detailTitle")} value={source?.label || "—"} />}
+                    <DetailLine label={t("videoSettings.detailPlatform")} value={badge?.label || "Web"} />
+                    {isYoutube && !!source?.channelName && <DetailLine label={t("videoSettings.detailChannel")} value={source.channelName} />}
+                    <DetailLine label={t("videoSettings.detailType")} value={source?.type || "—"} />
                   </View>
                 )}
               </>
             )}
 
             <TouchableOpacity style={styles.row} onPress={() => canChangeSpeed && toggle("speed")} disabled={!canChangeSpeed}>
-              <Text style={[styles.rowLabel, !canChangeSpeed && styles.rowLabelDisabled]}>Oynatma hızı</Text>
+              <Text style={[styles.rowLabel, !canChangeSpeed && styles.rowLabelDisabled]}>{t("videoSettings.playbackSpeed")}</Text>
               <View style={styles.rowValue}>
                 <Text style={[styles.rowValueText, !canChangeSpeed && styles.rowLabelDisabled]}>{formatSpeed(playbackRate)}</Text>
                 {canChangeSpeed && (
@@ -195,7 +201,7 @@ export default function VideoSettingsSheet({
             {isYoutube && (
               <>
                 <TouchableOpacity style={styles.row} onPress={() => toggle("quality")}>
-                  <Text style={styles.rowLabel}>Video kalitesi</Text>
+                  <Text style={styles.rowLabel}>{t("videoSettings.videoQuality")}</Text>
                   <View style={styles.rowValue}>
                     <Text style={styles.rowValueText}>{currentQualityLabel}</Text>
                     <Icon name={expanded === "quality" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />
@@ -203,7 +209,7 @@ export default function VideoSettingsSheet({
                 </TouchableOpacity>
                 {expanded === "quality" && (
                   <View style={styles.optionsRow}>
-                    {QUALITY_OPTIONS.map((opt) => (
+                    {qualityOptions.map((opt) => (
                       <TouchableOpacity
                         key={opt.key}
                         style={styles.speedOption}
@@ -221,7 +227,7 @@ export default function VideoSettingsSheet({
             )}
             {isHlsOrMp4 && videoResolution && (
               <View style={styles.row}>
-                <Text style={styles.rowLabel}>Video kalitesi</Text>
+                <Text style={styles.rowLabel}>{t("videoSettings.videoQuality")}</Text>
                 <Text style={styles.rowValueText}>{videoResolution.height}p</Text>
               </View>
             )}
@@ -235,9 +241,9 @@ export default function VideoSettingsSheet({
                 onPress={() => subtitlesAvailable && onToggleSubtitles()}
                 disabled={!subtitlesAvailable}
               >
-                <Text style={[styles.rowLabel, !subtitlesAvailable && styles.rowLabelDisabled]}>Altyazılar</Text>
+                <Text style={[styles.rowLabel, !subtitlesAvailable && styles.rowLabelDisabled]}>{t("videoSettings.subtitles")}</Text>
                 <Text style={[styles.rowValueText, !subtitlesAvailable && styles.rowLabelDisabled]}>
-                  {!subtitlesAvailable ? "Kullanılamıyor" : subtitlesEnabled ? "Açık" : "Kapalı"}
+                  {!subtitlesAvailable ? t("videoSettings.unavailable") : subtitlesEnabled ? t("roomSettings.on") : t("roomSettings.off")}
                 </Text>
               </TouchableOpacity>
             )}
@@ -248,10 +254,10 @@ export default function VideoSettingsSheet({
                 gosterip "hasDub" false oldugu icin hep "Kullanılamıyor"
                 kalmasi zararsiz - ayri bir kosulla gizlemeye gerek yok. */}
             <TouchableOpacity style={styles.row} onPress={() => hasDub && toggle("dub")} disabled={!hasDub}>
-              <Text style={[styles.rowLabel, !hasDub && styles.rowLabelDisabled]}>Dublaj</Text>
+              <Text style={[styles.rowLabel, !hasDub && styles.rowLabelDisabled]}>{t("videoSettings.dub")}</Text>
               <View style={styles.rowValue}>
                 <Text style={[styles.rowValueText, !hasDub && styles.rowLabelDisabled]}>
-                  {hasDub ? dubTracks[selectedDubIndex] || dubTracks[0] : "Kullanılamıyor"}
+                  {hasDub ? dubTracks[selectedDubIndex] || dubTracks[0] : t("videoSettings.unavailable")}
                 </Text>
                 {hasDub && <Icon name={expanded === "dub" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
               </View>
@@ -277,12 +283,12 @@ export default function VideoSettingsSheet({
                 cikmadan burdan da degistirilebilsin diye (bkz. Props
                 yorumu yukarida). */}
             <TouchableOpacity style={styles.row} onPress={() => onToggleHideAdultContent(!hideAdultContent)}>
-              <Text style={styles.rowLabel}>Yetişkin içeriği bulanıklaştır</Text>
-              <Text style={styles.rowValueText}>{hideAdultContent ? "Açık" : "Kapalı"}</Text>
+              <Text style={styles.rowLabel}>{t("videoSettings.hideAdultContentLabel")}</Text>
+              <Text style={styles.rowValueText}>{hideAdultContent ? t("roomSettings.on") : t("roomSettings.off")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.row} onPress={() => onToggleMuteOtherAudio(!muteOtherAudio)}>
-              <Text style={styles.rowLabel}>Başka ses çalarken sessize al</Text>
-              <Text style={styles.rowValueText}>{muteOtherAudio ? "Açık" : "Kapalı"}</Text>
+              <Text style={styles.rowLabel}>{t("videoSettings.muteOtherAudioLabel")}</Text>
+              <Text style={styles.rowValueText}>{muteOtherAudio ? t("roomSettings.on") : t("roomSettings.off")}</Text>
             </TouchableOpacity>
           </ScrollView>
         </TouchableOpacity>

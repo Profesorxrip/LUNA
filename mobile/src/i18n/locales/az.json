@@ -355,5 +355,23 @@
     "playbackPlayOnly": "Hamı oynada bilər",
     "playbackAutoplay": "Axın heç dayanmır",
     "playbackVote": "Otaq səs verir"
+  },
+  "videoSettings": {
+    "header": "Ayarlar",
+    "hideVideo": "Videonu gizlət",
+    "showVideo": "Videonu göstər",
+    "videoDetails": "Video təfərrüatları",
+    "detailTitle": "Başlıq",
+    "detailPlatform": "Platforma",
+    "detailChannel": "Kanal",
+    "detailType": "Növ",
+    "playbackSpeed": "Oynatma sürəti",
+    "videoQuality": "Video keyfiyyəti",
+    "qualityAuto": "Avtomatik",
+    "subtitles": "Altyazılar",
+    "unavailable": "Mövcud deyil",
+    "dub": "Dublyaj",
+    "hideAdultContentLabel": "Yetkinlər məzmununu bulandır",
+    "muteOtherAudioLabel": "Başqa səs çalanda səsi kəs"
   }
 }

@@ -355,5 +355,23 @@
     "playbackPlayOnly": "Herkes Oynatır",
     "playbackAutoplay": "Akış Durmaz",
     "playbackVote": "Oda Oylasın"
+  },
+  "videoSettings": {
+    "header": "Ayarlar",
+    "hideVideo": "Videoyu gizle",
+    "showVideo": "Videoyu göster",
+    "videoDetails": "Video ayrıntıları",
+    "detailTitle": "Başlık",
+    "detailPlatform": "Platform",
+    "detailChannel": "Kanal",
+    "detailType": "Tür",
+    "playbackSpeed": "Oynatma hızı",
+    "videoQuality": "Video kalitesi",
+    "qualityAuto": "Otomatik",
+    "subtitles": "Altyazılar",
+    "unavailable": "Kullanılamıyor",
+    "dub": "Dublaj",
+    "hideAdultContentLabel": "Yetişkin içeriği bulanıklaştır",
+    "muteOtherAudioLabel": "Başka ses çalarken sessize al"
   }
 }

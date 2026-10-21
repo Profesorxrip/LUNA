@@ -355,5 +355,23 @@
     "playbackPlayOnly": "Hemû dikarin bilîzin",
     "playbackAutoplay": "Lîstin naweste",
     "playbackVote": "Ode didenge"
+  },
+  "videoSettings": {
+    "header": "Mîheng",
+    "hideVideo": "Vîdyoyê veşêre",
+    "showVideo": "Vîdyoyê nîşan bide",
+    "videoDetails": "Hûrgiliyên vîdyoyê",
+    "detailTitle": "Sernav",
+    "detailPlatform": "Platform",
+    "detailChannel": "Kanal",
+    "detailType": "Cure",
+    "playbackSpeed": "Leza lîstinê",
+    "videoQuality": "Kalîteya vîdyoyê",
+    "qualityAuto": "Xweber",
+    "subtitles": "Binenivîs",
+    "unavailable": "Ne berdest e",
+    "dub": "Dublaj",
+    "hideAdultContentLabel": "Naveroka +18 lewitandî bike",
+    "muteOtherAudioLabel": "Dema dengek din lê bêdeng bike"
   }
 }

@@ -355,5 +355,23 @@
     "playbackPlayOnly": "Alle können abspielen",
     "playbackAutoplay": "Stream stoppt nie",
     "playbackVote": "Raum stimmt ab"
+  },
+  "videoSettings": {
+    "header": "Einstellungen",
+    "hideVideo": "Video ausblenden",
+    "showVideo": "Video anzeigen",
+    "videoDetails": "Videodetails",
+    "detailTitle": "Titel",
+    "detailPlatform": "Plattform",
+    "detailChannel": "Kanal",
+    "detailType": "Typ",
+    "playbackSpeed": "Wiedergabegeschwindigkeit",
+    "videoQuality": "Videoqualität",
+    "qualityAuto": "Automatisch",
+    "subtitles": "Untertitel",
+    "unavailable": "Nicht verfügbar",
+    "dub": "Synchronisation",
+    "hideAdultContentLabel": "Inhalte ab 18 unscharf machen",
+    "muteOtherAudioLabel": "Stummschalten bei anderem Ton"
   }
 }
