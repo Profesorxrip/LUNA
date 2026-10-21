@@ -23,6 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Clipboard from "expo-clipboard";
+import i18n from "../i18n";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
 import type { MediaSource, DMReply, FriendUser, Participant } from "../services/socket";
 import { supabase } from "../services/supabase";
@@ -209,7 +210,7 @@ function PendingImageThumb({ uri, onRemove, disabled }: { uri: string; onRemove:
  * native-web'de desteklenmeyen onTextLayout'a bagli kalinmiyor ve native'de
  * de ilk render'da dogru pozisyonla cikiyor - sonradan "ziplama" olmuyor. */
 function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onLongPressMessage, isFriend, senderIsHost, senderIsModerator, onReactWithEmoji }: ChatBubbleRowProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
   // "Chat Mesajlarini Otomatik Cevir" - ceviri varsa varsayilan GOSTERILIR,
@@ -291,7 +292,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
                 </Text>
                 {translation && (
                   <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
-                    <Text style={styles.translatedHint}>{showOriginal ? "Çeviriyi gör" : "Orijinalini gör"}</Text>
+                    <Text style={styles.translatedHint}>{showOriginal ? t("room.showTranslation") : t("room.showOriginal")}</Text>
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
@@ -329,7 +330,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
                 </Text>
                 {translation && (
                   <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
-                    <Text style={styles.translatedHint}>{showOriginal ? "Çeviriyi gör" : "Orijinalini gör"}</Text>
+                    <Text style={styles.translatedHint}>{showOriginal ? t("room.showTranslation") : t("room.showOriginal")}</Text>
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
@@ -358,14 +359,18 @@ function settingsCardIcon(item: ChatMessage): IconName {
 // "nowPlaying" bildiri kartindaki buyuk ikonu ve aciklama metnini
 // server'in gonderdigi nowPlayingReason'a gore secer.
 const NOW_PLAYING_META: Record<NonNullable<ChatMessage["nowPlayingReason"]>, { icon: IconName; desc: (byName?: string) => string }> = {
-  picked: { icon: "play", desc: (byName) => (byName ? `${byName} seçti` : "Seçildi") },
-  previous: { icon: "play", desc: (byName) => (byName ? `${byName} önceki videoya döndü` : "Önceki videoya dönüldü") },
-  vote: { icon: "check", desc: () => "Oylama sonucu" },
-  queue: { icon: "play", desc: () => "Sıradaki video" },
-  autoplay: { icon: "autoplayQueue", desc: () => "Otomatik oynatılıyor" },
+  picked: { icon: "play", desc: (byName) => (byName ? i18n.t("room.npPicked", { name: byName }) : i18n.t("room.npPickedGeneric")) },
+  previous: {
+    icon: "play",
+    desc: (byName) => (byName ? i18n.t("room.npPrevious", { name: byName }) : i18n.t("room.npPreviousGeneric")),
+  },
+  vote: { icon: "check", desc: () => i18n.t("room.npVote") },
+  queue: { icon: "play", desc: () => i18n.t("room.npQueue") },
+  autoplay: { icon: "autoplayQueue", desc: () => i18n.t("room.npAutoplay") },
 };
 
 export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: Props) {
+  const { t } = useTranslation();
   const socket = getSocket();
   const { width: windowWidth } = useWindowDimensions();
   const isDesktop = windowWidth >= DESKTOP_BREAKPOINT;
@@ -636,7 +641,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, translations } : m)));
     }
     function handleKicked() {
-      showAlert("Odadan atildin", "Oda lideri seni odadan cikardi.");
+      showAlert(t("room.kickedTitle"), t("room.kickedBody"));
       onLeave();
     }
     socket.on("room:state", handleRoomState);
@@ -652,7 +657,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       socket.off("room:kicked", handleKicked);
       if (fullscreenCaptionTimerRef.current) clearTimeout(fullscreenCaptionTimerRef.current);
     };
-  }, []);
+  }, [t]);
 
   // Misafirler icin surukleme (drift) duzeltmesi.
   useEffect(() => {
@@ -849,7 +854,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
   function openMediaPicker() {
     if (!canPickMedia) {
-      showAlert("Sadece lider secebilir", "Medyayi sadece oda lideri degistirebilir.");
+      showAlert(t("room.hostOnlyPickTitle"), t("room.hostOnlyPickBody"));
       return;
     }
     setPickerVisible(true);
@@ -1125,10 +1130,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         if (remaining === 0) {
           setInviteFriendsVisible(false);
           showAlert(
-            failed === 0 ? "Davet gönderildi" : "Bazıları gönderilemedi",
+            failed === 0 ? t("room.inviteSentTitle") : t("room.inviteSentPartialTitle"),
             failed === 0
-              ? `${userIds.length} kişiye davet gönderildi.`
-              : `${userIds.length - failed}/${userIds.length} kişiye davet gönderildi.`
+              ? t("room.inviteSentBody", { count: userIds.length })
+              : t("room.inviteSentPartialBody", { sent: userIds.length - failed, count: userIds.length })
           );
         }
       });
@@ -1141,7 +1146,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   function quickInviteFriend(userId: string) {
     socket.emit("room:invite", { toUserId: userId }, (res: any) => {
       if (res?.ok) setQuickInviteSentIds((prev) => new Set(prev).add(userId));
-      else showAlert("Gönderilemedi", "Davet gönderilemedi.");
+      else showAlert(t("dm.sendFailedTitle"), t("room.inviteFailedBody"));
     });
   }
 
@@ -1208,7 +1213,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   async function pickImage() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showAlert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -1248,7 +1253,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       if (!userId) {
-        showAlert("Giriş gerekli", "Fotoğraf göndermek için giriş yapmış olman gerekiyor.");
+        showAlert(t("room.signInRequiredTitle"), t("room.signInRequiredBody"));
         return false;
       }
       for (const img of pendingImages) {
@@ -1265,7 +1270,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       setPendingImages([]);
       return true;
     } catch (err: any) {
-      showAlert("Gönderilemedi", err?.message || "Fotoğraf gönderilirken bir hata oluştu, tekrar dene.");
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.imageSendErrorBody"));
       return false;
     } finally {
       setUploadingImage(false);
@@ -1304,14 +1309,14 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   function sendChat() {
     if (!chatInput.trim()) return;
     socket.emit("chat:send", { text: chatInput, replyTo: replyingTo }, (res: any) => {
-      if (res && !res.ok) showAlert("Gönderilemedi", res.error || "Mesaj gönderilemedi.");
+      if (res && !res.ok) showAlert(t("dm.sendFailedTitle"), res.error || t("room.chatSendFailedBody"));
     });
     setChatInput("");
     setReplyingTo(null);
   }
 
   function startReply(item: ChatMessage) {
-    setReplyingTo({ text: item.text, fromName: item.fromSocketId === socket.id ? "Sen" : item.from || "?" });
+    setReplyingTo({ text: item.text, fromName: item.fromSocketId === socket.id ? t("dm.you") : item.from || "?" });
   }
 
   function sendReaction(emoji: string) {
@@ -1355,7 +1360,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   function reportOptionsMessage() {
     if (optionsMessage?.id) {
       socket.emit("message:report", { messageId: optionsMessage.id }, (res: any) => {
-        if (res?.ok) showAlert("Bildirildi", "Bu mesaj moderasyon ekibine iletildi, teşekkürler.");
+        if (res?.ok) showAlert(t("discover.reportedTitle"), t("room.messageReportedBody"));
       });
     }
     closeMessageOptions();
@@ -1445,7 +1450,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     if (!target.userId) return;
     socket.emit("friend:request", { toUserId: target.userId }, (res: any) => {
       if (res?.ok) {
-        showAlert("İstek gönderildi", `${target.name} kullanıcısına arkadaşlık isteği gönderildi.`);
+        showAlert(t("discover.requestSentTitle"), t("discover.requestSentBody", { name: target.name }));
         patchProfileOptionsTarget(target.socketId, { friendStatus: "outgoing" });
       }
     });
@@ -1476,7 +1481,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   function makeModerator(target: ProfileOptionsTarget) {
     if (!target.socketId) return;
     socket.emit("host:setModerator", { targetSocketId: target.socketId, value: true }, (res: any) => {
-      if (!res?.ok) showAlert("Olmadı", "En fazla 2 kişi aynı anda moderatör olabilir.");
+      if (!res?.ok) showAlert(t("room.moderatorLimitTitle"), t("room.moderatorLimitBody"));
     });
   }
   function removeModerator(target: ProfileOptionsTarget) {
@@ -1502,7 +1507,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     if (!target.userId) return;
     socket.emit("friend:block", { userId: target.userId }, (res: any) => {
       if (res?.ok) {
-        showAlert("Engellendi", `${target.name} engellendi.`);
+        showAlert(t("discover.blockedTitle"), t("discover.blockedBody", { name: target.name }));
         patchProfileOptionsTarget(target.socketId, { friendStatus: "blocked" });
       }
     });
@@ -1519,7 +1524,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       "report:submit",
       { targetUserId: target.userId, reason: "Katılımcı kartından bildirildi" },
       (res: any) => {
-        if (res?.ok) showAlert("Bildirildi", "Bu kullanıcı moderasyon ekibine iletildi, teşekkürler.");
+        if (res?.ok) showAlert(t("discover.reportedTitle"), t("discover.reportedBody"));
       }
     );
   }
@@ -1545,8 +1550,8 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     }
     if (voice.muted && !canOpenMic) {
       showAlert(
-        "Mikrofon kilitli",
-        me?.muted ? "Lider seni susturdu." : "Bu odada sadece lider mikrofonunu acabilir."
+        t("room.micLockedTitle"),
+        me?.muted ? t("room.micMutedByHost") : t("room.micHostOnly")
       );
       return;
     }
@@ -1574,9 +1579,9 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
   function handleMicLongPress() {
     if (!voice.connected) return;
-    showAlert("Sesli sohbetten cik", "Sesli sohbetten ayrilmak istedigine emin misin?", [
-      { text: "Vazgec", style: "cancel" },
-      { text: "Cik", style: "destructive", onPress: voice.leave },
+    showAlert(t("room.leaveVoiceConfirmTitle"), t("room.leaveVoiceConfirmBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("room.exit"), style: "destructive", onPress: voice.leave },
     ]);
   }
 
@@ -1775,7 +1780,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   )}
                   <BlurView intensity={90} tint="dark" style={styles.adultBlurHint}>
                     <AdultBadge size={44} />
-                    <Text style={styles.adultBlurText}>Bu video +18 içerik barındırıyor</Text>
+                    <Text style={styles.adultBlurText}>{t("room.adultWarning")}</Text>
                     {canVoteSkipAdult ? (
                       <TouchableOpacity
                         style={[styles.adultSkipBtn, votedSkipAdult && styles.adultSkipBtnDisabled]}
@@ -1783,12 +1788,14 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                         disabled={votedSkipAdult}
                       >
                         <Text style={styles.adultSkipBtnText}>
-                          {votedSkipAdult ? `Oy verildi (${room.adultSkipVoteCount}/${room.participants.length})` : "Atla"}
+                          {votedSkipAdult
+                            ? t("room.voted", { count: room.adultSkipVoteCount, total: room.participants.length })
+                            : t("room.skip")}
                         </Text>
                         {!votedSkipAdult && <Icon name="skipForward" size={14} color="#FFFFFF" />}
                       </TouchableOpacity>
                     ) : (
-                      <Text style={styles.adultBlurSubtext}>Bu videoyu lider degistirebilir</Text>
+                      <Text style={styles.adultBlurSubtext}>{t("room.adultHostCanChange")}</Text>
                     )}
                   </BlurView>
                 </View>
@@ -1810,7 +1817,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   onSeek={seekTo}
                   isFullscreen={fullscreenVideo}
                   onToggleFullscreen={toggleFullscreenVideo}
-                  hostName={hostParticipant?.name || "Lider"}
+                  hostName={hostParticipant?.name || t("room.hostFallback")}
                   hostAvatarUrl={hostParticipant?.avatarUrl}
                 />
               </View>
@@ -1830,8 +1837,8 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 pointerEvents="none"
               >
                 <Text style={styles.fullscreenCaptionText} numberOfLines={2}>
-                  <Text style={styles.fullscreenCaptionName}>{fullscreenCaption.from || "Sistem"}: </Text>
-                  {fullscreenCaption.mediaUrl ? "📷 Fotoğraf" : fullscreenCaption.text}
+                  <Text style={styles.fullscreenCaptionName}>{fullscreenCaption.from || t("room.systemFallback")}: </Text>
+                  {fullscreenCaption.mediaUrl ? t("room.photoCaption") : fullscreenCaption.text}
                 </Text>
               </View>
             )}
@@ -1852,15 +1859,17 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
           {room.buffering.anyoneBuffering && (
             <View style={styles.bufferingBanner}>
-              <Text style={styles.bufferingText}>⏳ {room.buffering.names.join(", ")} icin bekleniyor (tamponlaniyor)...</Text>
+              <Text style={styles.bufferingText}>{t("room.bufferingText", { names: room.buffering.names.join(", ") })}</Text>
             </View>
           )}
 
           {room.poll && (
             <View style={styles.pollBanner}>
               <View style={styles.pollHeaderRow}>
-                <Text style={styles.pollTitle}>🗳️ Oylama - ne izleyelim?</Text>
-                <Text style={styles.pollTimer}>{Math.max(0, Math.ceil((room.poll.deadlineMs - Date.now()) / 1000))}sn</Text>
+                <Text style={styles.pollTitle}>{t("room.pollTitle")}</Text>
+                <Text style={styles.pollTimer}>
+                  {t("room.pollSecondsLeft", { seconds: Math.max(0, Math.ceil((room.poll.deadlineMs - Date.now()) / 1000)) })}
+                </Text>
               </View>
               {room.poll.proposals.map((p) => {
                 const voteCount = Object.values(room.poll!.votes).filter((id) => id === p.id).length;
@@ -1875,12 +1884,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                     <Text style={styles.pollOptionText} numberOfLines={1}>
                       {p.source.label || p.source.type} · {p.proposedByName}
                     </Text>
-                    <Text style={styles.pollOptionVotes}>{voteCount} oy</Text>
+                    <Text style={styles.pollOptionVotes}>{t("room.pollVotes", { count: voteCount })}</Text>
                   </TouchableOpacity>
                 );
               })}
               <TouchableOpacity onPress={openMediaPicker}>
-                <Text style={styles.pollAddLink}>Secimini degistir</Text>
+                <Text style={styles.pollAddLink}>{t("room.changeChoice")}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1927,7 +1936,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
           ) : item.kind === "joined" || item.kind === "left" ? (
             (() => {
               const isOwnEvent = item.targetSocketId === socket.id;
-              const suffix = item.kind === "joined" ? "odaya katıldı" : "odadan ayrıldı";
+              const suffix = item.kind === "joined" ? t("room.joinedSuffix") : t("room.leftSuffix");
               const textCol = (
                 <View style={styles.messageTextCol}>
                   <View style={[styles.joinLeaveBadge, isOwnEvent && styles.nameBadgeOwn]}>
@@ -1981,8 +1990,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
             <View style={styles.eventRow}>
               <Icon name="kicked" size={16} color={theme.textMuted} />
               <Text style={styles.eventText} numberOfLines={1}>
-                <Text style={styles.eventBold}>{item.targetName}</Text>, <Text style={styles.eventBold}>{item.byName}</Text>{" "}
-                tarafından atıldı
+                {t("room.kickedEventText", { target: item.targetName, by: item.byName })}
               </Text>
             </View>
           ) : item.kind === "settings" ? (
@@ -1996,7 +2004,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   {item.settingValue}
                 </Text>
                 <Text style={styles.settingsDesc} numberOfLines={1}>
-                  {item.settingLabel} · <Text style={styles.eventBold}>{item.byName}</Text> değiştirdi
+                  {t("room.settingChangedBy", { label: item.settingLabel, by: item.byName })}
                 </Text>
               </View>
             </View>
@@ -2059,7 +2067,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         )}
         <TextInput
           style={styles.chatInput}
-          placeholder={me?.chatBanned ? "Sohbete yazman kapatıldı" : "Mesaj yaz..."}
+          placeholder={me?.chatBanned ? t("room.chatDisabledPlaceholder") : t("room.messagePlaceholder")}
           placeholderTextColor={theme.textMuted}
           value={chatInput}
           onChangeText={setChatInput}
@@ -2243,7 +2251,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       {leaveConfirmVisible && (
         <View style={styles.leaveOverlay}>
           <View style={styles.leaveCard}>
-            <Text style={styles.leaveCardText}>Çıkıyor musun?</Text>
+            <Text style={styles.leaveCardText}>{t("room.leaveConfirmText")}</Text>
             <View style={styles.leaveCardButtons}>
               <TouchableOpacity style={styles.leaveCardButton} onPress={() => setLeaveConfirmVisible(false)}>
                 <Icon name="close" size={20} color={theme.text} />
