@@ -168,7 +168,11 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <View style={styles.outer}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <View style={styles.logoWrap}>
         {/* Kenar golgesi: TEK yonde kaydirilmis bir kopya "arkada duran ikinci
             bir sekil" gibi gorunuyordu (bkz. onceki surum) - bunun yerine
@@ -319,13 +323,19 @@ export default function LoginScreen() {
                 setCode("");
               }}
               hitSlop={8}
+              style={styles.switchEmailButton}
             >
               <Text style={styles.emailToggleText}>Farklı bir e-posta kullan</Text>
             </TouchableOpacity>
           </>
         )}
       </View>
+      </KeyboardAvoidingView>
 
+      {/* Klavye acildiginda KeyboardAvoidingView icerigi yukari kaydiriyor -
+          bu metin o View'in disinda tutuluyor ki klavyeyle birlikte
+          yukari kayip ustteki icerigin uzerine binmesin, hep ekranin en
+          altinda sabit kalsin. */}
       <Text style={styles.termsText}>
         Devam ederek{" "}
         <Text style={styles.termsLink} onPress={() => setInfoModal("terms")}>
@@ -348,13 +358,17 @@ export default function LoginScreen() {
           <Text style={styles.infoModalCloseText}>✕</Text>
         </TouchableOpacity>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
-  container: { flex: 1, backgroundColor: "transparent", padding: 24, justifyContent: "center" },
+  // outer: termsText ve Modal'in de icinde durdugu DIS sarmalayici - sabit
+  // (klavye acilsa da boyutu degismiyor). container ise SADECE klavye
+  // acilinca yukari kaymasi gereken kisim (logo/butonlar/email formu).
+  outer: { flex: 1, backgroundColor: "transparent" },
+  container: { flex: 1, padding: 24, justifyContent: "center" },
   // logoShadow kopyalari logoMark'tan en fazla 3px tasabiliyor - golge
   // View'in disina kirpilmasin diye wrap, logodan biraz daha genis/yuksek.
   // marginTop negatif: "logoyu hafif yukari al" - butun grup (logo+row+alt
@@ -414,6 +428,7 @@ const styles = StyleSheet.create({
   // sekilde yerinde degisir.
   emailSection: { marginTop: 24, alignItems: "center", paddingHorizontal: 8 },
   emailToggleText: { color: "rgba(255,255,255,0.6)", fontSize: 13, textDecorationLine: "underline" },
+  switchEmailButton: { marginTop: 14 },
   emailHint: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginBottom: 10, textAlign: "center" },
   emailRow: { flexDirection: "row", width: "100%", columnGap: 8 },
   emailInput: {
