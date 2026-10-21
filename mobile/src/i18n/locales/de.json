@@ -7,7 +7,9 @@
     "ok": "OK",
     "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
     "connectionIssueTitle": "Verbindungsproblem",
-    "connectionIssueBody": "Server nicht erreichbar (Zeitüberschreitung). Überprüfe deine Verbindung."
+    "connectionIssueBody": "Server nicht erreichbar (Zeitüberschreitung). Überprüfe deine Verbindung.",
+    "yes": "Ja",
+    "no": "Nein"
   },
   "profile": {
     "sectionAccounts": "Verbundene Konten",
@@ -106,5 +108,27 @@
     "blockedBody": "{{name}} wurde blockiert.",
     "reportedTitle": "Gemeldet",
     "reportedBody": "Dieser Nutzer wurde an unser Moderationsteam gemeldet, danke."
+  },
+  "friends": {
+    "justNow": "gerade eben",
+    "minutesAgo": "vor {{count}} Min.",
+    "hoursAgo": "vor {{count}} Std.",
+    "daysAgo": "vor {{count}} Tg.",
+    "searchPlaceholder": "SUCHEN",
+    "noFriendsYet": "Du hast noch keine Freunde.",
+    "noRecentRoommates": "Niemand, mit dem du kürzlich in einem Raum warst.",
+    "noBlocked": "Niemand ist blockiert.",
+    "noPendingRequests": "Keine offenen Freundschaftsanfragen.",
+    "tabFriends": "Freunde",
+    "tabRecent": "Kürzlich",
+    "tabShare": "Teilen",
+    "tabBlocked": "Blockiert",
+    "selectAll": "Alle",
+    "sendInvites": "Einladen ({{count}})",
+    "requestsTitle": "ANFRAGEN",
+    "requestFailedTitle": "Senden fehlgeschlagen",
+    "requestFailedBody": "Freundschaftsanfrage konnte nicht gesendet werden, versuch es erneut.",
+    "unblockConfirmTitle": "Blockierung aufheben",
+    "unblockConfirmBody": "Möchtest du die Blockierung dieser Person wirklich aufheben?"
   }
 }

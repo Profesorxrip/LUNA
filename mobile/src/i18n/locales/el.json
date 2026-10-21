@@ -7,7 +7,9 @@
     "ok": "ΟΚ",
     "unknownError": "Παρουσιάστηκε άγνωστο σφάλμα.",
     "connectionIssueTitle": "Πρόβλημα σύνδεσης",
-    "connectionIssueBody": "Δεν είναι δυνατή η σύνδεση με τον διακομιστή (έληξε ο χρόνος). Έλεγξε τη σύνδεσή σου."
+    "connectionIssueBody": "Δεν είναι δυνατή η σύνδεση με τον διακομιστή (έληξε ο χρόνος). Έλεγξε τη σύνδεσή σου.",
+    "yes": "Ναι",
+    "no": "Όχι"
   },
   "profile": {
     "sectionAccounts": "Συνδεδεμένοι Λογαριασμοί",
@@ -106,5 +108,27 @@
     "blockedBody": "Ο/Η {{name}} αποκλείστηκε.",
     "reportedTitle": "Αναφέρθηκε",
     "reportedBody": "Αυτός ο χρήστης αναφέρθηκε στην ομάδα διαχείρισης μας, ευχαριστούμε."
+  },
+  "friends": {
+    "justNow": "μόλις τώρα",
+    "minutesAgo": "πριν {{count}} λεπτά",
+    "hoursAgo": "πριν {{count}} ώρες",
+    "daysAgo": "πριν {{count}} μέρες",
+    "searchPlaceholder": "ΑΝΑΖΗΤΗΣΗ",
+    "noFriendsYet": "Δεν έχεις φίλους ακόμα.",
+    "noRecentRoommates": "Κανείς με τον οποίο μοιράστηκες πρόσφατα ένα δωμάτιο.",
+    "noBlocked": "Κανείς δεν είναι αποκλεισμένος.",
+    "noPendingRequests": "Δεν υπάρχουν εκκρεμή αιτήματα φιλίας.",
+    "tabFriends": "Φίλοι",
+    "tabRecent": "Πρόσφατα",
+    "tabShare": "Κοινοποίηση",
+    "tabBlocked": "Αποκλεισμένοι",
+    "selectAll": "Όλα",
+    "sendInvites": "Αποστολή Προσκλήσεων ({{count}})",
+    "requestsTitle": "ΑΙΤΗΜΑΤΑ",
+    "requestFailedTitle": "Αποτυχία αποστολής",
+    "requestFailedBody": "Το αίτημα φιλίας δεν στάλθηκε, δοκίμασε ξανά.",
+    "unblockConfirmTitle": "Άρση αποκλεισμού",
+    "unblockConfirmBody": "Είσαι σίγουρος/η ότι θέλεις να άρεις τον αποκλεισμό αυτού του ατόμου;"
   }
 }

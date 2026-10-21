@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, Modal } from "react-native";
 import { ChevronLeft, Check } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import { getSocket, FriendUser, RecentRoommate, DMMessage } from "../services/socket";
 import { theme } from "../theme";
 import Avatar from "../components/Avatar";
@@ -38,15 +39,15 @@ const BG = "#000000";
 const TEXT = "#F5F0E6";
 const MUTED = "#9A8F80";
 
-function relativeTime(ts: number): string {
+function relativeTime(ts: number, t: (key: string, opts?: any) => string): string {
   const diffMs = Date.now() - ts;
   const min = Math.floor(diffMs / 60000);
-  if (min < 1) return "az önce";
-  if (min < 60) return `${min} dakika`;
+  if (min < 1) return t("friends.justNow");
+  if (min < 60) return t("friends.minutesAgo", { count: min });
   const hour = Math.floor(min / 60);
-  if (hour < 24) return `${hour} saat`;
+  if (hour < 24) return t("friends.hoursAgo", { count: hour });
   const day = Math.floor(hour / 24);
-  return `${day} gün`;
+  return t("friends.daysAgo", { count: day });
 }
 
 /** Rave'in "Arkadaslar" ekraninin yapisinin bir kopyasi - Discover'daki
@@ -64,6 +65,7 @@ export default function FriendsScreen({
   roomCode,
   roomTitle,
 }: Props) {
+  const { t } = useTranslation();
   const socket = getSocket();
   const [tab, setTab] = useState<Tab>("friends");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -139,10 +141,10 @@ export default function FriendsScreen({
     socket.emit("friend:request", { toUserId }, (res: any) => {
       if (res?.ok) {
         setSentRequests((prev) => new Set(prev).add(toUserId));
-        showAlert("İstek gönderildi", `${name} kullanıcısına arkadaşlık isteği gönderildi.`);
+        showAlert(t("discover.requestSentTitle"), t("discover.requestSentBody", { name }));
         onSuccess?.();
       } else {
-        showAlert("Gönderilemedi", "Arkadaşlık isteği gönderilemedi, tekrar dene.");
+        showAlert(t("friends.requestFailedTitle"), t("friends.requestFailedBody"));
       }
     });
   }
@@ -159,10 +161,10 @@ export default function FriendsScreen({
   }
 
   function unblock(userId: string) {
-    showAlert("Engeli Kaldır", "Bu kişinin engelini kaldırmak istediğinize emin misiniz?", [
-      { text: "Hayır", style: "cancel" },
+    showAlert(t("friends.unblockConfirmTitle"), t("friends.unblockConfirmBody"), [
+      { text: t("common.no"), style: "cancel" },
       {
-        text: "Evet",
+        text: t("common.yes"),
         onPress: () =>
           socket.emit("friend:unblock", { userId }, () => {
             setUnblockedIds((prev) => new Set(prev).add(userId));
@@ -212,7 +214,7 @@ export default function FriendsScreen({
     if (!target.userId) return;
     socket.emit("friend:block", { userId: target.userId }, (res: any) => {
       if (res?.ok) {
-        showAlert("Engellendi", `${target.name} engellendi.`);
+        showAlert(t("discover.blockedTitle"), t("discover.blockedBody", { name: target.name }));
         refresh();
         patchProfileCardTarget(target.userId, { friendStatus: "blocked" });
       }
@@ -311,7 +313,7 @@ export default function FriendsScreen({
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
-            placeholder="ARA"
+            placeholder={t("friends.searchPlaceholder")}
             placeholderTextColor={MUTED}
           />
         </View>
@@ -321,7 +323,7 @@ export default function FriendsScreen({
             onPress={toggleSelectAllCurrentTab}
             hitSlop={8}
           >
-            <Text style={[styles.selectAllText, allCurrentTabSelected && styles.selectAllTextActive]}>Tümü</Text>
+            <Text style={[styles.selectAllText, allCurrentTabSelected && styles.selectAllTextActive]}>{t("friends.selectAll")}</Text>
           </TouchableOpacity>
         ) : !inviteMode ? (
           <TouchableOpacity style={styles.requestsButton} onPress={() => setRequestsVisible(true)} hitSlop={8}>
@@ -340,7 +342,7 @@ export default function FriendsScreen({
           data={visibleFriends}
           keyExtractor={(f) => f.userId}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>Henüz arkadaşın yok.</Text>}
+          ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>{t("friends.noFriendsYet")}</Text>}
           renderItem={({ item }) => {
             const preview = previews[item.userId];
             const isSelected = selected.has(item.userId);
@@ -359,7 +361,7 @@ export default function FriendsScreen({
                   <Text style={styles.rowName}>{item.name}</Text>
                   {preview && !inviteMode ? (
                     <Text style={styles.rowPreview} numberOfLines={1}>
-                      {preview.text} · {relativeTime(preview.createdAt)}
+                      {preview.text} · {relativeTime(preview.createdAt, t)}
                     </Text>
                   ) : (
                     !!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>
@@ -382,7 +384,7 @@ export default function FriendsScreen({
           keyExtractor={(f) => f.userId}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
-            loading ? <LoadingView /> : <Text style={styles.emptyText}>Son zamanlarda aynı odaya girdiğin kimse yok.</Text>
+            loading ? <LoadingView /> : <Text style={styles.emptyText}>{t("friends.noRecentRoommates")}</Text>
           }
           renderItem={({ item }) => {
             const isSelected = selected.has(item.userId);
@@ -402,7 +404,7 @@ export default function FriendsScreen({
                     <Text style={styles.rowName}>{item.name}</Text>
                     <Text style={styles.rowHandle} numberOfLines={1}>
                       {item.handle ? `@${item.handle} · ` : ""}
-                      {relativeTime(item.lastTogetherMs)} önce
+                      {relativeTime(item.lastTogetherMs, t)}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -435,7 +437,7 @@ export default function FriendsScreen({
           data={visibleBlocked}
           keyExtractor={(f) => f.userId}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>Engellenen kimse yok.</Text>}
+          ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>{t("friends.noBlocked")}</Text>}
           renderItem={({ item }) => {
             const isSelected = selected.has(item.userId);
             return (
@@ -475,7 +477,7 @@ export default function FriendsScreen({
       {inviteMode && selected.size > 0 && (
         <View style={styles.inviteBar}>
           <TouchableOpacity style={styles.inviteButton} onPress={() => onSendInvites?.(Array.from(selected))}>
-            <Text style={styles.inviteButtonText}>Davet At ({selected.size})</Text>
+            <Text style={styles.inviteButtonText}>{t("friends.sendInvites", { count: selected.size })}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -484,11 +486,11 @@ export default function FriendsScreen({
         <View style={styles.tabBar}>
           <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("friends")}>
             <Icon name="people" size={24} color={tab === "friends" ? TEXT : MUTED} />
-            <Text style={[styles.tabLabel, tab === "friends" && styles.tabLabelActive]}>Arkadaşlar</Text>
+            <Text style={[styles.tabLabel, tab === "friends" && styles.tabLabelActive]}>{t("friends.tabFriends")}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("recent")}>
             <Icon name="clock" size={24} color={tab === "recent" ? TEXT : MUTED} />
-            <Text style={[styles.tabLabel, tab === "recent" && styles.tabLabelActive]}>Son Zamanlarda</Text>
+            <Text style={[styles.tabLabel, tab === "recent" && styles.tabLabelActive]}>{t("friends.tabRecent")}</Text>
           </TouchableOpacity>
           {inviteMode ? (
             // Engellenen birine zaten davet atilamadigi icin bu slotta artik
@@ -496,12 +498,12 @@ export default function FriendsScreen({
             // gibi (bkz. ShareRoomContent.tsx, AYRI bir ekran ACMAZ).
             <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("share")}>
               <Icon name="shareBox" size={24} color={tab === "share" ? TEXT : MUTED} />
-              <Text style={[styles.tabLabel, tab === "share" && styles.tabLabelActive]}>Paylaş</Text>
+              <Text style={[styles.tabLabel, tab === "share" && styles.tabLabelActive]}>{t("friends.tabShare")}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("blocked")}>
               <Icon name="personBan" size={24} color={tab === "blocked" ? TEXT : MUTED} />
-              <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>Engellendi</Text>
+              <Text style={[styles.tabLabel, tab === "blocked" && styles.tabLabelActive]}>{t("friends.tabBlocked")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -513,14 +515,14 @@ export default function FriendsScreen({
             <TouchableOpacity style={styles.iconTouch} onPress={() => setRequestsVisible(false)} hitSlop={8}>
               <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
             </TouchableOpacity>
-            <Text style={styles.requestsTitle}>İSTEKLER</Text>
+            <Text style={styles.requestsTitle}>{t("friends.requestsTitle")}</Text>
             <View style={styles.iconTouch} />
           </View>
           <FlatList
             contentContainerStyle={styles.listContent}
             data={incoming}
             keyExtractor={(f) => f.userId}
-            ListEmptyComponent={<Text style={styles.emptyText}>Bekleyen arkadaşlık isteği yok.</Text>}
+            ListEmptyComponent={<Text style={styles.emptyText}>{t("friends.noPendingRequests")}</Text>}
             renderItem={({ item }) => (
               <View style={styles.row}>
                 <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} />

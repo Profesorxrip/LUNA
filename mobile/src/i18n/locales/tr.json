@@ -7,7 +7,9 @@
     "ok": "Tamam",
     "unknownError": "Bilinmeyen bir hata oluştu.",
     "connectionIssueTitle": "Bağlantı sorunu",
-    "connectionIssueBody": "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et."
+    "connectionIssueBody": "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et.",
+    "yes": "Evet",
+    "no": "Hayır"
   },
   "profile": {
     "sectionAccounts": "Bağlanan Hesaplar",
@@ -106,5 +108,27 @@
     "blockedBody": "{{name}} engellendi.",
     "reportedTitle": "Bildirildi",
     "reportedBody": "Bu kullanıcı moderasyon ekibine iletildi, teşekkürler."
+  },
+  "friends": {
+    "justNow": "az önce",
+    "minutesAgo": "{{count}} dakika önce",
+    "hoursAgo": "{{count}} saat önce",
+    "daysAgo": "{{count}} gün önce",
+    "searchPlaceholder": "ARA",
+    "noFriendsYet": "Henüz arkadaşın yok.",
+    "noRecentRoommates": "Son zamanlarda aynı odaya girdiğin kimse yok.",
+    "noBlocked": "Engellenen kimse yok.",
+    "noPendingRequests": "Bekleyen arkadaşlık isteği yok.",
+    "tabFriends": "Arkadaşlar",
+    "tabRecent": "Son Zamanlarda",
+    "tabShare": "Paylaş",
+    "tabBlocked": "Engellendi",
+    "selectAll": "Tümü",
+    "sendInvites": "Davet At ({{count}})",
+    "requestsTitle": "İSTEKLER",
+    "requestFailedTitle": "Gönderilemedi",
+    "requestFailedBody": "Arkadaşlık isteği gönderilemedi, tekrar dene.",
+    "unblockConfirmTitle": "Engeli Kaldır",
+    "unblockConfirmBody": "Bu kişinin engelini kaldırmak istediğinize emin misiniz?"
   }
 }

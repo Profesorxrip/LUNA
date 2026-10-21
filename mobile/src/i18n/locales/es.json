@@ -7,7 +7,9 @@
     "ok": "Aceptar",
     "unknownError": "Se produjo un error desconocido.",
     "connectionIssueTitle": "Problema de conexión",
-    "connectionIssueBody": "No se puede contactar con el servidor (tiempo agotado). Revisa tu conexión."
+    "connectionIssueBody": "No se puede contactar con el servidor (tiempo agotado). Revisa tu conexión.",
+    "yes": "Sí",
+    "no": "No"
   },
   "profile": {
     "sectionAccounts": "Cuentas conectadas",
@@ -106,5 +108,27 @@
     "blockedBody": "{{name}} ha sido bloqueado/a.",
     "reportedTitle": "Reportado",
     "reportedBody": "Este usuario ha sido reportado a nuestro equipo de moderación, gracias."
+  },
+  "friends": {
+    "justNow": "justo ahora",
+    "minutesAgo": "hace {{count}} min",
+    "hoursAgo": "hace {{count}} h",
+    "daysAgo": "hace {{count}} d",
+    "searchPlaceholder": "BUSCAR",
+    "noFriendsYet": "Todavía no tienes amigos.",
+    "noRecentRoommates": "No hay nadie con quien hayas compartido una sala recientemente.",
+    "noBlocked": "No hay nadie bloqueado.",
+    "noPendingRequests": "No hay solicitudes de amistad pendientes.",
+    "tabFriends": "Amigos",
+    "tabRecent": "Recientes",
+    "tabShare": "Compartir",
+    "tabBlocked": "Bloqueados",
+    "selectAll": "Todos",
+    "sendInvites": "Enviar invitaciones ({{count}})",
+    "requestsTitle": "SOLICITUDES",
+    "requestFailedTitle": "No se pudo enviar",
+    "requestFailedBody": "No se pudo enviar la solicitud de amistad, inténtalo de nuevo.",
+    "unblockConfirmTitle": "Desbloquear",
+    "unblockConfirmBody": "¿Seguro que quieres desbloquear a esta persona?"
   }
 }

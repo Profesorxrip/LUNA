@@ -7,7 +7,9 @@
     "ok": "OK",
     "unknownError": "Une erreur inconnue s'est produite.",
     "connectionIssueTitle": "Problème de connexion",
-    "connectionIssueBody": "Impossible de joindre le serveur (délai dépassé). Vérifie ta connexion."
+    "connectionIssueBody": "Impossible de joindre le serveur (délai dépassé). Vérifie ta connexion.",
+    "yes": "Oui",
+    "no": "Non"
   },
   "profile": {
     "sectionAccounts": "Comptes Connectés",
@@ -106,5 +108,27 @@
     "blockedBody": "{{name}} a été bloqué(e).",
     "reportedTitle": "Signalé",
     "reportedBody": "Cet utilisateur a été signalé à notre équipe de modération, merci."
+  },
+  "friends": {
+    "justNow": "à l'instant",
+    "minutesAgo": "il y a {{count}} min",
+    "hoursAgo": "il y a {{count}} h",
+    "daysAgo": "il y a {{count}} j",
+    "searchPlaceholder": "RECHERCHER",
+    "noFriendsYet": "Tu n'as pas encore d'amis.",
+    "noRecentRoommates": "Personne avec qui tu as récemment partagé un salon.",
+    "noBlocked": "Personne n'est bloqué.",
+    "noPendingRequests": "Aucune demande d'ami en attente.",
+    "tabFriends": "Amis",
+    "tabRecent": "Récents",
+    "tabShare": "Partager",
+    "tabBlocked": "Bloqués",
+    "selectAll": "Tout",
+    "sendInvites": "Envoyer ({{count}})",
+    "requestsTitle": "DEMANDES",
+    "requestFailedTitle": "Échec de l'envoi",
+    "requestFailedBody": "La demande d'ami n'a pas pu être envoyée, réessaie.",
+    "unblockConfirmTitle": "Débloquer",
+    "unblockConfirmBody": "Veux-tu vraiment débloquer cette personne ?"
   }
 }

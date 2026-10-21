@@ -7,7 +7,9 @@
     "ok": "Baş e",
     "unknownError": "Çewtiyek nenas çêbû.",
     "connectionIssueTitle": "Pirsgirêka girêdanê",
-    "connectionIssueBody": "Negihîştin serverê (dem qediya). Girêdana xwe kontrol bike."
+    "connectionIssueBody": "Negihîştin serverê (dem qediya). Girêdana xwe kontrol bike.",
+    "yes": "Erê",
+    "no": "Na"
   },
   "profile": {
     "sectionAccounts": "Hesabên Girêdayî",
@@ -106,5 +108,27 @@
     "blockedBody": "{{name}} hat astengkirin.",
     "reportedTitle": "Hat ragihandin",
     "reportedBody": "Ev bikarhêner ji tîma me ya moderasyonê re hat ragihandin, spas."
+  },
+  "friends": {
+    "justNow": "niha",
+    "minutesAgo": "{{count}} deqîqe berê",
+    "hoursAgo": "{{count}} saet berê",
+    "daysAgo": "{{count}} roj berê",
+    "searchPlaceholder": "LÊGERÎN",
+    "noFriendsYet": "Hêj hevalên te tune ne.",
+    "noRecentRoommates": "Kesek ku te vê dawiyê bi wî re odeyek parve kiriye tune ye.",
+    "noBlocked": "Tu kes nehatiye astengkirin.",
+    "noPendingRequests": "Tu daxwazên hevaltiyê yên li benda bersivê tune ne.",
+    "tabFriends": "Heval",
+    "tabRecent": "Dawî",
+    "tabShare": "Parve bike",
+    "tabBlocked": "Astengkirî",
+    "selectAll": "Hemû",
+    "sendInvites": "Vexwendiyan Bişîne ({{count}})",
+    "requestsTitle": "DAXWAZ",
+    "requestFailedTitle": "Nehat şandin",
+    "requestFailedBody": "Daxwaza hevaltiyê nehat şandin, dîsa biceribîne.",
+    "unblockConfirmTitle": "Astengê Rake",
+    "unblockConfirmBody": "Tu bawer î ku dixwazî astengê vî kesî rakî?"
   }
 }

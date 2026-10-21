@@ -7,7 +7,9 @@
     "ok": "ОК",
     "unknownError": "Произошла неизвестная ошибка.",
     "connectionIssueTitle": "Проблема с подключением",
-    "connectionIssueBody": "Не удаётся связаться с сервером (истекло время ожидания). Проверь соединение."
+    "connectionIssueBody": "Не удаётся связаться с сервером (истекло время ожидания). Проверь соединение.",
+    "yes": "Да",
+    "no": "Нет"
   },
   "profile": {
     "sectionAccounts": "Подключённые аккаунты",
@@ -106,5 +108,27 @@
     "blockedBody": "{{name}} заблокирован(а).",
     "reportedTitle": "Жалоба отправлена",
     "reportedBody": "Жалоба на этого пользователя передана нашей команде модерации, спасибо."
+  },
+  "friends": {
+    "justNow": "только что",
+    "minutesAgo": "{{count}} мин. назад",
+    "hoursAgo": "{{count}} ч. назад",
+    "daysAgo": "{{count}} дн. назад",
+    "searchPlaceholder": "ПОИСК",
+    "noFriendsYet": "У тебя пока нет друзей.",
+    "noRecentRoommates": "Нет тех, с кем ты недавно делил комнату.",
+    "noBlocked": "Никто не заблокирован.",
+    "noPendingRequests": "Нет ожидающих запросов в друзья.",
+    "tabFriends": "Друзья",
+    "tabRecent": "Недавние",
+    "tabShare": "Поделиться",
+    "tabBlocked": "Заблокированные",
+    "selectAll": "Все",
+    "sendInvites": "Отправить приглашения ({{count}})",
+    "requestsTitle": "ЗАПРОСЫ",
+    "requestFailedTitle": "Не удалось отправить",
+    "requestFailedBody": "Не удалось отправить запрос в друзья, попробуй снова.",
+    "unblockConfirmTitle": "Разблокировать",
+    "unblockConfirmBody": "Ты уверен(а), что хочешь разблокировать этого человека?"
   }
 }

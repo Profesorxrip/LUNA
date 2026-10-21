@@ -7,7 +7,9 @@
     "ok": "OK",
     "unknownError": "Naməlum xəta baş verdi.",
     "connectionIssueTitle": "Bağlantı problemi",
-    "connectionIssueBody": "Serverə qoşulmaq mümkün olmadı (vaxt bitdi). Bağlantını yoxla."
+    "connectionIssueBody": "Serverə qoşulmaq mümkün olmadı (vaxt bitdi). Bağlantını yoxla.",
+    "yes": "Bəli",
+    "no": "Xeyr"
   },
   "profile": {
     "sectionAccounts": "Qoşulmuş hesablar",
@@ -106,5 +108,27 @@
     "blockedBody": "{{name}} bloklandı.",
     "reportedTitle": "Şikayət edildi",
     "reportedBody": "Bu istifadəçi moderasiya komandamıza bildirildi, təşəkkürlər."
+  },
+  "friends": {
+    "justNow": "indicə",
+    "minutesAgo": "{{count}} dəqiqə əvvəl",
+    "hoursAgo": "{{count}} saat əvvəl",
+    "daysAgo": "{{count}} gün əvvəl",
+    "searchPlaceholder": "AXTAR",
+    "noFriendsYet": "Hələ dostun yoxdur.",
+    "noRecentRoommates": "Yaxınlarda otaq paylaşdığın heç kim yoxdur.",
+    "noBlocked": "Bloklanan heç kim yoxdur.",
+    "noPendingRequests": "Gözləyən dostluq sorğusu yoxdur.",
+    "tabFriends": "Dostlar",
+    "tabRecent": "Son",
+    "tabShare": "Paylaş",
+    "tabBlocked": "Bloklananlar",
+    "selectAll": "Hamısı",
+    "sendInvites": "Dəvət Göndər ({{count}})",
+    "requestsTitle": "SORĞULAR",
+    "requestFailedTitle": "Göndərilmədi",
+    "requestFailedBody": "Dostluq sorğusu göndərilmədi, yenidən cəhd et.",
+    "unblockConfirmTitle": "Blokdan Çıxar",
+    "unblockConfirmBody": "Bu şəxsin blokunu götürmək istədiyinə əminsən?"
   }
 }

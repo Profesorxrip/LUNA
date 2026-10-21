@@ -7,7 +7,9 @@
     "ok": "OK",
     "unknownError": "An unknown error occurred.",
     "connectionIssueTitle": "Connection issue",
-    "connectionIssueBody": "Can't reach the server (timed out). Check your connection."
+    "connectionIssueBody": "Can't reach the server (timed out). Check your connection.",
+    "yes": "Yes",
+    "no": "No"
   },
   "profile": {
     "sectionAccounts": "Connected Accounts",
@@ -106,5 +108,27 @@
     "blockedBody": "{{name}} has been blocked.",
     "reportedTitle": "Reported",
     "reportedBody": "This user has been reported to our moderation team, thank you."
+  },
+  "friends": {
+    "justNow": "just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
+    "searchPlaceholder": "SEARCH",
+    "noFriendsYet": "You don't have any friends yet.",
+    "noRecentRoommates": "No one you've recently shared a room with.",
+    "noBlocked": "No one is blocked.",
+    "noPendingRequests": "No pending friend requests.",
+    "tabFriends": "Friends",
+    "tabRecent": "Recent",
+    "tabShare": "Share",
+    "tabBlocked": "Blocked",
+    "selectAll": "All",
+    "sendInvites": "Send Invites ({{count}})",
+    "requestsTitle": "REQUESTS",
+    "requestFailedTitle": "Couldn't send",
+    "requestFailedBody": "Couldn't send the friend request, try again.",
+    "unblockConfirmTitle": "Unblock",
+    "unblockConfirmBody": "Are you sure you want to unblock this person?"
   }
 }

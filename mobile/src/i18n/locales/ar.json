@@ -7,7 +7,9 @@
     "ok": "حسنًا",
     "unknownError": "حدث خطأ غير معروف.",
     "connectionIssueTitle": "مشكلة في الاتصال",
-    "connectionIssueBody": "تعذر الوصول إلى الخادم (انتهت المهلة). تحقق من اتصالك."
+    "connectionIssueBody": "تعذر الوصول إلى الخادم (انتهت المهلة). تحقق من اتصالك.",
+    "yes": "نعم",
+    "no": "لا"
   },
   "profile": {
     "sectionAccounts": "الحسابات المرتبطة",
@@ -106,5 +108,27 @@
     "blockedBody": "تم حظر {{name}}.",
     "reportedTitle": "تم الإبلاغ",
     "reportedBody": "تم إبلاغ فريق الإشراف بهذا المستخدم، شكرًا لك."
+  },
+  "friends": {
+    "justNow": "الآن",
+    "minutesAgo": "منذ {{count}} دقيقة",
+    "hoursAgo": "منذ {{count}} ساعة",
+    "daysAgo": "منذ {{count}} يوم",
+    "searchPlaceholder": "بحث",
+    "noFriendsYet": "ليس لديك أصدقاء بعد.",
+    "noRecentRoommates": "لا يوجد أحد شاركت غرفة معه مؤخرًا.",
+    "noBlocked": "لا يوجد أحد محظور.",
+    "noPendingRequests": "لا توجد طلبات صداقة معلقة.",
+    "tabFriends": "الأصدقاء",
+    "tabRecent": "الأخيرة",
+    "tabShare": "مشاركة",
+    "tabBlocked": "محظورون",
+    "selectAll": "الكل",
+    "sendInvites": "إرسال الدعوات ({{count}})",
+    "requestsTitle": "الطلبات",
+    "requestFailedTitle": "تعذر الإرسال",
+    "requestFailedBody": "تعذر إرسال طلب الصداقة، حاول مرة أخرى.",
+    "unblockConfirmTitle": "إلغاء الحظر",
+    "unblockConfirmBody": "هل أنت متأكد أنك تريد إلغاء حظر هذا الشخص؟"
   }
 }
