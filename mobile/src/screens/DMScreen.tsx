@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import { useTranslation } from "react-i18next";
 import { getSocket, DMMessage, DMReply } from "../services/socket";
 import { supabase } from "../services/supabase";
 import Icon from "../components/Icon";
@@ -22,12 +23,30 @@ import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import ChatImageBubble from "../components/ChatImageBubble";
 import Avatar from "../components/Avatar";
 
-const EXPIRY_OPTIONS: { label: string; ms: number | null }[] = [
-  { label: "Kapalı", ms: null },
-  { label: "1 Saat", ms: 60 * 60 * 1000 },
-  { label: "1 Gün", ms: 24 * 60 * 60 * 1000 },
-  { label: "1 Hafta", ms: 7 * 24 * 60 * 60 * 1000 },
-];
+function getExpiryOptions(t: (key: string) => string): { label: string; ms: number | null }[] {
+  return [
+    { label: t("dm.expiryOff"), ms: null },
+    { label: t("dm.expiry1Hour"), ms: 60 * 60 * 1000 },
+    { label: t("dm.expiry1Day"), ms: 24 * 60 * 60 * 1000 },
+    { label: t("dm.expiry1Week"), ms: 7 * 24 * 60 * 60 * 1000 },
+  ];
+}
+
+// toLocaleTimeString icin dil koduna karsilik gelen BCP-47 etiketi - bazi
+// dillerin (ku) resmi bir ICU locale'i olmayabilir, tarayici/JS motoru
+// bilmedigi bir etiketi sessizce sistem varsayilanina dusurur (hata vermez).
+const TIME_LOCALE: Record<string, string> = {
+  tr: "tr-TR",
+  en: "en-US",
+  de: "de-DE",
+  fr: "fr-FR",
+  ar: "ar",
+  ku: "ku",
+  el: "el-GR",
+  ru: "ru-RU",
+  az: "az-AZ",
+  es: "es-ES",
+};
 
 export interface DMPeer {
   userId: string;
@@ -51,6 +70,7 @@ const MUTED = "#9A8F80";
  * "gorundu" cift tik'i ve alt aksiyon cubugu (etiket/medya/sesli mesaj) -
  * LUNA'nin siyah/yesil temasiyla. */
 export default function DMScreen({ peer, onBack }: Props) {
+  const { t, i18n } = useTranslation();
   const socket = getSocket();
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DMMessage[]>([]);
@@ -171,7 +191,7 @@ export default function DMScreen({ peer, onBack }: Props) {
   }, []);
 
   function placeholder(label: string) {
-    showAlert(label, "Bu ozellik yakinda eklenecek.");
+    showAlert(label, t("profile.comingSoon"));
   }
 
   function sendMessage() {
@@ -188,7 +208,7 @@ export default function DMScreen({ peer, onBack }: Props) {
   async function pickImage() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showAlert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
@@ -216,12 +236,12 @@ export default function DMScreen({ peer, onBack }: Props) {
         { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, isAdult },
         (res: any) => {
           if (res?.ok) setMessages((prev) => [...prev, res.message]);
-          else showAlert("Gönderilemedi", res?.error || "Fotoğraf gönderilemedi, tekrar dene.");
+          else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.imageSendFailedBody"));
         }
       );
       setPendingImageUri(null);
     } catch (err: any) {
-      showAlert("Gönderilemedi", err?.message || "Fotoğraf gönderilirken bir hata oluştu, tekrar dene.");
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.imageSendErrorBody"));
     } finally {
       setUploadingImage(false);
     }
@@ -232,7 +252,7 @@ export default function DMScreen({ peer, onBack }: Props) {
   }
 
   function startReply(message: DMMessage) {
-    setReplyingTo({ text: message.text, fromName: message.fromUserId === myUserId ? "Sen" : message.fromName });
+    setReplyingTo({ text: message.text, fromName: message.fromUserId === myUserId ? t("dm.you") : message.fromName });
   }
 
   // Bir mesaja CIFT TIKLAYINCA Ayarlar'da secilen hizli tepki emojisini
@@ -265,8 +285,8 @@ export default function DMScreen({ peer, onBack }: Props) {
     const reason = reportReason.trim();
     if (!reason) return;
     socket.emit("report:submit", { targetUserId: peer.userId, reason }, (res: any) => {
-      if (res?.ok) showAlert("Rapor gonderildi", "Bildirimin icin tesekkurler, inceleyecegiz.");
-      else showAlert("Hata", "Rapor gonderilemedi, tekrar dene.");
+      if (res?.ok) showAlert(t("dm.reportSentTitle"), t("dm.reportSentBody"));
+      else showAlert(t("dm.reportFailedTitle"), t("dm.reportFailedBody"));
     });
     setReportReason("");
     setReportVisible(false);
@@ -278,14 +298,15 @@ export default function DMScreen({ peer, onBack }: Props) {
       ? notExpired.filter((m) => m.text.toLowerCase().includes(searchQuery.trim().toLowerCase()))
       : notExpired;
   const mediaMessages = notExpired.filter((m) => !!m.mediaUrl);
-  const expiryLabel = EXPIRY_OPTIONS.find((o) => o.ms === expiresAfterMs)?.label ?? "Kapalı";
+  const expiryOptions = getExpiryOptions(t);
+  const expiryLabel = expiryOptions.find((o) => o.ms === expiresAfterMs)?.label ?? t("dm.expiryOff");
 
   const menuItems: { label: string; onPress: () => void }[] = [
-    { label: "Ara", onPress: () => setSearchVisible(true) },
-    { label: "Medya", onPress: () => setMediaVisible(true) },
-    { label: "Süre sonu", onPress: () => setExpiryVisible(true) },
-    { label: muted ? "Sesi Aç" : "Sessize Al", onPress: toggleMute },
-    { label: "Şikayet Et", onPress: () => setReportVisible(true) },
+    { label: t("dm.menuSearch"), onPress: () => setSearchVisible(true) },
+    { label: t("dm.menuMedia"), onPress: () => setMediaVisible(true) },
+    { label: t("dm.menuExpiry"), onPress: () => setExpiryVisible(true) },
+    { label: muted ? t("dm.menuUnmute") : t("dm.menuMute"), onPress: toggleMute },
+    { label: t("dm.menuReport"), onPress: () => setReportVisible(true) },
   ];
 
   return (
@@ -316,7 +337,7 @@ export default function DMScreen({ peer, onBack }: Props) {
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="SOHBETTE ARA..."
+            placeholder={t("dm.searchPlaceholder")}
             placeholderTextColor={MUTED}
             autoFocus
           />
@@ -335,7 +356,7 @@ export default function DMScreen({ peer, onBack }: Props) {
       {expiresAfterMs !== null && (
         <TouchableOpacity style={styles.expiryBanner} onPress={() => setExpiryVisible(true)}>
           <Icon name="clock" size={13} color={ACCENT} />
-          <Text style={styles.expiryBannerText}>Mesajlar {expiryLabel.toLowerCase()} sonra siliniyor</Text>
+          <Text style={styles.expiryBannerText}>{t("dm.expiryBannerText", { duration: expiryLabel })}</Text>
         </TouchableOpacity>
       )}
 
@@ -345,7 +366,7 @@ export default function DMScreen({ peer, onBack }: Props) {
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          loading ? <LoadingView /> : <Text style={styles.mediaEmpty}>Henüz mesaj yok, ilk mesajı sen gönder!</Text>
+          loading ? <LoadingView /> : <Text style={styles.mediaEmpty}>{t("dm.noMessagesYet")}</Text>
         }
         renderItem={({ item, index }) => {
           const isMine = item.fromUserId === myUserId;
@@ -361,7 +382,7 @@ export default function DMScreen({ peer, onBack }: Props) {
           // grubun ilkinde GERCEK fotograf (ya da yoksa bas harf), devaminda
           // bubble hizasini koruyan bos bir spacer.
           const avatarNode = !groupedWithPrev ? (
-            <Avatar name={isMine ? "Sen" : item.fromName} avatarUrl={isMine ? myAvatarUrl : peerAvatarUrl} size={26} />
+            <Avatar name={isMine ? t("dm.you") : item.fromName} avatarUrl={isMine ? myAvatarUrl : peerAvatarUrl} size={26} />
           ) : (
             <View style={styles.avatarSmallSpacer} />
           );
@@ -388,7 +409,10 @@ export default function DMScreen({ peer, onBack }: Props) {
               )}
               <View style={[styles.metaRow, isMine ? styles.metaRowMine : styles.metaRowTheirs]}>
                 <Text style={styles.metaTime}>
-                  {new Date(item.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(item.createdAt).toLocaleTimeString(TIME_LOCALE[i18n.language] ?? "en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </Text>
                 {isMine && <Text style={[styles.metaTick, seen && styles.metaTickSeen]}>{seen ? "✓✓" : "✓"}</Text>}
               </View>
@@ -440,7 +464,7 @@ export default function DMScreen({ peer, onBack }: Props) {
           style={styles.input}
           value={input}
           onChangeText={setInput}
-          placeholder="Mesaj..."
+          placeholder={t("dm.messagePlaceholder")}
           placeholderTextColor={MUTED}
           onSubmitEditing={sendMessage}
         />
@@ -456,7 +480,7 @@ export default function DMScreen({ peer, onBack }: Props) {
             <TouchableOpacity onPress={pickImage} hitSlop={6}>
               <Icon name="image" size={22} color={TEXT} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => placeholder("Sesli Mesaj")} hitSlop={6}>
+            <TouchableOpacity onPress={() => placeholder(t("dm.voiceMessageTitle"))} hitSlop={6}>
               <Icon name="mic" size={22} color={TEXT} />
             </TouchableOpacity>
           </View>
@@ -485,9 +509,9 @@ export default function DMScreen({ peer, onBack }: Props) {
       <Modal visible={mediaVisible} transparent animationType="slide" onRequestClose={() => setMediaVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setMediaVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.mediaSheet}>
-            <Text style={styles.sheetTitle}>Medya</Text>
+            <Text style={styles.sheetTitle}>{t("dm.menuMedia")}</Text>
             {mediaMessages.length === 0 ? (
-              <Text style={styles.mediaEmpty}>Bu sohbette henüz medya paylaşılmadı.</Text>
+              <Text style={styles.mediaEmpty}>{t("dm.noMedia")}</Text>
             ) : (
               <View style={styles.mediaGrid}>
                 {mediaMessages.map((m) => (
@@ -496,7 +520,7 @@ export default function DMScreen({ peer, onBack }: Props) {
               </View>
             )}
             <TouchableOpacity style={styles.sheetCloseBtn} onPress={() => setMediaVisible(false)}>
-              <Text style={styles.sheetCloseBtnText}>Kapat</Text>
+              <Text style={styles.sheetCloseBtnText}>{t("common.close")}</Text>
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -505,9 +529,9 @@ export default function DMScreen({ peer, onBack }: Props) {
       <Modal visible={expiryVisible} transparent animationType="slide" onRequestClose={() => setExpiryVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setExpiryVisible(false)}>
           <View style={styles.sheetCard}>
-            <Text style={styles.sheetTitle}>Süre sonu</Text>
-            <Text style={styles.sheetSubtitle}>Seçilen sürenin ardından bu sohbetteki mesajlar otomatik silinir.</Text>
-            {EXPIRY_OPTIONS.map((opt) => (
+            <Text style={styles.sheetTitle}>{t("dm.menuExpiry")}</Text>
+            <Text style={styles.sheetSubtitle}>{t("dm.expirySubtitle")}</Text>
+            {expiryOptions.map((opt) => (
               <TouchableOpacity key={opt.label} style={styles.sheetRow} onPress={() => chooseExpiry(opt.ms)}>
                 <Text style={styles.sheetRowText}>{opt.label}</Text>
                 {expiresAfterMs === opt.ms && <Text style={styles.sheetRowCheck}>✓</Text>}
@@ -521,13 +545,13 @@ export default function DMScreen({ peer, onBack }: Props) {
       <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setReportVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
-            <Text style={styles.sheetTitle}>{peer.name} kullanicisini sikayet et</Text>
-            <Text style={styles.sheetSubtitle}>Neden sikayet ettigini kisaca yaz.</Text>
+            <Text style={styles.sheetTitle}>{t("dm.reportTitle", { name: peer.name })}</Text>
+            <Text style={styles.sheetSubtitle}>{t("dm.reportSubtitle")}</Text>
             <TextInput
               style={styles.reportInput}
               value={reportReason}
               onChangeText={setReportReason}
-              placeholder="Sikayet nedeni..."
+              placeholder={t("dm.reportPlaceholder")}
               placeholderTextColor={MUTED}
               multiline
               autoFocus
@@ -537,7 +561,7 @@ export default function DMScreen({ peer, onBack }: Props) {
               onPress={submitReport}
               disabled={!reportReason.trim()}
             >
-              <Text style={styles.reportSubmitBtnText}>Gonder</Text>
+              <Text style={styles.reportSubmitBtnText}>{t("dm.reportSend")}</Text>
             </TouchableOpacity>
             <View style={styles.sheetHandle} />
           </TouchableOpacity>
