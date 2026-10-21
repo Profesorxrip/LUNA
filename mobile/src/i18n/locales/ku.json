@@ -373,5 +373,24 @@
     "dub": "Dublaj",
     "hideAdultContentLabel": "Naveroka +18 lewitandî bike",
     "muteOtherAudioLabel": "Dema dengek din lê bêdeng bike"
+  },
+  "profileOptions": {
+    "profile": "Profîl",
+    "makeLeader": "Bike serok",
+    "removeModerator": "Moderasyonê jê rake",
+    "makeModerator": "Bike moderator",
+    "removeFriend": "Hevalê jê bibe",
+    "cancelFriendRequest": "Daxwazê betal bike",
+    "addFriend": "Daxwazê bişîne",
+    "kick": "Ji odeyê derxe",
+    "enableMic": "Mîkrofonê Veke",
+    "disableMic": "Mîkrofonê Bigire",
+    "unmute": "Dengê Veke",
+    "mute": "Bêdeng Bike",
+    "enableChat": "Sohbetê Veke",
+    "disableChat": "Sohbetê Bigire",
+    "unblock": "Astengê Rake",
+    "block": "Asteng Bike",
+    "report": "Ragihîne"
   }
 }

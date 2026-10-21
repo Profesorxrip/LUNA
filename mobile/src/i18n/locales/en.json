@@ -373,5 +373,24 @@
     "dub": "Dubbing",
     "hideAdultContentLabel": "Blur adult content",
     "muteOtherAudioLabel": "Mute while other audio is playing"
+  },
+  "profileOptions": {
+    "profile": "Profile",
+    "makeLeader": "Make leader",
+    "removeModerator": "Remove moderator",
+    "makeModerator": "Make moderator",
+    "removeFriend": "Remove friend",
+    "cancelFriendRequest": "Cancel request",
+    "addFriend": "Add friend",
+    "kick": "Kick from room",
+    "enableMic": "Enable microphone",
+    "disableMic": "Disable microphone",
+    "unmute": "Unmute",
+    "mute": "Mute",
+    "enableChat": "Enable chat",
+    "disableChat": "Disable chat",
+    "unblock": "Unblock",
+    "block": "Block",
+    "report": "Report"
   }
 }

@@ -373,5 +373,24 @@
     "dub": "Dublyaj",
     "hideAdultContentLabel": "Yetkinlər məzmununu bulandır",
     "muteOtherAudioLabel": "Başqa səs çalanda səsi kəs"
+  },
+  "profileOptions": {
+    "profile": "Profil",
+    "makeLeader": "Lider et",
+    "removeModerator": "Moderatorluğu götür",
+    "makeModerator": "Moderator et",
+    "removeFriend": "Dostu sil",
+    "cancelFriendRequest": "Sorğunu ləğv et",
+    "addFriend": "Dostluq sorğusu göndər",
+    "kick": "Otaqdan çıxar",
+    "enableMic": "Mikrofonu Aktiv Et",
+    "disableMic": "Mikrofonu Deaktiv Et",
+    "unmute": "Səsi Aç",
+    "mute": "Səssiz Et",
+    "enableChat": "Söhbəti Aç",
+    "disableChat": "Söhbəti Bağla",
+    "unblock": "Blokdan Çıxar",
+    "block": "Blokla",
+    "report": "Bildir"
   }
 }

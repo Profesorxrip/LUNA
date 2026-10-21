@@ -373,5 +373,24 @@
     "dub": "الدبلجة",
     "hideAdultContentLabel": "تمويه محتوى +18",
     "muteOtherAudioLabel": "كتم الصوت عند تشغيل صوت آخر"
+  },
+  "profileOptions": {
+    "profile": "الملف الشخصي",
+    "makeLeader": "تعيين كقائد",
+    "removeModerator": "إزالة الإشراف",
+    "makeModerator": "تعيين كمشرف",
+    "removeFriend": "إزالة صديق",
+    "cancelFriendRequest": "إلغاء الطلب",
+    "addFriend": "إرسال طلب صداقة",
+    "kick": "طرد من الغرفة",
+    "enableMic": "تفعيل الميكروفون",
+    "disableMic": "تعطيل الميكروفون",
+    "unmute": "إلغاء الكتم",
+    "mute": "كتم الصوت",
+    "enableChat": "تفعيل الدردشة",
+    "disableChat": "تعطيل الدردشة",
+    "unblock": "إلغاء الحظر",
+    "block": "حظر",
+    "report": "إبلاغ"
   }
 }

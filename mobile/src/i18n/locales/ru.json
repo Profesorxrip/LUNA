@@ -373,5 +373,24 @@
     "dub": "Дубляж",
     "hideAdultContentLabel": "Размывать контент 18+",
     "muteOtherAudioLabel": "Приглушать при воспроизведении другого звука"
+  },
+  "profileOptions": {
+    "profile": "Профиль",
+    "makeLeader": "Сделать лидером",
+    "removeModerator": "Снять модератора",
+    "makeModerator": "Сделать модератором",
+    "removeFriend": "Удалить из друзей",
+    "cancelFriendRequest": "Отменить запрос",
+    "addFriend": "Отправить запрос в друзья",
+    "kick": "Выгнать из комнаты",
+    "enableMic": "Включить микрофон",
+    "disableMic": "Отключить микрофон",
+    "unmute": "Включить звук",
+    "mute": "Отключить звук",
+    "enableChat": "Включить чат",
+    "disableChat": "Отключить чат",
+    "unblock": "Разблокировать",
+    "block": "Заблокировать",
+    "report": "Пожаловаться"
   }
 }

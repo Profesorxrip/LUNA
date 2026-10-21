@@ -373,5 +373,24 @@
     "dub": "Doublage",
     "hideAdultContentLabel": "Flouter le contenu +18",
     "muteOtherAudioLabel": "Couper le son si un autre son est actif"
+  },
+  "profileOptions": {
+    "profile": "Profil",
+    "makeLeader": "Désigner comme responsable",
+    "removeModerator": "Retirer modérateur",
+    "makeModerator": "Nommer modérateur",
+    "removeFriend": "Supprimer l'ami",
+    "cancelFriendRequest": "Annuler la demande",
+    "addFriend": "Ajouter en ami",
+    "kick": "Expulser du salon",
+    "enableMic": "Activer le micro",
+    "disableMic": "Désactiver le micro",
+    "unmute": "Réactiver le son",
+    "mute": "Rendre muet",
+    "enableChat": "Activer le chat",
+    "disableChat": "Désactiver le chat",
+    "unblock": "Débloquer",
+    "block": "Bloquer",
+    "report": "Signaler"
   }
 }

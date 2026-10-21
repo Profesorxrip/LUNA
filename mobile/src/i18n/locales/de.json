@@ -373,5 +373,24 @@
     "dub": "Synchronisation",
     "hideAdultContentLabel": "Inhalte ab 18 unscharf machen",
     "muteOtherAudioLabel": "Stummschalten bei anderem Ton"
+  },
+  "profileOptions": {
+    "profile": "Profil",
+    "makeLeader": "Zum Leiter machen",
+    "removeModerator": "Moderator entfernen",
+    "makeModerator": "Zum Moderator machen",
+    "removeFriend": "Freund entfernen",
+    "cancelFriendRequest": "Anfrage zurückziehen",
+    "addFriend": "Anfrage senden",
+    "kick": "Aus dem Raum werfen",
+    "enableMic": "Mikrofon aktivieren",
+    "disableMic": "Mikrofon deaktivieren",
+    "unmute": "Stummschaltung aufheben",
+    "mute": "Stummschalten",
+    "enableChat": "Chat aktivieren",
+    "disableChat": "Chat deaktivieren",
+    "unblock": "Blockierung aufheben",
+    "block": "Blockieren",
+    "report": "Melden"
   }
 }

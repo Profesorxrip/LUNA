@@ -1,4 +1,5 @@
 import { Image, Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import Icon from "./Icon";
 import type { IconName } from "./Icon";
 
@@ -125,6 +126,7 @@ export default function ProfileOptionsSheet({
   onUnblock,
   onReport,
 }: Props) {
+  const { t } = useTranslation();
   if (!target) return null;
 
   // Coğu aksiyon (moderatorluk/mikrofon/chat/arkadaslik/engelleme) kart
@@ -149,7 +151,7 @@ export default function ProfileOptionsSheet({
 
   const rows: Row[] = [];
   if (target.userId) {
-    rows.push({ key: "profile", icon: "person", label: "Profil", onPress: actAndClose(onOpenProfile) });
+    rows.push({ key: "profile", icon: "person", label: t("profileOptions.profile"), onPress: actAndClose(onOpenProfile) });
   }
   // Liderligi devretmek ve moderator atamak SADECE gercek liderin elinde -
   // moderatorler bunlari YAPAMAZ (bkz. rooms.ts transferHost/setModerator,
@@ -157,58 +159,58 @@ export default function ProfileOptionsSheet({
   // kontrolu - hedef kick'lendiyse (artik odada degilse) bu satirlar
   // anlamsiz kalip kaybolur.
   if (targetInRoom && isHost && onMakeLeader) {
-    rows.push({ key: "leader", icon: "crown", label: "Liderliği ver", onPress: act(onMakeLeader) });
+    rows.push({ key: "leader", icon: "crown", label: t("profileOptions.makeLeader"), onPress: act(onMakeLeader) });
   }
   if (targetInRoom && isHost) {
     if (target.isModerator && onRemoveModerator) {
-      rows.push({ key: "removeModerator", icon: "shield", label: "Moderatörlüğü al", danger: true, onPress: act(onRemoveModerator) });
+      rows.push({ key: "removeModerator", icon: "shield", label: t("profileOptions.removeModerator"), danger: true, onPress: act(onRemoveModerator) });
     } else if (!target.isModerator && onMakeModerator) {
-      rows.push({ key: "moderator", icon: "shield", label: "Moderatör yap", onPress: act(onMakeModerator) });
+      rows.push({ key: "moderator", icon: "shield", label: t("profileOptions.makeModerator"), onPress: act(onMakeModerator) });
     }
   }
   if (target.userId) {
     if (target.friendStatus === "friends" && onRemoveFriend) {
-      rows.push({ key: "removeFriend", icon: "personBlock", label: "Arkadaşı sil", onPress: act(onRemoveFriend) });
+      rows.push({ key: "removeFriend", icon: "personBlock", label: t("profileOptions.removeFriend"), onPress: act(onRemoveFriend) });
     } else if (target.friendStatus === "outgoing" && onCancelFriendRequest) {
-      rows.push({ key: "cancelFriendRequest", icon: "invite", label: "İsteği iptal et", onPress: act(onCancelFriendRequest) });
+      rows.push({ key: "cancelFriendRequest", icon: "invite", label: t("profileOptions.cancelFriendRequest"), onPress: act(onCancelFriendRequest) });
     } else if (onSendFriendRequest) {
-      rows.push({ key: "addFriend", icon: "invite", label: "İstek at", onPress: act(onSendFriendRequest) });
+      rows.push({ key: "addFriend", icon: "invite", label: t("profileOptions.addFriend"), onPress: act(onSendFriendRequest) });
     }
   }
   if (targetInRoom && canModerateTarget && onKick) {
-    rows.push({ key: "kick", icon: "kicked", label: "Odadan at", danger: true, onPress: act(onKick) });
+    rows.push({ key: "kick", icon: "kicked", label: t("profileOptions.kick"), danger: true, onPress: act(onKick) });
   }
   if (targetInRoom && canModerateTarget) {
     if (target.micDisabled && onEnableMic) {
-      rows.push({ key: "enableMic", icon: "mic", label: "Mikrofonu Aktif Et", onPress: act(onEnableMic) });
+      rows.push({ key: "enableMic", icon: "mic", label: t("profileOptions.enableMic"), onPress: act(onEnableMic) });
     } else if (!target.micDisabled && onDisableMic) {
-      rows.push({ key: "disableMic", icon: "micOff", label: "Mikrofonu Devre Dışı Bırak", onPress: act(onDisableMic) });
+      rows.push({ key: "disableMic", icon: "micOff", label: t("profileOptions.disableMic"), onPress: act(onDisableMic) });
     }
   }
   if (targetInRoom && onToggleLocalMute) {
     rows.push({
       key: "localMute",
       icon: "volumeOff",
-      label: target.locallyMuted ? "Sesini Aç" : "Sessize Al",
+      label: target.locallyMuted ? t("profileOptions.unmute") : t("profileOptions.mute"),
       onPress: act(onToggleLocalMute),
     });
   }
   if (targetInRoom && canModerateTarget) {
     if (target.chatBanned && onEnableChat) {
-      rows.push({ key: "enableChat", icon: "chatBubble", label: "Chati Aç", onPress: act(onEnableChat) });
+      rows.push({ key: "enableChat", icon: "chatBubble", label: t("profileOptions.enableChat"), onPress: act(onEnableChat) });
     } else if (!target.chatBanned && onDisableChat) {
-      rows.push({ key: "disableChat", icon: "chatBubble", label: "Chati Kapat", danger: true, onPress: act(onDisableChat) });
+      rows.push({ key: "disableChat", icon: "chatBubble", label: t("profileOptions.disableChat"), danger: true, onPress: act(onDisableChat) });
     }
   }
   if (target.userId) {
     if (target.friendStatus === "blocked" && onUnblock) {
-      rows.push({ key: "unblock", icon: "block", label: "Engeli Kaldır", onPress: act(onUnblock) });
+      rows.push({ key: "unblock", icon: "block", label: t("profileOptions.unblock"), onPress: act(onUnblock) });
     } else if (onBlock) {
-      rows.push({ key: "block", icon: "block", label: "Engelle", danger: true, onPress: act(onBlock) });
+      rows.push({ key: "block", icon: "block", label: t("profileOptions.block"), danger: true, onPress: act(onBlock) });
     }
   }
   if (target.userId && onReport) {
-    rows.push({ key: "report", icon: "warning", label: "Bildir", danger: true, onPress: actAndClose(onReport) });
+    rows.push({ key: "report", icon: "warning", label: t("profileOptions.report"), danger: true, onPress: actAndClose(onReport) });
   }
 
   return (

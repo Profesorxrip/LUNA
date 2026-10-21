@@ -373,5 +373,24 @@
     "dub": "Dublaj",
     "hideAdultContentLabel": "Yetişkin içeriği bulanıklaştır",
     "muteOtherAudioLabel": "Başka ses çalarken sessize al"
+  },
+  "profileOptions": {
+    "profile": "Profil",
+    "makeLeader": "Liderliği ver",
+    "removeModerator": "Moderatörlüğü al",
+    "makeModerator": "Moderatör yap",
+    "removeFriend": "Arkadaşı sil",
+    "cancelFriendRequest": "İsteği iptal et",
+    "addFriend": "İstek at",
+    "kick": "Odadan at",
+    "enableMic": "Mikrofonu Aktif Et",
+    "disableMic": "Mikrofonu Devre Dışı Bırak",
+    "unmute": "Sesini Aç",
+    "mute": "Sessize Al",
+    "enableChat": "Chati Aç",
+    "disableChat": "Chati Kapat",
+    "unblock": "Engeli Kaldır",
+    "block": "Engelle",
+    "report": "Bildir"
   }
 }
