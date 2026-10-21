@@ -99,7 +99,6 @@ export default function App() {
 
   return (
     <View style={{ flex: 1 }}>
-      <AppBackground />
       <View style={{ flex: 1 }}>{renderContent(displayedAuthed)}</View>
       {incomingAuthed !== null && (
         <Animated.View
@@ -122,20 +121,30 @@ export default function App() {
 
   // Giris ekrani ya da ana uygulama (Discover) agacini kurar - hem sabit
   // alt katmanda hem de kayarak gelen ust katmanda AYNI sekilde
-  // kullanilabilsin diye ayri bir fonksiyona cikarildi.
+  // kullanilabilsin diye ayri bir fonksiyona cikarildi. AppBackground
+  // artik PAYLASILAN/sabit bir katman DEGIL - her iki katman KENDI
+  // arka planini tasiyor, boylece gecis sirasinda icerik SAYDAM bir
+  // sekilde sabit bir fonun uzerinde degil, arka plani ile BIRLIKTE TEK
+  // bir "ekran" gibi kayiyor (eskiden logolar/butonlar aninda saydam
+  // sekilde sabit fonun uzerinde suzuluyormus gibi gorunuyordu).
   function renderContent(authed: boolean | null) {
-    return authed ? (
-      <SafeAreaProvider>
-        <RootNavigator />
-        <CustomAlertHost />
-        <StatusBar style="light" />
-      </SafeAreaProvider>
-    ) : (
-      <>
-        <LoginScreen />
-        <CustomAlertHost />
-        <StatusBar style="light" />
-      </>
+    return (
+      <View style={{ flex: 1 }}>
+        <AppBackground />
+        {authed ? (
+          <SafeAreaProvider>
+            <RootNavigator />
+            <CustomAlertHost />
+            <StatusBar style="light" />
+          </SafeAreaProvider>
+        ) : (
+          <>
+            <LoginScreen />
+            <CustomAlertHost />
+            <StatusBar style="light" />
+          </>
+        )}
+      </View>
     );
   }
 }
