@@ -9,7 +9,8 @@
     "connectionIssueTitle": "مشكلة في الاتصال",
     "connectionIssueBody": "تعذر الوصول إلى الخادم (انتهت المهلة). تحقق من اتصالك.",
     "yes": "نعم",
-    "no": "لا"
+    "no": "لا",
+    "couldntOpenTitle": "تعذر الفتح"
   },
   "profile": {
     "sectionAccounts": "الحسابات المرتبطة",
@@ -302,5 +303,57 @@
     "webUrlPlaceholder": "مثال: wikipedia.org",
     "continue": "متابعة",
     "youtubeFallbackTitle": "فيديو YouTube"
+  },
+  "shareRoom": {
+    "inviteText": "انضم إلى غرفتي \"{{title}}\" على LUNA! {{link}}",
+    "linkLabel": "رابط الغرفة",
+    "shareWithApp": "مشاركة عبر تطبيق",
+    "other": "أخرى",
+    "whatsappNotInstalled": "يبدو أن WhatsApp غير مثبت.",
+    "telegramFailed": "تعذر فتح Telegram.",
+    "xFailed": "تعذر فتح X.",
+    "copiedTitle": "تم النسخ",
+    "instagramCopiedBody": "تم نسخ نص الدعوة - يمكنك لصقه في محادثة على Instagram.",
+    "tiktokCopiedBody": "تم نسخ نص الدعوة - يمكنك لصقه في محادثة على TikTok.",
+    "inviteCaption": "انضم إلى غرفتي \"{{title}}\" على LUNA!"
+  },
+  "roomSettings": {
+    "header": "الإعدادات",
+    "access": "الوصول",
+    "control": "التحكم",
+    "micRowLabel": "الصوت",
+    "on": "مفعّل",
+    "off": "متوقف",
+    "micOpenDesc": "الدردشة الصوتية مفعّلة، يمكن للجميع تشغيل ميكروفوناتهم",
+    "micClosedDesc": "الدردشة الصوتية متوقفة، لا يمكن لأحد تشغيل ميكروفونه",
+    "voiceVolumeLabel": "مستوى صوت الدردشة",
+    "videoVolumeLabel": "مستوى صوت الفيديو",
+    "autoTranslateLabel": "ترجمة الدردشة تلقائيًا",
+    "hideAdultLabel": "إخفاء محتوى +18",
+    "privacyOpen": "عام",
+    "privacyNearby": "الدائرة\nالقريبة",
+    "privacyFriends": "دائرة\nالأصدقاء",
+    "privacyInvite": "بدعوة\nفقط",
+    "privacyOpenDesc": "باب الغرفة مفتوح للجميع، لا حاجة لدعوة",
+    "privacyNearbyDesc": "فقط الأشخاص القريبون منك يمكنهم العثور عليها والانضمام",
+    "privacyFriendsDesc": "الباب مفتوح فقط لمن في قائمة أصدقائك",
+    "privacyInviteDesc": "لا يُفتح الباب إلا لمن يملك دعوة (رابط/رمز)",
+    "playbackLeader": "القائد\nيقرر",
+    "playbackPlayOnly": "الجميع\nيمكنه التشغيل",
+    "playbackAutoplay": "البث\nلا يتوقف",
+    "playbackVote": "الغرفة\nتصوّت",
+    "playbackLeaderDesc": "القائد وحده يقرر أي فيديو يتم تشغيله",
+    "playbackPlayOnlyDesc": "القائد يختار الفيديو، والجميع يمكنه التشغيل/الإيقاف المؤقت",
+    "playbackAutoplayDesc": "مشاهدة بلا انقطاع، الفيديو التالي يأتي تلقائيًا",
+    "playbackVoteDesc": "الجميع يقترح فيديو، والأكثر تصويتًا يتم تشغيله"
+  },
+  "roomQuickCards": {
+    "privacyInvite": "مدعوون",
+    "cardPrivacyTitle": "خصوصية الغرفة",
+    "cardInviteTitle": "ادعُ أصدقاءك",
+    "playbackLeader": "القائد يقرر",
+    "playbackPlayOnly": "الجميع يمكنه التشغيل",
+    "playbackAutoplay": "البث لا يتوقف",
+    "playbackVote": "الغرفة تصوّت"
   }
 }

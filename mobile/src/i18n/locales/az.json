@@ -9,7 +9,8 @@
     "connectionIssueTitle": "Bağlantı problemi",
     "connectionIssueBody": "Serverə qoşulmaq mümkün olmadı (vaxt bitdi). Bağlantını yoxla.",
     "yes": "Bəli",
-    "no": "Xeyr"
+    "no": "Xeyr",
+    "couldntOpenTitle": "Açılmadı"
   },
   "profile": {
     "sectionAccounts": "Qoşulmuş hesablar",
@@ -302,5 +303,57 @@
     "webUrlPlaceholder": "məs. wikipedia.org",
     "continue": "Davam",
     "youtubeFallbackTitle": "YouTube Videosu"
+  },
+  "shareRoom": {
+    "inviteText": "LUNA-da \"{{title}}\" otağıma qoşul! {{link}}",
+    "linkLabel": "Otaq Linki",
+    "shareWithApp": "Tətbiqlə paylaş",
+    "other": "Digər",
+    "whatsappNotInstalled": "WhatsApp quraşdırılmayıb kimi görünür.",
+    "telegramFailed": "Telegram açılmadı.",
+    "xFailed": "X açılmadı.",
+    "copiedTitle": "Kopyalandı",
+    "instagramCopiedBody": "Dəvət mətni kopyalandı - Instagram-da söhbətə yapışdıra bilərsən.",
+    "tiktokCopiedBody": "Dəvət mətni kopyalandı - TikTok-da söhbətə yapışdıra bilərsən.",
+    "inviteCaption": "LUNA-da \"{{title}}\" otağıma qoşul!"
+  },
+  "roomSettings": {
+    "header": "AYARLAR",
+    "access": "GİRİŞ",
+    "control": "İDARƏ",
+    "micRowLabel": "SƏS",
+    "on": "AÇIQ",
+    "off": "BAĞLI",
+    "micOpenDesc": "Səsli söhbət açıqdır, hamı mikrofonunu aça bilər",
+    "micClosedDesc": "Səsli söhbət bağlıdır, heç kim mikrofonunu aça bilmir",
+    "voiceVolumeLabel": "SÖHBƏT SƏSİ",
+    "videoVolumeLabel": "VİDEO SƏSİ",
+    "autoTranslateLabel": "Söhbəti avtomatik tərcümə et",
+    "hideAdultLabel": "Yetkinlər üçün məzmunu gizlət",
+    "privacyOpen": "HAMIYA\nAÇIQ",
+    "privacyNearby": "YAXIN\nDAİRƏ",
+    "privacyFriends": "DOSTLAR\nDAİRƏSİ",
+    "privacyInvite": "YALNIZ\nDƏVƏTLƏ",
+    "privacyOpenDesc": "Otağın qapısı hamıya açıqdır, dəvət lazım deyil",
+    "privacyNearbyDesc": "Yalnız sənə yaxın istifadəçilər tapıb qoşula bilər",
+    "privacyFriendsDesc": "Qapı yalnız dostlar siyahındakılara açıqdır",
+    "privacyInviteDesc": "Qapı yalnız dəvət (link/kod) sahiblərinə açılır",
+    "playbackLeader": "QƏRARI\nLİDER VERİR",
+    "playbackPlayOnly": "HAMI\nOYNADA BİLƏR",
+    "playbackAutoplay": "AXIN HEÇ\nDAYANMIR",
+    "playbackVote": "OTAQ\nSƏS VERİR",
+    "playbackLeaderDesc": "Hansı videonun oynayacağına yalnız lider qərar verir",
+    "playbackPlayOnlyDesc": "Videonu lider seçir, hamı oynada/dayandıra bilər",
+    "playbackAutoplayDesc": "Fasiləsiz izləmə, növbəti video öz-özünə gəlir",
+    "playbackVoteDesc": "Hamı video təklif edir, ən çox səs alan oynayır"
+  },
+  "roomQuickCards": {
+    "privacyInvite": "Dəvət olunan",
+    "cardPrivacyTitle": "Otaq Məxfiliyi",
+    "cardInviteTitle": "Dostlarını Dəvət Et",
+    "playbackLeader": "Qərarı lider verir",
+    "playbackPlayOnly": "Hamı oynada bilər",
+    "playbackAutoplay": "Axın heç dayanmır",
+    "playbackVote": "Otaq səs verir"
   }
 }

@@ -9,7 +9,8 @@
     "connectionIssueTitle": "Problema de conexión",
     "connectionIssueBody": "No se puede contactar con el servidor (tiempo agotado). Revisa tu conexión.",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "couldntOpenTitle": "No se pudo abrir"
   },
   "profile": {
     "sectionAccounts": "Cuentas conectadas",
@@ -302,5 +303,57 @@
     "webUrlPlaceholder": "ej. wikipedia.org",
     "continue": "Continuar",
     "youtubeFallbackTitle": "Video de YouTube"
+  },
+  "shareRoom": {
+    "inviteText": "¡Únete a mi sala \"{{title}}\" en LUNA! {{link}}",
+    "linkLabel": "Enlace de la sala",
+    "shareWithApp": "Compartir con una app",
+    "other": "Otro",
+    "whatsappNotInstalled": "Parece que WhatsApp no está instalado.",
+    "telegramFailed": "No se pudo abrir Telegram.",
+    "xFailed": "No se pudo abrir X.",
+    "copiedTitle": "Copiado",
+    "instagramCopiedBody": "Texto de invitación copiado - puedes pegarlo en un chat de Instagram.",
+    "tiktokCopiedBody": "Texto de invitación copiado - puedes pegarlo en un chat de TikTok.",
+    "inviteCaption": "¡Únete a mi sala \"{{title}}\" en LUNA!"
+  },
+  "roomSettings": {
+    "header": "AJUSTES",
+    "access": "ACCESO",
+    "control": "CONTROL",
+    "micRowLabel": "VOZ",
+    "on": "ACTIVADO",
+    "off": "DESACTIVADO",
+    "micOpenDesc": "El chat de voz está activado, cualquiera puede encender su micrófono",
+    "micClosedDesc": "El chat de voz está desactivado, nadie puede encender su micrófono",
+    "voiceVolumeLabel": "VOLUMEN DE VOZ",
+    "videoVolumeLabel": "VOLUMEN DE VIDEO",
+    "autoTranslateLabel": "Traducir chat automáticamente",
+    "hideAdultLabel": "Ocultar contenido +18",
+    "privacyOpen": "PÚBLICO",
+    "privacyNearby": "CÍRCULO\nCERCANO",
+    "privacyFriends": "CÍRCULO\nDE AMIGOS",
+    "privacyInvite": "SOLO CON\nINVITACIÓN",
+    "privacyOpenDesc": "La puerta de la sala está abierta a todos, no se necesita invitación",
+    "privacyNearbyDesc": "Solo las personas cerca de ti pueden encontrarla y unirse",
+    "privacyFriendsDesc": "La puerta solo está abierta para quienes están en tu lista de amigos",
+    "privacyInviteDesc": "La puerta solo se abre para quienes tienen una invitación (enlace/código)",
+    "playbackLeader": "EL LÍDER\nDECIDE",
+    "playbackPlayOnly": "CUALQUIERA\nPUEDE REPRODUCIR",
+    "playbackAutoplay": "EL FLUJO\nNUNCA PARA",
+    "playbackVote": "LA SALA\nVOTA",
+    "playbackLeaderDesc": "Solo el líder decide qué video se reproduce",
+    "playbackPlayOnlyDesc": "El líder elige el video, cualquiera puede reproducir/pausar",
+    "playbackAutoplayDesc": "Visualización ininterrumpida, el siguiente video llega solo",
+    "playbackVoteDesc": "Todos sugieren un video, el más votado se reproduce"
+  },
+  "roomQuickCards": {
+    "privacyInvite": "Invitados",
+    "cardPrivacyTitle": "Privacidad de la sala",
+    "cardInviteTitle": "Invita a tus amigos",
+    "playbackLeader": "El líder decide",
+    "playbackPlayOnly": "Cualquiera puede reproducir",
+    "playbackAutoplay": "El flujo nunca para",
+    "playbackVote": "La sala vota"
   }
 }

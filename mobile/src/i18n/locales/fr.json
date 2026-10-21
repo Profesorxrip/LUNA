@@ -9,7 +9,8 @@
     "connectionIssueTitle": "Problème de connexion",
     "connectionIssueBody": "Impossible de joindre le serveur (délai dépassé). Vérifie ta connexion.",
     "yes": "Oui",
-    "no": "Non"
+    "no": "Non",
+    "couldntOpenTitle": "Impossible d'ouvrir"
   },
   "profile": {
     "sectionAccounts": "Comptes Connectés",
@@ -302,5 +303,57 @@
     "webUrlPlaceholder": "ex. wikipedia.org",
     "continue": "Continuer",
     "youtubeFallbackTitle": "Vidéo YouTube"
+  },
+  "shareRoom": {
+    "inviteText": "Rejoins mon salon \"{{title}}\" sur LUNA ! {{link}}",
+    "linkLabel": "Lien du salon",
+    "shareWithApp": "Partager avec une application",
+    "other": "Autre",
+    "whatsappNotInstalled": "WhatsApp ne semble pas être installé.",
+    "telegramFailed": "Impossible d'ouvrir Telegram.",
+    "xFailed": "Impossible d'ouvrir X.",
+    "copiedTitle": "Copié",
+    "instagramCopiedBody": "Texte d'invitation copié - tu peux le coller dans une conversation sur Instagram.",
+    "tiktokCopiedBody": "Texte d'invitation copié - tu peux le coller dans une conversation sur TikTok.",
+    "inviteCaption": "Rejoins mon salon \"{{title}}\" sur LUNA !"
+  },
+  "roomSettings": {
+    "header": "PARAMÈTRES",
+    "access": "ACCÈS",
+    "control": "CONTRÔLE",
+    "micRowLabel": "VOCAL",
+    "on": "ACTIVÉ",
+    "off": "DÉSACTIVÉ",
+    "micOpenDesc": "Le chat vocal est activé, tout le monde peut allumer son micro",
+    "micClosedDesc": "Le chat vocal est désactivé, personne ne peut allumer son micro",
+    "voiceVolumeLabel": "VOLUME VOCAL",
+    "videoVolumeLabel": "VOLUME VIDÉO",
+    "autoTranslateLabel": "Traduire automatiquement le chat",
+    "hideAdultLabel": "Masquer le contenu +18",
+    "privacyOpen": "PUBLIC",
+    "privacyNearby": "CERCLE\nPROCHE",
+    "privacyFriends": "CERCLE\nD'AMIS",
+    "privacyInvite": "SUR\nINVITATION",
+    "privacyOpenDesc": "La porte du salon est ouverte à tous, aucune invitation requise",
+    "privacyNearbyDesc": "Seules les personnes proches de toi peuvent le trouver et le rejoindre",
+    "privacyFriendsDesc": "La porte n'est ouverte qu'aux personnes de ta liste d'amis",
+    "privacyInviteDesc": "La porte ne s'ouvre qu'avec une invitation (lien/code)",
+    "playbackLeader": "LE RESPONSABLE\nDÉCIDE",
+    "playbackPlayOnly": "TOUT LE MONDE\nPEUT LIRE",
+    "playbackAutoplay": "LE FLUX\nNE S'ARRÊTE JAMAIS",
+    "playbackVote": "LE SALON\nVOTE",
+    "playbackLeaderDesc": "Seul le responsable décide quelle vidéo est lue",
+    "playbackPlayOnlyDesc": "Le responsable choisit la vidéo, tout le monde peut lire/mettre en pause",
+    "playbackAutoplayDesc": "Visionnage ininterrompu, la vidéo suivante démarre toute seule",
+    "playbackVoteDesc": "Tout le monde propose une vidéo, celle avec le plus de votes est lue"
+  },
+  "roomQuickCards": {
+    "privacyInvite": "Invités",
+    "cardPrivacyTitle": "Confidentialité du salon",
+    "cardInviteTitle": "Invite tes amis",
+    "playbackLeader": "Le responsable décide",
+    "playbackPlayOnly": "Tout le monde peut lire",
+    "playbackAutoplay": "Le flux ne s'arrête jamais",
+    "playbackVote": "Le salon vote"
   }
 }

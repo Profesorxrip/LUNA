@@ -9,7 +9,8 @@
     "connectionIssueTitle": "Connection issue",
     "connectionIssueBody": "Can't reach the server (timed out). Check your connection.",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "couldntOpenTitle": "Couldn't open"
   },
   "profile": {
     "sectionAccounts": "Connected Accounts",
@@ -302,5 +303,57 @@
     "webUrlPlaceholder": "e.g. wikipedia.org",
     "continue": "Continue",
     "youtubeFallbackTitle": "YouTube Video"
+  },
+  "shareRoom": {
+    "inviteText": "Join my room \"{{title}}\" on LUNA! {{link}}",
+    "linkLabel": "Room Link",
+    "shareWithApp": "Share with an app",
+    "other": "Other",
+    "whatsappNotInstalled": "WhatsApp doesn't seem to be installed.",
+    "telegramFailed": "Couldn't open Telegram.",
+    "xFailed": "Couldn't open X.",
+    "copiedTitle": "Copied",
+    "instagramCopiedBody": "Invite text copied - you can paste it into a chat on Instagram.",
+    "tiktokCopiedBody": "Invite text copied - you can paste it into a chat on TikTok.",
+    "inviteCaption": "Join my room \"{{title}}\" on LUNA!"
+  },
+  "roomSettings": {
+    "header": "SETTINGS",
+    "access": "ACCESS",
+    "control": "CONTROL",
+    "micRowLabel": "VOICE",
+    "on": "ON",
+    "off": "OFF",
+    "micOpenDesc": "Voice chat is on, anyone can turn on their mic",
+    "micClosedDesc": "Voice chat is off, no one can turn on their mic",
+    "voiceVolumeLabel": "VOICE VOLUME",
+    "videoVolumeLabel": "VIDEO VOLUME",
+    "autoTranslateLabel": "Auto-translate chat",
+    "hideAdultLabel": "Hide adult content",
+    "privacyOpen": "PUBLIC",
+    "privacyNearby": "NEARBY\nCIRCLE",
+    "privacyFriends": "FRIENDS\nCIRCLE",
+    "privacyInvite": "INVITE\nONLY",
+    "privacyOpenDesc": "The room's door is open to everyone, no invite needed",
+    "privacyNearbyDesc": "Only people near you can find and join",
+    "privacyFriendsDesc": "The door is only open to people on your friends list",
+    "privacyInviteDesc": "The door only opens for those with an invite (link/code)",
+    "playbackLeader": "LEADER\nIN CHARGE",
+    "playbackPlayOnly": "ANYONE\nCAN PLAY",
+    "playbackAutoplay": "STREAM\nNEVER STOPS",
+    "playbackVote": "ROOM\nVOTES",
+    "playbackLeaderDesc": "Only the leader decides which video plays",
+    "playbackPlayOnlyDesc": "Leader picks the video, anyone can play/pause",
+    "playbackAutoplayDesc": "Uninterrupted viewing, the next video comes on its own",
+    "playbackVoteDesc": "Everyone suggests a video, the most voted one plays"
+  },
+  "roomQuickCards": {
+    "privacyInvite": "Invited",
+    "cardPrivacyTitle": "Room Privacy",
+    "cardInviteTitle": "Invite Your Friends",
+    "playbackLeader": "Leader In Charge",
+    "playbackPlayOnly": "Anyone Can Play",
+    "playbackAutoplay": "Stream Never Stops",
+    "playbackVote": "Room Votes"
   }
 }

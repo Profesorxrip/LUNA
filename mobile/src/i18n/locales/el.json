@@ -9,7 +9,8 @@
     "connectionIssueTitle": "Πρόβλημα σύνδεσης",
     "connectionIssueBody": "Δεν είναι δυνατή η σύνδεση με τον διακομιστή (έληξε ο χρόνος). Έλεγξε τη σύνδεσή σου.",
     "yes": "Ναι",
-    "no": "Όχι"
+    "no": "Όχι",
+    "couldntOpenTitle": "Δεν άνοιξε"
   },
   "profile": {
     "sectionAccounts": "Συνδεδεμένοι Λογαριασμοί",
@@ -302,5 +303,57 @@
     "webUrlPlaceholder": "π.χ. wikipedia.org",
     "continue": "Συνέχεια",
     "youtubeFallbackTitle": "Βίντεο YouTube"
+  },
+  "shareRoom": {
+    "inviteText": "Έλα στο δωμάτιό μου \"{{title}}\" στο LUNA! {{link}}",
+    "linkLabel": "Σύνδεσμος Δωματίου",
+    "shareWithApp": "Κοινοποίηση με εφαρμογή",
+    "other": "Άλλο",
+    "whatsappNotInstalled": "Το WhatsApp δεν φαίνεται να είναι εγκατεστημένο.",
+    "telegramFailed": "Δεν ήταν δυνατό το άνοιγμα του Telegram.",
+    "xFailed": "Δεν ήταν δυνατό το άνοιγμα του X.",
+    "copiedTitle": "Αντιγράφηκε",
+    "instagramCopiedBody": "Το κείμενο πρόσκλησης αντιγράφηκε - μπορείς να το επικολλήσεις σε μια συνομιλία στο Instagram.",
+    "tiktokCopiedBody": "Το κείμενο πρόσκλησης αντιγράφηκε - μπορείς να το επικολλήσεις σε μια συνομιλία στο TikTok.",
+    "inviteCaption": "Έλα στο δωμάτιό μου \"{{title}}\" στο LUNA!"
+  },
+  "roomSettings": {
+    "header": "ΡΥΘΜΙΣΕΙΣ",
+    "access": "ΠΡΟΣΒΑΣΗ",
+    "control": "ΕΛΕΓΧΟΣ",
+    "micRowLabel": "ΦΩΝΗ",
+    "on": "ΕΝΕΡΓΟ",
+    "off": "ΑΝΕΝΕΡΓΟ",
+    "micOpenDesc": "Η φωνητική συνομιλία είναι ενεργή, όλοι μπορούν να ανοίξουν το μικρόφωνό τους",
+    "micClosedDesc": "Η φωνητική συνομιλία είναι ανενεργή, κανείς δεν μπορεί να ανοίξει το μικρόφωνό του",
+    "voiceVolumeLabel": "ΕΝΤΑΣΗ ΦΩΝΗΣ",
+    "videoVolumeLabel": "ΕΝΤΑΣΗ ΒΙΝΤΕΟ",
+    "autoTranslateLabel": "Αυτόματη μετάφραση συνομιλίας",
+    "hideAdultLabel": "Απόκρυψη περιεχομένου +18",
+    "privacyOpen": "ΔΗΜΟΣΙΟ",
+    "privacyNearby": "ΚΟΝΤΙΝΟΣ\nΚΥΚΛΟΣ",
+    "privacyFriends": "ΚΥΚΛΟΣ\nΦΙΛΩΝ",
+    "privacyInvite": "ΜΟΝΟ ΜΕ\nΠΡΟΣΚΛΗΣΗ",
+    "privacyOpenDesc": "Η πόρτα του δωματίου είναι ανοιχτή σε όλους, δεν χρειάζεται πρόσκληση",
+    "privacyNearbyDesc": "Μόνο άτομα κοντά σου μπορούν να το βρουν και να μπουν",
+    "privacyFriendsDesc": "Η πόρτα είναι ανοιχτή μόνο για άτομα στη λίστα φίλων σου",
+    "privacyInviteDesc": "Η πόρτα ανοίγει μόνο για όσους έχουν πρόσκληση (σύνδεσμο/κωδικό)",
+    "playbackLeader": "ΑΠΟΦΑΣΙΖΕΙ\nΟ ΥΠΕΥΘΥΝΟΣ",
+    "playbackPlayOnly": "ΟΛΟΙ ΜΠΟΡΟΥΝ\nΝΑ ΠΑΙΞΟΥΝ",
+    "playbackAutoplay": "Η ΡΟΗ ΔΕΝ\nΣΤΑΜΑΤΑΕΙ ΠΟΤΕ",
+    "playbackVote": "ΤΟ ΔΩΜΑΤΙΟ\nΨΗΦΙΖΕΙ",
+    "playbackLeaderDesc": "Μόνο ο υπεύθυνος αποφασίζει ποιο βίντεο παίζει",
+    "playbackPlayOnlyDesc": "Ο υπεύθυνος επιλέγει το βίντεο, όλοι μπορούν να παίξουν/παύσουν",
+    "playbackAutoplayDesc": "Αδιάκοπη παρακολούθηση, το επόμενο βίντεο έρχεται μόνο του",
+    "playbackVoteDesc": "Όλοι προτείνουν ένα βίντεο, παίζει αυτό με τις περισσότερες ψήφους"
+  },
+  "roomQuickCards": {
+    "privacyInvite": "Προσκεκλημένοι",
+    "cardPrivacyTitle": "Απόρρητο Δωματίου",
+    "cardInviteTitle": "Προσκάλεσε τους φίλους σου",
+    "playbackLeader": "Αποφασίζει ο υπεύθυνος",
+    "playbackPlayOnly": "Όλοι μπορούν να παίξουν",
+    "playbackAutoplay": "Η ροή δεν σταματάει ποτέ",
+    "playbackVote": "Το δωμάτιο ψηφίζει"
   }
 }

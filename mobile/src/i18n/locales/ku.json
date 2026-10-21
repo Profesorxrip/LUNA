@@ -9,7 +9,8 @@
     "connectionIssueTitle": "Pirsgirêka girêdanê",
     "connectionIssueBody": "Negihîştin serverê (dem qediya). Girêdana xwe kontrol bike.",
     "yes": "Erê",
-    "no": "Na"
+    "no": "Na",
+    "couldntOpenTitle": "Nehat vekirin"
   },
   "profile": {
     "sectionAccounts": "Hesabên Girêdayî",
@@ -302,5 +303,57 @@
     "webUrlPlaceholder": "mînak. wikipedia.org",
     "continue": "Bidomîne",
     "youtubeFallbackTitle": "Vîdyoya YouTube"
+  },
+  "shareRoom": {
+    "inviteText": "Tevlî odeya min a \"{{title}}\" li ser LUNA bibe! {{link}}",
+    "linkLabel": "Girêdana Odeyê",
+    "shareWithApp": "Bi sepanekê parve bike",
+    "other": "Yên Din",
+    "whatsappNotInstalled": "Xuya ye ku WhatsApp ne sazkirî ye.",
+    "telegramFailed": "Telegram nehat vekirin.",
+    "xFailed": "X nehat vekirin.",
+    "copiedTitle": "Hat kopîkirin",
+    "instagramCopiedBody": "Nivîsa vexwendinê hat kopîkirin - tu dikarî wê li Instagram'ê têxî sohbetê.",
+    "tiktokCopiedBody": "Nivîsa vexwendinê hat kopîkirin - tu dikarî wê li TikTok'ê têxî sohbetê.",
+    "inviteCaption": "Tevlî odeya min a \"{{title}}\" li ser LUNA bibe!"
+  },
+  "roomSettings": {
+    "header": "MÎHENG",
+    "access": "DESTGIRTIN",
+    "control": "KONTROL",
+    "micRowLabel": "DENG",
+    "on": "VEKIRÎ",
+    "off": "GIRTÎ",
+    "micOpenDesc": "Sohbeta dengî vekirî ye, her kes dikare mîkrofona xwe veke",
+    "micClosedDesc": "Sohbeta dengî girtî ye, tu kes nikare mîkrofona xwe veke",
+    "voiceVolumeLabel": "DENGÊ SOHBETÊ",
+    "videoVolumeLabel": "DENGÊ VÎDYOYÊ",
+    "autoTranslateLabel": "Sohbetê bixweber wergerîne",
+    "hideAdultLabel": "Naveroka +18 veşêre",
+    "privacyOpen": "VEKIRÎ JI\nHEMÛYAN RE",
+    "privacyNearby": "DORA\nNÊZÎK",
+    "privacyFriends": "DORA\nHEVALAN",
+    "privacyInvite": "TENÊ BI\nVEXWENDINÊ",
+    "privacyOpenDesc": "Derê odeyê ji hemûyan re vekirî ye, vexwendin ne hewce ye",
+    "privacyNearbyDesc": "Tenê kesên li dora te dikarin wê bibînin û tevlî bibin",
+    "privacyFriendsDesc": "Derî tenê ji bo kesên di lîsteya te ya hevalan de vekirî ye",
+    "privacyInviteDesc": "Derî tenê ji bo xwediyê vexwendinê (girêdan/kod) vedibe",
+    "playbackLeader": "SEROK\nBIRYAR DIDE",
+    "playbackPlayOnly": "HEMÛ\nDIKARIN BILÎZIN",
+    "playbackAutoplay": "LÎSTIN\nNAWESTE",
+    "playbackVote": "ODE\nDIDENGE",
+    "playbackLeaderDesc": "Tenê serok biryar dide ka kîjan vîdyo were lîstin",
+    "playbackPlayOnlyDesc": "Serok vîdyoyê hildibijêre, her kes dikare bilîze/bisekinîne",
+    "playbackAutoplayDesc": "Temaşekirina bêqutbûn, vîdyoya din bixweber tê",
+    "playbackVoteDesc": "Her kes vîdyoyekê pêşniyar dike, ya herî zêde deng bistîne tê lîstin"
+  },
+  "roomQuickCards": {
+    "privacyInvite": "Vexwendî",
+    "cardPrivacyTitle": "Nihêniya Odeyê",
+    "cardInviteTitle": "Hevalên Xwe Vexwîne",
+    "playbackLeader": "Serok biryar dide",
+    "playbackPlayOnly": "Hemû dikarin bilîzin",
+    "playbackAutoplay": "Lîstin naweste",
+    "playbackVote": "Ode didenge"
   }
 }

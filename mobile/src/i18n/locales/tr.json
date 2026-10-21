@@ -9,7 +9,8 @@
     "connectionIssueTitle": "Bağlantı sorunu",
     "connectionIssueBody": "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et.",
     "yes": "Evet",
-    "no": "Hayır"
+    "no": "Hayır",
+    "couldntOpenTitle": "Açılamadı"
   },
   "profile": {
     "sectionAccounts": "Bağlanan Hesaplar",
@@ -302,5 +303,57 @@
     "webUrlPlaceholder": "örn. wikipedia.org",
     "continue": "Devam",
     "youtubeFallbackTitle": "YouTube Videosu"
+  },
+  "shareRoom": {
+    "inviteText": "LUNA'da \"{{title}}\" odama katıl! {{link}}",
+    "linkLabel": "Oda Linki",
+    "shareWithApp": "Uygulamayla paylaş",
+    "other": "Diğer",
+    "whatsappNotInstalled": "WhatsApp yüklü değil gibi görünüyor.",
+    "telegramFailed": "Telegram açılamadı.",
+    "xFailed": "X açılamadı.",
+    "copiedTitle": "Kopyalandı",
+    "instagramCopiedBody": "Davet metni kopyalandı - Instagram'da bir sohbete yapıştırabilirsin.",
+    "tiktokCopiedBody": "Davet metni kopyalandı - TikTok'ta bir sohbete yapıştırabilirsin.",
+    "inviteCaption": "LUNA'da \"{{title}}\" odama katıl!"
+  },
+  "roomSettings": {
+    "header": "AYARLAR",
+    "access": "ERİŞİM",
+    "control": "KONTROL",
+    "micRowLabel": "SOHBET",
+    "on": "AÇIK",
+    "off": "KAPALI",
+    "micOpenDesc": "Sesli sohbet açık, herkes mikrofonunu açabilir",
+    "micClosedDesc": "Sesli sohbet kapalı, kimse mikrofonunu açamaz",
+    "voiceVolumeLabel": "SOHBET SESİ",
+    "videoVolumeLabel": "VİDEO SESİ",
+    "autoTranslateLabel": "Sohbeti otomatik çevir",
+    "hideAdultLabel": "Yetişkin içeriğini gizle",
+    "privacyOpen": "HERKESE\nAÇIK",
+    "privacyNearby": "YAKIN\nÇEVRE",
+    "privacyFriends": "ARKADAŞ\nÇEMBERİ",
+    "privacyInvite": "ANAHTARLI\nKAPI",
+    "privacyOpenDesc": "Odanın kapısı herkese açık, davetsiz de gelinir",
+    "privacyNearbyDesc": "Sadece senin civarındaki kullanıcılar bulup katılabilir",
+    "privacyFriendsDesc": "Kapı yalnızca arkadaş listendekilere açık",
+    "privacyInviteDesc": "Kapı sadece elinde davet anahtarı (link/kod) olana açılır",
+    "playbackLeader": "KOMUTA\nLİDER'DE",
+    "playbackPlayOnly": "HERKES\nOYNATIR",
+    "playbackAutoplay": "AKIŞ\nDURMAZ",
+    "playbackVote": "ODA\nOYLASIN",
+    "playbackLeaderDesc": "Hangi videonun oynayacağına sadece lider karar verir",
+    "playbackPlayOnlyDesc": "Video seçimi liderde, oynat/durdur herkesin elinde",
+    "playbackAutoplayDesc": "Kesintisiz izleme, sıradaki video kendiliğinden gelir",
+    "playbackVoteDesc": "Herkes video önerir, en çok oyu alan oynar"
+  },
+  "roomQuickCards": {
+    "privacyInvite": "Davetli",
+    "cardPrivacyTitle": "Oda Gizliliği",
+    "cardInviteTitle": "Arkadaşlarını Davet Et",
+    "playbackLeader": "Komuta Lider'de",
+    "playbackPlayOnly": "Herkes Oynatır",
+    "playbackAutoplay": "Akış Durmaz",
+    "playbackVote": "Oda Oylasın"
   }
 }

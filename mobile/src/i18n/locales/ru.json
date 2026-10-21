@@ -9,7 +9,8 @@
     "connectionIssueTitle": "Проблема с подключением",
     "connectionIssueBody": "Не удаётся связаться с сервером (истекло время ожидания). Проверь соединение.",
     "yes": "Да",
-    "no": "Нет"
+    "no": "Нет",
+    "couldntOpenTitle": "Не удалось открыть"
   },
   "profile": {
     "sectionAccounts": "Подключённые аккаунты",
@@ -302,5 +303,57 @@
     "webUrlPlaceholder": "напр. wikipedia.org",
     "continue": "Продолжить",
     "youtubeFallbackTitle": "Видео YouTube"
+  },
+  "shareRoom": {
+    "inviteText": "Присоединяйся к моей комнате «{{title}}» в LUNA! {{link}}",
+    "linkLabel": "Ссылка на комнату",
+    "shareWithApp": "Поделиться через приложение",
+    "other": "Другое",
+    "whatsappNotInstalled": "Похоже, WhatsApp не установлен.",
+    "telegramFailed": "Не удалось открыть Telegram.",
+    "xFailed": "Не удалось открыть X.",
+    "copiedTitle": "Скопировано",
+    "instagramCopiedBody": "Текст приглашения скопирован - можешь вставить его в чат в Instagram.",
+    "tiktokCopiedBody": "Текст приглашения скопирован - можешь вставить его в чат в TikTok.",
+    "inviteCaption": "Присоединяйся к моей комнате «{{title}}» в LUNA!"
+  },
+  "roomSettings": {
+    "header": "НАСТРОЙКИ",
+    "access": "ДОСТУП",
+    "control": "УПРАВЛЕНИЕ",
+    "micRowLabel": "ГОЛОС",
+    "on": "ВКЛ",
+    "off": "ВЫКЛ",
+    "micOpenDesc": "Голосовой чат включён, любой может включить микрофон",
+    "micClosedDesc": "Голосовой чат выключен, никто не может включить микрофон",
+    "voiceVolumeLabel": "ГРОМКОСТЬ ГОЛОСА",
+    "videoVolumeLabel": "ГРОМКОСТЬ ВИДЕО",
+    "autoTranslateLabel": "Автоперевод чата",
+    "hideAdultLabel": "Скрывать контент 18+",
+    "privacyOpen": "ПУБЛИЧНАЯ",
+    "privacyNearby": "БЛИЖНИЙ\nКРУГ",
+    "privacyFriends": "КРУГ\nДРУЗЕЙ",
+    "privacyInvite": "ТОЛЬКО ПО\nПРИГЛАШЕНИЮ",
+    "privacyOpenDesc": "Дверь комнаты открыта для всех, приглашение не нужно",
+    "privacyNearbyDesc": "Найти и войти могут только те, кто рядом с тобой",
+    "privacyFriendsDesc": "Дверь открыта только для тех, кто в списке твоих друзей",
+    "privacyInviteDesc": "Дверь открывается только по приглашению (ссылка/код)",
+    "playbackLeader": "РЕШАЕТ\nЛИДЕР",
+    "playbackPlayOnly": "ЛЮБОЙ МОЖЕТ\nВКЛЮЧИТЬ",
+    "playbackAutoplay": "ПОТОК НЕ\nОСТАНАВЛИВАЕТСЯ",
+    "playbackVote": "КОМНАТА\nГОЛОСУЕТ",
+    "playbackLeaderDesc": "Только лидер решает, какое видео проигрывается",
+    "playbackPlayOnlyDesc": "Лидер выбирает видео, любой может play/pause",
+    "playbackAutoplayDesc": "Непрерывный просмотр, следующее видео включается само",
+    "playbackVoteDesc": "Каждый предлагает видео, играет набравшее больше всего голосов"
+  },
+  "roomQuickCards": {
+    "privacyInvite": "Приглашённые",
+    "cardPrivacyTitle": "Приватность комнаты",
+    "cardInviteTitle": "Пригласи друзей",
+    "playbackLeader": "Решает лидер",
+    "playbackPlayOnly": "Любой может включить",
+    "playbackAutoplay": "Поток не останавливается",
+    "playbackVote": "Комната голосует"
   }
 }

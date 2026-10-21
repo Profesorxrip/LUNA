@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
 import Icon, { IconName } from "./Icon";
 import SimpleSlider from "./SimpleSlider";
@@ -48,33 +49,41 @@ interface Props {
 // durumda tetiklemek icin kucuk bir esik kullaniyoruz.
 const VOLUME_MUTE_THRESHOLD = 0.02;
 
-const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
-  { key: "open", icon: "worldOpen", label: "HERKESE\nAÇIK" },
-  { key: "nearby", icon: "radar", label: "YAKIN\nÇEVRE" },
-  { key: "friends", icon: "people", label: "ARKADAŞ\nÇEMBERİ" },
-  { key: "invite", icon: "inviteKey", label: "ANAHTARLI\nKAPI" },
-];
+function getPrivacyOptions(t: (key: string) => string): { key: PrivacyLevel; icon: IconName; label: string }[] {
+  return [
+    { key: "open", icon: "worldOpen", label: t("roomSettings.privacyOpen") },
+    { key: "nearby", icon: "radar", label: t("roomSettings.privacyNearby") },
+    { key: "friends", icon: "people", label: t("roomSettings.privacyFriends") },
+    { key: "invite", icon: "inviteKey", label: t("roomSettings.privacyInvite") },
+  ];
+}
 
-const PRIVACY_DESC: Record<PrivacyLevel, string> = {
-  open: "Odanın kapısı herkese açık, davetsiz de gelinir",
-  nearby: "Sadece senin civarındaki kullanıcılar bulup katılabilir",
-  friends: "Kapı yalnızca arkadaş listendekilere açık",
-  invite: "Kapı sadece elinde davet anahtarı (link/kod) olana açılır",
-};
+function getPrivacyDesc(t: (key: string) => string): Record<PrivacyLevel, string> {
+  return {
+    open: t("roomSettings.privacyOpenDesc"),
+    nearby: t("roomSettings.privacyNearbyDesc"),
+    friends: t("roomSettings.privacyFriendsDesc"),
+    invite: t("roomSettings.privacyInviteDesc"),
+  };
+}
 
-const PLAYBACK_OPTIONS: { key: PlaybackMode; icon: IconName; label: string }[] = [
-  { key: "leader", icon: "crownFilled", label: "KOMUTA\nLİDER'DE" },
-  { key: "playOnly", icon: "playOnlyControl", label: "HERKES\nOYNATIR" },
-  { key: "autoplay", icon: "autoplayQueue", label: "AKIŞ\nDURMAZ" },
-  { key: "vote", icon: "voteBox", label: "ODA\nOYLASIN" },
-];
+function getPlaybackOptions(t: (key: string) => string): { key: PlaybackMode; icon: IconName; label: string }[] {
+  return [
+    { key: "leader", icon: "crownFilled", label: t("roomSettings.playbackLeader") },
+    { key: "playOnly", icon: "playOnlyControl", label: t("roomSettings.playbackPlayOnly") },
+    { key: "autoplay", icon: "autoplayQueue", label: t("roomSettings.playbackAutoplay") },
+    { key: "vote", icon: "voteBox", label: t("roomSettings.playbackVote") },
+  ];
+}
 
-const PLAYBACK_DESC: Record<PlaybackMode, string> = {
-  leader: "Hangi videonun oynayacağına sadece lider karar verir",
-  playOnly: "Video seçimi liderde, oynat/durdur herkesin elinde",
-  autoplay: "Kesintisiz izleme, sıradaki video kendiliğinden gelir",
-  vote: "Herkes video önerir, en çok oyu alan oynar",
-};
+function getPlaybackDesc(t: (key: string) => string): Record<PlaybackMode, string> {
+  return {
+    leader: t("roomSettings.playbackLeaderDesc"),
+    playOnly: t("roomSettings.playbackPlayOnlyDesc"),
+    autoplay: t("roomSettings.playbackAutoplayDesc"),
+    vote: t("roomSettings.playbackVoteDesc"),
+  };
+}
 
 /** Rave'deki oda ici Ayarlar ekranina benzer panel - GIZLILIK/PLAYBACK
  * satirlarina basinca 4 secenek yatay olarak acilir (sadece lider
@@ -103,9 +112,14 @@ export default function RoomSettingsSheet({
   onVideoVolumeChange,
   topOffset,
 }: Props) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState<"privacy" | "playback" | "mic" | null>(null);
 
+  const PRIVACY_OPTIONS = getPrivacyOptions(t);
+  const PRIVACY_DESC = getPrivacyDesc(t);
+  const PLAYBACK_OPTIONS = getPlaybackOptions(t);
+  const PLAYBACK_DESC = getPlaybackDesc(t);
   const currentPrivacy = PRIVACY_OPTIONS.find((o) => o.key === privacy)!;
   const currentPlayback = PLAYBACK_OPTIONS.find((o) => o.key === playbackMode)!;
   const micOpen = micConnected && !micMuted;
@@ -124,11 +138,11 @@ export default function RoomSettingsSheet({
           onPress={() => {}}
         >
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.header}>AYARLAR</Text>
+            <Text style={styles.header}>{t("roomSettings.header")}</Text>
 
             <TouchableOpacity style={styles.row} onPress={() => toggle("privacy")} disabled={!isHost}>
               <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>ERİŞİM</Text>
+                <Text style={styles.rowLabel}>{t("roomSettings.access")}</Text>
                 <Text style={styles.rowDesc}>{PRIVACY_DESC[privacy]}</Text>
               </View>
               {isHost && <Icon name={expanded === "privacy" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
@@ -157,7 +171,7 @@ export default function RoomSettingsSheet({
 
             <TouchableOpacity style={styles.row} onPress={() => toggle("playback")} disabled={!isHost}>
               <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>KONTROL</Text>
+                <Text style={styles.rowLabel}>{t("roomSettings.control")}</Text>
                 <Text style={styles.rowDesc}>{PLAYBACK_DESC[playbackMode]}</Text>
               </View>
               {isHost && <Icon name={expanded === "playback" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
@@ -194,15 +208,15 @@ export default function RoomSettingsSheet({
                 kisisel mikrofon butonu var. */}
             <TouchableOpacity style={styles.row} onPress={() => toggle("mic")} disabled={!isHost}>
               <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>SOHBET</Text>
+                <Text style={styles.rowLabel}>{t("roomSettings.micRowLabel")}</Text>
                 <Text style={styles.rowDesc}>
-                  {micOpen ? "Sesli sohbet açık, herkes mikrofonunu açabilir" : "Sesli sohbet kapalı, kimse mikrofonunu açamaz"}
+                  {micOpen ? t("roomSettings.micOpenDesc") : t("roomSettings.micClosedDesc")}
                 </Text>
               </View>
               {isHost && <Icon name={expanded === "mic" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
               <View style={styles.rowValue}>
                 <Icon name={micOpen ? "mic" : "micOff"} size={26} color={theme.text} />
-                <Text style={styles.rowValueLabel}>{micOpen ? "AÇIK" : "KAPALI"}</Text>
+                <Text style={styles.rowValueLabel}>{micOpen ? t("roomSettings.on") : t("roomSettings.off")}</Text>
               </View>
             </TouchableOpacity>
             {expanded === "mic" && (
@@ -215,7 +229,7 @@ export default function RoomSettingsSheet({
                   }}
                 >
                   <Icon name="mic" size={28} color={micOpen ? theme.accent : theme.text} />
-                  <Text style={[styles.optionLabel, micOpen && { color: theme.accent }]}>AÇIK</Text>
+                  <Text style={[styles.optionLabel, micOpen && { color: theme.accent }]}>{t("roomSettings.on")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.optionItem}
@@ -225,12 +239,12 @@ export default function RoomSettingsSheet({
                   }}
                 >
                   <Icon name="micOff" size={28} color={!micOpen ? theme.accent : theme.text} />
-                  <Text style={[styles.optionLabel, !micOpen && { color: theme.accent }]}>KAPALI</Text>
+                  <Text style={[styles.optionLabel, !micOpen && { color: theme.accent }]}>{t("roomSettings.off")}</Text>
                 </TouchableOpacity>
               </View>
             )}
 
-            <Text style={styles.volumeLabel}>SOHBET SESİ</Text>
+            <Text style={styles.volumeLabel}>{t("roomSettings.voiceVolumeLabel")}</Text>
             <View style={[styles.volumeRow, styles.volumeRowNoTopBorder]}>
               <Icon name={voiceVolume <= VOLUME_MUTE_THRESHOLD ? "phoneOff" : "phoneDevice"} size={20} color={theme.textMuted} />
               <View style={styles.volumeSlider}>
@@ -243,7 +257,7 @@ export default function RoomSettingsSheet({
 
             {/* Video/medya sesi - sesli sohbet cubugunun hemen altinda, AYNI
                 gorsel stil - tek fark sagda "ayril" degil sabit bir ikon. */}
-            <Text style={styles.volumeLabel}>VİDEO SESİ</Text>
+            <Text style={styles.volumeLabel}>{t("roomSettings.videoVolumeLabel")}</Text>
             <View style={[styles.volumeRow, styles.volumeRowNoTopBorder]}>
               <Icon name="volumeOff" size={20} color={theme.textMuted} />
               <View style={styles.volumeSlider}>
@@ -255,7 +269,7 @@ export default function RoomSettingsSheet({
             <View style={styles.translateRow}>
               <View style={styles.translateLabelRow}>
                 <Icon name="language" size={18} color={theme.text} />
-                <Text style={styles.translateLabel}>Sohbeti otomatik çevir</Text>
+                <Text style={styles.translateLabel}>{t("roomSettings.autoTranslateLabel")}</Text>
               </View>
               <Toggle value={autoTranslateChat} onValueChange={onToggleAutoTranslate} />
             </View>
@@ -263,7 +277,7 @@ export default function RoomSettingsSheet({
             <View style={styles.translateRow}>
               <View style={styles.translateLabelRow}>
                 <Icon name="adultOff" size={18} color={theme.text} />
-                <Text style={styles.translateLabel}>Yetişkin içeriğini gizle</Text>
+                <Text style={styles.translateLabel}>{t("roomSettings.hideAdultLabel")}</Text>
               </View>
               <Toggle value={hideAdultContent} onValueChange={onToggleHideAdultContent} />
             </View>

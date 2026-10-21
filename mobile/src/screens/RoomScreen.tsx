@@ -40,7 +40,7 @@ import MessageOptionsSheet from "../components/MessageOptionsSheet";
 import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
 import RoomMapSheet from "../components/RoomMapSheet";
-import RoomQuickCards, { PRIVACY_OPTIONS, PLAYBACK_INFO } from "../components/RoomQuickCards";
+import RoomQuickCards, { getPrivacyOptions, getPlaybackInfo } from "../components/RoomQuickCards";
 import Avatar from "../components/Avatar";
 import CrownBadge from "../components/CrownBadge";
 import ModeratorBadge from "../components/ModeratorBadge";
@@ -346,12 +346,17 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
 // "settings" bildiri kartindaki buyuk ikonu, server'in gonderdigi ham
 // settingKey/settingRawValue'ya gore secer (bkz. RoomQuickCards.tsx
 // PRIVACY_OPTIONS/PLAYBACK_INFO - ayni eslemeler, ikisi de tek yerde).
+// Sadece "icon" alani okunuyor, "label" hic kullanilmiyor - bu yuzden
+// getPrivacyOptions/getPlaybackInfo'ya gercek bir ceviri fonksiyonu yerine
+// kimlik (identity) fonksiyonu veriliyor (gereksiz i18n baglantisi kurmadan).
+const IDENTITY_T = (k: string) => k;
 function settingsCardIcon(item: ChatMessage): IconName {
   if (item.settingKey === "privacy") {
-    return PRIVACY_OPTIONS.find((o) => o.key === item.settingRawValue)?.icon || "worldOpen";
+    return getPrivacyOptions(IDENTITY_T).find((o) => o.key === item.settingRawValue)?.icon || "worldOpen";
   }
   if (item.settingKey === "playbackMode") {
-    return PLAYBACK_INFO[item.settingRawValue as keyof typeof PLAYBACK_INFO]?.icon || "crown";
+    const info = getPlaybackInfo(IDENTITY_T);
+    return info[item.settingRawValue as keyof typeof info]?.icon || "crown";
   }
   return "settings";
 }

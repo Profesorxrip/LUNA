@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import type { PrivacyLevel, PlaybackMode, FriendUser } from "../services/socket";
 import Avatar from "./Avatar";
 import Icon, { IconName } from "./Icon";
@@ -18,23 +19,28 @@ interface Props {
 }
 
 // RoomScreen.tsx'teki "settings" bildiri kartinda da (buyuk ikon secimi
-// icin) kullanilir.
-export const PRIVACY_OPTIONS: { key: PrivacyLevel; icon: IconName; label: string }[] = [
-  { key: "open", icon: "worldOpen", label: "Açık" },
-  { key: "nearby", icon: "radar", label: "Yakındakiler" },
-  { key: "friends", icon: "people", label: "Arkadaşlar" },
-  { key: "invite", icon: "inviteKey", label: "Davetli" },
-];
+// icin) kullanilir. Dil degisiminde guncellensin diye bir fonksiyonla
+// (sabit degil) uretiliyor.
+export function getPrivacyOptions(t: (key: string) => string): { key: PrivacyLevel; icon: IconName; label: string }[] {
+  return [
+    { key: "open", icon: "worldOpen", label: t("discover.sectionOpen") },
+    { key: "nearby", icon: "radar", label: t("discover.sectionNearby") },
+    { key: "friends", icon: "people", label: t("discover.sectionFriends") },
+    { key: "invite", icon: "inviteKey", label: t("roomQuickCards.privacyInvite") },
+  ];
+}
 
 // RoomScreen.tsx'teki "settings"/"nowPlaying" bildiri kartlarinda buyuk
 // ikon secimi icin kullanilir (bkz. RoomSettingsSheet.tsx PLAYBACK_OPTIONS -
 // ayni secenekler, burada kisa tek satirlik etiketlerle).
-export const PLAYBACK_INFO: Record<PlaybackMode, { icon: IconName; label: string }> = {
-  leader: { icon: "crownFilled", label: "Komuta Lider'de" },
-  playOnly: { icon: "playOnlyControl", label: "Herkes Oynatır" },
-  autoplay: { icon: "autoplayQueue", label: "Akış Durmaz" },
-  vote: { icon: "voteBox", label: "Oda Oylasın" },
-};
+export function getPlaybackInfo(t: (key: string) => string): Record<PlaybackMode, { icon: IconName; label: string }> {
+  return {
+    leader: { icon: "crownFilled", label: t("roomQuickCards.playbackLeader") },
+    playOnly: { icon: "playOnlyControl", label: t("roomQuickCards.playbackPlayOnly") },
+    autoplay: { icon: "autoplayQueue", label: t("roomQuickCards.playbackAutoplay") },
+    vote: { icon: "voteBox", label: t("roomQuickCards.playbackVote") },
+  };
+}
 
 /** Oda yeni acildiginda sohbetin en ustunde (bkz. RoomScreen.tsx chat
  * FlatList ListHeaderComponent) beliren, digerleriyle (bkz. RoomScreen.tsx
@@ -43,8 +49,10 @@ export const PLAYBACK_INFO: Record<PlaybackMode, { icon: IconName; label: string
  * tusu YOK - mesajlar aktikca zaten yukarida kalip sohbet gecmisine karisir,
  * ayrica kalici bir kapatma durumu tutmaya gerek yok. */
 export default function RoomQuickCards({ isHost, privacy, onChangePrivacy, friends, sentIds, onInviteFriend }: Props) {
+  const { t } = useTranslation();
   const showPrivacy = isHost;
   const showInvite = friends.length > 0;
+  const privacyOptions = getPrivacyOptions(t);
 
   if (!showPrivacy && !showInvite) return null;
 
@@ -52,9 +60,9 @@ export default function RoomQuickCards({ isHost, privacy, onChangePrivacy, frien
     <View style={styles.wrap}>
       {showPrivacy && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Oda Gizliliği</Text>
+          <Text style={styles.cardTitle}>{t("roomQuickCards.cardPrivacyTitle")}</Text>
           <View style={styles.privacyRow}>
-            {PRIVACY_OPTIONS.map((opt) => {
+            {privacyOptions.map((opt) => {
               const active = opt.key === privacy;
               return (
                 <TouchableOpacity
@@ -75,7 +83,7 @@ export default function RoomQuickCards({ isHost, privacy, onChangePrivacy, frien
 
       {showInvite && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Arkadaşlarını Davet Et</Text>
+          <Text style={styles.cardTitle}>{t("roomQuickCards.cardInviteTitle")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inviteRow}>
             {friends.map((f) => {
               const sent = sentIds.has(f.userId);

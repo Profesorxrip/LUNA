@@ -4,6 +4,7 @@ import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import { useTranslation } from "react-i18next";
 import Icon from "./Icon";
 import { showAlert } from "./CustomAlert";
 
@@ -24,9 +25,10 @@ interface Props {
  * sekilde gosterir, WhatsApp/Telegram'a GERCEK URL semalariyla gonderir,
  * "Diger" ise cihazin kendi (native) paylasim sayfasini acar. */
 export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const roomLink = `luna://room/${roomCode}`;
-  const inviteText = `LUNA'da "${roomTitle}" odama katıl! ${roomLink}`;
+  const inviteText = t("shareRoom.inviteText", { title: roomTitle, link: roomLink });
 
   async function copyLink() {
     await Clipboard.setStringAsync(inviteText);
@@ -36,14 +38,14 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
 
   function openWhatsapp() {
     Linking.openURL(`whatsapp://send?text=${encodeURIComponent(inviteText)}`).catch(() =>
-      showAlert("Açılamadı", "WhatsApp yüklü değil gibi görünüyor.")
+      showAlert(t("common.couldntOpenTitle"), t("shareRoom.whatsappNotInstalled"))
     );
   }
 
   function openTelegram() {
-    const caption = encodeURIComponent(`LUNA'da "${roomTitle}" odama katıl!`);
+    const caption = encodeURIComponent(t("shareRoom.inviteCaption", { title: roomTitle }));
     Linking.openURL(`https://t.me/share/url?url=${encodeURIComponent(roomLink)}&text=${caption}`).catch(() =>
-      showAlert("Açılamadı", "Telegram açılamadı.")
+      showAlert(t("common.couldntOpenTitle"), t("shareRoom.telegramFailed"))
     );
   }
 
@@ -58,7 +60,7 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
   function openInstagram() {
     Clipboard.setStringAsync(inviteText);
     Linking.openURL("instagram://").catch(() => Linking.openURL("https://instagram.com").catch(() => {}));
-    showAlert("Kopyalandı", "Davet metni kopyalandı - Instagram'da bir sohbete yapıştırabilirsin.");
+    showAlert(t("shareRoom.copiedTitle"), t("shareRoom.instagramCopiedBody"));
   }
 
   // TikTok'un da (Instagram gibi) metni onceden doldurabilecek resmi bir
@@ -66,12 +68,12 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
   function openTikTok() {
     Clipboard.setStringAsync(inviteText);
     Linking.openURL("tiktok://").catch(() => Linking.openURL("https://www.tiktok.com").catch(() => {}));
-    showAlert("Kopyalandı", "Davet metni kopyalandı - TikTok'ta bir sohbete yapıştırabilirsin.");
+    showAlert(t("shareRoom.copiedTitle"), t("shareRoom.tiktokCopiedBody"));
   }
 
   function openX() {
     Linking.openURL(`https://twitter.com/intent/tweet?text=${encodeURIComponent(inviteText)}`).catch(() =>
-      showAlert("Açılamadı", "X açılamadı.")
+      showAlert(t("common.couldntOpenTitle"), t("shareRoom.xFailed"))
     );
   }
 
@@ -79,7 +81,7 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
     <View style={styles.container}>
       <View style={styles.linkBox}>
         <View style={styles.linkTextWrap}>
-          <Text style={styles.linkLabel}>Oda Linki</Text>
+          <Text style={styles.linkLabel}>{t("shareRoom.linkLabel")}</Text>
           <Text style={styles.linkValue} numberOfLines={1}>
             {roomLink}
           </Text>
@@ -89,7 +91,7 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionLabel}>Uygulamayla paylaş</Text>
+      <Text style={styles.sectionLabel}>{t("shareRoom.shareWithApp")}</Text>
       <View style={styles.appsRow}>
         <TouchableOpacity style={styles.appButton} onPress={openWhatsapp}>
           <View style={[styles.appIconCircle, { backgroundColor: "#25D366" }]}>
@@ -130,7 +132,7 @@ export default function ShareRoomContent({ roomCode, roomTitle }: Props) {
           <View style={[styles.appIconCircle, styles.appIconDark]}>
             <Icon name="shareBox" size={22} color={TEXT} />
           </View>
-          <Text style={styles.appLabel}>Diğer</Text>
+          <Text style={styles.appLabel}>{t("shareRoom.other")}</Text>
         </TouchableOpacity>
       </View>
     </View>

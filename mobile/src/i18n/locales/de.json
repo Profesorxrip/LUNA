@@ -9,7 +9,8 @@
     "connectionIssueTitle": "Verbindungsproblem",
     "connectionIssueBody": "Server nicht erreichbar (Zeitüberschreitung). Überprüfe deine Verbindung.",
     "yes": "Ja",
-    "no": "Nein"
+    "no": "Nein",
+    "couldntOpenTitle": "Konnte nicht geöffnet werden"
   },
   "profile": {
     "sectionAccounts": "Verbundene Konten",
@@ -302,5 +303,57 @@
     "webUrlPlaceholder": "z. B. wikipedia.org",
     "continue": "Weiter",
     "youtubeFallbackTitle": "YouTube-Video"
+  },
+  "shareRoom": {
+    "inviteText": "Tritt meinem Raum \"{{title}}\" auf LUNA bei! {{link}}",
+    "linkLabel": "Raumlink",
+    "shareWithApp": "Mit einer App teilen",
+    "other": "Andere",
+    "whatsappNotInstalled": "WhatsApp scheint nicht installiert zu sein.",
+    "telegramFailed": "Telegram konnte nicht geöffnet werden.",
+    "xFailed": "X konnte nicht geöffnet werden.",
+    "copiedTitle": "Kopiert",
+    "instagramCopiedBody": "Einladungstext kopiert - du kannst ihn in einen Chat auf Instagram einfügen.",
+    "tiktokCopiedBody": "Einladungstext kopiert - du kannst ihn in einen Chat auf TikTok einfügen.",
+    "inviteCaption": "Tritt meinem Raum \"{{title}}\" auf LUNA bei!"
+  },
+  "roomSettings": {
+    "header": "EINSTELLUNGEN",
+    "access": "ZUGANG",
+    "control": "STEUERUNG",
+    "micRowLabel": "SPRACHE",
+    "on": "AN",
+    "off": "AUS",
+    "micOpenDesc": "Sprachchat ist an, jeder kann sein Mikrofon einschalten",
+    "micClosedDesc": "Sprachchat ist aus, niemand kann sein Mikrofon einschalten",
+    "voiceVolumeLabel": "SPRACHLAUTSTÄRKE",
+    "videoVolumeLabel": "VIDEOLAUTSTÄRKE",
+    "autoTranslateLabel": "Chat automatisch übersetzen",
+    "hideAdultLabel": "Inhalte ab 18 ausblenden",
+    "privacyOpen": "ÖFFENTLICH",
+    "privacyNearby": "IN DER\nNÄHE",
+    "privacyFriends": "FREUNDES-\nKREIS",
+    "privacyInvite": "NUR AUF\nEINLADUNG",
+    "privacyOpenDesc": "Die Tür des Raums steht allen offen, keine Einladung nötig",
+    "privacyNearbyDesc": "Nur Leute in deiner Nähe können den Raum finden und beitreten",
+    "privacyFriendsDesc": "Die Tür steht nur Personen auf deiner Freundesliste offen",
+    "privacyInviteDesc": "Die Tür öffnet sich nur mit einer Einladung (Link/Code)",
+    "playbackLeader": "LEITER\nBESTIMMT",
+    "playbackPlayOnly": "ALLE\nKÖNNEN SPIELEN",
+    "playbackAutoplay": "STREAM\nSTOPPT NIE",
+    "playbackVote": "RAUM\nSTIMMT AB",
+    "playbackLeaderDesc": "Nur der Leiter entscheidet, welches Video läuft",
+    "playbackPlayOnlyDesc": "Der Leiter wählt das Video, jeder kann abspielen/pausieren",
+    "playbackAutoplayDesc": "Ununterbrochenes Ansehen, das nächste Video startet von selbst",
+    "playbackVoteDesc": "Alle schlagen ein Video vor, das meistgewählte läuft"
+  },
+  "roomQuickCards": {
+    "privacyInvite": "Eingeladen",
+    "cardPrivacyTitle": "Raum-Privatsphäre",
+    "cardInviteTitle": "Lade deine Freunde ein",
+    "playbackLeader": "Leiter bestimmt",
+    "playbackPlayOnly": "Alle können abspielen",
+    "playbackAutoplay": "Stream stoppt nie",
+    "playbackVote": "Raum stimmt ab"
   }
 }
