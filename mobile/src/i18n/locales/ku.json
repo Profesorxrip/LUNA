@@ -4,7 +4,10 @@
     "closed": "Girtî",
     "cancel": "Betal",
     "close": "Dadan",
-    "ok": "Baş e"
+    "ok": "Baş e",
+    "unknownError": "Çewtiyek nenas çêbû.",
+    "connectionIssueTitle": "Pirsgirêka girêdanê",
+    "connectionIssueBody": "Negihîştin serverê (dem qediya). Girêdana xwe kontrol bike."
   },
   "profile": {
     "sectionAccounts": "Hesabên Girêdayî",
@@ -85,5 +88,23 @@
     "signInFailedTitle": "Têketin serneket",
     "signInFailedBody": "Têketin nehat destpêkirin.",
     "sessionFailedBody": "Agahiyên danişînê nehatin stendin."
+  },
+  "discover": {
+    "searchPlaceholder": "LI ODÊ BIGERE",
+    "sectionInvited": "Vexwendî",
+    "sectionFriends": "Heval",
+    "sectionNearby": "Nêzîk",
+    "sectionOpen": "Vekirî",
+    "noSearchResults": "Tu odeyên li gorî lêgerîna te tune ne.",
+    "noRoomsYet": "Niha tu odeyên vekirî tune ne. Yekem kesê odeyekê veke tu be!",
+    "defaultGuestName": "Mêvan",
+    "joinFailedTitle": "Nehat tevlî odeyê bûn",
+    "createFailedTitle": "Ode nehat afirandin",
+    "requestSentTitle": "Daxwaz hat şandin",
+    "requestSentBody": "Daxwaza hevaltiyê ji {{name}} re hat şandin.",
+    "blockedTitle": "Hat astengkirin",
+    "blockedBody": "{{name}} hat astengkirin.",
+    "reportedTitle": "Hat ragihandin",
+    "reportedBody": "Ev bikarhêner ji tîma me ya moderasyonê re hat ragihandin, spas."
   }
 }

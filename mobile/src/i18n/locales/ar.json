@@ -4,7 +4,10 @@
     "closed": "معطّل",
     "cancel": "إلغاء",
     "close": "إغلاق",
-    "ok": "حسنًا"
+    "ok": "حسنًا",
+    "unknownError": "حدث خطأ غير معروف.",
+    "connectionIssueTitle": "مشكلة في الاتصال",
+    "connectionIssueBody": "تعذر الوصول إلى الخادم (انتهت المهلة). تحقق من اتصالك."
   },
   "profile": {
     "sectionAccounts": "الحسابات المرتبطة",
@@ -85,5 +88,23 @@
     "signInFailedTitle": "فشل تسجيل الدخول",
     "signInFailedBody": "تعذر بدء تسجيل الدخول.",
     "sessionFailedBody": "تعذر استرداد معلومات الجلسة."
+  },
+  "discover": {
+    "searchPlaceholder": "ابحث عن غرفة",
+    "sectionInvited": "المدعوون",
+    "sectionFriends": "الأصدقاء",
+    "sectionNearby": "بالقرب منك",
+    "sectionOpen": "مفتوحة",
+    "noSearchResults": "لا توجد غرف تطابق بحثك.",
+    "noRoomsYet": "لا توجد غرف مفتوحة الآن. كن أول من يفتح غرفة!",
+    "defaultGuestName": "ضيف",
+    "joinFailedTitle": "تعذر الانضمام إلى الغرفة",
+    "createFailedTitle": "تعذر إنشاء الغرفة",
+    "requestSentTitle": "تم إرسال الطلب",
+    "requestSentBody": "تم إرسال طلب صداقة إلى {{name}}.",
+    "blockedTitle": "تم الحظر",
+    "blockedBody": "تم حظر {{name}}.",
+    "reportedTitle": "تم الإبلاغ",
+    "reportedBody": "تم إبلاغ فريق الإشراف بهذا المستخدم، شكرًا لك."
   }
 }

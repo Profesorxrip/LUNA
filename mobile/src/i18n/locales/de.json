@@ -4,7 +4,10 @@
     "closed": "Aus",
     "cancel": "Abbrechen",
     "close": "Schließen",
-    "ok": "OK"
+    "ok": "OK",
+    "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
+    "connectionIssueTitle": "Verbindungsproblem",
+    "connectionIssueBody": "Server nicht erreichbar (Zeitüberschreitung). Überprüfe deine Verbindung."
   },
   "profile": {
     "sectionAccounts": "Verbundene Konten",
@@ -85,5 +88,23 @@
     "signInFailedTitle": "Anmeldung fehlgeschlagen",
     "signInFailedBody": "Anmeldung konnte nicht gestartet werden.",
     "sessionFailedBody": "Sitzungsdaten konnten nicht abgerufen werden."
+  },
+  "discover": {
+    "searchPlaceholder": "RAUM SUCHEN",
+    "sectionInvited": "Eingeladen",
+    "sectionFriends": "Freunde",
+    "sectionNearby": "In der Nähe",
+    "sectionOpen": "Offen",
+    "noSearchResults": "Keine Räume gefunden, die zu deiner Suche passen.",
+    "noRoomsYet": "Gerade sind keine Räume offen. Eröffne den ersten!",
+    "defaultGuestName": "Gast",
+    "joinFailedTitle": "Raum konnte nicht betreten werden",
+    "createFailedTitle": "Raum konnte nicht erstellt werden",
+    "requestSentTitle": "Anfrage gesendet",
+    "requestSentBody": "Freundschaftsanfrage an {{name}} gesendet.",
+    "blockedTitle": "Blockiert",
+    "blockedBody": "{{name}} wurde blockiert.",
+    "reportedTitle": "Gemeldet",
+    "reportedBody": "Dieser Nutzer wurde an unser Moderationsteam gemeldet, danke."
   }
 }

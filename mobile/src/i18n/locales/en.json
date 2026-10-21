@@ -4,7 +4,10 @@
     "closed": "Off",
     "cancel": "Cancel",
     "close": "Close",
-    "ok": "OK"
+    "ok": "OK",
+    "unknownError": "An unknown error occurred.",
+    "connectionIssueTitle": "Connection issue",
+    "connectionIssueBody": "Can't reach the server (timed out). Check your connection."
   },
   "profile": {
     "sectionAccounts": "Connected Accounts",
@@ -85,5 +88,23 @@
     "signInFailedTitle": "Sign-in failed",
     "signInFailedBody": "Couldn't start sign-in.",
     "sessionFailedBody": "Couldn't retrieve session info."
+  },
+  "discover": {
+    "searchPlaceholder": "SEARCH ROOMS",
+    "sectionInvited": "Invited",
+    "sectionFriends": "Friends",
+    "sectionNearby": "Nearby",
+    "sectionOpen": "Open",
+    "noSearchResults": "No rooms match your search.",
+    "noRoomsYet": "No rooms are open right now. Be the first to start one!",
+    "defaultGuestName": "Guest",
+    "joinFailedTitle": "Couldn't join the room",
+    "createFailedTitle": "Couldn't create the room",
+    "requestSentTitle": "Request sent",
+    "requestSentBody": "Friend request sent to {{name}}.",
+    "blockedTitle": "Blocked",
+    "blockedBody": "{{name}} has been blocked.",
+    "reportedTitle": "Reported",
+    "reportedBody": "This user has been reported to our moderation team, thank you."
   }
 }

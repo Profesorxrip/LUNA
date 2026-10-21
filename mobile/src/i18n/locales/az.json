@@ -4,7 +4,10 @@
     "closed": "Bağlı",
     "cancel": "Ləğv et",
     "close": "Bağla",
-    "ok": "OK"
+    "ok": "OK",
+    "unknownError": "Naməlum xəta baş verdi.",
+    "connectionIssueTitle": "Bağlantı problemi",
+    "connectionIssueBody": "Serverə qoşulmaq mümkün olmadı (vaxt bitdi). Bağlantını yoxla."
   },
   "profile": {
     "sectionAccounts": "Qoşulmuş hesablar",
@@ -85,5 +88,23 @@
     "signInFailedTitle": "Giriş uğursuz oldu",
     "signInFailedBody": "Giriş başladıla bilmədi.",
     "sessionFailedBody": "Sessiya məlumatı alına bilmədi."
+  },
+  "discover": {
+    "searchPlaceholder": "OTAQ AXTAR",
+    "sectionInvited": "Dəvət olunanlar",
+    "sectionFriends": "Dostlar",
+    "sectionNearby": "Yaxınlıqdakılar",
+    "sectionOpen": "Açıq",
+    "noSearchResults": "Axtarışına uyğun otaq tapılmadı.",
+    "noRoomsYet": "Hazırda açıq otaq yoxdur. İlk otağı sən aç!",
+    "defaultGuestName": "Qonaq",
+    "joinFailedTitle": "Otağa daxil olmaq mümkün olmadı",
+    "createFailedTitle": "Otaq yaradıla bilmədi",
+    "requestSentTitle": "Sorğu göndərildi",
+    "requestSentBody": "{{name}} istifadəçisinə dostluq sorğusu göndərildi.",
+    "blockedTitle": "Bloklandı",
+    "blockedBody": "{{name}} bloklandı.",
+    "reportedTitle": "Şikayət edildi",
+    "reportedBody": "Bu istifadəçi moderasiya komandamıza bildirildi, təşəkkürlər."
   }
 }

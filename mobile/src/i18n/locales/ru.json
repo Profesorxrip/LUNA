@@ -4,7 +4,10 @@
     "closed": "Выкл",
     "cancel": "Отмена",
     "close": "Закрыть",
-    "ok": "ОК"
+    "ok": "ОК",
+    "unknownError": "Произошла неизвестная ошибка.",
+    "connectionIssueTitle": "Проблема с подключением",
+    "connectionIssueBody": "Не удаётся связаться с сервером (истекло время ожидания). Проверь соединение."
   },
   "profile": {
     "sectionAccounts": "Подключённые аккаунты",
@@ -85,5 +88,23 @@
     "signInFailedTitle": "Ошибка входа",
     "signInFailedBody": "Не удалось начать вход.",
     "sessionFailedBody": "Не удалось получить данные сессии."
+  },
+  "discover": {
+    "searchPlaceholder": "ПОИСК КОМНАТ",
+    "sectionInvited": "Приглашённые",
+    "sectionFriends": "Друзья",
+    "sectionNearby": "Поблизости",
+    "sectionOpen": "Открытые",
+    "noSearchResults": "Нет комнат, соответствующих твоему поиску.",
+    "noRoomsYet": "Сейчас нет открытых комнат. Открой первую!",
+    "defaultGuestName": "Гость",
+    "joinFailedTitle": "Не удалось войти в комнату",
+    "createFailedTitle": "Не удалось создать комнату",
+    "requestSentTitle": "Запрос отправлен",
+    "requestSentBody": "Запрос в друзья отправлен пользователю {{name}}.",
+    "blockedTitle": "Заблокирован",
+    "blockedBody": "{{name}} заблокирован(а).",
+    "reportedTitle": "Жалоба отправлена",
+    "reportedBody": "Жалоба на этого пользователя передана нашей команде модерации, спасибо."
   }
 }

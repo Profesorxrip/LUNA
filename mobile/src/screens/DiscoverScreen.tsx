@@ -12,6 +12,7 @@ import {
   PanResponder,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import { getSocket, PublicRoomSummary, DiscoverSections, RoomState, MediaSource, FriendUser } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
@@ -49,13 +50,16 @@ const EMPTY_SECTIONS: DiscoverSections = { invited: [], friends: [], nearby: [],
 // listPublicRooms): Davetliler (en ustte, gizlilik tipinden bagimsiz - biri
 // seni ozel olarak davet ettiyse), Arkadaslar, Yakindakiler, Acik. Her bolumun
 // ic siralamasi sunucuda zaten hazirlaniyor, burada sadece gruplanip
-// (numColumns'a gore satirlara bolunup) gosteriliyor.
-const SECTION_TITLES: { key: keyof DiscoverSections; title: string; icon: IconName }[] = [
-  { key: "invited", title: "Davetliler", icon: "invite" },
-  { key: "friends", title: "Arkadaşlar", icon: "people" },
-  { key: "nearby", title: "Yakındakiler", icon: "radar" },
-  { key: "open", title: "Açık", icon: "worldOpen" },
-];
+// (numColumns'a gore satirlara bolunup) gosteriliyor. Basliklar dil
+// degisiminde guncellensin diye bir fonksiyonla (sabit degil) uretiliyor.
+function getSectionTitles(t: (key: string) => string): { key: keyof DiscoverSections; title: string; icon: IconName }[] {
+  return [
+    { key: "invited", title: t("discover.sectionInvited"), icon: "invite" },
+    { key: "friends", title: t("discover.sectionFriends"), icon: "people" },
+    { key: "nearby", title: t("discover.sectionNearby"), icon: "radar" },
+    { key: "open", title: t("discover.sectionOpen"), icon: "worldOpen" },
+  ];
+}
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const rows: T[][] = [];
@@ -70,13 +74,14 @@ export default function DiscoverScreen({
   onOpenParticipant,
   onOpenRoomPreview,
 }: Props) {
+  const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const numColumns = width >= WIDE_BREAKPOINT ? 2 : 1;
   const [sections, setSections] = useState<DiscoverSections>(EMPTY_SECTIONS);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [hostName, setHostName] = useState("Misafir");
+  const [hostName, setHostName] = useState(t("discover.defaultGuestName"));
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [hiddenCodes, setHiddenCodes] = useState<Set<string>>(new Set());
@@ -100,7 +105,7 @@ export default function DiscoverScreen({
   );
 
   const trimmedSearch = search.trim().toLowerCase();
-  const sectionListData = SECTION_TITLES.map(({ key, title, icon }) => {
+  const sectionListData = getSectionTitles(t).map(({ key, title, icon }) => {
     const filtered = sections[key].filter((r) => r.title.toLowerCase().includes(trimmedSearch) && !hiddenCodes.has(r.code));
     return { key, title, icon, data: chunk(filtered, numColumns) };
   }).filter((s) => s.data.length > 0);
@@ -148,12 +153,12 @@ export default function DiscoverScreen({
         setLoading(false);
         setRefreshing(false);
         if (err) {
-          showAlert("Bağlantı sorunu", "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et.");
+          showAlert(t("common.connectionIssueTitle"), t("common.connectionIssueBody"));
           return;
         }
         setSections(result);
       });
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -198,7 +203,7 @@ export default function DiscoverScreen({
     if (!target.userId) return;
     getSocket().emit("friend:request", { toUserId: target.userId }, (res: any) => {
       if (res?.ok) {
-        showAlert("İstek gönderildi", `${target.name} kullanıcısına arkadaşlık isteği gönderildi.`);
+        showAlert(t("discover.requestSentTitle"), t("discover.requestSentBody", { name: target.name }));
         patchProfileOptionsTarget(target.userId, { friendStatus: "outgoing" });
       }
     });
@@ -226,7 +231,7 @@ export default function DiscoverScreen({
     if (!target.userId) return;
     getSocket().emit("friend:block", { userId: target.userId }, (res: any) => {
       if (res?.ok) {
-        showAlert("Engellendi", `${target.name} engellendi.`);
+        showAlert(t("discover.blockedTitle"), t("discover.blockedBody", { name: target.name }));
         patchProfileOptionsTarget(target.userId, { friendStatus: "blocked" });
       }
     });
@@ -243,7 +248,7 @@ export default function DiscoverScreen({
       "report:submit",
       { targetUserId: target.userId, reason: "Keşfet oda kartından bildirildi" },
       (res: any) => {
-        if (res?.ok) showAlert("Bildirildi", "Bu kullanıcı moderasyon ekibine iletildi, teşekkürler.");
+        if (res?.ok) showAlert(t("discover.reportedTitle"), t("discover.reportedBody"));
       }
     );
   }
@@ -260,9 +265,9 @@ export default function DiscoverScreen({
     getSocket()
       .timeout(8000)
       .emit("room:join", { code }, (err: any, res: any) => {
-        if (err) return showAlert("Odaya girilemedi", "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et.");
+        if (err) return showAlert(t("discover.joinFailedTitle"), t("common.connectionIssueBody"));
         if (res?.ok) onJoinRoom(res.room);
-        else showAlert("Odaya girilemedi", res?.error || "Bilinmeyen bir hata oluştu.");
+        else showAlert(t("discover.joinFailedTitle"), res?.error || t("common.unknownError"));
       });
   }
 
@@ -272,9 +277,9 @@ export default function DiscoverScreen({
     getSocket()
       .timeout(8000)
       .emit("room:create", { name: hostName, isPublic: true, source }, (err: any, res: any) => {
-        if (err) return showAlert("Oda oluşturulamadı", "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et.");
+        if (err) return showAlert(t("discover.createFailedTitle"), t("common.connectionIssueBody"));
         if (res?.ok) onJoinRoom(res.room);
-        else showAlert("Oda oluşturulamadı", res?.error || "Bilinmeyen bir hata oluştu.");
+        else showAlert(t("discover.createFailedTitle"), res?.error || t("common.unknownError"));
       });
   }
 
@@ -299,7 +304,7 @@ export default function DiscoverScreen({
         <Icon name="search" size={18} color="rgba(255,255,255,0.85)" />
         <TextInput
           style={styles.searchInput}
-          placeholder="ODA ARA"
+          placeholder={t("discover.searchPlaceholder")}
           placeholderTextColor="rgba(255,255,255,0.5)"
           value={search}
           onChangeText={setSearch}
@@ -318,7 +323,7 @@ export default function DiscoverScreen({
             <LoadingView />
           ) : (
             <Text style={styles.emptyText}>
-              {trimmedSearch ? "Aramanla eslesen oda yok." : "Su an acik oda yok. Ilk odayi sen ac!"}
+              {trimmedSearch ? t("discover.noSearchResults") : t("discover.noRoomsYet")}
             </Text>
           )
         }

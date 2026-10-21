@@ -4,7 +4,10 @@
     "closed": "Ανενεργό",
     "cancel": "Άκυρο",
     "close": "Κλείσιμο",
-    "ok": "ΟΚ"
+    "ok": "ΟΚ",
+    "unknownError": "Παρουσιάστηκε άγνωστο σφάλμα.",
+    "connectionIssueTitle": "Πρόβλημα σύνδεσης",
+    "connectionIssueBody": "Δεν είναι δυνατή η σύνδεση με τον διακομιστή (έληξε ο χρόνος). Έλεγξε τη σύνδεσή σου."
   },
   "profile": {
     "sectionAccounts": "Συνδεδεμένοι Λογαριασμοί",
@@ -85,5 +88,23 @@
     "signInFailedTitle": "Η σύνδεση απέτυχε",
     "signInFailedBody": "Δεν ήταν δυνατή η έναρξη σύνδεσης.",
     "sessionFailedBody": "Δεν ήταν δυνατή η ανάκτηση στοιχείων σύνδεσης."
+  },
+  "discover": {
+    "searchPlaceholder": "ΑΝΑΖΗΤΗΣΗ ΔΩΜΑΤΙΟΥ",
+    "sectionInvited": "Προσκεκλημένοι",
+    "sectionFriends": "Φίλοι",
+    "sectionNearby": "Κοντινά",
+    "sectionOpen": "Ανοιχτά",
+    "noSearchResults": "Δεν βρέθηκαν δωμάτια που να ταιριάζουν με την αναζήτησή σου.",
+    "noRoomsYet": "Δεν υπάρχουν ανοιχτά δωμάτια αυτή τη στιγμή. Άνοιξε το πρώτο!",
+    "defaultGuestName": "Επισκέπτης",
+    "joinFailedTitle": "Αποτυχία εισόδου στο δωμάτιο",
+    "createFailedTitle": "Αποτυχία δημιουργίας δωματίου",
+    "requestSentTitle": "Το αίτημα στάλθηκε",
+    "requestSentBody": "Το αίτημα φιλίας στάλθηκε στον/στην {{name}}.",
+    "blockedTitle": "Αποκλείστηκε",
+    "blockedBody": "Ο/Η {{name}} αποκλείστηκε.",
+    "reportedTitle": "Αναφέρθηκε",
+    "reportedBody": "Αυτός ο χρήστης αναφέρθηκε στην ομάδα διαχείρισης μας, ευχαριστούμε."
   }
 }

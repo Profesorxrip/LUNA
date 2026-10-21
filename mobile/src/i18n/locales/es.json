@@ -4,7 +4,10 @@
     "closed": "Desactivado",
     "cancel": "Cancelar",
     "close": "Cerrar",
-    "ok": "Aceptar"
+    "ok": "Aceptar",
+    "unknownError": "Se produjo un error desconocido.",
+    "connectionIssueTitle": "Problema de conexión",
+    "connectionIssueBody": "No se puede contactar con el servidor (tiempo agotado). Revisa tu conexión."
   },
   "profile": {
     "sectionAccounts": "Cuentas conectadas",
@@ -85,5 +88,23 @@
     "signInFailedTitle": "Error al iniciar sesión",
     "signInFailedBody": "No se pudo iniciar el acceso.",
     "sessionFailedBody": "No se pudo obtener la información de sesión."
+  },
+  "discover": {
+    "searchPlaceholder": "BUSCAR SALA",
+    "sectionInvited": "Invitados",
+    "sectionFriends": "Amigos",
+    "sectionNearby": "Cerca de ti",
+    "sectionOpen": "Abiertas",
+    "noSearchResults": "No hay salas que coincidan con tu búsqueda.",
+    "noRoomsYet": "No hay salas abiertas ahora mismo. ¡Sé el primero en abrir una!",
+    "defaultGuestName": "Invitado",
+    "joinFailedTitle": "No se pudo entrar a la sala",
+    "createFailedTitle": "No se pudo crear la sala",
+    "requestSentTitle": "Solicitud enviada",
+    "requestSentBody": "Solicitud de amistad enviada a {{name}}.",
+    "blockedTitle": "Bloqueado",
+    "blockedBody": "{{name}} ha sido bloqueado/a.",
+    "reportedTitle": "Reportado",
+    "reportedBody": "Este usuario ha sido reportado a nuestro equipo de moderación, gracias."
   }
 }

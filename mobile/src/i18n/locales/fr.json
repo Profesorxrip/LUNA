@@ -4,7 +4,10 @@
     "closed": "Désactivé",
     "cancel": "Annuler",
     "close": "Fermer",
-    "ok": "OK"
+    "ok": "OK",
+    "unknownError": "Une erreur inconnue s'est produite.",
+    "connectionIssueTitle": "Problème de connexion",
+    "connectionIssueBody": "Impossible de joindre le serveur (délai dépassé). Vérifie ta connexion."
   },
   "profile": {
     "sectionAccounts": "Comptes Connectés",
@@ -85,5 +88,23 @@
     "signInFailedTitle": "Échec de la connexion",
     "signInFailedBody": "Impossible de démarrer la connexion.",
     "sessionFailedBody": "Impossible de récupérer les informations de session."
+  },
+  "discover": {
+    "searchPlaceholder": "CHERCHER UN SALON",
+    "sectionInvited": "Invités",
+    "sectionFriends": "Amis",
+    "sectionNearby": "À proximité",
+    "sectionOpen": "Ouverts",
+    "noSearchResults": "Aucun salon ne correspond à ta recherche.",
+    "noRoomsYet": "Aucun salon n'est ouvert pour le moment. Sois le premier à en ouvrir un !",
+    "defaultGuestName": "Invité",
+    "joinFailedTitle": "Impossible de rejoindre le salon",
+    "createFailedTitle": "Impossible de créer le salon",
+    "requestSentTitle": "Demande envoyée",
+    "requestSentBody": "Demande d'ami envoyée à {{name}}.",
+    "blockedTitle": "Bloqué",
+    "blockedBody": "{{name}} a été bloqué(e).",
+    "reportedTitle": "Signalé",
+    "reportedBody": "Cet utilisateur a été signalé à notre équipe de modération, merci."
   }
 }
