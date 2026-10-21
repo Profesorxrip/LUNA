@@ -423,5 +423,12 @@
   "sendMedia": {
     "adultToggleLabel": "Ev wêne naveroka +18 ye",
     "send": "Bişîne"
+  },
+  "tabs": {
+    "discover": "Vedîtin",
+    "friends": "Heval",
+    "create": "Çêbike",
+    "profile": "Profîl",
+    "settings": "Mîheng"
   }
 }

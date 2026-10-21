@@ -27,6 +27,11 @@ interface Props {
    * platformdaysak) genel YouTube ana sayfasindan basliyoruz. Kullanici
    * yine de "‹ Geri" ile normal platform listesine donebilir. */
   relatedVideosFor?: string | null;
+  /** true ise Modal sarmalayicisi hic kullanilmaz, ic icerik dogrudan
+   * (tam ekran bir TAB olarak, orn. "Oluştur" sekmesinde) render edilir -
+   * RoomScreen.tsx'teki mevcut Modal kullanimini ETKILEMEZ (orada hic
+   * verilmiyor, varsayilan false/undefined). */
+  embedded?: boolean;
 }
 
 type Mode = "grid" | "youtube" | "weburl" | "history" | "liked" | "external";
@@ -219,7 +224,7 @@ function getAllItems(t: (key: string) => string): GridItem[] {
  * YOK - DRM'li platformlarda video basligini uygulama icinden GOREMEDIGIMIZ
  * icin (bkz. MediaPlayer.tsx aciklamasi) oda/kart ismi platformun kendi adi
  * olarak kalir. */
-export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVideosFor }: Props) {
+export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVideosFor, embedded }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>("grid");
@@ -409,8 +414,14 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     handleClose();
   }
 
-  return (
-    <Modal visible={visible} animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
+  // "Oluştur" sekmesinde (embedded) grid ekraninda geri/kapatma icin
+  // gidilecek bir ust ekran YOK (bu sekmenin kendisi kalici) - o durumda
+  // geri oku yerine sag taraftakiyle AYNI gorunmez bosluk gosterilir, logo
+  // yine ortalanmis kalir. Alt modlardaysa (youtube/weburl/history/liked/
+  // external) embedded'da da geri oku grid'e donmeye devam eder.
+  const showBackButton = !(embedded && mode === "grid");
+
+  const content = (
       <View style={[styles.screen, { paddingTop: insets.top + 16 }]}>
         {/* Grid (ana platform listesi) ekraninda da ayni ustbar - geri
             okuna basinca grid'den bir ALT ekrandaysak (youtube/weburl/
@@ -418,9 +429,13 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
             (artik "ARA" cubugunun solunda kapatma icin TEK dokunulacak yer
             buydu, oncesinde hicbir ikon yoktu). */}
         <View style={styles.topBar}>
-          <TouchableOpacity style={styles.backButton} onPress={mode === "grid" ? handleClose : handleBack} hitSlop={10}>
-            <ChevronLeft size={28} color="#FFFFFF" strokeWidth={3} />
-          </TouchableOpacity>
+          {showBackButton ? (
+            <TouchableOpacity style={styles.backButton} onPress={mode === "grid" ? handleClose : handleBack} hitSlop={10}>
+              <ChevronLeft size={28} color="#FFFFFF" strokeWidth={3} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.backButton} />
+          )}
           <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.topBarLogo} resizeMode="contain" />
           {/* Geri butonuyla AYNI genislikte gorunmez bir bosluk - logo
               gercekten ORTALANSIN diye (bkz. RoomMapSheet.tsx ayni kalip). */}
@@ -569,6 +584,13 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
           </View>
         )}
       </View>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
+      {content}
     </Modal>
   );
 }

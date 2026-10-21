@@ -423,5 +423,12 @@
   "sendMedia": {
     "adultToggleLabel": "هذه الصورة محتوى +18",
     "send": "إرسال"
+  },
+  "tabs": {
+    "discover": "استكشاف",
+    "friends": "الأصدقاء",
+    "create": "إنشاء",
+    "profile": "الملف الشخصي",
+    "settings": "الإعدادات"
   }
 }

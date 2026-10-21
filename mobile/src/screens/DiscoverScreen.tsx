@@ -13,14 +13,11 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
-import { getSocket, PublicRoomSummary, DiscoverSections, RoomState, MediaSource, FriendUser } from "../services/socket";
-import { supabase } from "../services/supabase";
+import { getSocket, PublicRoomSummary, DiscoverSections, RoomState, FriendUser } from "../services/socket";
 import { theme } from "../theme";
 import Icon, { IconName } from "../components/Icon";
 import LoadingView from "../components/LoadingView";
-import MediaPickerSheet from "../components/MediaPickerSheet";
 import RoomCard from "../components/RoomCard";
-import BoldPlusIcon from "../components/BoldPlusIcon";
 import { useFocusEffect } from "@react-navigation/native";
 import { getHiddenRoomCodes } from "../utils/hiddenRooms";
 import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
@@ -80,8 +77,6 @@ export default function DiscoverScreen({
   const [sections, setSections] = useState<DiscoverSections>(EMPTY_SECTIONS);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [pickerVisible, setPickerVisible] = useState(false);
-  const [hostName, setHostName] = useState(t("discover.defaultGuestName"));
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [hiddenCodes, setHiddenCodes] = useState<Set<string>>(new Set());
@@ -109,13 +104,6 @@ export default function DiscoverScreen({
     const filtered = sections[key].filter((r) => r.title.toLowerCase().includes(trimmedSearch) && !hiddenCodes.has(r.code));
     return { key, title, icon, data: chunk(filtered, numColumns) };
   }).filter((s) => s.data.length > 0);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      const email = data.user?.email;
-      if (email) setHostName(email.split("@")[0]);
-    });
-  }, []);
 
   // Kart uzerindeki katilimci avatarlarinda "bu arkadasin" rozetini
   // gosterebilmek icin arkadas listesini bir kere cekiyoruz.
@@ -271,18 +259,6 @@ export default function DiscoverScreen({
       });
   }
 
-  // Oda, icerik secilmeden var olamaz - "+" direkt platform secme ekranini
-  // acar, secim yapilinca oda o icerikle birlikte olusturulup girilir.
-  function createRoomWithSource(source: MediaSource) {
-    getSocket()
-      .timeout(8000)
-      .emit("room:create", { name: hostName, isPublic: true, source }, (err: any, res: any) => {
-        if (err) return showAlert(t("discover.createFailedTitle"), t("common.connectionIssueBody"));
-        if (res?.ok) onJoinRoom(res.room);
-        else showAlert(t("discover.createFailedTitle"), res?.error || t("common.unknownError"));
-      });
-  }
-
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
       <View style={styles.header}>
@@ -349,16 +325,6 @@ export default function DiscoverScreen({
             ))}
           </View>
         )}
-      />
-
-      <TouchableOpacity style={styles.fab} onPress={() => setPickerVisible(true)}>
-        <BoldPlusIcon size={24} color="#04140D" />
-      </TouchableOpacity>
-
-      <MediaPickerSheet
-        visible={pickerVisible}
-        onClose={() => setPickerVisible(false)}
-        onSelect={createRoomWithSource}
       />
 
       <ProfileOptionsSheet
@@ -445,16 +411,4 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: "row" },
   emptyText: { color: theme.textMuted, textAlign: "center", marginTop: 60, fontSize: 15 },
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 30,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.accent,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 4,
-  },
 });

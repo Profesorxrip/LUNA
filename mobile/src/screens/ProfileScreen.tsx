@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator } from "react-native";
-import { ChevronRight } from "lucide-react-native";
 import * as StoreReview from "expo-store-review";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../services/supabase";
@@ -19,7 +18,6 @@ const SUPPORT_EMAIL = "destek@luna.app";
 type InviteRestriction = "everyone" | "friends" | "none";
 
 interface Props {
-  onBack: () => void;
   onOpenUserProfile: () => void;
   onOpenPremium: () => void;
   onOpenPrivacy: () => void;
@@ -41,7 +39,6 @@ const APP_VERSION = "1.0.0 (1)";
  * profiles satirindan okunuyor ve degisiklikler oraya da yansiyor (eskiden
  * isim SADECE burada yerel state'ti, kaydedilmiyordu). */
 export default function ProfileScreen({
-  onBack,
   onOpenUserProfile,
   onOpenPremium,
   onOpenPrivacy,
@@ -289,9 +286,11 @@ export default function ProfileScreen({
         <View style={styles.header}>
           <View style={styles.iconTouch} />
           <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
-          <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={10}>
-            <ChevronRight size={26} color="#FFFFFF" strokeWidth={3} />
-          </TouchableOpacity>
+          {/* "Ayarlar" artik kalici bir TAB - donulecek bir "geri" hedefi
+              olmadigi icin sag tarafta da sol spacer ile ayni gorunmez
+              bosluk var, logo ortalanmis kaliyor (eskiden burada kapatma
+              icin bir ChevronRight butonu vardi). */}
+          <View style={styles.iconTouch} />
         </View>
 
         <TouchableOpacity style={styles.avatarWrap} onPress={onOpenUserProfile} activeOpacity={0.8}>

@@ -423,5 +423,12 @@
   "sendMedia": {
     "adultToggleLabel": "Bu şəkil 18+ məzmundur",
     "send": "Göndər"
+  },
+  "tabs": {
+    "discover": "Kəşf",
+    "friends": "Dostlar",
+    "create": "Yarat",
+    "profile": "Profil",
+    "settings": "Tənzimləmələr"
   }
 }

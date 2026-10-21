@@ -423,5 +423,12 @@
   "sendMedia": {
     "adultToggleLabel": "Esta imagen es contenido +18",
     "send": "Enviar"
+  },
+  "tabs": {
+    "discover": "Descubrir",
+    "friends": "Amigos",
+    "create": "Crear",
+    "profile": "Perfil",
+    "settings": "Ajustes"
   }
 }

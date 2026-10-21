@@ -30,6 +30,11 @@ interface Props {
   // gibi ayni sekme cubugunun altinda gosterilir (bkz. RoomScreen.tsx).
   roomCode?: string;
   roomTitle?: string;
+  /** true ise "Arkadaşlar" TAB'i olarak kullanilir - bu ekranin donecegi
+   * bir "geri" hedefi yoktur (tab kalicidir), bu yuzden sol-ust geri oku
+   * yerine sag taraftakiyle ayni gorunmez bosluk gosterilir. RoomScreen.tsx'
+   * teki davet-modu Modal kullanimini ETKILEMEZ (orada verilmiyor). */
+  embedded?: boolean;
 }
 
 type Tab = "friends" | "recent" | "blocked" | "share";
@@ -64,6 +69,7 @@ export default function FriendsScreen({
   onSendInvites,
   roomCode,
   roomTitle,
+  embedded = false,
 }: Props) {
   const { t } = useTranslation();
   const socket = getSocket();
@@ -297,9 +303,13 @@ export default function FriendsScreen({
             Normalde Discover'a, davet modunda ise odaya doner (onBack
             ikisinde de dogru yere baglanmis - bkz. RoomScreen.tsx Modal
             onRequestClose'u). */}
-        <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
-          <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
-        </TouchableOpacity>
+        {embedded ? (
+          <View style={styles.iconTouch} />
+        ) : (
+          <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
+            <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
+          </TouchableOpacity>
+        )}
         <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
         {/* Geri oku solda tek basina ayni isi goruyor, sag taraf bos kalip
             logo ortalanmis kaliyor. */}

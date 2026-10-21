@@ -423,5 +423,12 @@
   "sendMedia": {
     "adultToggleLabel": "Bu görsel +18 içerik",
     "send": "Gönder"
+  },
+  "tabs": {
+    "discover": "Keşif",
+    "friends": "Arkadaşlar",
+    "create": "Oluştur",
+    "profile": "Profil",
+    "settings": "Ayarlar"
   }
 }

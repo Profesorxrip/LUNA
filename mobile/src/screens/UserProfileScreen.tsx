@@ -576,9 +576,16 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topBlock}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} hitSlop={10}>
-            <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
-          </TouchableOpacity>
+          {/* "Profil" TAB'i olarak (own=true) kullanildiginda onBack hic
+              verilmez - donulecek bir "geri" hedefi olmadigi icin (kalici
+              bir sekme) ok hic gosterilmiyor (bkz. RootNavigator.tsx
+              MyProfileRoute). Baska birinin profili (own=false, disaridaki
+              Stack) ya da eski kullanim yerlerinde onBack hep verilir. */}
+          {onBack && (
+            <TouchableOpacity onPress={onBack} hitSlop={10}>
+              <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
+            </TouchableOpacity>
+          )}
           {!own && (
             <TouchableOpacity onPress={() => placeholder(t("userProfile.more"))} hitSlop={10}>
               <Icon name="moreHoriz" size={30} color={TEXT} />
