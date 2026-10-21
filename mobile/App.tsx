@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Session } from "@supabase/supabase-js";
@@ -8,6 +8,7 @@ import LoginScreen from "./src/screens/LoginScreen";
 import RootNavigator from "./src/navigation/RootNavigator";
 import CustomAlertHost from "./src/components/CustomAlert";
 import AppBackground from "./src/components/AppBackground";
+import SplashScreen from "./src/components/SplashScreen";
 import { getSocket } from "./src/services/socket";
 import { registerForPushNotifications } from "./src/services/notifications";
 import { loadStoredLanguage } from "./src/i18n";
@@ -52,10 +53,9 @@ export default function App() {
     return (
       <View style={{ flex: 1 }}>
         <AppBackground />
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator color="#10B981" size="large" />
-          <CustomAlertHost />
-        </View>
+        <SplashScreen />
+        <CustomAlertHost />
+        <StatusBar style="light" />
       </View>
     );
   }

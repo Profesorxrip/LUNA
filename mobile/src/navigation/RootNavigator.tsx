@@ -191,13 +191,23 @@ export default function RootNavigator() {
           // native-stack'in kendi arka plani da seffaf (opak bir renk
           // koyarsak degrade gecis sirasinda bir an kaybolurdu).
           contentStyle: { backgroundColor: "transparent" },
+          // Platformun KENDI varsayilanina birakmak yerine (iOS'ta sagdan
+          // kaydirma, Android'de yukari-kaydirma+solma karisimi - ikisi
+          // FARKLI hissettiriyordu) tum "derinlemesine giris" ekranlari
+          // icin tek, tutarli bir yatay kaydirma secildi.
+          animation: "slide_from_right",
         }}
       >
         <Stack.Screen name="Discover" component={DiscoverRoute} />
+        {/* Bilgi/ayar niteligindeki tek-sayfalik ekranlar (Profile'dan acilir,
+            "derinlemesine" bir akisin parcasi degil) - asagidan yukari
+            kayarak gelen bir "sayfa/sheet" hissi veriyor, geri kalan
+            navigasyon akisindan (Discover->Friends->DM gibi) gorsel olarak
+            ayrisiyor. */}
         <Stack.Screen name="Profile" component={ProfileRoute} />
-        <Stack.Screen name="Premium" component={PremiumRoute} />
-        <Stack.Screen name="Privacy" component={PrivacyRoute} />
-        <Stack.Screen name="BackgroundInfo" component={BackgroundInfoRoute} />
+        <Stack.Screen name="Premium" component={PremiumRoute} options={{ animation: "slide_from_bottom" }} />
+        <Stack.Screen name="Privacy" component={PrivacyRoute} options={{ animation: "slide_from_bottom" }} />
+        <Stack.Screen name="BackgroundInfo" component={BackgroundInfoRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="UserProfile" component={UserProfileRoute} />
         <Stack.Screen name="Friends" component={FriendsRoute} />
         <Stack.Screen name="DM" component={DMRoute} />

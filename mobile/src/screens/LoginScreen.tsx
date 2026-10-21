@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Image,
   Modal,
   KeyboardAvoidingView,
   Platform,
@@ -21,6 +20,7 @@ import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
 import { GoogleIcon } from "../components/SocialAuthIcons";
 import { LANGUAGES, setAppLanguage, LanguageCode } from "../i18n";
+import LunaLogo from "../components/LunaLogo";
 import TermsScreen from "./TermsScreen";
 import PrivacyScreen from "./PrivacyScreen";
 
@@ -63,19 +63,6 @@ const REDIRECT_URL = "luna://login-callback";
 // kilidine takildi (Meta tarafinda, bizim kodumuzla alakasiz), GitHub'in
 // kaydi cok daha az surtunmeli (isim+callback URL, onay/captcha yok).
 type Provider = "google" | "spotify" | "github" | "x" | "twitch";
-
-// Logo kenar golgesi icin 8 yonlu kucuk kaydirma (bkz. asagidaki render) -
-// capraz olanlar biraz daha az kaydirilir (koseler "sivri" durmasin diye).
-const EDGE_SHADOW_OFFSETS: [number, number][] = [
-  [0, -3],
-  [0, 3],
-  [-3, 0],
-  [3, 0],
-  [-2, -2],
-  [2, -2],
-  [-2, 2],
-  [2, 2],
-];
 
 export default function LoginScreen() {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
@@ -192,25 +179,7 @@ export default function LoginScreen() {
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-      <View style={styles.logoWrap}>
-        {/* Kenar golgesi: TEK yonde kaydirilmis bir kopya "arkada duran ikinci
-            bir sekil" gibi gorunuyordu (bkz. onceki surum) - bunun yerine
-            logonun ETRAFINI saran, her yone (yukari/asagi/sag/sol/capraz)
-            kucuk mesafede kaydirilmis COK sayida sonuk kopya kullanilir -
-            her biri ayri ayri gorunmez ama ust uste binince harf
-            kenarlarinin TUMUNDE yumusak bir golge/hale olusturur (gercek
-            blur filtresi olmadan, iOS/Android'de ayni sekilde calisan tek
-            yontem). Ana (beyaz) logo EN USTTE render ediliyor. */}
-        {EDGE_SHADOW_OFFSETS.map(([dx, dy], i) => (
-          <Image
-            key={i}
-            source={require("../../assets/lavin-icon-mark.png")}
-            style={[styles.logoMark, styles.logoShadow, { top: 3 + dy, left: 3 + dx }]}
-            resizeMode="contain"
-          />
-        ))}
-        <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logoMark} resizeMode="contain" />
-      </View>
+      <LunaLogo width={280} style={styles.logoWrap} />
 
       <Text style={[styles.tagline, fontsLoaded && styles.taglineFontLoaded]}>
         {t("login.tagline")}
@@ -449,22 +418,11 @@ const styles = StyleSheet.create({
   },
   languageRowText: { color: "rgba(255,255,255,0.8)", fontSize: 15 },
   languageRowTextActive: { color: "#FFFFFF", fontWeight: "700" },
-  // logoShadow kopyalari logoMark'tan en fazla 3px tasabiliyor - golge
-  // View'in disina kirpilmasin diye wrap, logodan biraz daha genis/yuksek.
   // marginTop negatif: "logoyu hafif yukari al" - butun grup (logo+row+alt
   // yazi) dikeyde ortalandigi icin (container: justifyContent "center")
   // sadece logoWrap'e negatif ust bosluk vermek grubu YUKARI kaydiriyor.
-  logoWrap: { width: 286, height: 137, alignSelf: "center", marginTop: -24, marginBottom: -8 },
-  // Logo artik beyaz siluet - tintColor, PNG'nin seffaf olmayan tum
-  // piksellerini bu renge boyar (bkz. MediaPickerSheet.tsx topBarLogo
-  // AYNI teknik). 220x103 -> 280x131 (ayni oran) buyutuldu.
-  logoMark: { position: "absolute", top: 3, left: 3, width: 280, height: 131, tintColor: "#FFFFFF" },
-  // Golge katmani: koyu lacivert tonu (arka plan degradesiyle uyumlu, saf
-  // siyah degil) - her kopya cok dusuk opaklikta (0.14), 8 tanesi UST USTE
-  // binince harf kenarlarinin TUMUNDE yumusak bir golge/hale olusturur
-  // (top/left JSX'te EDGE_SHADOW_OFFSETS'ten geliyor, logoMark'in 3,3'luk
-  // taban konumuna GORECELI).
-  logoShadow: { tintColor: "#030508", opacity: 0.14 },
+  // Genislik/yukseklik artik LunaLogo'nun kendi icinde (bkz. components/LunaLogo.tsx).
+  logoWrap: { alignSelf: "center", marginTop: -24, marginBottom: -8 },
   // Logo artik kendi basligini tasimiyor (eskiden "Devam etmek icin giris
   // yap" vardi, kaldirildi) - yerine marka sloganini koyuyoruz. Genislik
   // 280 - logoMark'in GERCEK genisligiyle (ve logonun L...A harf araliginin
