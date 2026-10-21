@@ -254,7 +254,8 @@
     "showTranslation": "Wergerê bibîne",
     "showOriginal": "Orjînalê bibîne",
     "signInRequiredTitle": "Têketin pêwîst e",
-    "signInRequiredBody": "Ji bo şandina wêneyan divê tu têketî bî."
+    "signInRequiredBody": "Ji bo şandina wêneyan divê tu têketî bî.",
+    "participantsTitle": "Beşdar ({{count}})"
   },
   "backgroundInfo": {
     "title": "MA LUNA LI PAŞ ÇAVAN TÊ RAWESTANDIN?",
@@ -413,5 +414,14 @@
     "searchAllEmojis": "Di hemû emojiyan de bigere",
     "copy": "Kopî bike",
     "reply": "Bersivê bide"
+  },
+  "roomMap": {
+    "title": "Nexşe",
+    "emptyText": "Niha kesek di vê odê de cîhê xwe parve nake.\nEger beşdar di Mîheng de \"Cîh Veşêre\" bigirin, ew li vir dê xuya bibin.",
+    "hiddenBanner": "{{count}} beşdar cîhê xwe vediêşirin."
+  },
+  "sendMedia": {
+    "adultToggleLabel": "Ev wêne naveroka +18 ye",
+    "send": "Bişîne"
   }
 }

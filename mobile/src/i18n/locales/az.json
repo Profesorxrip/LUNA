@@ -254,7 +254,8 @@
     "showTranslation": "Tərcüməni gör",
     "showOriginal": "Orijinalı gör",
     "signInRequiredTitle": "Giriş tələb olunur",
-    "signInRequiredBody": "Şəkil göndərmək üçün giriş etmiş olmalısan."
+    "signInRequiredBody": "Şəkil göndərmək üçün giriş etmiş olmalısan.",
+    "participantsTitle": "İştirakçılar ({{count}})"
   },
   "backgroundInfo": {
     "title": "LUNA ARXA FONDA DAYANDIRILIRMI?",
@@ -413,5 +414,14 @@
     "searchAllEmojis": "Bütün emojilərdə axtar",
     "copy": "Kopyala",
     "reply": "Cavabla"
+  },
+  "roomMap": {
+    "title": "Xəritə",
+    "emptyText": "Hazırda bu otaqda heç kim yerləşməsini paylaşmır.\nİştirakçılar Ayarlarda \"Yerləşməni Gizlət\"i bağlasalar, burada görünəcək.",
+    "hiddenBanner": "{{count}} iştirakçı yerləşməsini gizlədir."
+  },
+  "sendMedia": {
+    "adultToggleLabel": "Bu şəkil 18+ məzmundur",
+    "send": "Göndər"
   }
 }

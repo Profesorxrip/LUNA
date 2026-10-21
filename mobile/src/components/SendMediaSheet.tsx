@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Modal, View, Text, Image, TouchableOpacity, Switch, StyleSheet, ActivityIndicator } from "react-native";
+import { useTranslation } from "react-i18next";
 import { theme } from "../theme";
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
  * fotografin onizlemesi + "+18 icerik" anahtari burada. Gonderilince alici
  * tarafta isaretliyse bulanik gosterilir (bkz. ChatImageBubble.tsx). */
 export default function SendMediaSheet({ visible, imageUri, uploading, onCancel, onSend }: Props) {
+  const { t } = useTranslation();
   const [isAdult, setIsAdult] = useState(false);
 
   return (
@@ -22,7 +24,7 @@ export default function SendMediaSheet({ visible, imageUri, uploading, onCancel,
         <View style={styles.sheet}>
           {imageUri && <Image source={{ uri: imageUri }} style={styles.preview} resizeMode="cover" />}
           <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Bu görsel +18 içerik</Text>
+            <Text style={styles.toggleLabel}>{t("sendMedia.adultToggleLabel")}</Text>
             <Switch
               value={isAdult}
               onValueChange={setIsAdult}
@@ -33,10 +35,10 @@ export default function SendMediaSheet({ visible, imageUri, uploading, onCancel,
           </View>
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={uploading}>
-              <Text style={styles.cancelBtnText}>Vazgeç</Text>
+              <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sendBtn} onPress={() => onSend(isAdult)} disabled={uploading}>
-              {uploading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text style={styles.sendBtnText}>Gönder</Text>}
+              {uploading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text style={styles.sendBtnText}>{t("sendMedia.send")}</Text>}
             </TouchableOpacity>
           </View>
         </View>

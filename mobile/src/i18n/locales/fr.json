@@ -254,7 +254,8 @@
     "showTranslation": "Voir la traduction",
     "showOriginal": "Voir l'original",
     "signInRequiredTitle": "Connexion requise",
-    "signInRequiredBody": "Tu dois être connecté(e) pour envoyer des photos."
+    "signInRequiredBody": "Tu dois être connecté(e) pour envoyer des photos.",
+    "participantsTitle": "Participants ({{count}})"
   },
   "backgroundInfo": {
     "title": "LUNA EST-ELLE ARRÊTÉE EN ARRIÈRE-PLAN ?",
@@ -413,5 +414,14 @@
     "searchAllEmojis": "Rechercher tous les emojis",
     "copy": "Copier",
     "reply": "Répondre"
+  },
+  "roomMap": {
+    "title": "Carte",
+    "emptyText": "Personne dans cette salle ne partage sa position actuellement.\nLes participants apparaîtront ici s'ils désactivent \"Masquer la position\" dans les Paramètres.",
+    "hiddenBanner": "{{count}} participant(s) masquent leur position."
+  },
+  "sendMedia": {
+    "adultToggleLabel": "Cette image est un contenu 18+",
+    "send": "Envoyer"
   }
 }

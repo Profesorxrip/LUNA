@@ -254,7 +254,8 @@
     "showTranslation": "Ver traducción",
     "showOriginal": "Ver original",
     "signInRequiredTitle": "Inicio de sesión requerido",
-    "signInRequiredBody": "Debes haber iniciado sesión para enviar fotos."
+    "signInRequiredBody": "Debes haber iniciado sesión para enviar fotos.",
+    "participantsTitle": "Participantes ({{count}})"
   },
   "backgroundInfo": {
     "title": "¿SE ESTÁ DETENIENDO LUNA EN SEGUNDO PLANO?",
@@ -413,5 +414,14 @@
     "searchAllEmojis": "Buscar en todos los emojis",
     "copy": "Copiar",
     "reply": "Responder"
+  },
+  "roomMap": {
+    "title": "Mapa",
+    "emptyText": "Nadie en esta sala está compartiendo su ubicación ahora mismo.\nLos participantes aparecerán aquí si desactivan \"Ocultar ubicación\" en Ajustes.",
+    "hiddenBanner": "{{count}} participante(s) están ocultando su ubicación."
+  },
+  "sendMedia": {
+    "adultToggleLabel": "Esta imagen es contenido +18",
+    "send": "Enviar"
   }
 }

@@ -254,7 +254,8 @@
     "showTranslation": "See translation",
     "showOriginal": "See original",
     "signInRequiredTitle": "Sign-in required",
-    "signInRequiredBody": "You need to be signed in to send photos."
+    "signInRequiredBody": "You need to be signed in to send photos.",
+    "participantsTitle": "Participants ({{count}})"
   },
   "backgroundInfo": {
     "title": "IS LUNA BEING STOPPED IN THE BACKGROUND?",
@@ -413,5 +414,14 @@
     "searchAllEmojis": "Search all emoji",
     "copy": "Copy",
     "reply": "Reply"
+  },
+  "roomMap": {
+    "title": "Map",
+    "emptyText": "No one in this room is sharing their location right now.\nParticipants will appear here if they turn off \"Hide Location\" in Settings.",
+    "hiddenBanner": "{{count}} participant(s) are hiding their location."
+  },
+  "sendMedia": {
+    "adultToggleLabel": "This image is 18+ content",
+    "send": "Send"
   }
 }

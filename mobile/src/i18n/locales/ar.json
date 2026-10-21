@@ -254,7 +254,8 @@
     "showTranslation": "عرض الترجمة",
     "showOriginal": "عرض الأصل",
     "signInRequiredTitle": "تسجيل الدخول مطلوب",
-    "signInRequiredBody": "يجب تسجيل الدخول لإرسال الصور."
+    "signInRequiredBody": "يجب تسجيل الدخول لإرسال الصور.",
+    "participantsTitle": "المشاركون ({{count}})"
   },
   "backgroundInfo": {
     "title": "هل يتم إيقاف LUNA في الخلفية؟",
@@ -413,5 +414,14 @@
     "searchAllEmojis": "البحث في جميع الرموز التعبيرية",
     "copy": "نسخ",
     "reply": "الرد"
+  },
+  "roomMap": {
+    "title": "الخريطة",
+    "emptyText": "لا أحد في هذه الغرفة يشارك موقعه الآن.\nسيظهر المشاركون هنا إذا أوقفوا تشغيل \"إخفاء الموقع\" في الإعدادات.",
+    "hiddenBanner": "{{count}} مشارك يخفي موقعه."
+  },
+  "sendMedia": {
+    "adultToggleLabel": "هذه الصورة محتوى +18",
+    "send": "إرسال"
   }
 }

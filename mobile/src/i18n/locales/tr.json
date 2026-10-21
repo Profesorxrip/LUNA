@@ -254,7 +254,8 @@
     "showTranslation": "Çeviriyi gör",
     "showOriginal": "Orijinalini gör",
     "signInRequiredTitle": "Giriş gerekli",
-    "signInRequiredBody": "Fotoğraf göndermek için giriş yapmış olman gerekiyor."
+    "signInRequiredBody": "Fotoğraf göndermek için giriş yapmış olman gerekiyor.",
+    "participantsTitle": "Katılımcılar ({{count}})"
   },
   "backgroundInfo": {
     "title": "LUNA ARKA PLANDA DURDURULUYOR MU?",
@@ -413,5 +414,14 @@
     "searchAllEmojis": "Tüm emojileri ara",
     "copy": "Kopyala",
     "reply": "Yanıtla"
+  },
+  "roomMap": {
+    "title": "Harita",
+    "emptyText": "Bu odada şu an konumunu paylaşan kimse yok.\nKatılımcılar Ayarlar'daki \"Konumu Gizle\"yi kapatırsa burada görünür.",
+    "hiddenBanner": "{{count}} katılımcı konumunu gizliyor."
+  },
+  "sendMedia": {
+    "adultToggleLabel": "Bu görsel +18 içerik",
+    "send": "Gönder"
   }
 }

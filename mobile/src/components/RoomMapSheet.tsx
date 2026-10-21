@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { WebView } from "react-native-webview";
+import { useTranslation } from "react-i18next";
 import Icon from "./Icon";
 import { theme } from "../theme";
 
@@ -66,22 +67,20 @@ function buildMapHtml(markers: MapMarker[]): string {
  * Gizle KAPALI olan katilimcilarin GPS konumunu pin olarak gosterir (bkz.
  * RoomScreen.tsx showMap / src/utils/locationSettings.ts). */
 export default function RoomMapSheet({ visible, onClose, markers, hiddenCount }: Props) {
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} hitSlop={10}>
           <Icon name="chevronLeft" size={22} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Harita</Text>
+        <Text style={styles.title}>{t("roomMap.title")}</Text>
         <View style={{ width: 22 }} />
       </View>
       {markers.length === 0 ? (
         <View style={styles.empty}>
           <Icon name="pin" size={32} color={theme.textMuted} />
-          <Text style={styles.emptyText}>
-            Bu odada şu an konumunu paylaşan kimse yok.{"\n"}
-            Katılımcılar Ayarlar'daki "Konumu Gizle"yi kapatırsa burada görünür.
-          </Text>
+          <Text style={styles.emptyText}>{t("roomMap.emptyText")}</Text>
         </View>
       ) : (
         <WebView
@@ -93,9 +92,7 @@ export default function RoomMapSheet({ visible, onClose, markers, hiddenCount }:
       {hiddenCount > 0 && (
         <View style={styles.hiddenBanner}>
           <Icon name="eyeOff" size={14} color={theme.textMuted} />
-          <Text style={styles.hiddenBannerText}>
-            {hiddenCount} katılımcı konumunu gizliyor.
-          </Text>
+          <Text style={styles.hiddenBannerText}>{t("roomMap.hiddenBanner", { count: hiddenCount })}</Text>
         </View>
       )}
     </Modal>

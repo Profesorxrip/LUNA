@@ -254,7 +254,8 @@
     "showTranslation": "Übersetzung anzeigen",
     "showOriginal": "Original anzeigen",
     "signInRequiredTitle": "Anmeldung erforderlich",
-    "signInRequiredBody": "Du musst angemeldet sein, um Fotos zu senden."
+    "signInRequiredBody": "Du musst angemeldet sein, um Fotos zu senden.",
+    "participantsTitle": "Teilnehmer ({{count}})"
   },
   "backgroundInfo": {
     "title": "WIRD LUNA IM HINTERGRUND BEENDET?",
@@ -413,5 +414,14 @@
     "searchAllEmojis": "Alle Emojis durchsuchen",
     "copy": "Kopieren",
     "reply": "Antworten"
+  },
+  "roomMap": {
+    "title": "Karte",
+    "emptyText": "Niemand in diesem Raum teilt derzeit seinen Standort.\nTeilnehmer erscheinen hier, wenn sie \"Standort verbergen\" in den Einstellungen deaktivieren.",
+    "hiddenBanner": "{{count}} Teilnehmer verbergen ihren Standort."
+  },
+  "sendMedia": {
+    "adultToggleLabel": "Dieses Bild ist 18+ Inhalt",
+    "send": "Senden"
   }
 }
