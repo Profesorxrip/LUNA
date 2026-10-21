@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, StyleProp, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
+import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { PublicRoomSummary } from "../services/socket";
 import { theme } from "../theme";
 import PlatformBadge from "./PlatformBadge";
@@ -14,7 +15,10 @@ function sourceIcon(type: string): string {
   return "▶";
 }
 
-const AVATAR_COLORS = ["#3A2F22", "#1F3D24", "#2E4A2F", "#4A3B22"];
+// Eskiden kahverengi/yesil tonlar (markayla alakasiz) - LUNA'nin kendi gece
+// gokyuzu paletinden (lacivert/mavi/mor aile, AppBackground/LunaSpinner ile
+// AYNI dunya) 4 koyu ton. Beyaz bas harf hala net okunuyor.
+const AVATAR_COLORS = ["#1E3A5F", "#1F2F52", "#2A2F63", "#17405A"];
 
 interface Props {
   room: PublicRoomSummary;
@@ -35,6 +39,10 @@ interface Props {
 export default function RoomCard({ room, friendIds = new Set(), onPress, onLongPress, onOpenParticipant, onLongPressParticipant, style }: Props) {
   const badgeInfo = badgeInfoForSource(room.source);
   const coverUrl = coverUrlForSource(room.source);
+  // Baslik icin LoginScreen'deki AYNI marka fontu (Bebas Neue) - yuklenene
+  // kadar sistem fontuyla gosteriliyor (kisa bir baslik oldugu icin
+  // yukleme anindaki "atlama" neredeyse fark edilmiyor).
+  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
   return (
     <TouchableOpacity style={[styles.card, style]} onPress={onPress} onLongPress={onLongPress} delayLongPress={350}>
       {coverUrl ? (
@@ -60,9 +68,9 @@ export default function RoomCard({ room, friendIds = new Set(), onPress, onLongP
           <AdultBadge />
         </View>
       )}
-      <LinearGradient colors={["transparent", "rgba(0,0,0,0.88)"]} style={styles.cardGradient} pointerEvents="none" />
+      <LinearGradient colors={["transparent", "rgba(4,9,18,0.92)"]} style={styles.cardGradient} pointerEvents="none" />
       <View style={styles.cardOverlay} pointerEvents="box-none">
-        <Text style={styles.cardTitle} numberOfLines={1}>
+        <Text style={[styles.cardTitle, fontsLoaded && styles.cardTitleFontLoaded]} numberOfLines={1}>
           {room.title}
         </Text>
         <ScrollView
@@ -102,7 +110,20 @@ export default function RoomCard({ room, friendIds = new Set(), onPress, onLongP
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: theme.surface, borderRadius: 12, margin: 6, overflow: "hidden", borderWidth: 1, borderColor: theme.border },
+  // Koseler onceki 12'den biraz daha yumusak (16) - uygulamanin diger
+  // kare/squircle ikon kutularindaki (orn. LoginScreen providerIconBox)
+  // yuvarlakligiyla tutarli. Cerceve artik notr gri degil, vurgu rengine
+  // (theme.accent) hafifce calan, cok dusuk opaklikta bir hat - jenerik
+  // "kart" hissi yerine LUNA'nin kendi renk dunyasina ait oldugunu belli
+  // ediyor.
+  card: {
+    backgroundColor: theme.surface,
+    borderRadius: 16,
+    margin: 6,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(14,165,233,0.22)",
+  },
   thumbnail: { width: "100%", aspectRatio: 2.8 / 1, backgroundColor: theme.surfaceAlt },
   thumbnailPlaceholder: { justifyContent: "center", alignItems: "center" },
   thumbnailPlaceholderText: { color: theme.textMuted, fontSize: 26 },
@@ -119,6 +140,16 @@ const styles = StyleSheet.create({
   cardGradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: "75%" },
   cardOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 10 },
   cardTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  // Bebas Neue yuklenince: condensed/buyuk harf karakteri daha belirgin
+  // olsun diye boyut/harf araligi bu fonta gore yeniden ayarlanir (bkz.
+  // LoginScreen.tsx taglineFontLoaded AYNI mantik).
+  cardTitleFontLoaded: {
+    fontFamily: "BebasNeue_400Regular",
+    fontWeight: "400",
+    fontSize: 17,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
   participantsRow: { marginTop: 5 },
   participantsRowContent: { flexDirection: "row", alignItems: "center", paddingRight: 4 },
   participantAvatar: {
