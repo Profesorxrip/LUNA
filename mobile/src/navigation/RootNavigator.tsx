@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Linking } from "react-native";
-import { NavigationContainer, RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { DarkTheme, NavigationContainer, RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { createNativeStackNavigator, NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { showAlert } from "../components/CustomAlert";
 import DiscoverScreen from "../screens/DiscoverScreen";
@@ -39,6 +39,14 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+// NavigationContainer'a hic tema verilmezse react-navigation'in KENDI
+// varsayilan (acik/beyaz) temasi uygulanir - ekranlarin contentStyle'i
+// seffaf olsa bile NavigationContainer'in KENDI kok arka plani App.tsx'teki
+// paylasilan AppBackground'in (koyu degrade) ONUNE beyaz bir katman olarak
+// biner. DarkTheme tabanli, arka plani da seffaf yapilmis bir tema ile bu
+// onleniyor.
+const navTheme = { ...DarkTheme, colors: { ...DarkTheme.colors, background: "transparent" } };
 
 function DiscoverRoute() {
   const navigation = useNavigation<Nav>();
@@ -181,7 +189,7 @@ function RoomRoute() {
 
 export default function RootNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

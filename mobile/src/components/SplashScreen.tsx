@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, View, ActivityIndicator } from "react-native";
+import { Animated, Easing, StyleSheet, View } from "react-native";
 import LunaLogo from "./LunaLogo";
-import { theme } from "../theme";
+import LunaSpinner from "./LunaSpinner";
 
 /** App.tsx'te oturum kontrol edilirken (checkingSession) gosterilen acilis
  * ekrani - eskiden markasiz, ciplak bir ActivityIndicator'du. Artik
  * LoginScreen'deki ile AYNI LUNA logosu (bkz. LunaLogo.tsx) hafif bir
- * fade + yukari kayma ile beliriyor, altinda yukleniyor gostergesi doner. */
+ * fade + yukari kayma ile beliriyor, altinda LUNA'ya ozel yorunge spinner'i
+ * (bkz. LunaSpinner.tsx) doner. */
 export default function SplashScreen() {
   const fade = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(14)).current;
@@ -23,12 +24,14 @@ export default function SplashScreen() {
       <Animated.View style={{ opacity: fade, transform: [{ translateY }] }}>
         <LunaLogo width={190} />
       </Animated.View>
-      <ActivityIndicator color={theme.accent} size="small" style={styles.spinner} />
+      <View style={styles.spinnerWrap}>
+        <LunaSpinner size={30} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: "center", justifyContent: "center" },
-  spinner: { marginTop: 30 },
+  spinnerWrap: { marginTop: 30 },
 });
