@@ -61,5 +61,29 @@
     "deleteAccountFailed": "Konto konnte nicht gelöscht werden, bitte versuche es erneut.",
     "signOutTitle": "Abmelden",
     "signOutConfirm": "Möchtest du dich wirklich von deinem Konto abmelden?"
+  },
+  "login": {
+    "tagline": "DIE SCHÖNSTE ART, GEMEINSAM ZU SCHAUEN",
+    "orEmail": "oder weiter mit E-Mail",
+    "emailPlaceholder": "Deine E-Mail-Adresse",
+    "sendCode": "Code senden",
+    "codePlaceholder": "Bestätigungscode",
+    "verify": "Bestätigen",
+    "enterCodeHint": "Gib den Code ein, der an {{email}} gesendet wurde",
+    "useOtherEmail": "Andere E-Mail verwenden",
+    "termsPrefix": "Indem du fortfährst, akzeptierst du unsere",
+    "termsLink": "Nutzungsbedingungen",
+    "and": "und",
+    "privacyLink": "Datenschutzrichtlinie",
+    "termsSuffix": ".",
+    "emailRequiredTitle": "E-Mail erforderlich",
+    "emailRequiredBody": "Gib deine E-Mail-Adresse ein, um fortzufahren.",
+    "codeRequiredTitle": "Code erforderlich",
+    "codeRequiredBody": "Gib den Code aus deiner E-Mail ein.",
+    "sendFailedTitle": "Code konnte nicht gesendet werden",
+    "verifyFailedTitle": "Bestätigung fehlgeschlagen",
+    "signInFailedTitle": "Anmeldung fehlgeschlagen",
+    "signInFailedBody": "Anmeldung konnte nicht gestartet werden.",
+    "sessionFailedBody": "Sitzungsdaten konnten nicht abgerufen werden."
   }
 }

@@ -61,5 +61,29 @@
     "deleteAccountFailed": "Hesab nehate jêbirin, ji kerema xwe dîsa biceribîne.",
     "signOutTitle": "Derkeve",
     "signOutConfirm": "Tu bawer î ku tu dixwazî ji hesabê xwe derkevî?"
+  },
+  "login": {
+    "tagline": "ÇÊTIRÎN AWAYÊ TEMAŞEKIRINA BI HEV RE",
+    "orEmail": "an jî bi e-nameyê berdewam bike",
+    "emailPlaceholder": "Navnîşana te ya e-nameyê",
+    "sendCode": "Kodê Bişîne",
+    "codePlaceholder": "Koda piştrastkirinê",
+    "verify": "Piştrast bike",
+    "enterCodeHint": "Koda ku ji {{email}} re hatiye şandin binivîse",
+    "useOtherEmail": "E-nameyek din bikar bîne",
+    "termsPrefix": "Bi berdewamkirinê tu",
+    "termsLink": "Mercên Xizmetê",
+    "and": "û",
+    "privacyLink": "Polîtîkaya Nihêniyê",
+    "termsSuffix": "qebûl dikî.",
+    "emailRequiredTitle": "E-name pêwîst e",
+    "emailRequiredBody": "Ji bo berdewamkirinê navnîşana xwe ya e-nameyê binivîse.",
+    "codeRequiredTitle": "Kod pêwîst e",
+    "codeRequiredBody": "Koda ku hatiye e-nameya te binivîse.",
+    "sendFailedTitle": "Kod nehat şandin",
+    "verifyFailedTitle": "Piştrastkirin serneket",
+    "signInFailedTitle": "Têketin serneket",
+    "signInFailedBody": "Têketin nehat destpêkirin.",
+    "sessionFailedBody": "Agahiyên danişînê nehatin stendin."
   }
 }

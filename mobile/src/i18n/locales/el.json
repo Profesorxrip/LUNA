@@ -61,5 +61,29 @@
     "deleteAccountFailed": "Ο λογαριασμός δεν διαγράφηκε, δοκίμασε ξανά.",
     "signOutTitle": "Αποσύνδεση",
     "signOutConfirm": "Είσαι σίγουρος ότι θέλεις να αποσυνδεθείς από τον λογαριασμό σου;"
+  },
+  "login": {
+    "tagline": "Ο ΚΑΛΥΤΕΡΟΣ ΤΡΟΠΟΣ ΝΑ ΒΛΕΠΕΤΕ ΜΑΖΙ",
+    "orEmail": "ή συνέχισε με email",
+    "emailPlaceholder": "Η διεύθυνση email σου",
+    "sendCode": "Αποστολή κωδικού",
+    "codePlaceholder": "Κωδικός επαλήθευσης",
+    "verify": "Επαλήθευση",
+    "enterCodeHint": "Εισήγαγε τον κωδικό που στάλθηκε στο {{email}}",
+    "useOtherEmail": "Χρήση άλλου email",
+    "termsPrefix": "Συνεχίζοντας, αποδέχεσαι τους",
+    "termsLink": "Όρους Χρήσης",
+    "and": "και",
+    "privacyLink": "την Πολιτική Απορρήτου",
+    "termsSuffix": ".",
+    "emailRequiredTitle": "Απαιτείται email",
+    "emailRequiredBody": "Εισήγαγε τη διεύθυνση email σου για να συνεχίσεις.",
+    "codeRequiredTitle": "Απαιτείται κωδικός",
+    "codeRequiredBody": "Εισήγαγε τον κωδικό από το email σου.",
+    "sendFailedTitle": "Αποτυχία αποστολής κωδικού",
+    "verifyFailedTitle": "Η επαλήθευση απέτυχε",
+    "signInFailedTitle": "Η σύνδεση απέτυχε",
+    "signInFailedBody": "Δεν ήταν δυνατή η έναρξη σύνδεσης.",
+    "sessionFailedBody": "Δεν ήταν δυνατή η ανάκτηση στοιχείων σύνδεσης."
   }
 }

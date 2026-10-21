@@ -61,5 +61,29 @@
     "deleteAccountFailed": "No se pudo eliminar la cuenta, inténtalo de nuevo.",
     "signOutTitle": "Cerrar sesión",
     "signOutConfirm": "¿Seguro que quieres cerrar sesión de tu cuenta?"
+  },
+  "login": {
+    "tagline": "LA MEJOR MANERA DE VER JUNTOS",
+    "orEmail": "o continúa con tu correo",
+    "emailPlaceholder": "Tu correo electrónico",
+    "sendCode": "Enviar código",
+    "codePlaceholder": "Código de verificación",
+    "verify": "Verificar",
+    "enterCodeHint": "Introduce el código enviado a {{email}}",
+    "useOtherEmail": "Usar otro correo",
+    "termsPrefix": "Al continuar, aceptas nuestros",
+    "termsLink": "Términos de Servicio",
+    "and": "y",
+    "privacyLink": "nuestra Política de Privacidad",
+    "termsSuffix": ".",
+    "emailRequiredTitle": "Correo requerido",
+    "emailRequiredBody": "Introduce tu correo electrónico para continuar.",
+    "codeRequiredTitle": "Código requerido",
+    "codeRequiredBody": "Introduce el código de tu correo.",
+    "sendFailedTitle": "No se pudo enviar el código",
+    "verifyFailedTitle": "Error de verificación",
+    "signInFailedTitle": "Error al iniciar sesión",
+    "signInFailedBody": "No se pudo iniciar el acceso.",
+    "sessionFailedBody": "No se pudo obtener la información de sesión."
   }
 }

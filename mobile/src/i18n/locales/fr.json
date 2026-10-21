@@ -61,5 +61,29 @@
     "deleteAccountFailed": "Impossible de supprimer le compte, veuillez réessayer.",
     "signOutTitle": "Se Déconnecter",
     "signOutConfirm": "Êtes-vous sûr de vouloir vous déconnecter de votre compte ?"
+  },
+  "login": {
+    "tagline": "LA PLUS BELLE FAÇON DE REGARDER ENSEMBLE",
+    "orEmail": "ou continuer avec l'e-mail",
+    "emailPlaceholder": "Ton adresse e-mail",
+    "sendCode": "Envoyer le code",
+    "codePlaceholder": "Code de vérification",
+    "verify": "Vérifier",
+    "enterCodeHint": "Entre le code envoyé à {{email}}",
+    "useOtherEmail": "Utiliser un autre e-mail",
+    "termsPrefix": "En continuant, tu acceptes nos",
+    "termsLink": "Conditions d'utilisation",
+    "and": "et",
+    "privacyLink": "notre Politique de confidentialité",
+    "termsSuffix": ".",
+    "emailRequiredTitle": "E-mail requis",
+    "emailRequiredBody": "Saisis ton adresse e-mail pour continuer.",
+    "codeRequiredTitle": "Code requis",
+    "codeRequiredBody": "Saisis le code reçu par e-mail.",
+    "sendFailedTitle": "Échec de l'envoi du code",
+    "verifyFailedTitle": "Échec de la vérification",
+    "signInFailedTitle": "Échec de la connexion",
+    "signInFailedBody": "Impossible de démarrer la connexion.",
+    "sessionFailedBody": "Impossible de récupérer les informations de session."
   }
 }

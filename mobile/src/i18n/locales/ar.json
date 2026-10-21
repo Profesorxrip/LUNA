@@ -61,5 +61,29 @@
     "deleteAccountFailed": "تعذّر حذف الحساب، حاول مرة أخرى.",
     "signOutTitle": "تسجيل الخروج",
     "signOutConfirm": "هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟"
+  },
+  "login": {
+    "tagline": "أجمل طريقة للمشاهدة معًا",
+    "orEmail": "أو تابع عبر البريد الإلكتروني",
+    "emailPlaceholder": "عنوان بريدك الإلكتروني",
+    "sendCode": "إرسال الرمز",
+    "codePlaceholder": "رمز التحقق",
+    "verify": "تحقق",
+    "enterCodeHint": "أدخل الرمز المرسل إلى {{email}}",
+    "useOtherEmail": "استخدام بريد إلكتروني آخر",
+    "termsPrefix": "بالمتابعة، أنت توافق على",
+    "termsLink": "شروط الخدمة",
+    "and": "و",
+    "privacyLink": "سياسة الخصوصية",
+    "termsSuffix": ".",
+    "emailRequiredTitle": "البريد الإلكتروني مطلوب",
+    "emailRequiredBody": "أدخل عنوان بريدك الإلكتروني للمتابعة.",
+    "codeRequiredTitle": "الرمز مطلوب",
+    "codeRequiredBody": "أدخل الرمز الذي وصلك عبر البريد.",
+    "sendFailedTitle": "تعذر إرسال الرمز",
+    "verifyFailedTitle": "فشل التحقق",
+    "signInFailedTitle": "فشل تسجيل الدخول",
+    "signInFailedBody": "تعذر بدء تسجيل الدخول.",
+    "sessionFailedBody": "تعذر استرداد معلومات الجلسة."
   }
 }

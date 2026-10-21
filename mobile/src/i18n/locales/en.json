@@ -61,5 +61,29 @@
     "deleteAccountFailed": "Couldn't delete the account, please try again.",
     "signOutTitle": "Sign Out",
     "signOutConfirm": "Are you sure you want to sign out of your account?"
+  },
+  "login": {
+    "tagline": "THE BEST WAY TO WATCH TOGETHER",
+    "orEmail": "or continue with email",
+    "emailPlaceholder": "Your email address",
+    "sendCode": "Send Code",
+    "codePlaceholder": "Verification code",
+    "verify": "Verify",
+    "enterCodeHint": "Enter the code sent to {{email}}",
+    "useOtherEmail": "Use a different email",
+    "termsPrefix": "By continuing, you agree to our",
+    "termsLink": "Terms of Service",
+    "and": "and",
+    "privacyLink": "Privacy Policy",
+    "termsSuffix": ".",
+    "emailRequiredTitle": "Email required",
+    "emailRequiredBody": "Enter your email address to continue.",
+    "codeRequiredTitle": "Code required",
+    "codeRequiredBody": "Enter the code from your email.",
+    "sendFailedTitle": "Couldn't send code",
+    "verifyFailedTitle": "Verification failed",
+    "signInFailedTitle": "Sign-in failed",
+    "signInFailedBody": "Couldn't start sign-in.",
+    "sessionFailedBody": "Couldn't retrieve session info."
   }
 }

@@ -61,5 +61,29 @@
     "deleteAccountFailed": "Не удалось удалить аккаунт, попробуйте ещё раз.",
     "signOutTitle": "Выйти",
     "signOutConfirm": "Вы уверены, что хотите выйти из аккаунта?"
+  },
+  "login": {
+    "tagline": "ЛУЧШИЙ СПОСОБ СМОТРЕТЬ ВМЕСТЕ",
+    "orEmail": "или продолжить с email",
+    "emailPlaceholder": "Твой email",
+    "sendCode": "Отправить код",
+    "codePlaceholder": "Код подтверждения",
+    "verify": "Подтвердить",
+    "enterCodeHint": "Введи код, отправленный на {{email}}",
+    "useOtherEmail": "Использовать другой email",
+    "termsPrefix": "Продолжая, ты соглашаешься с",
+    "termsLink": "Условиями использования",
+    "and": "и",
+    "privacyLink": "Политикой конфиденциальности",
+    "termsSuffix": ".",
+    "emailRequiredTitle": "Требуется email",
+    "emailRequiredBody": "Введи свой email, чтобы продолжить.",
+    "codeRequiredTitle": "Требуется код",
+    "codeRequiredBody": "Введи код из письма.",
+    "sendFailedTitle": "Не удалось отправить код",
+    "verifyFailedTitle": "Ошибка подтверждения",
+    "signInFailedTitle": "Ошибка входа",
+    "signInFailedBody": "Не удалось начать вход.",
+    "sessionFailedBody": "Не удалось получить данные сессии."
   }
 }

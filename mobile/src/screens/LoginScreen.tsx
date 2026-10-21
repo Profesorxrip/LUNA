@@ -13,12 +13,14 @@ import {
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { useTranslation } from "react-i18next";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
 import { GoogleIcon } from "../components/SocialAuthIcons";
+import { LANGUAGES, setAppLanguage, LanguageCode } from "../i18n";
 import TermsScreen from "./TermsScreen";
 import PrivacyScreen from "./PrivacyScreen";
 
@@ -83,6 +85,9 @@ export default function LoginScreen() {
   // fark edilmiyor).
   const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
   const [infoModal, setInfoModal] = useState<InfoModal>(null);
+  const { t, i18n } = useTranslation();
+  const [languageSheetVisible, setLanguageSheetVisible] = useState(false);
+  const currentLanguageCode = i18n.language.toUpperCase();
 
   const [emailStep, setEmailStep] = useState<EmailStep>("closed");
   const [email, setEmail] = useState("");
@@ -101,7 +106,7 @@ export default function LoginScreen() {
     });
     if (error || !data?.url) {
       setLoadingProvider(null);
-      showAlert("Giriş başarısız", error?.message || "Giriş başlatılamadı.");
+      showAlert(t("login.signInFailedTitle"), error?.message || t("login.signInFailedBody"));
       return;
     }
     const result = await WebBrowser.openAuthSessionAsync(data.url, REDIRECT_URL);
@@ -115,7 +120,7 @@ export default function LoginScreen() {
     const refresh_token = params.get("refresh_token");
     setLoadingProvider(null);
     if (!access_token || !refresh_token) {
-      showAlert("Giriş başarısız", "Oturum bilgisi alınamadı.");
+      showAlert(t("login.signInFailedTitle"), t("login.sessionFailedBody"));
       return;
     }
     await supabase.auth.setSession({ access_token, refresh_token });
@@ -129,7 +134,7 @@ export default function LoginScreen() {
   async function sendEmailCode() {
     const trimmed = email.trim();
     if (!trimmed) {
-      showAlert("E-posta gerekli", "Devam etmek için e-posta adresini yaz.");
+      showAlert(t("login.emailRequiredTitle"), t("login.emailRequiredBody"));
       return;
     }
     setEmailLoading(true);
@@ -139,7 +144,7 @@ export default function LoginScreen() {
     });
     setEmailLoading(false);
     if (error) {
-      showAlert("Kod gönderilemedi", error.message);
+      showAlert(t("login.sendFailedTitle"), error.message);
       return;
     }
     setEmailStep("enter-code");
@@ -151,7 +156,7 @@ export default function LoginScreen() {
   async function verifyEmailCode() {
     const trimmed = code.trim();
     if (!trimmed) {
-      showAlert("Kod gerekli", "Mailine gelen kodu yaz.");
+      showAlert(t("login.codeRequiredTitle"), t("login.codeRequiredBody"));
       return;
     }
     setEmailLoading(true);
@@ -162,13 +167,27 @@ export default function LoginScreen() {
     });
     setEmailLoading(false);
     if (error) {
-      showAlert("Doğrulama başarısız", error.message);
+      showAlert(t("login.verifyFailedTitle"), error.message);
       return;
     }
   }
 
+  function handleSelectLanguage(langCode: LanguageCode) {
+    setAppLanguage(langCode);
+    setLanguageSheetVisible(false);
+  }
+
   return (
     <View style={styles.outer}>
+      <TouchableOpacity
+        style={styles.languageButton}
+        onPress={() => setLanguageSheetVisible(true)}
+        hitSlop={8}
+      >
+        <FontAwesome5 name="globe" size={14} color="#FFFFFF" />
+        <Text style={styles.languageButtonText}>{currentLanguageCode}</Text>
+      </TouchableOpacity>
+
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -194,7 +213,7 @@ export default function LoginScreen() {
       </View>
 
       <Text style={[styles.tagline, fontsLoaded && styles.taglineFontLoaded]}>
-        BİRLİKTE İZLEMENİN EN GÜZEL HALİ
+        {t("login.tagline")}
       </Text>
 
       <View style={styles.providerRow}>
@@ -268,7 +287,7 @@ export default function LoginScreen() {
       <View style={styles.emailSection}>
         {emailStep === "closed" && (
           <TouchableOpacity onPress={() => setEmailStep("enter-email")} hitSlop={8}>
-            <Text style={styles.emailToggleText}>veya e-posta ile devam et</Text>
+            <Text style={styles.emailToggleText}>{t("login.orEmail")}</Text>
           </TouchableOpacity>
         )}
 
@@ -278,7 +297,7 @@ export default function LoginScreen() {
               style={styles.emailInput}
               value={email}
               onChangeText={setEmail}
-              placeholder="E-posta adresin"
+              placeholder={t("login.emailPlaceholder")}
               placeholderTextColor="rgba(255,255,255,0.4)"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -289,7 +308,7 @@ export default function LoginScreen() {
               {emailLoading ? (
                 <ActivityIndicator color="#1C1C1E" />
               ) : (
-                <Text style={styles.emailButtonText}>Kod Gönder</Text>
+                <Text style={styles.emailButtonText}>{t("login.sendCode")}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -297,13 +316,13 @@ export default function LoginScreen() {
 
         {emailStep === "enter-code" && (
           <>
-            <Text style={styles.emailHint}>{email} adresine gönderilen kodu gir</Text>
+            <Text style={styles.emailHint}>{t("login.enterCodeHint", { email })}</Text>
             <View style={styles.emailRow}>
               <TextInput
                 style={styles.emailInput}
                 value={code}
                 onChangeText={setCode}
-                placeholder="Doğrulama kodu"
+                placeholder={t("login.codePlaceholder")}
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 keyboardType="number-pad"
                 maxLength={10}
@@ -313,7 +332,7 @@ export default function LoginScreen() {
                 {emailLoading ? (
                   <ActivityIndicator color="#1C1C1E" />
                 ) : (
-                  <Text style={styles.emailButtonText}>Doğrula</Text>
+                  <Text style={styles.emailButtonText}>{t("login.verify")}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -325,7 +344,7 @@ export default function LoginScreen() {
               hitSlop={8}
               style={styles.switchEmailButton}
             >
-              <Text style={styles.emailToggleText}>Farklı bir e-posta kullan</Text>
+              <Text style={styles.emailToggleText}>{t("login.useOtherEmail")}</Text>
             </TouchableOpacity>
           </>
         )}
@@ -337,15 +356,15 @@ export default function LoginScreen() {
           yukari kayip ustteki icerigin uzerine binmesin, hep ekranin en
           altinda sabit kalsin. */}
       <Text style={styles.termsText}>
-        Devam ederek{" "}
+        {t("login.termsPrefix")}{" "}
         <Text style={styles.termsLink} onPress={() => setInfoModal("terms")}>
-          Hizmet Koşulları'nı
+          {t("login.termsLink")}
         </Text>{" "}
-        ve{" "}
+        {t("login.and")}{" "}
         <Text style={styles.termsLink} onPress={() => setInfoModal("privacy")}>
-          Gizlilik Politikası'nı
+          {t("login.privacyLink")}
         </Text>{" "}
-        kabul etmiş olursunuz.
+        {t("login.termsSuffix")}
       </Text>
 
       <Modal
@@ -356,6 +375,40 @@ export default function LoginScreen() {
         {infoModal === "terms" ? <TermsScreen /> : <PrivacyScreen />}
         <TouchableOpacity style={styles.infoModalClose} onPress={() => setInfoModal(null)} hitSlop={10}>
           <Text style={styles.infoModalCloseText}>✕</Text>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={languageSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLanguageSheetVisible(false)}
+        statusBarTranslucent
+      >
+        <TouchableOpacity
+          style={styles.languageOverlay}
+          activeOpacity={1}
+          onPress={() => setLanguageSheetVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.languageSheet}>
+            {LANGUAGES.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                style={styles.languageRow}
+                onPress={() => handleSelectLanguage(lang.code)}
+              >
+                <Text
+                  style={[
+                    styles.languageRowText,
+                    lang.code === i18n.language && styles.languageRowTextActive,
+                  ]}
+                >
+                  {lang.label}
+                </Text>
+                {lang.code === i18n.language && <FontAwesome5 name="check" size={14} color="#0EA5E9" />}
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
     </View>
@@ -369,6 +422,33 @@ const styles = StyleSheet.create({
   // acilinca yukari kaymasi gereken kisim (logo/butonlar/email formu).
   outer: { flex: 1, backgroundColor: "transparent" },
   container: { flex: 1, padding: 24, justifyContent: "center" },
+  // Dil secici: sag ust kose, infoModalClose ile AYNI olcek/konum mantigi
+  // (top:54 - SafeAreaProvider bu dalda yok, bu yuzden sabit bir deger).
+  languageButton: {
+    position: "absolute",
+    top: 54,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    columnGap: 6,
+    paddingHorizontal: 12,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    zIndex: 10,
+  },
+  languageButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  languageOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 32 },
+  languageSheet: { backgroundColor: "#15202B", borderRadius: 18, paddingVertical: 8, maxHeight: 420 },
+  languageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  languageRowText: { color: "rgba(255,255,255,0.8)", fontSize: 15 },
+  languageRowTextActive: { color: "#FFFFFF", fontWeight: "700" },
   // logoShadow kopyalari logoMark'tan en fazla 3px tasabiliyor - golge
   // View'in disina kirpilmasin diye wrap, logodan biraz daha genis/yuksek.
   // marginTop negatif: "logoyu hafif yukari al" - butun grup (logo+row+alt

@@ -61,5 +61,29 @@
     "deleteAccountFailed": "Hesap silinemedi, lütfen tekrar dene.",
     "signOutTitle": "Çıkış Yap",
     "signOutConfirm": "Hesabından çıkmak istediğine emin misin?"
+  },
+  "login": {
+    "tagline": "BİRLİKTE İZLEMENİN EN GÜZEL HALİ",
+    "orEmail": "veya e-posta ile devam et",
+    "emailPlaceholder": "E-posta adresin",
+    "sendCode": "Kod Gönder",
+    "codePlaceholder": "Doğrulama kodu",
+    "verify": "Doğrula",
+    "enterCodeHint": "{{email}} adresine gönderilen kodu gir",
+    "useOtherEmail": "Farklı bir e-posta kullan",
+    "termsPrefix": "Devam ederek",
+    "termsLink": "Hizmet Koşulları'nı",
+    "and": "ve",
+    "privacyLink": "Gizlilik Politikası'nı",
+    "termsSuffix": "kabul etmiş olursunuz.",
+    "emailRequiredTitle": "E-posta gerekli",
+    "emailRequiredBody": "Devam etmek için e-posta adresini yaz.",
+    "codeRequiredTitle": "Kod gerekli",
+    "codeRequiredBody": "Mailine gelen kodu yaz.",
+    "sendFailedTitle": "Kod gönderilemedi",
+    "verifyFailedTitle": "Doğrulama başarısız",
+    "signInFailedTitle": "Giriş başarısız",
+    "signInFailedBody": "Giriş başlatılamadı.",
+    "sessionFailedBody": "Oturum bilgisi alınamadı."
   }
 }

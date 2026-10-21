@@ -61,5 +61,29 @@
     "deleteAccountFailed": "Hesab silinə bilmədi, zəhmət olmasa yenidən cəhd edin.",
     "signOutTitle": "Çıxış Et",
     "signOutConfirm": "Hesabınızdan çıxmaq istədiyinizə əminsiniz?"
+  },
+  "login": {
+    "tagline": "BİRLİKDƏ İZLƏMƏNİN ƏN GÖZƏL HALI",
+    "orEmail": "və ya e-poçtla davam et",
+    "emailPlaceholder": "E-poçt ünvanın",
+    "sendCode": "Kodu Göndər",
+    "codePlaceholder": "Təsdiq kodu",
+    "verify": "Təsdiqlə",
+    "enterCodeHint": "{{email}} ünvanına göndərilən kodu daxil et",
+    "useOtherEmail": "Fərqli e-poçt istifadə et",
+    "termsPrefix": "Davam etməklə",
+    "termsLink": "İstifadə Şərtlərini",
+    "and": "və",
+    "privacyLink": "Məxfilik Siyasətini",
+    "termsSuffix": "qəbul etmiş olursan.",
+    "emailRequiredTitle": "E-poçt tələb olunur",
+    "emailRequiredBody": "Davam etmək üçün e-poçt ünvanını yaz.",
+    "codeRequiredTitle": "Kod tələb olunur",
+    "codeRequiredBody": "E-poçtuna gələn kodu yaz.",
+    "sendFailedTitle": "Kod göndərilmədi",
+    "verifyFailedTitle": "Təsdiqləmə uğursuz oldu",
+    "signInFailedTitle": "Giriş uğursuz oldu",
+    "signInFailedBody": "Giriş başladıla bilmədi.",
+    "sessionFailedBody": "Sessiya məlumatı alına bilmədi."
   }
 }
