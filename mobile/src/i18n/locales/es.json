@@ -254,5 +254,41 @@
     "showOriginal": "Ver original",
     "signInRequiredTitle": "Inicio de sesión requerido",
     "signInRequiredBody": "Debes haber iniciado sesión para enviar fotos."
+  },
+  "backgroundInfo": {
+    "title": "¿SE ESTÁ DETENIENDO LUNA EN SEGUNDO PLANO?",
+    "body1": "Algunos fabricantes de teléfonos Android (como Xiaomi, Huawei, OnePlus, Samsung, Oppo) cierran agresivamente las aplicaciones en segundo plano para ahorrar batería. Por eso, las notificaciones de LUNA a veces pueden retrasarse, o tu conexión al chat de voz/sala puede cortarse mientras LUNA está en segundo plano - esto no es un error de LUNA, se debe a la configuración de gestión de batería de tu teléfono.",
+    "heading2": "Qué puedes hacer",
+    "body2": "Si vas a Configuración > Batería (o Aplicaciones > LUNA > Batería) y desactivas la optimización de batería para LUNA, eligiendo \"Sin restricciones\" / \"Permitir\", LUNA funcionará de forma más fiable en segundo plano. En algunos teléfonos también podrías necesitar conceder a LUNA el permiso de \"Inicio automático\".",
+    "heading3": "Si usas iPhone",
+    "body3": "iOS no cierra las aplicaciones tan agresivamente como Android, por lo que es poco probable que tengas este problema."
+  },
+  "premium": {
+    "tagline": "PARA UNA LUNA SIN ANUNCIOS...",
+    "benefit1": "Experiencia de visualización sin anuncios e ininterrumpida",
+    "benefit2": "Insignia Premium exclusiva en tu perfil",
+    "benefit3": "Soporte prioritario",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "yearlyNote": "2 meses gratis",
+    "continue": "Continuar",
+    "disclaimer": "Puedes cancelar en cualquier momento.",
+    "paymentComingSoonTitle": "Pago próximamente",
+    "paymentComingSoonBody": "El flujo de compra (compra dentro de la aplicación de Apple/Google) aún no está conectado - esta pantalla está lista y se activará cuando se añada un proveedor de pagos."
+  },
+  "roomPreview": {
+    "privacyOpen": "Público",
+    "privacyNearby": "Círculo cercano",
+    "privacyFriends": "Círculo de amigos",
+    "privacyInvite": "Solo con invitación",
+    "ended": "Terminado",
+    "playing": "Reproduciendo",
+    "paused": "En pausa",
+    "openedAt": "Abierta a las {{time}}",
+    "noParticipantInfo": "No se pudo obtener la información de los participantes.",
+    "deleteRoomTitle": "Quitar sala",
+    "deleteRoomBody": "¿Quitar esta sala de tu lista de Descubrir? La sala no se cerrará, solo se ocultará para ti.",
+    "remove": "Quitar",
+    "roomReportedBody": "Esta sala ha sido reportada a nuestro equipo de moderación, gracias."
   }
 }

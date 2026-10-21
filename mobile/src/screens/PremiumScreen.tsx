@@ -1,37 +1,33 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { useTranslation } from "react-i18next";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import { triggerHaptic } from "../utils/haptics";
 
 const ACCENT = "#0EA5E9";
 
-const BENEFITS = [
-  "Reklamsız, kesintisiz izleme deneyimi",
-  "Profilinde özel Premium rozeti",
-  "Öncelikli destek",
-];
-
 type PlanKey = "monthly" | "yearly";
-
-const PLANS: { key: PlanKey; label: string; price: string; note?: string }[] = [
-  { key: "monthly", label: "Aylık", price: "₺49,99" },
-  { key: "yearly", label: "Yıllık", price: "₺399,99", note: "2 ay bedava" },
-];
 
 /** Gercek bir odeme ekrani - plan secimi ve "Devam Et" akisi tamamen
  * calisiyor, ama GERCEK tahsilat (App Store/Play Store IAP ya da Stripe)
  * henuz baglanmadi (magaza hesaplari bu ortamdan kurulamiyor) - bu yuzden
  * "Devam Et" su an durumu acikca soyleyen bir bilgi mesaji gosteriyor. */
 export default function PremiumScreen() {
+  const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<PlanKey>("yearly");
+
+  const BENEFITS = [t("premium.benefit1"), t("premium.benefit2"), t("premium.benefit3")];
+  // Fiyatlar (TL) henuz gercek bir odeme saglayicisina bagli degil - para
+  // birimi/tutar su an icin sabit, cevrilmiyor (bkz. yukaridaki yorum).
+  const PLANS: { key: PlanKey; label: string; price: string; note?: string }[] = [
+    { key: "monthly", label: t("premium.monthly"), price: "₺49,99" },
+    { key: "yearly", label: t("premium.yearly"), price: "₺399,99", note: t("premium.yearlyNote") },
+  ];
 
   function handleContinue() {
     triggerHaptic();
-    showAlert(
-      "Ödeme altyapısı yakında",
-      "Satın alma akışı (Apple/Google uygulama içi satın alma) henüz bağlanmadı - bu ekran hazır, ödeme sağlayıcısı eklenince aktif olacak."
-    );
+    showAlert(t("premium.paymentComingSoonTitle"), t("premium.paymentComingSoonBody"));
   }
 
   return (
@@ -42,7 +38,7 @@ export default function PremiumScreen() {
             <Icon name="crown" size={36} color={ACCENT} />
           </View>
           <Text style={styles.title}>LUNA PREMIUM</Text>
-          <Text style={styles.tagline}>REKLAMSIZ BİR LUNA İÇİN...</Text>
+          <Text style={styles.tagline}>{t("premium.tagline")}</Text>
         </View>
 
         <View style={styles.benefitList}>
@@ -83,9 +79,9 @@ export default function PremiumScreen() {
         </View>
 
         <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.85}>
-          <Text style={styles.continueButtonText}>Devam Et</Text>
+          <Text style={styles.continueButtonText}>{t("premium.continue")}</Text>
         </TouchableOpacity>
-        <Text style={styles.disclaimer}>İstediğin zaman iptal edebilirsin.</Text>
+        <Text style={styles.disclaimer}>{t("premium.disclaimer")}</Text>
       </ScrollView>
     </View>
   );

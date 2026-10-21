@@ -254,5 +254,41 @@
     "showOriginal": "Original anzeigen",
     "signInRequiredTitle": "Anmeldung erforderlich",
     "signInRequiredBody": "Du musst angemeldet sein, um Fotos zu senden."
+  },
+  "backgroundInfo": {
+    "title": "WIRD LUNA IM HINTERGRUND BEENDET?",
+    "body1": "Manche Android-Hersteller (wie Xiaomi, Huawei, OnePlus, Samsung, Oppo) schließen Hintergrund-Apps aggressiv, um Akku zu sparen. Dadurch können bei LUNA im Hintergrund manchmal Benachrichtigungen verzögert ankommen oder deine Sprachchat-/Raumverbindung abbrechen - das ist kein Fehler von LUNA, sondern liegt an den Akku-Einstellungen deines Telefons.",
+    "heading2": "Was du tun kannst",
+    "body2": "Wenn du unter Einstellungen > Akku (oder Apps > LUNA > Akku) die Akkuoptimierung für LUNA deaktivierst und \"Uneingeschränkt\" / \"Zulassen\" auswählst, läuft LUNA zuverlässiger im Hintergrund. Auf manchen Telefonen musst du LUNA zusätzlich die Berechtigung \"Autostart\" geben.",
+    "heading3": "Wenn du ein iPhone benutzt",
+    "body3": "iOS schließt Apps nicht so aggressiv wie Android, daher wirst du dieses Problem wahrscheinlich nicht haben."
+  },
+  "premium": {
+    "tagline": "FÜR EIN WERBEFREIES LUNA...",
+    "benefit1": "Werbefreies, ununterbrochenes Seherlebnis",
+    "benefit2": "Exklusives Premium-Abzeichen auf deinem Profil",
+    "benefit3": "Bevorzugter Support",
+    "monthly": "Monatlich",
+    "yearly": "Jährlich",
+    "yearlyNote": "2 Monate gratis",
+    "continue": "Weiter",
+    "disclaimer": "Du kannst jederzeit kündigen.",
+    "paymentComingSoonTitle": "Zahlung bald verfügbar",
+    "paymentComingSoonBody": "Der Kaufvorgang (Apple/Google In-App-Kauf) ist noch nicht angebunden - dieser Bildschirm ist bereit und wird aktiv, sobald ein Zahlungsanbieter hinzugefügt wird."
+  },
+  "roomPreview": {
+    "privacyOpen": "Öffentlich",
+    "privacyNearby": "In der Nähe",
+    "privacyFriends": "Freundeskreis",
+    "privacyInvite": "Nur auf Einladung",
+    "ended": "Beendet",
+    "playing": "Wird abgespielt",
+    "paused": "Pausiert",
+    "openedAt": "Eröffnet um {{time}}",
+    "noParticipantInfo": "Teilnehmerinformationen konnten nicht abgerufen werden.",
+    "deleteRoomTitle": "Raum entfernen",
+    "deleteRoomBody": "Diesen Raum aus deiner Entdecken-Liste entfernen? Der Raum wird nicht geschlossen, er wird nur für dich ausgeblendet.",
+    "remove": "Entfernen",
+    "roomReportedBody": "Dieser Raum wurde an unser Moderationsteam gemeldet, danke."
   }
 }

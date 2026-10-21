@@ -254,5 +254,41 @@
     "showOriginal": "See original",
     "signInRequiredTitle": "Sign-in required",
     "signInRequiredBody": "You need to be signed in to send photos."
+  },
+  "backgroundInfo": {
+    "title": "IS LUNA BEING STOPPED IN THE BACKGROUND?",
+    "body1": "Some Android phone makers (such as Xiaomi, Huawei, OnePlus, Samsung, Oppo) aggressively close background apps to save battery. Because of this, LUNA notifications can sometimes be delayed, or your voice chat/room connection can drop while LUNA is in the background - this isn't a bug in LUNA, it comes from your phone's battery management settings.",
+    "heading2": "What you can do",
+    "body2": "If you go to your phone's Settings > Battery (or Apps > LUNA > Battery) and turn off battery optimization for LUNA, choosing \"Unrestricted\" / \"Allow\", LUNA runs more reliably in the background. On some phones you may also need to grant LUNA \"Autostart\" permission.",
+    "heading3": "If you're on iPhone",
+    "body3": "iOS doesn't close apps as aggressively as Android, so you're unlikely to run into this issue."
+  },
+  "premium": {
+    "tagline": "FOR AN AD-FREE LUNA...",
+    "benefit1": "Ad-free, uninterrupted viewing experience",
+    "benefit2": "Exclusive Premium badge on your profile",
+    "benefit3": "Priority support",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "yearlyNote": "2 months free",
+    "continue": "Continue",
+    "disclaimer": "You can cancel anytime.",
+    "paymentComingSoonTitle": "Payment coming soon",
+    "paymentComingSoonBody": "The purchase flow (Apple/Google in-app purchase) isn't connected yet - this screen is ready and will go live once a payment provider is added."
+  },
+  "roomPreview": {
+    "privacyOpen": "Public",
+    "privacyNearby": "Nearby Circle",
+    "privacyFriends": "Friends Circle",
+    "privacyInvite": "Invite Only",
+    "ended": "Ended",
+    "playing": "Playing",
+    "paused": "Paused",
+    "openedAt": "Opened at {{time}}",
+    "noParticipantInfo": "Couldn't get participant info.",
+    "deleteRoomTitle": "Remove Room",
+    "deleteRoomBody": "Remove this room from your Discover list? The room won't close, it'll just be hidden for you.",
+    "remove": "Remove",
+    "roomReportedBody": "This room has been reported to our moderation team, thank you."
   }
 }

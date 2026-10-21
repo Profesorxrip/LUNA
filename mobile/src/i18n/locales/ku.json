@@ -254,5 +254,41 @@
     "showOriginal": "Orjînalê bibîne",
     "signInRequiredTitle": "Têketin pêwîst e",
     "signInRequiredBody": "Ji bo şandina wêneyan divê tu têketî bî."
+  },
+  "backgroundInfo": {
+    "title": "MA LUNA LI PAŞ ÇAVAN TÊ RAWESTANDIN?",
+    "body1": "Hin hilberînerên telefonên Androidê (wek Xiaomi, Huawei, OnePlus, Samsung, Oppo) ji bo xilaskirina bataryayê sepanên li paş çavan bi tundî digirin. Ji ber vê yekê dema LUNA li paş çavan be, dibe ku agahdarî dereng bên an girêdana te ya sohbeta dengî/odeyê were qutkirin - ev ne kêmasiyek LUNA ye, ev ji mîhengên rêveberiya bataryaya telefona te tê.",
+    "heading2": "Tu çi dikarî bikî",
+    "body2": "Heke tu biçî Mîheng > Baterî (an Sepan > LUNA > Baterî) û ji bo LUNA xweştirkirina bataryayê bigirî û \"Bê sînor\" / \"Destûr bide\" hilbijêrî, LUNA bi awayekî pêbawertir li paş çavan dixebite. Li hin telefonan dibe ku pêdivî bi destûra \"Destpêkirina xweber\" ya ji bo LUNA jî hebe.",
+    "heading3": "Heke tu iPhone bikar tîne",
+    "body3": "iOS sepanan ne bi tundiya Androidê digire, loma ihtîmaleke mezin tu rastî vê pirsgirêkê nayê."
+  },
+  "premium": {
+    "tagline": "JI BO LUNEYEKE BÊ REKLAM...",
+    "benefit1": "Tecrubeya temaşekirinê ya bê reklam û bêqutbûn",
+    "benefit2": "Nîşana Premium a taybet li ser profîla te",
+    "benefit3": "Piştgiriya pêşîn",
+    "monthly": "Mehane",
+    "yearly": "Salane",
+    "yearlyNote": "2 meh belaş",
+    "continue": "Bidomîne",
+    "disclaimer": "Tu dikarî her dem betal bikî.",
+    "paymentComingSoonTitle": "Dayîna drav zûtirîn tê",
+    "paymentComingSoonBody": "Rêça kirînê (kirîna hundir a Apple/Google) hêj ne girêdayî ye - ev ekran amade ye û dema peydakerekî dravdanê were zêdekirin dê çalak bibe."
+  },
+  "roomPreview": {
+    "privacyOpen": "Vekirî ji Hemûyan re",
+    "privacyNearby": "Dora Nêzîk",
+    "privacyFriends": "Dora Hevalan",
+    "privacyInvite": "Tenê bi Vexwendinê",
+    "ended": "Qediya",
+    "playing": "Tê lîstin",
+    "paused": "Hat sekinandin",
+    "openedAt": "Di {{time}} de hat vekirin",
+    "noParticipantInfo": "Agahiya beşdaran nehat stendin.",
+    "deleteRoomTitle": "Odeyê Rake",
+    "deleteRoomBody": "Ev ode ji lîsteya te ya Vedîtinê were rakirin? Ode nayê girtin, tenê ji bo te were veşartin.",
+    "remove": "Rake",
+    "roomReportedBody": "Ev ode ji tîma me ya moderasyonê re hat ragihandin, spas."
   }
 }

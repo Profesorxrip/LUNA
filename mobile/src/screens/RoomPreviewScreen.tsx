@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
+import { useTranslation } from "react-i18next";
 import { getSocket, PublicRoomSummary, RoomParticipantDetail, PrivacyLevel } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
@@ -22,12 +23,14 @@ interface Props {
 
 const AVATAR_COLORS = ["#3A2F22", "#1F3D24", "#2E4A2F", "#4A3B22"];
 
-const PRIVACY_LABEL: Record<PrivacyLevel, string> = {
-  open: "Herkese Açık",
-  nearby: "Yakın Çevre",
-  friends: "Arkadaş Çemberi",
-  invite: "Anahtarlı Kapı",
-};
+function getPrivacyLabels(t: (key: string) => string): Record<PrivacyLevel, string> {
+  return {
+    open: t("roomPreview.privacyOpen"),
+    nearby: t("roomPreview.privacyNearby"),
+    friends: t("roomPreview.privacyFriends"),
+    invite: t("roomPreview.privacyInvite"),
+  };
+}
 
 function formatTime(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -47,6 +50,7 @@ function formatOpenedTime(ms: number): string {
 }
 
 export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticipant }: Props) {
+  const { t } = useTranslation();
   const [participants, setParticipants] = useState<RoomParticipantDetail[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(true);
   const [position, setPosition] = useState(room.positionSeconds);
@@ -62,10 +66,10 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
   // KENDI Keşfet listesinden gizliyor (bkz. utils/hiddenRooms.ts) - herkes
   // kullanabilir, oda baskalarinda normal gorunmeye devam eder.
   function confirmHideRoom() {
-    showAlert("Odayı Sil", "Bu oda Keşfet listenden kaldırılsın mı? Oda kapanmaz, sadece senin için gizlenir.", [
-      { text: "Vazgeç", style: "cancel" },
+    showAlert(t("roomPreview.deleteRoomTitle"), t("roomPreview.deleteRoomBody"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Kaldır",
+        text: t("roomPreview.remove"),
         style: "destructive",
         onPress: async () => {
           await hideRoomFromDiscover(room.code);
@@ -82,7 +86,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
       "report:submit",
       { targetUserId: host.userId, reason: `Oda bildirildi: ${room.code} - ${room.title}` },
       (res: any) => {
-        if (res?.ok) showAlert("Bildirildi", "Bu oda moderasyon ekibine iletildi, teşekkürler.");
+        if (res?.ok) showAlert(t("discover.reportedTitle"), t("roomPreview.roomReportedBody"));
       }
     );
   }
@@ -104,7 +108,8 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
 
   const platform = badgeInfoForSource(room.source);
   const coverUrl = coverUrlForSource(room.source);
-  const statusText = hasEnded ? "Bitti" : room.isPlaying ? "Oynatılıyor" : "Duraklatıldı";
+  const statusText = hasEnded ? t("roomPreview.ended") : room.isPlaying ? t("roomPreview.playing") : t("roomPreview.paused");
+  const privacyLabels = getPrivacyLabels(t);
 
   return (
     <View style={styles.screen}>
@@ -161,10 +166,10 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
             </>
           )}
           <Text style={styles.statusDot}>•</Text>
-          <Text style={styles.statusText}>{PRIVACY_LABEL[room.privacy]}</Text>
+          <Text style={styles.statusText}>{privacyLabels[room.privacy]}</Text>
           <Icon name={room.privacy === "friends" ? "people" : room.privacy === "invite" ? "inviteKey" : room.privacy === "nearby" ? "radar" : "worldOpen"} size={16} color={theme.textMuted} />
           <Text style={styles.statusDot}>•</Text>
-          <Text style={styles.statusText}>{formatOpenedTime(room.createdAtMs)}'de açıldı</Text>
+          <Text style={styles.statusText}>{t("roomPreview.openedAt", { time: formatOpenedTime(room.createdAtMs) })}</Text>
         </View>
       </View>
 
@@ -177,7 +182,7 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
           loadingParticipants ? (
             <LoadingView />
           ) : (
-            <Text style={styles.emptyText}>Katılımcı bilgisi alınamadı.</Text>
+            <Text style={styles.emptyText}>{t("roomPreview.noParticipantInfo")}</Text>
           )
         }
         renderItem={({ item, index }) => (

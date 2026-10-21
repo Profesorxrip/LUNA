@@ -254,5 +254,41 @@
     "showOriginal": "Orijinalini gör",
     "signInRequiredTitle": "Giriş gerekli",
     "signInRequiredBody": "Fotoğraf göndermek için giriş yapmış olman gerekiyor."
+  },
+  "backgroundInfo": {
+    "title": "LUNA ARKA PLANDA DURDURULUYOR MU?",
+    "body1": "Bazı Android telefon üreticileri (Xiaomi, Huawei, OnePlus, Samsung, Oppo gibi) pil tasarrufu için arka plandaki uygulamaları agresif şekilde kapatır. Bu yüzden LUNA arka plandayken bazen bildirimler gecikebilir veya sesli sohbet/oda bağlantın kopabilir - bu LUNA'nın bir hatası değil, telefonunun pil yönetimi ayarlarından kaynaklanır.",
+    "heading2": "Ne yapabilirsin",
+    "body2": "Telefonunun Ayarlar > Pil (veya Uygulamalar > LUNA > Pil) bölümünden LUNA için pil optimizasyonunu kapatıp \"Kısıtlama yok\" / \"İzin ver\" seçeneğini seçersen, LUNA arka planda daha güvenilir çalışır. Bazı telefonlarda ayrıca \"Otomatik başlatma\" (autostart) iznini de LUNA için açman gerekebilir.",
+    "heading3": "iPhone kullanıyorsan",
+    "body3": "iOS, uygulamaları Android kadar agresif kapatmaz; bu sorunla büyük olasılıkla karşılaşmazsın."
+  },
+  "premium": {
+    "tagline": "REKLAMSIZ BİR LUNA İÇİN...",
+    "benefit1": "Reklamsız, kesintisiz izleme deneyimi",
+    "benefit2": "Profilinde özel Premium rozeti",
+    "benefit3": "Öncelikli destek",
+    "monthly": "Aylık",
+    "yearly": "Yıllık",
+    "yearlyNote": "2 ay bedava",
+    "continue": "Devam Et",
+    "disclaimer": "İstediğin zaman iptal edebilirsin.",
+    "paymentComingSoonTitle": "Ödeme altyapısı yakında",
+    "paymentComingSoonBody": "Satın alma akışı (Apple/Google uygulama içi satın alma) henüz bağlanmadı - bu ekran hazır, ödeme sağlayıcısı eklenince aktif olacak."
+  },
+  "roomPreview": {
+    "privacyOpen": "Herkese Açık",
+    "privacyNearby": "Yakın Çevre",
+    "privacyFriends": "Arkadaş Çemberi",
+    "privacyInvite": "Anahtarlı Kapı",
+    "ended": "Bitti",
+    "playing": "Oynatılıyor",
+    "paused": "Duraklatıldı",
+    "openedAt": "{{time}}'de açıldı",
+    "noParticipantInfo": "Katılımcı bilgisi alınamadı.",
+    "deleteRoomTitle": "Odayı Sil",
+    "deleteRoomBody": "Bu oda Keşfet listenden kaldırılsın mı? Oda kapanmaz, sadece senin için gizlenir.",
+    "remove": "Kaldır",
+    "roomReportedBody": "Bu oda moderasyon ekibine iletildi, teşekkürler."
   }
 }

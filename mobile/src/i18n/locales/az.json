@@ -254,5 +254,41 @@
     "showOriginal": "Orijinalı gör",
     "signInRequiredTitle": "Giriş tələb olunur",
     "signInRequiredBody": "Şəkil göndərmək üçün giriş etmiş olmalısan."
+  },
+  "backgroundInfo": {
+    "title": "LUNA ARXA FONDA DAYANDIRILIRMI?",
+    "body1": "Bəzi Android telefon istehsalçıları (Xiaomi, Huawei, OnePlus, Samsung, Oppo kimi) batareya qənaəti üçün arxa fondakı tətbiqləri aqressiv şəkildə bağlayır. Buna görə LUNA arxa fonda olarkən bəzən bildirişlər gecikə bilər və ya səsli söhbət/otaq bağlantın qırıla bilər - bu LUNA-nın xətası deyil, telefonunun batareya idarəetmə ayarlarından qaynaqlanır.",
+    "heading2": "Nə edə bilərsən",
+    "body2": "Telefonunun Ayarlar > Batareya (və ya Tətbiqlər > LUNA > Batareya) bölməsindən LUNA üçün batareya optimallaşdırmasını söndürüb \"Məhdudiyyətsiz\" / \"İcazə ver\" seçsən, LUNA arxa fonda daha etibarlı işləyər. Bəzi telefonlarda LUNA üçün \"Avtomatik başlatma\" icazəsini də açmaq lazım ola bilər.",
+    "heading3": "iPhone istifadə edirsənsə",
+    "body3": "iOS tətbiqləri Android qədər aqressiv bağlamır; bu problemlə böyük ehtimalla qarşılaşmayacaqsan."
+  },
+  "premium": {
+    "tagline": "REKLAMSIZ BİR LUNA ÜÇÜN...",
+    "benefit1": "Reklamsız, fasiləsiz izləmə təcrübəsi",
+    "benefit2": "Profilində xüsusi Premium nişanı",
+    "benefit3": "Prioritet dəstək",
+    "monthly": "Aylıq",
+    "yearly": "İllik",
+    "yearlyNote": "2 ay pulsuz",
+    "continue": "Davam et",
+    "disclaimer": "İstənilən vaxt ləğv edə bilərsən.",
+    "paymentComingSoonTitle": "Ödəniş tezliklə",
+    "paymentComingSoonBody": "Satın alma axını (Apple/Google tətbiq daxili satın alma) hələ qoşulmayıb - bu ekran hazırdır, ödəniş provayderi əlavə ediləndə aktiv olacaq."
+  },
+  "roomPreview": {
+    "privacyOpen": "Hamıya Açıq",
+    "privacyNearby": "Yaxın Dairə",
+    "privacyFriends": "Dostlar Dairəsi",
+    "privacyInvite": "Yalnız Dəvətlə",
+    "ended": "Bitdi",
+    "playing": "Oynadılır",
+    "paused": "Dayandırıldı",
+    "openedAt": "{{time}}-də açıldı",
+    "noParticipantInfo": "İştirakçı məlumatı alına bilmədi.",
+    "deleteRoomTitle": "Otağı Sil",
+    "deleteRoomBody": "Bu otaq Kəşf et siyahından silinsin? Otaq bağlanmır, yalnız sənin üçün gizlədilir.",
+    "remove": "Sil",
+    "roomReportedBody": "Bu otaq moderasiya komandamıza bildirildi, təşəkkürlər."
   }
 }

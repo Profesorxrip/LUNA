@@ -254,5 +254,41 @@
     "showOriginal": "Voir l'original",
     "signInRequiredTitle": "Connexion requise",
     "signInRequiredBody": "Tu dois être connecté(e) pour envoyer des photos."
+  },
+  "backgroundInfo": {
+    "title": "LUNA EST-ELLE ARRÊTÉE EN ARRIÈRE-PLAN ?",
+    "body1": "Certains fabricants de téléphones Android (comme Xiaomi, Huawei, OnePlus, Samsung, Oppo) ferment agressivement les applications en arrière-plan pour économiser la batterie. À cause de cela, les notifications de LUNA peuvent parfois être retardées, ou ta connexion au chat vocal/salon peut se couper lorsque LUNA est en arrière-plan - ce n'est pas un bug de LUNA, cela vient des paramètres de gestion de batterie de ton téléphone.",
+    "heading2": "Ce que tu peux faire",
+    "body2": "Si tu vas dans Paramètres > Batterie (ou Applications > LUNA > Batterie) et que tu désactives l'optimisation de la batterie pour LUNA en choisissant \"Sans restriction\" / \"Autoriser\", LUNA fonctionnera plus fiablement en arrière-plan. Sur certains téléphones, tu devras peut-être aussi accorder à LUNA la permission de \"démarrage automatique\".",
+    "heading3": "Si tu utilises un iPhone",
+    "body3": "iOS ne ferme pas les applications aussi agressivement qu'Android, tu ne rencontreras donc probablement pas ce problème."
+  },
+  "premium": {
+    "tagline": "POUR UNE LUNA SANS PUBLICITÉ...",
+    "benefit1": "Expérience de visionnage sans publicité et ininterrompue",
+    "benefit2": "Badge Premium exclusif sur ton profil",
+    "benefit3": "Support prioritaire",
+    "monthly": "Mensuel",
+    "yearly": "Annuel",
+    "yearlyNote": "2 mois gratuits",
+    "continue": "Continuer",
+    "disclaimer": "Tu peux annuler à tout moment.",
+    "paymentComingSoonTitle": "Paiement bientôt disponible",
+    "paymentComingSoonBody": "Le parcours d'achat (achat intégré Apple/Google) n'est pas encore connecté - cet écran est prêt et s'activera une fois un prestataire de paiement ajouté."
+  },
+  "roomPreview": {
+    "privacyOpen": "Public",
+    "privacyNearby": "Cercle proche",
+    "privacyFriends": "Cercle d'amis",
+    "privacyInvite": "Sur invitation",
+    "ended": "Terminé",
+    "playing": "En lecture",
+    "paused": "En pause",
+    "openedAt": "Ouvert à {{time}}",
+    "noParticipantInfo": "Impossible d'obtenir les informations des participants.",
+    "deleteRoomTitle": "Retirer le salon",
+    "deleteRoomBody": "Retirer ce salon de ta liste Découvrir ? Le salon ne se fermera pas, il sera juste masqué pour toi.",
+    "remove": "Retirer",
+    "roomReportedBody": "Ce salon a été signalé à notre équipe de modération, merci."
   }
 }
