@@ -30,10 +30,12 @@ import PrivacyScreen from "./PrivacyScreen";
 type InfoModal = "terms" | "privacy" | null;
 
 // E-posta girisi sifresiz: kullanici sadece e-postasini yazar, Supabase ona
-// 6 haneli bir dogrulama kodu mail atar (sifre YOK, "magic link" de YOK -
-// mobil uygulamada derin linke guvenmek yerine kod girmek cok daha
-// guvenilir). "closed" -> sadece "E-posta ile devam et" linki gorunur,
-// "enter-email" -> e-posta kutusu, "enter-code" -> 6 haneli kod kutusu.
+// bir dogrulama kodu mail atar (sifre YOK, "magic link" de YOK - mobil
+// uygulamada derin linke guvenmek yerine kod girmek cok daha guvenilir).
+// Kodun uzunlugu Supabase proje ayarina gore degisebilir (varsayilan
+// sablonla 8 hane gelebiliyor) - bu yuzden kod kutusu SABIT 6 haneye
+// kilitli DEGIL. "closed" -> sadece "E-posta ile devam et" linki gorunur,
+// "enter-email" -> e-posta kutusu, "enter-code" -> dogrulama kodu kutusu.
 type EmailStep = "closed" | "enter-email" | "enter-code";
 
 // app.json'daki "scheme": "luna" ile eslesiyor - Supabase, OAuth sonrasi
@@ -297,10 +299,10 @@ export default function LoginScreen() {
                 style={styles.emailInput}
                 value={code}
                 onChangeText={setCode}
-                placeholder="6 haneli kod"
+                placeholder="Doğrulama kodu"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 keyboardType="number-pad"
-                maxLength={6}
+                maxLength={10}
                 editable={!emailLoading}
               />
               <TouchableOpacity style={styles.emailButton} onPress={verifyEmailCode} disabled={emailLoading}>
