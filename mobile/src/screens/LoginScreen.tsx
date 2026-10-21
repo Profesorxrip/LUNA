@@ -185,7 +185,7 @@ export default function LoginScreen() {
         {t("login.tagline")}
       </Text>
 
-      <View style={styles.providerRow}>
+      <View style={[styles.providerRow, emailStep !== "closed" && styles.providerRowCompact]}>
         <TouchableOpacity
           style={styles.providerButton}
           onPress={() => signInWithProvider("google")}
@@ -460,6 +460,12 @@ const styles = StyleSheet.create({
   // kaldirildi, artik sadece ikon kutulari var. Bes buton TEK satira sigsin
   // diye 64/kose 18'den biraz kucuk tutuldu: 62/kose 18, columnGap 10.
   providerRow: { flexDirection: "row", justifyContent: "center", columnGap: 16, marginTop: 220 },
+  // E-posta formu acikken (klavye de aciliyor) - ust bosluk azaltilip grup
+  // yukari cekiliyor, e-posta kutusu/buton klavyenin ALTINDA KALMASIN diye
+  // (KeyboardAvoidingView'in kendi "padding" davranisi container'i merkezde
+  // tutmaya calistigi icin, bu buyuk sabit bosluk olmadan e-posta alani
+  // cok daha yukarida, rahat erisilebilir bir konumda kaliyor).
+  providerRowCompact: { marginTop: 70 },
   // Sosyal butonlarin altinda, alt metinden once: once sadece tek satirlik
   // "veya e-posta ile devam et" linki gorunur, tiklaninca YERINDE (ayri bir
   // ekran/modal ACILMADAN) e-posta kutusuna donusur - kod adimi da ayni

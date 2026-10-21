@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Easing, View } from "react-native";
+import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Session } from "@supabase/supabase-js";
@@ -18,6 +18,8 @@ import { loadStoredLanguage } from "./src/i18n";
 // bu yuzden atlama KALICI olarak kapatildi.
 const PREVIEW_SKIP_AUTH = false;
 
+const SCREEN_H = Dimensions.get("window").height;
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -27,10 +29,14 @@ export default function App() {
   // isAuthed'den KASITLI olarak ayri tutuluyor: oturum kontrolu bitince
   // (checkingSession false olunca) dogrudan dogru ekrana gecilir (giris
   // ekranini GEREKSIZ YERE "yanip sondurmeyelim" diye animasyonsuz), ama
-  // uygulama ACIKKEN gercek bir giris/cikis olursa (asagidaki crossfade
-  // efekti) Giris<->Discover arasinda solarak gecis yapilir.
+  // uygulama ACIKKEN gercek bir giris/cikis olursa (asagidaki kayma
+  // efekti) Giris<->Discover arasinda asagidan yukari kayarak gecis
+  // yapilir.
   const [displayedAuthed, setDisplayedAuthed] = useState<boolean | null>(null);
-  const fade = useRef(new Animated.Value(1)).current;
+  // Gecis SIRASINDA eski ekranin UZERINE kayarak gelen yeni ekran - null
+  // ise gecis yok, SADECE displayedAuthed (sabit alt katman) gosteriliyor.
+  const [incomingAuthed, setIncomingAuthed] = useState<boolean | null>(null);
+  const slide = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadStoredLanguage();
@@ -51,26 +57,23 @@ export default function App() {
   }, []);
 
   // Giris ekranindan ana uygulamaya (Discover) - ya da cikis yapilinca tersi
-  // yonde - GECIS: oturum durumu anlik olarak degismesine ragmen, once o an
-  // ekranda duran icerik solup kayboluyor, SONRA yeni icerik (RootNavigator
-  // veya LoginScreen) solarak beliriyor (bkz. yukaridaki displayedAuthed).
+  // yonde - GECIS: yeni icerik, o an ekranda duran (sabit kalan) eski
+  // icerigin UZERINE asagidan yukari dogru kayarak geliyor (bkz. asagidaki
+  // render - alt katman displayedAuthed, ust katman incomingAuthed).
   useEffect(() => {
     if (checkingSession || displayedAuthed === null || isAuthed === displayedAuthed) return;
-    Animated.timing(fade, {
-      toValue: 0,
-      duration: 260,
-      easing: Easing.in(Easing.cubic),
+    setIncomingAuthed(isAuthed);
+    slide.setValue(0);
+    Animated.timing(slide, {
+      toValue: 1,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start(() => {
       setDisplayedAuthed(isAuthed);
-      Animated.timing(fade, {
-        toValue: 1,
-        duration: 340,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
+      setIncomingAuthed(null);
     });
-  }, [isAuthed, checkingSession, displayedAuthed, fade]);
+  }, [isAuthed, checkingSession, displayedAuthed, slide]);
 
   // Sunucuya kim oldugumuzu kanitlamak icin gercek Supabase access token'ini
   // gonderiyoruz - sunucu bunu dogrulayip GERCEK kullanici id'sini kendisi
@@ -97,21 +100,42 @@ export default function App() {
   return (
     <View style={{ flex: 1 }}>
       <AppBackground />
-      <Animated.View style={{ flex: 1, opacity: fade }}>
-        {displayedAuthed ? (
-          <SafeAreaProvider>
-            <RootNavigator />
-            <CustomAlertHost />
-            <StatusBar style="light" />
-          </SafeAreaProvider>
-        ) : (
-          <>
-            <LoginScreen />
-            <CustomAlertHost />
-            <StatusBar style="light" />
-          </>
-        )}
-      </Animated.View>
+      <View style={{ flex: 1 }}>{renderContent(displayedAuthed)}</View>
+      {incomingAuthed !== null && (
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              transform: [
+                {
+                  translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [SCREEN_H, 0] }),
+                },
+              ],
+            },
+          ]}
+        >
+          {renderContent(incomingAuthed)}
+        </Animated.View>
+      )}
     </View>
   );
+
+  // Giris ekrani ya da ana uygulama (Discover) agacini kurar - hem sabit
+  // alt katmanda hem de kayarak gelen ust katmanda AYNI sekilde
+  // kullanilabilsin diye ayri bir fonksiyona cikarildi.
+  function renderContent(authed: boolean | null) {
+    return authed ? (
+      <SafeAreaProvider>
+        <RootNavigator />
+        <CustomAlertHost />
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    ) : (
+      <>
+        <LoginScreen />
+        <CustomAlertHost />
+        <StatusBar style="light" />
+      </>
+    );
+  }
 }
