@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../services/supabase";
 import { getSocket, PublicRoomSummary, HistoryItem, MediaSource, SourceType, RoomState } from "../services/socket";
 import Icon, { IconName } from "../components/Icon";
@@ -71,36 +72,52 @@ interface GalleryPhoto {
   createdAt: number;
 }
 
-const TR_MONTHS = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+// Tarih formatlama icin dil basina kisaltilmis ay adlari - bir takvim
+// kutuphanesine bagimli kalmadan (zaten TEK YERDE kullaniliyor) basit bir
+// harita, bilinmeyen bir dil kodunda İngilizce'ye duser.
+const MONTHS: Record<string, string[]> = {
+  tr: ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"],
+  en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  de: ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"],
+  fr: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+  ar: ["ينا", "فبر", "مار", "أبر", "ماي", "يون", "يول", "أغس", "سبت", "أكت", "نوف", "ديس"],
+  ku: ["Rêb", "Sib", "Ada", "Nîs", "Gul", "Hez", "Tîr", "Teb", "Îlo", "Cot", "Mij", "Ber"],
+  el: ["Ιαν", "Φεβ", "Μάρ", "Απρ", "Μάι", "Ιούν", "Ιούλ", "Αύγ", "Σεπ", "Οκτ", "Νοέ", "Δεκ"],
+  ru: ["янв", "февр", "март", "апр", "май", "июнь", "июль", "авг", "сент", "окт", "нояб", "дек"],
+  az: ["Yan", "Fev", "Mar", "Apr", "May", "İyn", "İyl", "Avq", "Sen", "Okt", "Noy", "Dek"],
+  es: ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
+};
 
-function formatDate(ms: number): string {
+function formatDate(ms: number, lang: string): string {
   const d = new Date(ms);
-  return `${d.getDate()} ${TR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  const months = MONTHS[lang] ?? MONTHS.en;
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-function formatHours(hours: number): string {
-  if (hours < 1) return `${Math.round(hours * 60)} dk`;
-  return `${hours.toFixed(hours < 10 ? 1 : 0)} saat`;
+function formatHours(hours: number, t: (key: string, opts?: any) => string): string {
+  if (hours < 1) return t("userProfile.minutesShort", { count: Math.round(hours * 60) });
+  return t("userProfile.hoursShort", { count: Number(hours.toFixed(hours < 10 ? 1 : 0)) });
 }
 
-function timeAgo(ms: number): string {
+function timeAgo(ms: number, t: (key: string, opts?: any) => string, lang: string): string {
   const diffDays = Math.floor((Date.now() - ms) / (24 * 60 * 60 * 1000));
-  if (diffDays <= 0) return "Bugün";
-  if (diffDays === 1) return "Dün";
-  if (diffDays < 30) return `${diffDays} gün önce`;
-  return formatDate(ms);
+  if (diffDays <= 0) return t("userProfile.today");
+  if (diffDays === 1) return t("userProfile.yesterday");
+  if (diffDays < 30) return t("friends.daysAgo", { count: diffDays });
+  return formatDate(ms, lang);
 }
 
 // get_user_activity_stats RPC'sinin "daily" jsonb'si {"YYYY-MM-DD": saat}
 // seklinde - grafigin ihtiyac duydugu son 9 gunluk siraya ceviriyor,
 // veri olmayan gunler 0 saat olarak gosteriliyor.
-function buildDailyActivity(daily: Record<string, number>): { date: string; hours: number }[] {
+function buildDailyActivity(daily: Record<string, number>, lang: string): { date: string; hours: number }[] {
+  const months = MONTHS[lang] ?? MONTHS.en;
   const days: { date: string; hours: number }[] = [];
   for (let i = 8; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const iso = d.toISOString().slice(0, 10);
-    days.push({ date: `${d.getDate()} ${TR_MONTHS[d.getMonth()]}`, hours: daily[iso] || 0 });
+    days.push({ date: `${d.getDate()} ${months[d.getMonth()]}`, hours: daily[iso] || 0 });
   }
   return days;
 }
@@ -109,9 +126,10 @@ function buildDailyActivity(daily: Record<string, number>): { date: string; hour
  * kullanıcının kendi profili (own) ve başkasının profili (!own) icin
  * ortak bir govde uzerinde farkli baslik/aksiyon satiri gosterir. */
 export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, onOpenRoomPreview, onOpenRoom }: Props) {
+  const { t, i18n } = useTranslation();
   const peerUserId = peer?.userId || DEMO_PEER_USER_ID;
   const [myUserId, setMyUserId] = useState<string | null>(null);
-  const [name, setName] = useState(peer?.name || "Kullanici");
+  const [name, setName] = useState(peer?.name || t("userProfile.defaultName"));
   const [handle, setHandle] = useState(peer?.handle || "kullanici");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -300,7 +318,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   }, [effectiveUserId]);
 
   function placeholder(label: string) {
-    showAlert(label, "Bu ozellik yakinda eklenecek.");
+    showAlert(label, t("profile.comingSoon"));
   }
 
   function sendFriendRequest() {
@@ -343,7 +361,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     setAvatarSheetVisible(false);
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showAlert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -381,7 +399,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       if (updateError) throw updateError;
       setAvatarUrl(bustedUrl);
     } catch (err: any) {
-      showAlert("Yüklenemedi", err?.message || "Fotoğraf yüklenirken bir hata oluştu, tekrar dene.");
+      showAlert(t("userProfile.uploadFailedTitle"), err?.message || t("userProfile.uploadFailedBody"));
     } finally {
       setUploadingAvatar(false);
     }
@@ -393,7 +411,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   async function pickGalleryPhotos() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showAlert("İzin gerekli", "Fotoğraf seçmek için galeri iznine ihtiyacımız var.");
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -431,7 +449,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       if (insertError) throw insertError;
       setGalleryPhotos((prev) => [{ id: row.id, url: row.url, createdAt: new Date(row.created_at).getTime() }, ...prev]);
     } catch (err: any) {
-      showAlert("Yüklenemedi", err?.message || "Fotoğraf yüklenirken bir hata oluştu, tekrar dene.");
+      showAlert(t("userProfile.uploadFailedTitle"), err?.message || t("userProfile.uploadFailedBody"));
     }
   }
 
@@ -441,7 +459,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   // kaydedilmis gecmisten geliyor. Eskiden bu kartlarin HICBIR onPress'i yoktu.
   function openHistoryVideo(item: HistoryItem) {
     if (!item.mediaUrl || !item.mediaType) {
-      showAlert("Açılamadı", "Bu videonun kaydı eksik, tekrar oynatılamıyor.");
+      showAlert(t("userProfile.videoUnavailableTitle"), t("userProfile.videoUnavailableBody"));
       return;
     }
     const source: MediaSource = {
@@ -453,17 +471,17 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     getSocket()
       .timeout(8000)
       .emit("room:create", { name, isPublic: true, source }, (err: any, res: any) => {
-        if (err) return showAlert("Oda oluşturulamadı", "Sunucuya ulaşılamıyor (zaman aşımı). Bağlantını kontrol et.");
+        if (err) return showAlert(t("discover.createFailedTitle"), t("common.connectionIssueBody"));
         if (res?.ok) onOpenRoom?.(res.room);
-        else showAlert("Oda oluşturulamadı", res?.error || "Bilinmeyen bir hata oluştu.");
+        else showAlert(t("discover.createFailedTitle"), res?.error || t("common.unknownError"));
       });
   }
 
   function confirmDeleteGalleryPhoto(photo: GalleryPhoto) {
     if (!own) return;
-    showAlert("Fotoğrafı sil", "Bu fotoğrafı galeriden kaldırmak istediğine emin misin?", [
-      { text: "Vazgeç", style: "cancel" },
-      { text: "Sil", style: "destructive", onPress: () => deleteGalleryPhoto(photo) },
+    showAlert(t("userProfile.deletePhotoTitle"), t("userProfile.deletePhotoBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("userProfile.delete"), style: "destructive", onPress: () => deleteGalleryPhoto(photo) },
     ]);
   }
 
@@ -525,32 +543,32 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const initial = name.charAt(0).toUpperCase();
   const historyList =
     historyTab === "liked" ? likedHistory : historyTab === "best" ? [...history].sort((a, b) => b.participantCount - a.participantCount) : history;
-  const dailyActivity = activityStats ? buildDailyActivity(activityStats.daily) : buildDailyActivity({});
+  const dailyActivity = activityStats ? buildDailyActivity(activityStats.daily, i18n.language) : buildDailyActivity({}, i18n.language);
   const dailyMax = Math.max(1, ...dailyActivity.map((d) => d.hours));
   // Siralama: Cevrimici (ayri render ediliyor, en basta) -> Katilim Tarihi
   // -> En Uzun Oturum -> En Buyuk Oda -> LUNA Suresi -> Arkadaslar ->
   // Gunluk Saatler (grafik, en sonda render ediliyor).
   const statRows: { key: string; icon: IconName; label: string; value: string }[] = [
-    { key: "joinDate", icon: "calendar", label: "Katılım Tarihi", value: joinDateMs ? formatDate(joinDateMs) : "—" },
+    { key: "joinDate", icon: "calendar", label: t("userProfile.statJoinDate"), value: joinDateMs ? formatDate(joinDateMs, i18n.language) : "—" },
     {
       key: "longestSession",
       icon: "hourglass",
-      label: "En Uzun Oturum",
-      value: activityStats ? formatHours(activityStats.longestSessionHours) : "—",
+      label: t("userProfile.statLongestSession"),
+      value: activityStats ? formatHours(activityStats.longestSessionHours, t) : "—",
     },
     {
       key: "biggestRoom",
       icon: "people",
-      label: "En Büyük Oda",
-      value: activityStats && activityStats.biggestRoom > 0 ? `${activityStats.biggestRoom} kişi` : "—",
+      label: t("userProfile.statBiggestRoom"),
+      value: activityStats && activityStats.biggestRoom > 0 ? t("userProfile.peopleCount", { count: activityStats.biggestRoom }) : "—",
     },
     {
       key: "totalHours",
       icon: "clock",
-      label: "LUNA Süresi",
-      value: activityStats ? formatHours(activityStats.totalHours) : "—",
+      label: t("userProfile.statTotalHours"),
+      value: activityStats ? formatHours(activityStats.totalHours, t) : "—",
     },
-    { key: "friends", icon: "people", label: "Arkadaşlar", value: String(friendCount) },
+    { key: "friends", icon: "people", label: t("discover.sectionFriends"), value: String(friendCount) },
   ];
 
   return (
@@ -562,7 +580,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
           </TouchableOpacity>
           {!own && (
-            <TouchableOpacity onPress={() => placeholder("Diger")} hitSlop={10}>
+            <TouchableOpacity onPress={() => placeholder(t("userProfile.more"))} hitSlop={10}>
               <Icon name="moreHoriz" size={30} color={TEXT} />
             </TouchableOpacity>
           )}
@@ -649,7 +667,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           <>
             <View style={styles.fullDivider} />
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>BİYOGRAFİ</Text>
+              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>{t("userProfile.sectionBio")}</Text>
               {own && (
                 <TouchableOpacity onPress={toggleBioVisible} hitSlop={6}>
                   <Icon name={bioVisible ? "eye" : "eyeOff"} size={16} color={bioVisible ? ACCENT : MUTED} />
@@ -665,17 +683,17 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                   onChangeText={setBio}
                   multiline
                   autoFocus
-                  placeholder="Biyografi"
+                  placeholder={t("userProfile.bioPlaceholder")}
                   placeholderTextColor={MUTED}
                 />
                 <TouchableOpacity style={styles.bioSaveButton} onPress={() => closeFieldEdit("bio", bio)}>
-                  <Text style={styles.bioSaveButtonText}>Kaydet</Text>
+                  <Text style={styles.bioSaveButtonText}>{t("userProfile.save")}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("bio")}>
                 <Text style={bio ? styles.bio : [styles.emptyHistoryText, { marginTop: 14 }]}>
-                  {bio || "Henüz bir biyografi eklemedin."}
+                  {bio || t("userProfile.noBio")}
                 </Text>
               </TouchableOpacity>
             )}
@@ -690,18 +708,18 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                 onPress={() =>
                   onOpenDM
                     ? onOpenDM({ userId: peerUserId, name, handle })
-                    : placeholder("Mesaj")
+                    : placeholder(t("userProfile.message"))
                 }
               >
-                <Text style={styles.primaryButtonText}>Mesaj</Text>
+                <Text style={styles.primaryButtonText}>{t("userProfile.message")}</Text>
               </TouchableOpacity>
             ) : friendStatus === "pending" ? (
               <TouchableOpacity style={styles.secondaryButton} onPress={cancelFriendRequest}>
-                <Text style={styles.secondaryButtonText}>İsteği İptal Et</Text>
+                <Text style={styles.secondaryButtonText}>{t("userProfile.cancelRequest")}</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.requestButton} onPress={sendFriendRequest}>
-                <Text style={styles.requestButtonText}>İstek Gönder</Text>
+                <Text style={styles.requestButtonText}>{t("userProfile.sendRequest")}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -710,7 +728,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         {activeRoom && (
           <>
             <View style={styles.fullDivider} />
-            <Text style={styles.sectionHeader}>AKTİF ODA</Text>
+            <Text style={styles.sectionHeader}>{t("userProfile.sectionActiveRoom")}</Text>
             <View style={styles.fullDivider} />
             <RoomCard
               room={activeRoom}
@@ -724,7 +742,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           <>
             <View style={styles.fullDivider} />
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>GALERİ</Text>
+              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>{t("userProfile.sectionGallery")}</Text>
               {own && (
                 <View style={styles.sectionHeaderActions}>
                   <TouchableOpacity onPress={pickGalleryPhotos} hitSlop={6} disabled={uploadingGalleryPhoto}>
@@ -742,7 +760,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             </View>
             <View style={styles.fullDivider} />
             {galleryPhotos.length === 0 ? (
-              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>Henüz galeriye fotoğraf eklemedin.</Text>
+              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noGalleryPhotos")}</Text>
             ) : (
               <ScrollView
                 horizontal
@@ -770,7 +788,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           <>
         <View style={styles.fullDivider} />
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>İSTATİSTİKLER</Text>
+          <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>{t("userProfile.sectionStats")}</Text>
           {own && (
             <TouchableOpacity onPress={toggleStatsVisible} hitSlop={6}>
               <Icon name={statsVisible ? "eye" : "eyeOff"} size={16} color={statsVisible ? ACCENT : MUTED} />
@@ -799,7 +817,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           {(own || statVisibility.activityChart) && (
             <View style={styles.chartBlock}>
               <View style={styles.statRow}>
-                <Text style={styles.statRowLabel}>Günlük Saatler</Text>
+                <Text style={styles.statRowLabel}>{t("userProfile.dailyHoursChart")}</Text>
                 {own && (
                   <TouchableOpacity onPress={() => toggleStat("activityChart")} hitSlop={6}>
                     <Icon
@@ -826,7 +844,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                 ))}
               </View>
               <Text style={styles.chartSelected}>
-                {dailyActivity[selectedDay].date} · {formatHours(dailyActivity[selectedDay].hours)}
+                {dailyActivity[selectedDay].date} · {formatHours(dailyActivity[selectedDay].hours, t)}
               </Text>
             </View>
           )}
@@ -838,7 +856,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           <>
             <View style={styles.fullDivider} />
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>GEÇMİŞ</Text>
+              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>{t("userProfile.sectionHistory")}</Text>
               {own && (
                 <TouchableOpacity onPress={toggleVideosVisible} hitSlop={6}>
                   <Icon name={videosVisible ? "eye" : "eyeOff"} size={16} color={videosVisible ? ACCENT : MUTED} />
@@ -848,9 +866,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <View style={styles.historyTabsRow}>
               {(
                 [
-                  { key: "history", label: "Geçmiş" },
-                  { key: "liked", label: "Beğenilenler" },
-                  { key: "best", label: "En İyiler" },
+                  { key: "history", label: t("userProfile.tabHistory") },
+                  { key: "liked", label: t("userProfile.tabLiked") },
+                  { key: "best", label: t("userProfile.tabBest") },
                 ] as const
               ).map((tab) => (
                 <TouchableOpacity
@@ -867,8 +885,8 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             {historyList.length === 0 ? (
               <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>
                 {historyTab === "liked"
-                  ? "Henüz beğenilen video yok."
-                  : "Henüz bir odaya katılmadın."}
+                  ? t("userProfile.noLikedVideos")
+                  : t("userProfile.noJoinedRooms")}
               </Text>
             ) : (
               <View style={styles.videoGrid}>
@@ -887,7 +905,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                       {item.mediaLabel}
                     </Text>
                     <Text style={styles.videoMeta}>
-                      {historyTab === "best" ? `${item.participantCount} kişi` : timeAgo(item.createdAt)}
+                      {historyTab === "best" ? t("userProfile.peopleCount", { count: item.participantCount }) : timeAgo(item.createdAt, t, i18n.language)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -912,13 +930,13 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         >
           <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
             <TouchableOpacity style={styles.sheetRow} onPress={pickFromGallery}>
-              <Text style={styles.sheetRowText}>Fotoğraflar</Text>
+              <Text style={styles.sheetRowText}>{t("userProfile.avatarPhotos")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sheetRow} onPress={removeAvatar}>
-              <Text style={styles.sheetRowText}>Fotoğrafı Kaldır</Text>
+              <Text style={styles.sheetRowText}>{t("userProfile.avatarRemove")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sheetRow} onPress={() => setAvatarSheetVisible(false)}>
-              <Text style={[styles.sheetRowText, styles.sheetCancelText]}>Kapat</Text>
+              <Text style={[styles.sheetRowText, styles.sheetCancelText]}>{t("common.close")}</Text>
             </TouchableOpacity>
             <View style={styles.sheetHandle} />
           </TouchableOpacity>
