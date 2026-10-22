@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, StyleProp, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { PublicRoomSummary } from "../services/socket";
 import { theme } from "../theme";
 import PlatformBadge from "./PlatformBadge";
@@ -39,10 +38,6 @@ interface Props {
 export default function RoomCard({ room, friendIds = new Set(), onPress, onLongPress, onOpenParticipant, onLongPressParticipant, style }: Props) {
   const badgeInfo = badgeInfoForSource(room.source);
   const coverUrl = coverUrlForSource(room.source);
-  // Baslik icin LoginScreen'deki AYNI marka fontu (Bebas Neue) - yuklenene
-  // kadar sistem fontuyla gosteriliyor (kisa bir baslik oldugu icin
-  // yukleme anindaki "atlama" neredeyse fark edilmiyor).
-  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
   return (
     <TouchableOpacity style={[styles.card, style]} onPress={onPress} onLongPress={onLongPress} delayLongPress={350}>
       {coverUrl ? (
@@ -70,7 +65,7 @@ export default function RoomCard({ room, friendIds = new Set(), onPress, onLongP
       )}
       <LinearGradient colors={["transparent", "rgba(4,9,18,0.92)"]} style={styles.cardGradient} pointerEvents="none" />
       <View style={styles.cardOverlay} pointerEvents="box-none">
-        <Text style={[styles.cardTitle, fontsLoaded && styles.cardTitleFontLoaded]} numberOfLines={1}>
+        <Text style={styles.cardTitle} numberOfLines={1}>
           {room.title}
         </Text>
         <ScrollView
@@ -90,7 +85,7 @@ export default function RoomCard({ room, friendIds = new Set(), onPress, onLongP
                 delayLongPress={350}
                 style={[
                   styles.participantAvatar,
-                  { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
+                  { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : -10 },
                   isFriend && styles.participantAvatarFriend,
                 ]}
               >
@@ -99,7 +94,7 @@ export default function RoomCard({ room, friendIds = new Set(), onPress, onLongP
             );
           })}
           {room.participantCount > room.participants.length && (
-            <View style={[styles.participantAvatar, styles.participantExtraCircle, { marginLeft: 4 }]}>
+            <View style={[styles.participantAvatar, styles.participantExtraCircle, { marginLeft: -10 }]}>
               <Text style={styles.participantAvatarInitial}>+{room.participantCount - room.participants.length}</Text>
             </View>
           )}
@@ -139,23 +134,18 @@ const styles = StyleSheet.create({
   },
   cardGradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: "75%" },
   cardOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 10 },
+  // Kartin basligi aslinda seciLEN VIDEONUN kendi ismi (bkz. server/src/
+  // index.ts room:create - "odanin/kartin ismi secilen icerigin ismi
+  // (source.label) oluyor") - gercek, kisitlanmamis video basliklari icin
+  // (Bebas Neue gibi stilize/BUYUK HARF bir marka fontu yerine) normal,
+  // okunakli bir font KASITLI olarak kullaniliyor.
   cardTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  // Bebas Neue yuklenince: condensed/buyuk harf karakteri daha belirgin
-  // olsun diye boyut/harf araligi bu fonta gore yeniden ayarlanir (bkz.
-  // LoginScreen.tsx taglineFontLoaded AYNI mantik).
-  cardTitleFontLoaded: {
-    fontFamily: "BebasNeue_400Regular",
-    fontWeight: "400",
-    fontSize: 17,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-  },
-  participantsRow: { marginTop: 5 },
+  participantsRow: { marginTop: 9, marginLeft: -4 },
   participantsRowContent: { flexDirection: "row", alignItems: "center", paddingRight: 4 },
   participantAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
@@ -163,7 +153,7 @@ const styles = StyleSheet.create({
   },
   // Arkadas oldugu bilinen katilimcinin avatarini digerlerinden ayirt
   // etmek icin parlak bir halka - Instagram hikaye halkasina benzer mantik.
-  participantAvatarFriend: { borderWidth: 2.5, borderColor: theme.accentBright },
+  participantAvatarFriend: { borderWidth: 2.2, borderColor: theme.accentBright },
   participantExtraCircle: { backgroundColor: theme.surfaceAlt },
-  participantAvatarInitial: { color: theme.accent, fontSize: 15, fontWeight: "700" },
+  participantAvatarInitial: { color: theme.accent, fontSize: 12, fontWeight: "700" },
 });

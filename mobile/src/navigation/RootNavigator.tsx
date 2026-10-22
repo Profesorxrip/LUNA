@@ -168,12 +168,19 @@ function SettingsRoute() {
 
 function MainTabsRoute() {
   return (
-    <Tab.Navigator tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="Discover" component={DiscoverRoute} />
+    <Tab.Navigator
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+      // Sekme SIRASI (gorsel) degisti ama uygulama acilinca HALA Kesif'le
+      // baslamasi gerekiyor - initialRouteName olmadan ilk <Tab.Screen>
+      // (artik "Friends") varsayilan olurdu.
+      initialRouteName="Discover"
+    >
       <Tab.Screen name="Friends" component={FriendsRoute} />
+      <Tab.Screen name="Discover" component={DiscoverRoute} />
       <Tab.Screen name="Create" component={CreateRoute} />
-      <Tab.Screen name="Profile" component={MyProfileRoute} />
       <Tab.Screen name="Settings" component={SettingsRoute} />
+      <Tab.Screen name="Profile" component={MyProfileRoute} />
     </Tab.Navigator>
   );
 }

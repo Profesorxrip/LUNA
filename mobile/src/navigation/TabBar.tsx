@@ -117,8 +117,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(14,165,233,0.2)",
   },
-  tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4 },
-  iconWrap: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
+  tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
+  iconWrap: { width: 26, height: 26, alignItems: "center", justifyContent: "center" },
   // Halo katmanlari (daha buyuk/yari saydam ikon kopyalari) iconWrap'i tam
   // kaplayip KENDI icinde ortalanir - boylece farkli boydaki (22/30/42)
   // kopyalarin hepsi AYNI merkez noktasinda ust uste biner.
