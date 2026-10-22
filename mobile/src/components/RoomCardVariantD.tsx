@@ -18,6 +18,10 @@ function countFontSize(count: number): number {
   if (digits === 3) return 8;
   return 6;
 }
+// Gercek NASA ay yuzeyi dokusu (duz/equirectangular harita, kure degil) -
+// tekil tekrarlanan daireler yerine SUREKLI bir doku olarak kart arka
+// planini kaplamak icin kullaniliyor.
+const MOON_TEXTURE = require("../../assets/moon-texture.jpg");
 
 interface Props {
   room: PublicRoomSummary;
@@ -60,72 +64,79 @@ export default function RoomCardVariantD({
       delayLongPress={350}
       activeOpacity={0.85}
     >
-      <View style={styles.thumbSq}>
-        {coverUrl && <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} />}
-        {badgeInfo && (
-          <View style={styles.platformBadge}>
-            <PlatformBadge platform={badgeInfo.key} faviconUrl={badgeInfo.faviconUrl} size={16} />
+      {/* Kartin KENDI dis sinirina kadar yayilan ay dokusu zemini - icerigin
+          (kapak/baslik/pp/rozet) ALTINDA, kart.overflow:"hidden" sayesinde
+          dis kosede kirpiliyor. */}
+      <Image source={MOON_TEXTURE} resizeMode="cover" style={[StyleSheet.absoluteFill, { opacity: 0.3 }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.accentBright, opacity: 0.45 }]} />
+      <>
+          <View style={styles.thumbSq}>
+            {coverUrl && <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} />}
+            {badgeInfo && (
+              <View style={styles.platformBadge}>
+                <PlatformBadge platform={badgeInfo.key} faviconUrl={badgeInfo.faviconUrl} size={16} />
+              </View>
+            )}
+            {room.isAdult && (
+              // Rozet boyutu saninin rozetiyle (viewCount, 20px yukseklik) ayni
+              // olacak sekilde kucultuldu ve kapagin sag ust kosesine tasindi.
+              <View style={styles.adultBadgeOnThumb}>
+                <AdultBadge size={20} />
+              </View>
+            )}
           </View>
-        )}
-        {room.isAdult && (
-          // Rozet boyutu saninin rozetiyle (viewCount, 20px yukseklik) ayni
-          // olacak sekilde kucultuldu ve kapagin sag ust kosesine tasindi.
-          <View style={styles.adultBadgeOnThumb}>
-            <AdultBadge size={20} />
+          <View style={styles.viewCount}>
+            <LinearGradient
+              colors={["#6E9BC0", "#FFFFFF"]}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.8, y: 1 }}
+              style={styles.liveDot}
+            />
+            <Text style={[styles.viewCountText, { fontSize: countFontSize(room.participantCount) }]}>
+              {room.participantCount}
+            </Text>
           </View>
-        )}
-      </View>
-      <View style={styles.viewCount}>
-        <LinearGradient
-          colors={["#6E9BC0", "#FFFFFF"]}
-          start={{ x: 0.2, y: 0 }}
-          end={{ x: 0.8, y: 1 }}
-          style={styles.liveDot}
-        />
-        <Text style={[styles.viewCountText, { fontSize: countFontSize(room.participantCount) }]}>
-          {room.participantCount}
-        </Text>
-      </View>
-      <View style={styles.right}>
-        <Text style={[styles.title, styles.titleNarrow]} numberOfLines={3}>
-          {room.title}
-        </Text>
-        <View style={styles.avatarsRowWrap}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={[styles.avatarsRow, scrollW != null && { flex: undefined, width: scrollW }]}
-            contentContainerStyle={styles.avatarsRowContent}
-            onLayout={(e) => {
-              if (scrollW != null) return;
-              const measured = e.nativeEvent.layout.width;
-              if (measured < AVATAR_W) return;
-              const wholeCount = Math.floor((measured - AVATAR_W) / AVATAR_PITCH) + 1;
-              setScrollW(AVATAR_W + (wholeCount - 1) * AVATAR_PITCH);
-            }}
-          >
-            {room.participants.map((p, i) => {
-              const isFriend = Boolean(p.userId && friendIds.has(p.userId));
-              return (
-                <TouchableOpacity
-                  key={i}
-                  disabled={!p.userId || (!onOpenParticipant && !onLongPressParticipant)}
-                  onPress={() => p.userId && onOpenParticipant?.({ userId: p.userId, name: p.name })}
-                  onLongPress={() => p.userId && onLongPressParticipant?.({ userId: p.userId, name: p.name })}
-                  delayLongPress={350}
-                  style={[
-                    styles.avatar,
-                    { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
-                    isFriend && styles.avatarFriend,
-                  ]}
-                >
-                  <Text style={styles.avatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </View>
+          <View style={styles.right}>
+            <Text style={[styles.title, styles.titleNarrow]} numberOfLines={3}>
+              {room.title}
+            </Text>
+            <View style={styles.avatarsRowWrap}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={[styles.avatarsRow, scrollW != null && { flex: undefined, width: scrollW }]}
+                contentContainerStyle={styles.avatarsRowContent}
+                onLayout={(e) => {
+                  if (scrollW != null) return;
+                  const measured = e.nativeEvent.layout.width;
+                  if (measured < AVATAR_W) return;
+                  const wholeCount = Math.floor((measured - AVATAR_W) / AVATAR_PITCH) + 1;
+                  setScrollW(AVATAR_W + (wholeCount - 1) * AVATAR_PITCH);
+                }}
+              >
+                {room.participants.map((p, i) => {
+                  const isFriend = Boolean(p.userId && friendIds.has(p.userId));
+                  return (
+                    <TouchableOpacity
+                      key={i}
+                      disabled={!p.userId || (!onOpenParticipant && !onLongPressParticipant)}
+                      onPress={() => p.userId && onOpenParticipant?.({ userId: p.userId, name: p.name })}
+                      onLongPress={() => p.userId && onLongPressParticipant?.({ userId: p.userId, name: p.name })}
+                      delayLongPress={350}
+                      style={[
+                        styles.avatar,
+                        { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
+                        isFriend && styles.avatarFriend,
+                      ]}
+                    >
+                      <Text style={styles.avatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </>
     </TouchableOpacity>
   );
 }
@@ -140,6 +151,7 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 1,
     borderColor: "rgba(14,165,233,0.22)",
+    overflow: "hidden",
   },
   // Kartla arasinda (padding ile) bosluk birakan ORIJINAL yapi korunuyor -
   // yukseklik SABIT (kart boyutu degismesin diye), sadece genislik artti -
