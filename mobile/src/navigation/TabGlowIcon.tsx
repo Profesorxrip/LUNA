@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import { View } from "react-native";
 import Svg, { Defs, Filter, FeGaussianBlur, Path, Circle, G } from "react-native-svg";
 
 type NodeDef = { tag: "path"; d: string } | { tag: "circle"; cx: string; cy: string; r: string };
@@ -67,21 +68,40 @@ export default function TabGlowIcon({ name, size = 22, color, glow = false, stro
   const MARGIN = 8;
   const VB = 24 + MARGIN * 2;
   const box = size * (VB / 24);
+  // DIKKAT: Svg'nin kendisi (box) ikonun GERCEK boyutundan (size) daha
+  // buyuk - blur'un kenarlara KIRPILMADAN tasabilmesi icin. Ama bu fazladan
+  // alan TabBar.tsx'teki flex duzenine (ikon-yazi arasindaki bosluk)
+  // YANSIMASIN diye disarida TAM OLARAK "size x size" sabit boyutunda, tasan
+  // icerigi KIRPMAYAN (overflow "visible", RN'in zaten varsayilani) bir
+  // kap var - Svg bu kabin icinde ortalanip gorsel olarak tasiyor, ama
+  // komsu Text (etiket) hala sanki ikon TAM OLARAK size kadarmis gibi
+  // konumlaniyor.
+  // (size-box)/2 negatif - Svg'yi, buyuk olan "box" kadar yerine TAM OLARAK
+  // ortalayan sabit bir offset (RN'de "position:absolute" verilince
+  // alignItems/justifyContent artik ETKILI OLMUYOR, elle hesaplamak gerekiyor).
+  const offset = (size - box) / 2;
   return (
-    <Svg width={box} height={box} viewBox={`${-MARGIN} ${-MARGIN} ${VB} ${VB}`}>
-      {glow && (
-        <>
-          <Defs>
-            <Filter id={filterId} x="-120%" y="-120%" width="340%" height="340%">
-              <FeGaussianBlur stdDeviation={1.7} />
-            </Filter>
-          </Defs>
-          <G filter={`url(#${filterId})`} opacity={0.95}>
-            {renderNodes(nodes, strokeWidth + 1.4, color)}
-          </G>
-        </>
-      )}
-      {renderNodes(nodes, strokeWidth, color)}
-    </Svg>
+    <View style={{ width: size, height: size }}>
+      <Svg
+        width={box}
+        height={box}
+        viewBox={`${-MARGIN} ${-MARGIN} ${VB} ${VB}`}
+        style={{ position: "absolute", left: offset, top: offset }}
+      >
+        {glow && (
+          <>
+            <Defs>
+              <Filter id={filterId} x="-120%" y="-120%" width="340%" height="340%">
+                <FeGaussianBlur stdDeviation={1.7} />
+              </Filter>
+            </Defs>
+            <G filter={`url(#${filterId})`} opacity={0.95}>
+              {renderNodes(nodes, strokeWidth + 1.4, color)}
+            </G>
+          </>
+        )}
+        {renderNodes(nodes, strokeWidth, color)}
+      </Svg>
+    </View>
   );
 }
