@@ -1,28 +1,14 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Compass, Users, Plus, User, Settings } from "lucide-react-native";
+import { Plus } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { theme } from "../theme";
+import TabGlowIcon, { TabGlowIconName } from "./TabGlowIcon";
 
 const INACTIVE = "#6b7690";
-// theme.accentBright ("#5C87A8") rgb bilesenleri - asagidaki yari-saydam
-// "halo" katmanlarinda rgba() olarak kullanilabilsin diye.
-const GLOW_RGB = "92,135,168";
-// "filter" RN'in resmi stil tipinde yok (sadece web'de CSS'e dusuyor) - bu
-// yuzden StyleSheet.create disinda, duz birer obje olarak tutuluyor. Native
-// tarafta (iOS/Android) bu stil yok sayilir, halo yine de (bulanikliksiz,
-// sadece daha buyuk/soluk kopyalar halinde) gorunur kaliyor.
-const webBlur = (px: number) => (Platform.OS === "web" ? { filter: `blur(${px}px)` } : {});
-
-const ICONS: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number; style?: any }>> = {
-  Discover: Compass,
-  Friends: Users,
-  Profile: User,
-  Settings: Settings,
-};
 
 /** Variant B (kullanicinin onayladigi, bkz. tabbar_compare.html) - 5 sekme,
  * ortadaki "Oluştur" diger 4'unden FARKLI: etiketsiz, yukari tasmis, marka
@@ -74,31 +60,14 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
           );
         }
 
-        const Glyph = ICONS[route.name] ?? Compass;
         return (
           <TouchableOpacity key={route.key} onPress={onPress} style={styles.tab} activeOpacity={0.7}>
-            <View style={styles.iconWrap}>
-              {/* Daire seklinde duz bir "cerceve" yerine - ikonun KENDI
-                  cizgilerinin (compass/kisi/disli vb.) AYNI sekli, daha
-                  buyuk ve yari-saydam kopyalari arkada ustuste durup gercek
-                  ikonu sarmaliyor, boylece parlama ikonun gercek
-                  silueti/cizgilerinden yayiliyormus gibi gorunuyor (web'de
-                  ayrica hafif bir blur ile yumusatiliyor). */}
-              {isFocused && (
-                <>
-                  <View style={styles.glowLayer} pointerEvents="none">
-                    <Glyph size={54} color={`rgba(${GLOW_RGB},0.32)`} strokeWidth={1.8} style={webBlur(7)} />
-                  </View>
-                  <View style={styles.glowLayer} pointerEvents="none">
-                    <Glyph size={38} color={`rgba(${GLOW_RGB},0.55)`} strokeWidth={1.8} style={webBlur(4)} />
-                  </View>
-                  <View style={styles.glowLayer} pointerEvents="none">
-                    <Glyph size={27} color={`rgba(${GLOW_RGB},0.8)`} strokeWidth={1.8} style={webBlur(1.5)} />
-                  </View>
-                </>
-              )}
-              <Glyph size={22} color={isFocused ? theme.accentBright : INACTIVE} strokeWidth={1.8} />
-            </View>
+            {/* TabGlowIcon gercek bir SVG Gaussian blur kullanir (bkz.
+                LunaSpinner.tsx'teki AYNI teknik) - CSS "filter: blur()"'un
+                aksine native'de (Android/iOS) de calisir. Eskiden burada
+                ustuste binen, bulaniklastirilmamis ham ikon kopyalari vardi -
+                gercek cihazda "yildiz patlamasi" gibi cirkin duruyordu. */}
+            <TabGlowIcon name={route.name as TabGlowIconName} size={22} color={isFocused ? theme.accentBright : INACTIVE} glow={isFocused} strokeWidth={1.8} />
             <Text style={[styles.label, isFocused && styles.labelActive]} numberOfLines={1}>
               {labels[route.name]}
             </Text>
@@ -118,19 +87,6 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(14,165,233,0.2)",
   },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
-  iconWrap: { width: 26, height: 26, alignItems: "center", justifyContent: "center" },
-  // Halo katmanlari (daha buyuk/yari saydam ikon kopyalari) iconWrap'i tam
-  // kaplayip KENDI icinde ortalanir - boylece farkli boydaki (22/30/42)
-  // kopyalarin hepsi AYNI merkez noktasinda ust uste biner.
-  glowLayer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   label: {
     fontSize: 10,
     fontWeight: "700",
