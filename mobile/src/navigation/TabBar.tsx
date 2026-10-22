@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
@@ -8,8 +8,16 @@ import { useTranslation } from "react-i18next";
 import { theme } from "../theme";
 
 const INACTIVE = "#6b7690";
+// theme.accentBright ("#5C87A8") rgb bilesenleri - asagidaki yari-saydam
+// "halo" katmanlarinda rgba() olarak kullanilabilsin diye.
+const GLOW_RGB = "92,135,168";
+// "filter" RN'in resmi stil tipinde yok (sadece web'de CSS'e dusuyor) - bu
+// yuzden StyleSheet.create disinda, duz birer obje olarak tutuluyor. Native
+// tarafta (iOS/Android) bu stil yok sayilir, halo yine de (bulanikliksiz,
+// sadece daha buyuk/soluk kopyalar halinde) gorunur kaliyor.
+const webBlur = (px: number) => (Platform.OS === "web" ? { filter: `blur(${px}px)` } : {});
 
-const ICONS: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
+const ICONS: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number; style?: any }>> = {
   Discover: Compass,
   Friends: Users,
   Profile: User,
@@ -44,14 +52,24 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
         if (route.name === "Create") {
           return (
             <TouchableOpacity key={route.key} onPress={onPress} style={styles.tab} activeOpacity={0.85}>
-              <LinearGradient
-                colors={[theme.accentBright, theme.accent]}
-                start={{ x: 0.2, y: 0 }}
-                end={{ x: 0.8, y: 1 }}
-                style={styles.createButton}
-              >
-                <Plus size={26} color="#04141F" strokeWidth={2.6} />
-              </LinearGradient>
+              <View style={styles.createWrap}>
+                {/* Isik huzmesi artik + butonunun yaninda SABIT durmuyor -
+                    sadece o AN gercekten "Olustur" sekmesindeysek (isFocused)
+                    butonun kendi sinirlarinda (dairesel) beliriyor, digerleriyle
+                    (asagidaki iconGlow) AYNI mantik. */}
+                {isFocused && <View style={styles.createGlow} />}
+                <LinearGradient
+                  // theme.accent (canlı/cırtlak camgöbeği mavi) yerine -
+                  // digerleriyle AYNI mat/steel-blue ailesinden iki ton,
+                  // sadece bu buton icin biraz daha acik/koyu uclar.
+                  colors={["#6E9BC0", "#3B6480"]}
+                  start={{ x: 0.2, y: 0 }}
+                  end={{ x: 0.8, y: 1 }}
+                  style={styles.createButton}
+                >
+                  <Plus size={26} color="#04141F" strokeWidth={2.6} />
+                </LinearGradient>
+              </View>
             </TouchableOpacity>
           );
         }
@@ -59,7 +77,28 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
         const Glyph = ICONS[route.name] ?? Compass;
         return (
           <TouchableOpacity key={route.key} onPress={onPress} style={styles.tab} activeOpacity={0.7}>
-            <Glyph size={22} color={isFocused ? theme.accentBright : INACTIVE} strokeWidth={1.8} />
+            <View style={styles.iconWrap}>
+              {/* Daire seklinde duz bir "cerceve" yerine - ikonun KENDI
+                  cizgilerinin (compass/kisi/disli vb.) AYNI sekli, daha
+                  buyuk ve yari-saydam kopyalari arkada ustuste durup gercek
+                  ikonu sarmaliyor, boylece parlama ikonun gercek
+                  silueti/cizgilerinden yayiliyormus gibi gorunuyor (web'de
+                  ayrica hafif bir blur ile yumusatiliyor). */}
+              {isFocused && (
+                <>
+                  <View style={styles.glowLayer} pointerEvents="none">
+                    <Glyph size={54} color={`rgba(${GLOW_RGB},0.32)`} strokeWidth={1.8} style={webBlur(7)} />
+                  </View>
+                  <View style={styles.glowLayer} pointerEvents="none">
+                    <Glyph size={38} color={`rgba(${GLOW_RGB},0.55)`} strokeWidth={1.8} style={webBlur(4)} />
+                  </View>
+                  <View style={styles.glowLayer} pointerEvents="none">
+                    <Glyph size={27} color={`rgba(${GLOW_RGB},0.8)`} strokeWidth={1.8} style={webBlur(1.5)} />
+                  </View>
+                </>
+              )}
+              <Glyph size={22} color={isFocused ? theme.accentBright : INACTIVE} strokeWidth={1.8} />
+            </View>
             <Text style={[styles.label, isFocused && styles.labelActive]} numberOfLines={1}>
               {labels[route.name]}
             </Text>
@@ -79,6 +118,19 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(14,165,233,0.2)",
   },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4 },
+  iconWrap: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
+  // Halo katmanlari (daha buyuk/yari saydam ikon kopyalari) iconWrap'i tam
+  // kaplayip KENDI icinde ortalanir - boylece farkli boydaki (22/30/42)
+  // kopyalarin hepsi AYNI merkez noktasinda ust uste biner.
+  glowLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   label: {
     fontSize: 10,
     fontWeight: "700",
@@ -87,19 +139,46 @@ const styles = StyleSheet.create({
     color: INACTIVE,
   },
   labelActive: { color: "#FFFFFF" },
+  createWrap: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: -24,
+  },
+  // "+" sekmesindeysek (isFocused) AYNI iconGlow mantigi, sadece butonun
+  // daha buyuk dairesine gore olceklendi.
+  createGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 35,
+    backgroundColor: theme.accentBright,
+    opacity: 0.22,
+    shadowColor: theme.accentBright,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.85,
+    shadowRadius: 16,
+    elevation: 8,
+  },
   createButton: {
     width: 52,
     height: 52,
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -24,
     borderWidth: 4,
     borderColor: "#0A0E16",
-    shadowColor: theme.accent,
+    // Butonun kendi hafif derinlik golgesi - artik HER ZAMAN yanan bir isik
+    // huzmesi degil, sade/mat bir golge (bkz. createGlow, o SADECE "+"
+    // sekimindeyken gorunuyor).
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });

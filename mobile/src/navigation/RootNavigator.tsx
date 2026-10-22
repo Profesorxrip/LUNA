@@ -109,8 +109,6 @@ function DiscoverRoute() {
         const parent = navigation.getParent<Nav>();
         if (parent) enterRoom(parent, room);
       }}
-      onOpenProfile={() => navigation.navigate("Settings")}
-      onOpenFriends={() => navigation.navigate("Friends")}
       onOpenParticipant={(peer) => navigation.navigate("UserProfile", { own: false, peer })}
       onOpenRoomPreview={(room) => navigation.navigate("RoomPreview", { room })}
     />

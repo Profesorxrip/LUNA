@@ -1,17 +1,17 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
   SectionList,
-  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
   RefreshControl,
-  PanResponder,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Compass } from "lucide-react-native";
+import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { useTranslation } from "react-i18next";
 import { getSocket, PublicRoomSummary, DiscoverSections, RoomState, FriendUser } from "../services/socket";
 import { theme } from "../theme";
@@ -25,17 +25,9 @@ import { showAlert } from "../components/CustomAlert";
 
 interface Props {
   onJoinRoom: (room: RoomState) => void;
-  onOpenProfile: () => void;
-  onOpenFriends: () => void;
   onOpenParticipant: (peer: { userId: string; name: string }) => void;
   onOpenRoomPreview: (room: PublicRoomSummary) => void;
 }
-
-// Sol kenardan (ekranin ilk 24px'i) saga dogru kaydirinca profil/ayarlar,
-// sag kenardan sola dogru kaydirinca da arkadaslar ekrani aciliyor -
-// Rave'deki gibi hem ikonlara basip hem kenarlardan kaydirarak acilabiliyor.
-const EDGE_ZONE = 24;
-const SWIPE_THRESHOLD = 60;
 
 // Tablette 2, telefonda 1 sutun - Rave'deki gibi genis ekranda yan yana
 // iki kart, dar ekranda kart tam genislikte tek sutun.
@@ -66,12 +58,11 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 export default function DiscoverScreen({
   onJoinRoom,
-  onOpenProfile,
-  onOpenFriends,
   onOpenParticipant,
   onOpenRoomPreview,
 }: Props) {
   const { t } = useTranslation();
+  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
   const { width } = useWindowDimensions();
   const numColumns = width >= WIDE_BREAKPOINT ? 2 : 1;
   const [sections, setSections] = useState<DiscoverSections>(EMPTY_SECTIONS);
@@ -87,8 +78,6 @@ export default function DiscoverScreen({
   // Profil/arkadaslik/Engelle/Bildir satirlari goruntuleniyor - "Keşfet"ten
   // henuz o odaya girilmedigi icin oda yonetimi burada anlamsiz.
   const [profileOptionsTarget, setProfileOptionsTarget] = useState<ProfileOptionsTarget | null>(null);
-  const widthRef = useRef(width);
-  widthRef.current = width;
 
   // "Odayı Sil" (bkz. RoomPreviewScreen.tsx) odayi degil, sadece bu
   // kullanicinin kendi listesini gizliyor - ekran her odaklaninca (orn. oda
@@ -112,24 +101,6 @@ export default function DiscoverScreen({
       if (res?.ok) setFriendIds(new Set(res.friends.map((f: FriendUser) => f.userId)));
     });
   }, []);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (evt) =>
-        evt.nativeEvent.pageX <= EDGE_ZONE || evt.nativeEvent.pageX >= widthRef.current - EDGE_ZONE,
-      onMoveShouldSetPanResponder: (evt, gesture) => {
-        const startX = evt.nativeEvent.pageX - gesture.dx;
-        const fromLeft = startX <= EDGE_ZONE && gesture.dx > 10;
-        const fromRight = startX >= widthRef.current - EDGE_ZONE && gesture.dx < -10;
-        return (fromLeft || fromRight) && Math.abs(gesture.dy) < 40;
-      },
-      onPanResponderRelease: (evt, gesture) => {
-        const startX = evt.nativeEvent.pageX - gesture.dx;
-        if (startX <= EDGE_ZONE && gesture.dx > SWIPE_THRESHOLD) onOpenProfile();
-        else if (startX >= widthRef.current - EDGE_ZONE && gesture.dx < -SWIPE_THRESHOLD) onOpenFriends();
-      },
-    })
-  ).current;
 
   const fetchRooms = useCallback(() => {
     // Ack'siz emit sunucu hic cevap vermezse (coktu/baglanti kopuk) SURESIZ
@@ -260,28 +231,23 @@ export default function DiscoverScreen({
   }
 
   return (
-    <View style={styles.container} {...panResponder.panHandlers}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.iconTouch} onPress={onOpenProfile} hitSlop={8}>
-          <Icon name="person" size={30} color={theme.text} />
-        </TouchableOpacity>
-        <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
-        <TouchableOpacity style={styles.iconTouch} onPress={onOpenFriends} hitSlop={8}>
-          <Icon name="people" size={30} color={theme.text} />
-        </TouchableOpacity>
-      </View>
-
+    <View style={styles.container}>
+      {/* Profil/Arkadaslar artik alt sekme cubugunda kalici olarak duruyor
+          (bkz. TabBar.tsx), logo da digerlerinde oldugu gibi digerlerinde
+          (Arkadaslar/Profil/Ayarlar sekmeleri) her yerde gorundugu icin
+          burada ayrica tekrarlanmiyor - ekranin en ustunu dogrudan arama
+          cubugu kapliyor. */}
       <LinearGradient
-        colors={["#2a2a35", "#1c1c24", "#101014"]}
+        colors={["#0c1a28", "#13293f", "#1b3752"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.searchBar}
       >
-        <Icon name="search" size={18} color="rgba(255,255,255,0.85)" />
+        <Icon name="search" size={18} color={theme.accentBright} />
         <TextInput
           style={styles.searchInput}
           placeholder={t("discover.searchPlaceholder")}
-          placeholderTextColor="rgba(255,255,255,0.5)"
+          placeholderTextColor="rgba(186,214,235,0.45)"
           value={search}
           onChangeText={setSearch}
         />
@@ -298,9 +264,17 @@ export default function DiscoverScreen({
           loading ? (
             <LoadingView />
           ) : (
-            <Text style={styles.emptyText}>
-              {trimmedSearch ? t("discover.noSearchResults") : t("discover.noRoomsYet")}
-            </Text>
+            <View style={styles.emptyState}>
+              <View style={styles.emptyGlow}>
+                <Compass size={34} color={theme.accentBright} strokeWidth={1.6} />
+              </View>
+              <Text style={[styles.emptyTitle, fontsLoaded && styles.emptyTitleFontLoaded]}>
+                {trimmedSearch ? t("discover.noSearchResultsTitle") : t("discover.noRoomsYetTitle")}
+              </Text>
+              <Text style={styles.emptyBody}>
+                {trimmedSearch ? t("discover.noSearchResultsBody") : t("discover.noRoomsYetBody")}
+              </Text>
+            </View>
           )
         }
         renderSectionHeader={({ section }) => (
@@ -348,25 +322,6 @@ export default function DiscoverScreen({
 const styles = StyleSheet.create({
   // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
   container: { flex: 1, backgroundColor: "transparent" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    // "flex-end" (alttan hizali) - ikonlar (iconTouch, 38x38) ile logo
-    // FARKLI yukseklikte (34) oldugu icin "center" ile ortalanirlarsa
-    // gorsel olarak ayni hizada DURMUYORLARDI (bkz. headerLogo).
-    alignItems: "flex-end",
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 12,
-  },
-  iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
-  // header "flex-end" (alttan hizali) - ama ikon GLYPH'leri (orn. kisi
-  // silueti) kendi 38x38 kutusunun icinde TABANINDAN BOSLUKLU dururken
-  // logo PNG'sindeki "LUNA" yazisi kendi 34'luk kutusunun NEREDEYSE
-  // TABANINA kadar uzaniyor - bu yuzden kutular alttan hizlansa bile YAZI
-  // ikon glyph'inden daha asagida GORUNUYORDU (piksel olculdu, ~7-8px).
-  // marginBottom bunu yukari kaydirip gercek GORSEL tabanlari esitliyor.
-  headerLogo: { width: 74, height: 34, marginBottom: 7, tintColor: "#FFFFFF" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -375,9 +330,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     gap: 10,
     marginHorizontal: 16,
+    marginTop: 50,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(14,165,233,0.22)",
   },
   // "includeFontPadding: false" ŞART - Android'in native TextInput'u
   // (EditText) varsayilan olarak yazi tipi metriklerine gore fazladan dikey
@@ -410,5 +366,31 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   row: { flexDirection: "row" },
-  emptyText: { color: theme.textMuted, textAlign: "center", marginTop: 60, fontSize: 15 },
+  emptyState: { alignItems: "center", marginTop: 72, paddingHorizontal: 32 },
+  emptyGlow: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(92,135,168,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(14,165,233,0.22)",
+    marginBottom: 16,
+  },
+  emptyTitle: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", textAlign: "center" },
+  emptyTitleFontLoaded: {
+    fontFamily: "BebasNeue_400Regular",
+    fontWeight: "400",
+    fontSize: 22,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  emptyBody: {
+    color: theme.textMuted,
+    textAlign: "center",
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+  },
 });
