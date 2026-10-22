@@ -18,6 +18,7 @@ import { theme } from "../theme";
 import Icon, { IconName } from "../components/Icon";
 import LoadingView from "../components/LoadingView";
 import RoomCard from "../components/RoomCard";
+import RoomCardVariantD from "../components/RoomCardVariantD";
 import { useFocusEffect } from "@react-navigation/native";
 import { getHiddenRoomCodes } from "../utils/hiddenRooms";
 import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
@@ -286,7 +287,7 @@ export default function DiscoverScreen({
         renderItem={({ item: row }) => (
           <View style={styles.row}>
             {row.map((item) => (
-              <RoomCard
+              <RoomCardVariantD
                 key={item.code}
                 room={item}
                 friendIds={friendIds}

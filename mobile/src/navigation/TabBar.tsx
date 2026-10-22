@@ -1,10 +1,9 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Plus } from "lucide-react-native";
-import { useTranslation } from "react-i18next";
 import { theme } from "../theme";
 import TabGlowIcon, { TabGlowIconName } from "./TabGlowIcon";
 
@@ -13,18 +12,12 @@ const INACTIVE = "#6b7690";
 /** Variant B (kullanicinin onayladigi, bkz. tabbar_compare.html) - 5 sekme,
  * ortadaki "Oluştur" diger 4'unden FARKLI: etiketsiz, yukari tasmis, marka
  * gradyanli dairesel bir buton (Rave'deki gibi "+" HER ZAMAN direkt platform
- * secmeye goturur, bu yuzden digerleri gibi bir "aktif/pasif" sekme degil). */
+ * secmeye goturur, bu yuzden digerleri gibi bir "aktif/pasif" sekme degil).
+ * Diger 4 sekmenin ikon ALTINDAKI yazilari artik yok (sadece ikon) - aktif
+ * sekmede ikon mavi (theme.accentBright) yerine BEYAZ oluyor. */
 export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
   const bottomPad = Math.max(insets.bottom, 10);
-
-  const labels: Record<string, string> = {
-    Discover: t("tabs.discover"),
-    Friends: t("tabs.friends"),
-    Profile: t("tabs.profile"),
-    Settings: t("tabs.settings"),
-  };
 
   return (
     <View style={[styles.bar, { paddingBottom: bottomPad, height: 58 + bottomPad }]}>
@@ -48,12 +41,12 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
                   // theme.accent (canlı/cırtlak camgöbeği mavi) yerine -
                   // digerleriyle AYNI mat/steel-blue ailesinden iki ton,
                   // sadece bu buton icin biraz daha acik/koyu uclar.
-                  colors={["#6E9BC0", "#3B6480"]}
+                  colors={["#6E9BC0", "#FFFFFF"]}
                   start={{ x: 0.2, y: 0 }}
                   end={{ x: 0.8, y: 1 }}
                   style={styles.createButton}
                 >
-                  <Plus size={26} color="#04141F" strokeWidth={2.6} />
+                  <Plus size={26} color="#17344A" strokeWidth={2.6} />
                 </LinearGradient>
               </View>
             </TouchableOpacity>
@@ -67,10 +60,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
                 aksine native'de (Android/iOS) de calisir. Eskiden burada
                 ustuste binen, bulaniklastirilmamis ham ikon kopyalari vardi -
                 gercek cihazda "yildiz patlamasi" gibi cirkin duruyordu. */}
-            <TabGlowIcon name={route.name as TabGlowIconName} size={22} color={isFocused ? theme.accentBright : INACTIVE} glow={isFocused} strokeWidth={1.8} />
-            <Text style={[styles.label, isFocused && styles.labelActive]} numberOfLines={1}>
-              {labels[route.name]}
-            </Text>
+            <TabGlowIcon name={route.name as TabGlowIconName} size={28} color={isFocused ? "#FFFFFF" : INACTIVE} glow={isFocused} strokeWidth={1.8} />
           </TouchableOpacity>
         );
       })}
@@ -86,15 +76,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(14,165,233,0.2)",
   },
-  tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
-  label: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    color: INACTIVE,
-  },
-  labelActive: { color: "#FFFFFF" },
+  tab: { flex: 1, alignItems: "center", justifyContent: "center" },
   createWrap: {
     width: 70,
     height: 70,
@@ -121,13 +103,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   createButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 4,
-    borderColor: "#0A0E16",
+    borderColor: "#17344A",
     // Butonun kendi hafif derinlik golgesi - artik HER ZAMAN yanan bir isik
     // huzmesi degil, sade/mat bir golge (bkz. createGlow, o SADECE "+"
     // sekimindeyken gorunuyor).
