@@ -101,7 +101,12 @@ export default function RoomCardVariantD({
               end={{ x: 0.8, y: 1 }}
               style={styles.liveDot}
             />
-            <Text style={[styles.viewCountText, { fontSize: countFontSize(room.participantCount) }]}>
+            <Text
+              style={[
+                styles.viewCountText,
+                { fontSize: countFontSize(room.participantCount), lineHeight: countFontSize(room.participantCount) + 2 },
+              ]}
+            >
               {room.participantCount}
             </Text>
           </View>
@@ -219,7 +224,18 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
   },
-  viewCountText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
+  // Sayi haneye gore kuculdukce (countFontSize) varsayilan satir yuksekligi
+  // ORANTISIZ kaliyor ve rakam cercevede hafifce yukari/asagi kayiyormus gibi
+  // gorunuyordu - lineHeight'i fontSize'a gore ayarlayip Android'teki fazladan
+  // ic boslugu (includeFontPadding) kapatarak HER haneli sayida ayni dikey
+  // merkezde sabit kaliyor.
+  viewCountText: {
+    color: "#FFFFFF",
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
+  },
   // Video ismi SABIT bir "paddingTop" ile konumlaniyor (alttaki avatar
   // satirinin boyu onu ETKILEMIYOR). "space-between" ile avatar satiri HER
   // ZAMAN sutunun EN ALTINA (kapak resminin alt kenariyla ayni hizaya)
