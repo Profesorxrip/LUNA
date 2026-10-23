@@ -19,7 +19,7 @@ export default function AdultBadge({ size = 26 }: Props) {
           {
             fontSize: Math.round(size * 0.36),
             lineHeight: Math.round(size * 0.36) + 1,
-            marginTop: Math.round(size * 0.05),
+            marginTop: Math.round(size * 0.12),
           },
         ]}
       >

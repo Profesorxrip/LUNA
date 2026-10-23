@@ -259,7 +259,7 @@ const PHOTO_WIDTH = 108;
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "center", alignItems: "center" },
-  card: { width: CARD_WIDTH, marginTop: 40 },
+  card: { width: CARD_WIDTH, marginTop: 70 },
   // NowPlayingBar.tsx'teki yatay "hap" cercevesinin (borderRadius = kendi
   // yuksekliginin yarisi) 90 derece dondurulmus hali - burada DIKEY oldugu
   // icin yaricap GENISLIGIN yarisina (CARD_WIDTH/2) esitlendi. Fotograf da
@@ -269,16 +269,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#1E1E22",
     borderRadius: CARD_WIDTH / 2,
-    paddingTop: 36,
-    paddingBottom: 40,
+    paddingTop: 12,
+    paddingBottom: 32,
     paddingHorizontal: 20,
   },
-  photo: { width: PHOTO_WIDTH, height: PHOTO_WIDTH, borderRadius: PHOTO_WIDTH / 2, marginBottom: 12 },
+  photo: { width: PHOTO_WIDTH, height: PHOTO_WIDTH, borderRadius: PHOTO_WIDTH / 2, marginBottom: 6 },
   photoPlaceholder: { justifyContent: "center", alignItems: "center" },
   photoInitial: { color: "#FFFFFF", fontSize: 28, fontWeight: "700" },
   name: { color: "#FFFFFF", fontSize: 18, fontFamily: "Inter_700Bold" },
   handle: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 2 },
-  list: { width: "100%", marginTop: 20, gap: 12 },
+  list: { width: "100%", marginTop: 10, gap: 4 },
   // Ikon artik metnin SOLUNA degil, butonun sol kenarina SABIT/mutlak
   // konumlanıyor - boylece yazi ikonun ittigi "grup" merkezine gore degil,
   // butonun GERCEK merkezine gore ortalaniyor.
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: 42,
+    height: 36,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: 13,
   },
@@ -297,11 +297,15 @@ const styles = StyleSheet.create({
   pillLabel: {
     color: "#FFFFFF",
     fontSize: 15,
+    lineHeight: 17,
     fontWeight: "400",
     fontFamily: "BebasNeue_400Regular",
     letterSpacing: 0.5,
     textTransform: "uppercase",
     textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
+    marginTop: 3,
   },
   pillLabelDanger: { color: "#FF6B6B" },
 });
