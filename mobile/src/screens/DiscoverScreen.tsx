@@ -10,7 +10,6 @@ import {
   RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Compass } from "lucide-react-native";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { Inter_700Bold } from "@expo-google-fonts/inter";
 import { useTranslation } from "react-i18next";
@@ -279,9 +278,6 @@ export default function DiscoverScreen({
             <LoadingView />
           ) : (
             <View style={styles.emptyState}>
-              <View style={styles.emptyGlow}>
-                <Compass size={34} color={theme.accentBright} strokeWidth={1.6} />
-              </View>
               <Text style={[styles.emptyTitle, fontsLoaded && styles.emptyTitleFontLoaded]}>
                 {trimmedSearch ? t("discover.noSearchResultsTitle") : t("discover.noRoomsYetTitle")}
               </Text>
@@ -383,17 +379,6 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: "row" },
   emptyState: { alignItems: "center", marginTop: 72, paddingHorizontal: 32 },
-  emptyGlow: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(92,135,168,0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(14,165,233,0.22)",
-    marginBottom: 16,
-  },
   emptyTitle: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", textAlign: "center" },
   emptyTitleFontLoaded: {
     fontFamily: "BebasNeue_400Regular",
