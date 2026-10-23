@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
+import { ChevronLeftIcon } from "react-native-heroicons/outline";
 import { useTranslation } from "react-i18next";
 import { getSocket, PublicRoomSummary, RoomParticipantDetail, PrivacyLevel } from "../services/socket";
 import { theme } from "../theme";
@@ -115,13 +116,13 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
     <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} hitSlop={10}>
-          <Icon name="chevronLeft" size={22} color={theme.text} />
+          <ChevronLeftIcon size={22} color={theme.text} strokeWidth={2.6} />
         </TouchableOpacity>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={reportRoom} hitSlop={10}>
+          <TouchableOpacity onPress={reportRoom} hitSlop={10} style={styles.warningIconWrap}>
             <Icon name="warning" size={20} color={theme.textMuted} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={confirmHideRoom} hitSlop={10}>
+          <TouchableOpacity onPress={confirmHideRoom} hitSlop={10} style={styles.trashIconWrap}>
             <Icon name="trash" size={20} color={theme.danger} />
           </TouchableOpacity>
         </View>
@@ -134,9 +135,6 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
           <View style={[styles.cover, styles.coverPlaceholder]} />
         )}
         {room.isAdult && <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />}
-        <View style={styles.playBadge}>
-          <Icon name="play" size={26} color="#FFFFFF" />
-        </View>
         {platform && (
           <View style={styles.platformBadge}>
             <PlatformBadge platform={platform.key} faviconUrl={platform.faviconUrl} size={30} />
@@ -235,18 +233,17 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
+  // Uyari ucgeni ve cop kutusu glifleri kendi 20x20 kutularinin icinde FARKLI
+  // doluluk oranina sahip (ucgen ustte bosluk birakiyor, cop kutusu kulpuyla
+  // birlikte kutunun daha alt kismini dolduruyor) - bu yuzden "alignItems:
+  // center" ile kutular ortalansa bile gozle bakinca gorsel agirlik merkezleri
+  // ayni cizgide durmuyor. Ikisini ayni optik hizaya getirmek icin kucuk bir
+  // duzeltme.
+  warningIconWrap: { marginTop: 2 },
+  trashIconWrap: { marginTop: -2 },
   coverWrap: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden" },
   cover: { width: "100%", aspectRatio: 16 / 10 },
   coverPlaceholder: { backgroundColor: theme.surfaceAlt },
-  playBadge: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   platformBadge: { position: "absolute", top: 12, right: 12 },
   adultBadge: { position: "absolute", top: 12, left: 12 },
   title: { color: theme.text, fontSize: 20, fontWeight: "700", marginHorizontal: 16, marginTop: 16 },

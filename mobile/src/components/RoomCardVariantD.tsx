@@ -7,7 +7,16 @@ import PlatformBadge from "./PlatformBadge";
 import AdultBadge from "./AdultBadge";
 import { badgeInfoForSource, coverUrlForSource } from "../utils/media";
 
-const AVATAR_COLORS = ["#1E3A5F", "#1F2F52", "#2A2F63", "#17405A"];
+// Duz tek renk yerine HAFIF bir degrade - profesyonel uygulamalardaki
+// (Slack/Discord tarzi) avatar placeholder'lara benzer bir derinlik/canlilik
+// katmak icin. Her biri birbirinden net ayirt edilebilen FARKLI bir ton.
+const AVATAR_GRADIENTS: [string, string][] = [
+  ["#6366F1", "#4338CA"],
+  ["#14B8A6", "#0F766E"],
+  ["#F472B6", "#BE185D"],
+  ["#FBBF24", "#B45309"],
+  ["#38BDF8", "#1D4ED8"],
+];
 const AVATAR_W = 40;
 const AVATAR_PITCH = 44; // avatar genisligi + aralarindaki 4px bosluk
 // Cerceve/nokta SABIT (35x20) kaldigi icin sayi haneye gore kuculuyor -
@@ -123,13 +132,16 @@ export default function RoomCardVariantD({
                       onPress={() => p.userId && onOpenParticipant?.({ userId: p.userId, name: p.name })}
                       onLongPress={() => p.userId && onLongPressParticipant?.({ userId: p.userId, name: p.name })}
                       delayLongPress={350}
-                      style={[
-                        styles.avatar,
-                        { backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], marginLeft: i === 0 ? 0 : 4 },
-                        isFriend && styles.avatarFriend,
-                      ]}
+                      style={[styles.avatar, { marginLeft: i === 0 ? 0 : 4 }, isFriend && styles.avatarFriend]}
                     >
-                      <Text style={styles.avatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
+                      <LinearGradient
+                        colors={AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.avatarGradient}
+                      >
+                        <Text style={styles.avatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
+                      </LinearGradient>
                     </TouchableOpacity>
                   );
                 })}
@@ -199,10 +211,13 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     borderRadius: 20,
   },
+  // Yukseklik (14) cerceve yuksekligiyle (20) AYNI paritede (ikisi de cift)
+  // olacak sekilde secildi - boylece (20-14)/2=3 ust/alt bosluk TAM SAYI
+  // cikiyor ve top yuvarlanmadan mukemmel ortalaniyor.
   liveDot: {
-    width: 13,
-    height: 13,
-    borderRadius: 6.5,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
   },
   viewCountText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   // Video ismi SABIT bir "paddingTop" ile konumlaniyor (alttaki avatar
@@ -225,11 +240,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: theme.surface,
+    borderColor: "rgba(255,255,255,0.25)",
+    overflow: "hidden",
   },
+  avatarGradient: { flex: 1, alignItems: "center", justifyContent: "center" },
   avatarFriend: { borderWidth: 2.2, borderColor: theme.accentBright },
-  avatarInitial: { color: theme.accent, fontSize: 16, fontWeight: "700" },
+  // Varsayilan font satir yuksekligi harfi dikeyde hafifce kaydiriyordu -
+  // lineHeight'i fontSize'a esitleyip Android'teki fazladan ic boslugu
+  // (includeFontPadding) kapatarak harf tam gobege oturuyor.
+  avatarInitial: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    lineHeight: 18,
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
+  },
 });

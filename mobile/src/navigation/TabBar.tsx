@@ -21,6 +21,16 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.bar, { paddingBottom: bottomPad, height: 58 + bottomPad }]}>
+      {/* Eskiden duz renkli (rgba cam gobegi) bir "borderTopColor" cizgisiydi -
+          artik beyazdan maviye gecen ince bir degrade seritle ayni rolu
+          oynuyor (RN'de borderColor dogrudan gradyan olamadigi icin ayri bir
+          1px LinearGradient katmani olarak cizliyoruz). */}
+      <LinearGradient
+        colors={["#FFFFFF", "#38BDF8"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.topDivider}
+      />
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
         const onPress = () => {
@@ -73,9 +83,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(10,14,22,0.94)",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(14,165,233,0.2)",
   },
+  topDivider: { position: "absolute", top: 0, left: 0, right: 0, height: 1 },
   tab: { flex: 1, alignItems: "center", justifyContent: "center" },
   createWrap: {
     width: 70,

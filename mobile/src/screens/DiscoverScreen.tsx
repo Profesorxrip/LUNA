@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Compass } from "lucide-react-native";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { Inter_700Bold } from "@expo-google-fonts/inter";
 import { useTranslation } from "react-i18next";
 import { getSocket, PublicRoomSummary, DiscoverSections, RoomState, FriendUser } from "../services/socket";
 import { theme } from "../theme";
@@ -63,7 +64,7 @@ export default function DiscoverScreen({
   onOpenRoomPreview,
 }: Props) {
   const { t } = useTranslation();
-  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
+  const [fontsLoaded] = useFonts({ BebasNeue_400Regular, Inter_700Bold });
   const { width } = useWindowDimensions();
   const numColumns = width >= WIDE_BREAKPOINT ? 2 : 1;
   const [sections, setSections] = useState<DiscoverSections>(EMPTY_SECTIONS);
@@ -238,20 +239,32 @@ export default function DiscoverScreen({
           (Arkadaslar/Profil/Ayarlar sekmeleri) her yerde gorundugu icin
           burada ayrica tekrarlanmiyor - ekranin en ustunu dogrudan arama
           cubugu kapliyor. */}
+      {/* Eskiden duz rgba cam gobegi renkli ince bir cerceveydi - artik
+          beyazdan maviye gecen bir degrade "halka" olarak, dis tarafa ince
+          bir LinearGradient, ic tarafa asil arama cubugunun kendi dolgu
+          degradesi yerlestirilerek elde ediliyor (RN'de borderColor
+          dogrudan gradyan olamiyor). */}
       <LinearGradient
-        colors={["#0c1a28", "#13293f", "#1b3752"]}
+        colors={["#FFFFFF", "#38BDF8"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.searchBar}
+        style={styles.searchBarBorder}
       >
-        <Icon name="search" size={18} color={theme.accentBright} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t("discover.searchPlaceholder")}
-          placeholderTextColor="rgba(186,214,235,0.45)"
-          value={search}
-          onChangeText={setSearch}
-        />
+        <LinearGradient
+          colors={["#0c1a28", "#13293f", "#1b3752"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.searchBar}
+        >
+          <Icon name="search" size={18} color={theme.accentBright} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t("discover.searchPlaceholder")}
+            placeholderTextColor="rgba(186,214,235,0.45)"
+            value={search}
+            onChangeText={setSearch}
+          />
+        </LinearGradient>
       </LinearGradient>
 
       <SectionList
@@ -323,6 +336,13 @@ export default function DiscoverScreen({
 const styles = StyleSheet.create({
   // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor.
   container: { flex: 1, backgroundColor: "transparent" },
+  searchBarBorder: {
+    borderRadius: 27,
+    padding: 1.3,
+    marginHorizontal: 16,
+    marginTop: 50,
+    marginBottom: 8,
+  },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -330,11 +350,6 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     paddingHorizontal: 18,
     gap: 10,
-    marginHorizontal: 16,
-    marginTop: 50,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "rgba(14,165,233,0.22)",
   },
   // "includeFontPadding: false" ŞART - Android'in native TextInput'u
   // (EditText) varsayilan olarak yazi tipi metriklerine gore fazladan dikey
