@@ -13,7 +13,18 @@ export default function AdultBadge({ size = 26 }: Props) {
   const borderWidth = Math.round(size * 0.08);
   return (
     <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2, borderWidth }]}>
-      <Text style={[styles.text, { fontSize: Math.round(size * 0.36) }]}>18+</Text>
+      <Text
+        style={[
+          styles.text,
+          {
+            fontSize: Math.round(size * 0.36),
+            lineHeight: Math.round(size * 0.36) + 1,
+            marginTop: Math.round(size * 0.05),
+          },
+        ]}
+      >
+        18+
+      </Text>
     </View>
   );
 }
@@ -28,5 +39,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  text: { color: "rgba(255,255,255,0.65)", fontWeight: "800", includeFontPadding: false, textAlign: "center" },
+  text: {
+    color: "rgba(255,255,255,0.65)",
+    fontFamily: "Inter_700Bold",
+    includeFontPadding: false,
+    textAlign: "center",
+    textAlignVertical: "center",
+  },
 });

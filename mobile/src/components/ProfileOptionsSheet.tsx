@@ -217,6 +217,9 @@ export default function ProfileOptionsSheet({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <View style={styles.card}>
+          {/* NowPlayingBar.tsx'teki yatay "hap" cercevesinin 90 derece
+              dondurulmus hali - TEK bir dikey kapsul, fotograf da butonlar da
+              bunun ICINDE/ONUNDE, ayri ayri cakisan iki parca degil. */}
           <TouchableOpacity activeOpacity={1} onPress={() => {}} style={styles.cardInner}>
             {target.avatarUrl ? (
               <Image source={{ uri: target.avatarUrl }} style={styles.photo} />
@@ -225,24 +228,24 @@ export default function ProfileOptionsSheet({
                 <Text style={styles.photoInitial}>{target.name.trim().charAt(0).toUpperCase() || "?"}</Text>
               </View>
             )}
-            <View style={styles.nameCard}>
-              <Text style={styles.name} numberOfLines={1}>
-                {target.name}
+            <Text style={styles.name} numberOfLines={1}>
+              {target.name}
+            </Text>
+            {!!target.handle && (
+              <Text style={styles.handle} numberOfLines={1}>
+                @{target.handle}
               </Text>
-              {!!target.handle && (
-                <Text style={styles.handle} numberOfLines={1}>
-                  @{target.handle}
-                </Text>
-              )}
+            )}
 
-              <View style={styles.list}>
-                {rows.map((row) => (
-                  <TouchableOpacity key={row.key} style={styles.pill} onPress={row.onPress}>
+            <View style={styles.list}>
+              {rows.map((row) => (
+                <TouchableOpacity key={row.key} style={styles.pill} onPress={row.onPress}>
+                  <View style={styles.pillIcon}>
                     <Icon name={row.icon} size={16} color={row.danger ? "#FF6B6B" : "#FFFFFF"} />
-                    <Text style={[styles.pillLabel, row.danger && styles.pillLabelDanger]}>{row.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                  </View>
+                  <Text style={[styles.pillLabel, row.danger && styles.pillLabelDanger]}>{row.label}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </TouchableOpacity>
         </View>
@@ -251,38 +254,43 @@ export default function ProfileOptionsSheet({
   );
 }
 
-const CARD_WIDTH = 240;
-const PHOTO_WIDTH = 90;
+const CARD_WIDTH = 170;
+const PHOTO_WIDTH = 108;
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "center", alignItems: "center" },
-  card: { width: CARD_WIDTH },
-  cardInner: { alignItems: "center" },
-  photo: { width: PHOTO_WIDTH, height: PHOTO_WIDTH, borderRadius: 20, zIndex: 1 },
+  card: { width: CARD_WIDTH, marginTop: 40 },
+  // NowPlayingBar.tsx'teki yatay "hap" cercevesinin (borderRadius = kendi
+  // yuksekliginin yarisi) 90 derece dondurulmus hali - burada DIKEY oldugu
+  // icin yaricap GENISLIGIN yarisina (CARD_WIDTH/2) esitlendi. Fotograf da
+  // butonlar da artik AYRI/cakisan iki parca degil, TEK bu kapsulun icinde.
+  cardInner: {
+    width: "100%",
+    alignItems: "center",
+    backgroundColor: "#1E1E22",
+    borderRadius: CARD_WIDTH / 2,
+    paddingTop: 36,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+  },
+  photo: { width: PHOTO_WIDTH, height: PHOTO_WIDTH, borderRadius: PHOTO_WIDTH / 2, marginBottom: 12 },
   photoPlaceholder: { justifyContent: "center", alignItems: "center" },
   photoInitial: { color: "#FFFFFF", fontSize: 28, fontWeight: "700" },
-  nameCard: {
-    width: "100%",
-    marginTop: -20,
-    backgroundColor: "#1E1E22",
-    borderRadius: 20,
-    paddingTop: 24,
-    paddingBottom: 12,
-    paddingHorizontal: 14,
-    alignItems: "center",
-  },
   name: { color: "#FFFFFF", fontSize: 18, fontFamily: "Inter_700Bold" },
   handle: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 2 },
-  list: { width: "100%", marginTop: 10, gap: 6 },
+  list: { width: "100%", marginTop: 20, gap: 12 },
+  // Ikon artik metnin SOLUNA degil, butonun sol kenarina SABIT/mutlak
+  // konumlanıyor - boylece yazi ikonun ittigi "grup" merkezine gore degil,
+  // butonun GERCEK merkezine gore ortalaniyor.
   pill: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
     height: 42,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: 13,
   },
+  pillIcon: { position: "absolute", left: 14 },
   // Discover ekranindaki bos/arama-sonucu basliklariyla (bkz.
   // DiscoverScreen.tsx emptyTitleFontLoaded) AYNI "afis" tarzi - BebasNeue,
   // buyuk harf, hafif harf araligi.
