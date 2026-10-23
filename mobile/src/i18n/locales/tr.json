@@ -99,7 +99,7 @@
     "sectionNearby": "Yakındakiler",
     "sectionOpen": "Açık",
     "noSearchResultsTitle": "Sonuç bulunamadı",
-    "noSearchResultsBody": "Aramanla eşleşen bir oda yok. Farklı bir şey dene.",
+    "noSearchResultsBody": "Arama kriterlerine uygun öğe bulunamadı.",
     "noRoomsYetTitle": "Hoşgeldiniz",
     "noRoomsYetBody": "İlk odanızı açarak arkadaşlarınızı davet edebilir, birlikte izlemenin keyfini çıkarabilirsiniz. Başlamak için aşağıdaki + simgesine dokunmanız yeterli.",
     "defaultGuestName": "Misafir",

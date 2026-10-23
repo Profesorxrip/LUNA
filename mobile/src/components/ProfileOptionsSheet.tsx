@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     alignItems: "center",
   },
-  name: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", fontStyle: "italic", fontFamily: "Georgia" },
+  name: { color: "#FFFFFF", fontSize: 18, fontFamily: "Inter_700Bold" },
   handle: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 2 },
   list: { width: "100%", marginTop: 10, gap: 6 },
   pill: {
@@ -283,6 +283,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: 13,
   },
-  pillLabel: { color: "#FFFFFF", fontSize: 13, fontWeight: "600", textAlign: "center" },
+  // Discover ekranindaki bos/arama-sonucu basliklariyla (bkz.
+  // DiscoverScreen.tsx emptyTitleFontLoaded) AYNI "afis" tarzi - BebasNeue,
+  // buyuk harf, hafif harf araligi.
+  pillLabel: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "400",
+    fontFamily: "BebasNeue_400Regular",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
   pillLabelDanger: { color: "#FF6B6B" },
 });
