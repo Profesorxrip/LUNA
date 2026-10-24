@@ -35,8 +35,8 @@ import {
   GlobeEuropeAfricaIcon,
   LanguageIcon,
 } from "react-native-heroicons/solid";
-import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote } from "lucide-react-native";
-import { PaperPlaneIcon, ParticipantsIcon, PersonIcon, PersonBlockIcon, PersonBanIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
+import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, User, UserPlus, UserX, UserMinus, UserCheck } from "lucide-react-native";
+import { PaperPlaneIcon, ParticipantsIcon, PersonBlockIcon, PersonBanIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
 import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
@@ -101,6 +101,10 @@ export type IconName =
   | "chatBubble"
   | "clipboard"
   | "person"
+  | "personAdd"
+  | "personRemove"
+  | "personMinus"
+  | "personCheck"
   | "block"
   | "shield"
   | "trash"
@@ -178,7 +182,6 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   globe: CompassBadgeIcon,
   clock: ClockIcon,
   shareBox: ShareBoxIcon,
-  person: PersonIcon,
   personBlock: PersonBlockIcon,
   personBan: PersonBanIcon,
 };
@@ -197,6 +200,13 @@ export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
   if (name === "search") return <MagnifyingGlassIconOutline size={size} color={color} strokeWidth={2.8} />;
   if (name === "mention") return <AtSymbolIconOutline size={size} color={color} strokeWidth={2.1} />;
   if (name === "kicked") return <ArrowRightOnRectangleIconOutline size={size} color={color} strokeWidth={2} />;
+  // Alt sekme cubugundaki "Profil" ikonuyla (bkz. TabGlowIcon.tsx) AYNI
+  // cizgisel (lucide) stil - eskiden dolu/custom PersonIcon'du.
+  if (name === "person") return <User size={size} color={color} strokeWidth={1.8} />;
+  if (name === "personAdd") return <UserPlus size={size} color={color} strokeWidth={1.8} />;
+  if (name === "personRemove") return <UserX size={size} color={color} strokeWidth={1.8} />;
+  if (name === "personMinus") return <UserMinus size={size} color={color} strokeWidth={1.8} />;
+  if (name === "personCheck") return <UserCheck size={size} color={color} strokeWidth={1.8} />;
   if (name === "block") return <NoSymbolIconOutline size={size} color={color} strokeWidth={2} />;
   // "Bekleniyor" (hourglass) - lucide'nin varsayilan cizgi (fill=none) hali
   // yerine dolgulu istendi - digerlerinden (hourglass DISI lucide ikonlar)

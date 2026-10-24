@@ -1,4 +1,5 @@
 import { Image, Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import Icon from "./Icon";
 import type { IconName } from "./Icon";
@@ -170,11 +171,11 @@ export default function ProfileOptionsSheet({
   }
   if (target.userId) {
     if (target.friendStatus === "friends" && onRemoveFriend) {
-      rows.push({ key: "removeFriend", icon: "personBlock", label: t("profileOptions.removeFriend"), onPress: act(onRemoveFriend) });
+      rows.push({ key: "removeFriend", icon: "personMinus", label: t("profileOptions.removeFriend"), onPress: act(onRemoveFriend) });
     } else if (target.friendStatus === "outgoing" && onCancelFriendRequest) {
-      rows.push({ key: "cancelFriendRequest", icon: "invite", label: t("profileOptions.cancelFriendRequest"), onPress: act(onCancelFriendRequest) });
+      rows.push({ key: "cancelFriendRequest", icon: "personRemove", label: t("profileOptions.cancelFriendRequest"), onPress: act(onCancelFriendRequest) });
     } else if (onSendFriendRequest) {
-      rows.push({ key: "addFriend", icon: "invite", label: t("profileOptions.addFriend"), onPress: act(onSendFriendRequest) });
+      rows.push({ key: "addFriend", icon: "personAdd", label: t("profileOptions.addFriend"), onPress: act(onSendFriendRequest) });
     }
   }
   if (targetInRoom && canModerateTarget && onKick) {
@@ -204,9 +205,9 @@ export default function ProfileOptionsSheet({
   }
   if (target.userId) {
     if (target.friendStatus === "blocked" && onUnblock) {
-      rows.push({ key: "unblock", icon: "block", label: t("profileOptions.unblock"), onPress: act(onUnblock) });
+      rows.push({ key: "unblock", icon: "personRemove", label: t("profileOptions.unblock"), onPress: act(onUnblock) });
     } else if (onBlock) {
-      rows.push({ key: "block", icon: "block", label: t("profileOptions.block"), danger: true, onPress: act(onBlock) });
+      rows.push({ key: "block", icon: "block", label: t("profileOptions.block"), onPress: act(onBlock) });
     }
   }
   if (target.userId && onReport) {
@@ -220,7 +221,14 @@ export default function ProfileOptionsSheet({
           {/* NowPlayingBar.tsx'teki yatay "hap" cercevesinin 90 derece
               dondurulmus hali - TEK bir dikey kapsul, fotograf da butonlar da
               bunun ICINDE/ONUNDE, ayri ayri cakisan iki parca degil. */}
-          <TouchableOpacity activeOpacity={1} onPress={() => {}} style={styles.cardInner}>
+          <LinearGradient
+            colors={["#FFFFFF", "#1C6FD9"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.cardBorder}
+          >
+            <TouchableOpacity activeOpacity={1} onPress={() => {}} style={styles.cardInner}>
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: "#132233" }]} />
             {target.avatarUrl ? (
               <Image source={{ uri: target.avatarUrl }} style={styles.photo} />
             ) : (
@@ -240,14 +248,29 @@ export default function ProfileOptionsSheet({
             <View style={styles.list}>
               {rows.map((row) => (
                 <TouchableOpacity key={row.key} style={styles.pill} onPress={row.onPress}>
-                  <View style={styles.pillIcon}>
+                  <View
+                    style={[
+                      styles.pillIcon,
+                      (row.icon === "block" || row.icon === "warning") && styles.pillIconNudgeLeft,
+                      row.icon === "warning" && styles.pillIconNudgeDown,
+                    ]}
+                  >
                     <Icon name={row.icon} size={16} color={row.danger ? "#FF6B6B" : "#FFFFFF"} />
                   </View>
-                  <Text style={[styles.pillLabel, row.danger && styles.pillLabelDanger]}>{row.label}</Text>
+                  <View style={styles.pillLabelWrap}>
+                    <Text
+                      style={[styles.pillLabel, row.danger && styles.pillLabelDanger]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {row.label}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
       </TouchableOpacity>
     </Modal>
@@ -260,6 +283,7 @@ const PHOTO_WIDTH = 108;
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: { width: CARD_WIDTH, marginTop: 70 },
+  cardBorder: { borderRadius: CARD_WIDTH / 2, padding: 2 },
   // NowPlayingBar.tsx'teki yatay "hap" cercevesinin (borderRadius = kendi
   // yuksekliginin yarisi) 90 derece dondurulmus hali - burada DIKEY oldugu
   // icin yaricap GENISLIGIN yarisina (CARD_WIDTH/2) esitlendi. Fotograf da
@@ -267,11 +291,11 @@ const styles = StyleSheet.create({
   cardInner: {
     width: "100%",
     alignItems: "center",
-    backgroundColor: "#1E1E22",
     borderRadius: CARD_WIDTH / 2,
     paddingTop: 12,
     paddingBottom: 32,
     paddingHorizontal: 20,
+    overflow: "hidden",
   },
   photo: { width: PHOTO_WIDTH, height: PHOTO_WIDTH, borderRadius: PHOTO_WIDTH / 2, marginBottom: 6 },
   photoPlaceholder: { justifyContent: "center", alignItems: "center" },
@@ -290,7 +314,16 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: 13,
   },
-  pillIcon: { position: "absolute", left: 14 },
+  pillIcon: { position: "absolute", left: 10, top: 0, bottom: 0, justifyContent: "center", alignItems: "center" },
+  pillIconNudgeLeft: { left: 8 },
+  pillIconNudgeDown: { top: 2 },
+  // Ikon SOLDA sabit (mutlak) durdugu icin yazi onun uzerine BINMESIN diye
+  // kendi kutusu ikon payi kadar soldan baslayip (paddingLeft) kalan alanda
+  // ortalaniyor - kisa etiketlerde gorsel olarak hala butonun ortasina yakin
+  // duruyor, "İsteği iptal et" gibi UZUN etiketlerde ise artik ikona
+  // DEGMIYOR (eskiden tum genislikte ortalandigi icin uzun yazi soldan
+  // tasip ikonun ustune biniyordu).
+  pillLabelWrap: { width: "100%", paddingLeft: 34, paddingRight: 10 },
   // Discover ekranindaki bos/arama-sonucu basliklariyla (bkz.
   // DiscoverScreen.tsx emptyTitleFontLoaded) AYNI "afis" tarzi - BebasNeue,
   // buyuk harf, hafif harf araligi.
@@ -302,7 +335,7 @@ const styles = StyleSheet.create({
     fontFamily: "BebasNeue_400Regular",
     letterSpacing: 0.5,
     textTransform: "uppercase",
-    textAlign: "center",
+    textAlign: "left",
     textAlignVertical: "center",
     includeFontPadding: false,
     marginTop: 3,
