@@ -56,7 +56,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
                   end={{ x: 0.8, y: 1 }}
                   style={styles.createButton}
                 >
-                  <Plus size={26} color="#17344A" strokeWidth={2.6} />
+                  <Plus size={28} color="#17344A" strokeWidth={2.6} />
                 </LinearGradient>
               </View>
             </TouchableOpacity>
@@ -70,7 +70,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
                 aksine native'de (Android/iOS) de calisir. Eskiden burada
                 ustuste binen, bulaniklastirilmamis ham ikon kopyalari vardi -
                 gercek cihazda "yildiz patlamasi" gibi cirkin duruyordu. */}
-            <TabGlowIcon name={route.name as TabGlowIconName} size={28} color={isFocused ? "#FFFFFF" : INACTIVE} glow={isFocused} strokeWidth={1.8} />
+            <TabGlowIcon name={route.name as TabGlowIconName} size={30} color={isFocused ? "#FFFFFF" : INACTIVE} glow={isFocused} strokeWidth={1.8} />
           </TouchableOpacity>
         );
       })}
