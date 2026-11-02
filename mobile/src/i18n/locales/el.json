@@ -165,7 +165,11 @@
     "reportSend": "Αποστολή",
     "voiceMessageTitle": "Φωνητικό Μήνυμα",
     "messagePlaceholder": "Μήνυμα...",
-    "noMessagesYet": "Δεν υπάρχουν μηνύματα ακόμα, στείλε το πρώτο!"
+    "noMessagesYet": "Δεν υπάρχουν μηνύματα ακόμα, στείλε το πρώτο!",
+    "memberInfoTitle": "Πληροφορίες μέλους",
+    "cameraPermissionRequiredBody": "Χρειαζόμαστε άδεια κάμερας για να τραβήξουμε φωτογραφία.",
+    "blockConfirmTitle": "Αποκλεισμός",
+    "blockConfirmBody": "Είστε σίγουροι ότι θέλετε να αποκλείσετε τον/την {{name}};"
   },
   "userProfile": {
     "defaultName": "Χρήστης",
@@ -423,8 +427,9 @@
     "hiddenBanner": "{{count}} συμμετέχοντες αποκρύπτουν την τοποθεσία τους."
   },
   "sendMedia": {
-    "adultToggleLabel": "Αυτή η εικόνα είναι περιεχόμενο 18+",
-    "send": "Αποστολή"
+    "send": "Αποστολή",
+    "captionPlaceholder": "Προσθήκη μηνύματος...",
+    "stickerDefaultText": "Κείμενο"
   },
   "tabs": {
     "discover": "Ανακάλυψη",

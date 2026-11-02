@@ -165,7 +165,11 @@
     "reportSend": "Gönder",
     "voiceMessageTitle": "Sesli Mesaj",
     "messagePlaceholder": "Mesaj...",
-    "noMessagesYet": "Henüz mesaj yok, ilk mesajı sen gönder!"
+    "noMessagesYet": "Henüz mesaj yok, ilk mesajı sen gönder!",
+    "memberInfoTitle": "Üye Bilgisi",
+    "cameraPermissionRequiredBody": "Fotoğraf çekmek için kamera iznine ihtiyacımız var.",
+    "blockConfirmTitle": "Engelle",
+    "blockConfirmBody": "{{name}} kullanıcısını engellemek istediğine emin misin?"
   },
   "userProfile": {
     "defaultName": "Kullanıcı",
@@ -423,8 +427,9 @@
     "hiddenBanner": "{{count}} katılımcı konumunu gizliyor."
   },
   "sendMedia": {
-    "adultToggleLabel": "Bu görsel +18 içerik",
-    "send": "Gönder"
+    "send": "Gönder",
+    "captionPlaceholder": "Mesaj ekle...",
+    "stickerDefaultText": "Metin"
   },
   "tabs": {
     "discover": "Keşif",

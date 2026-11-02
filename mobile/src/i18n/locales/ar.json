@@ -165,7 +165,11 @@
     "reportSend": "إرسال",
     "voiceMessageTitle": "رسالة صوتية",
     "messagePlaceholder": "رسالة...",
-    "noMessagesYet": "لا توجد رسائل بعد، أرسل أول رسالة!"
+    "noMessagesYet": "لا توجد رسائل بعد، أرسل أول رسالة!",
+    "memberInfoTitle": "معلومات العضو",
+    "cameraPermissionRequiredBody": "نحتاج إلى إذن الكاميرا لالتقاط صورة.",
+    "blockConfirmTitle": "حظر",
+    "blockConfirmBody": "هل أنت متأكد من حظر {{name}}؟"
   },
   "userProfile": {
     "defaultName": "مستخدم",
@@ -423,8 +427,9 @@
     "hiddenBanner": "{{count}} مشارك يخفي موقعه."
   },
   "sendMedia": {
-    "adultToggleLabel": "هذه الصورة محتوى +18",
-    "send": "إرسال"
+    "send": "إرسال",
+    "captionPlaceholder": "أضف رسالة...",
+    "stickerDefaultText": "نص"
   },
   "tabs": {
     "discover": "استكشاف",

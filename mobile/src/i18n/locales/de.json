@@ -165,7 +165,11 @@
     "reportSend": "Senden",
     "voiceMessageTitle": "Sprachnachricht",
     "messagePlaceholder": "Nachricht...",
-    "noMessagesYet": "Noch keine Nachrichten, sende die erste!"
+    "noMessagesYet": "Noch keine Nachrichten, sende die erste!",
+    "memberInfoTitle": "Mitgliedsinfo",
+    "cameraPermissionRequiredBody": "Wir benötigen die Kamerazugriffsberechtigung, um ein Foto aufzunehmen.",
+    "blockConfirmTitle": "Blockieren",
+    "blockConfirmBody": "Möchtest du {{name}} wirklich blockieren?"
   },
   "userProfile": {
     "defaultName": "Nutzer",
@@ -423,8 +427,9 @@
     "hiddenBanner": "{{count}} Teilnehmer verbergen ihren Standort."
   },
   "sendMedia": {
-    "adultToggleLabel": "Dieses Bild ist 18+ Inhalt",
-    "send": "Senden"
+    "send": "Senden",
+    "captionPlaceholder": "Nachricht hinzufügen...",
+    "stickerDefaultText": "Text"
   },
   "tabs": {
     "discover": "Entdecken",

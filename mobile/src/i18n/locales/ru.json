@@ -165,7 +165,11 @@
     "reportSend": "Отправить",
     "voiceMessageTitle": "Голосовое сообщение",
     "messagePlaceholder": "Сообщение...",
-    "noMessagesYet": "Пока нет сообщений, отправь первое!"
+    "noMessagesYet": "Пока нет сообщений, отправь первое!",
+    "memberInfoTitle": "Информация об участнике",
+    "cameraPermissionRequiredBody": "Нам нужен доступ к камере, чтобы сделать фото.",
+    "blockConfirmTitle": "Заблокировать",
+    "blockConfirmBody": "Вы уверены, что хотите заблокировать {{name}}?"
   },
   "userProfile": {
     "defaultName": "Пользователь",
@@ -423,8 +427,9 @@
     "hiddenBanner": "{{count}} участник(ов) скрывают своё местоположение."
   },
   "sendMedia": {
-    "adultToggleLabel": "Это изображение содержит контент 18+",
-    "send": "Отправить"
+    "send": "Отправить",
+    "captionPlaceholder": "Добавить сообщение...",
+    "stickerDefaultText": "Текст"
   },
   "tabs": {
     "discover": "Обзор",
