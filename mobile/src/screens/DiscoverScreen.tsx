@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "transparent" },
   searchBarBorder: {
     borderRadius: 27,
-    padding: 1.3,
+    padding: 2,
     marginHorizontal: 16,
     marginTop: 50,
     marginBottom: 8,
