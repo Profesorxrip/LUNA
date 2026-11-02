@@ -32,9 +32,12 @@ export default function InfoScreen({ title, sections }: Props) {
 }
 
 const styles = StyleSheet.create({
-  // Kullanici: "arka plan bu kutunun rengi olmalı" - LoginScreen'deki dil
-  // secici kutusuyla (languageSheet) AYNI renk.
-  screen: { flex: 1, backgroundColor: "#15202B" },
+  // Kullanici: "bizim arka planı deneyelim" - duz bir renk yerine
+  // uygulamanin paylasilan degrade'i (AppBackground) gorunsun diye seffaf.
+  // TermsScreen/PrivacyScreen kendi Modal'larinda AppBackground'i KENDILERI
+  // render ediyor (bkz. LoginScreen.tsx) - normal navigasyonla acilan
+  // BackgroundInfoScreen zaten App.tsx'teki paylasilan katmanin uzerinde.
+  screen: { flex: 1, backgroundColor: "transparent" },
   scrollContent: { paddingHorizontal: 20, paddingTop: 54, paddingBottom: 48 },
   title: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, marginBottom: 20 },
   section: { marginBottom: 20 },

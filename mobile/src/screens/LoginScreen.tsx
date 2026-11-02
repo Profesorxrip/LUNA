@@ -20,6 +20,7 @@ import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
 import { GoogleIcon } from "../components/SocialAuthIcons";
+import AppBackground from "../components/AppBackground";
 import { LANGUAGES, setAppLanguage, LanguageCode } from "../i18n";
 import LunaLogo from "../components/LunaLogo";
 import TermsScreen from "./TermsScreen";
@@ -342,6 +343,11 @@ export default function LoginScreen() {
         animationType="slide"
         onRequestClose={() => setInfoModal(null)}
       >
+        {/* Kullanici: "bizim arka planı deneyelim" - Modal, App.tsx'teki
+            PAYLASILAN AppBackground'in ARKASINDA degil AYRI bir native
+            katmanda render edildigi icin (RN Modal'larin dogasi), aynı
+            degrade'i burada KENDI basina tekrar ciziyoruz. */}
+        <AppBackground />
         {infoModal === "terms" ? <TermsScreen /> : <PrivacyScreen />}
         <TouchableOpacity style={styles.infoModalClose} onPress={() => setInfoModal(null)} hitSlop={10}>
           <Text style={styles.infoModalCloseText}>✕</Text>
