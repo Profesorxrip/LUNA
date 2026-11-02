@@ -13,7 +13,9 @@ import PremiumScreen from "../screens/PremiumScreen";
 import PrivacyScreen from "../screens/PrivacyScreen";
 import BackgroundInfoScreen from "../screens/BackgroundInfoScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
-import DMScreen, { DMPeer } from "../screens/DMScreen";
+import DMScreen, { DMPeer, DmInfoOpenParams } from "../screens/DMScreen";
+import DmInfoScreen from "../screens/DmInfoScreen";
+import { DMMessage } from "../services/socket";
 import RoomPreviewScreen from "../screens/RoomPreviewScreen";
 import RoomScreen from "../screens/RoomScreen";
 import TabBar from "./TabBar";
@@ -43,6 +45,7 @@ export type RootStackParamList = {
   // profilimiz artik MainTabs icindeki "Profile" sekmesi (bkz. MyProfileRoute).
   UserProfile: { own: boolean; peer?: PeerParam };
   DM: { peer: DMPeer };
+  DmInfo: { peer: DMPeer } & DmInfoOpenParams;
   RoomPreview: { room: PublicRoomSummary };
   Room: { room: RoomState };
 };
@@ -215,7 +218,29 @@ function UserProfileRoute() {
 function DMRoute() {
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<RouteProp<RootStackParamList, "DM">>();
-  return <DMScreen peer={params.peer} onBack={() => navigation.goBack()} />;
+  return (
+    <DMScreen
+      peer={params.peer}
+      onBack={() => navigation.goBack()}
+      onOpenInfo={(info) => navigation.navigate("DmInfo", { peer: params.peer, ...info })}
+    />
+  );
+}
+
+function DmInfoRoute() {
+  const navigation = useNavigation<Nav>();
+  const { params } = useRoute<RouteProp<RootStackParamList, "DmInfo">>();
+  return (
+    <DmInfoScreen
+      peer={params.peer}
+      peerAvatarUrl={params.peerAvatarUrl}
+      muted={params.muted}
+      mediaMessages={params.mediaMessages}
+      onToggleMute={params.onToggleMute}
+      onBack={() => navigation.goBack()}
+      onBlocked={() => navigation.popToTop()}
+    />
+  );
 }
 
 function RoomPreviewRoute() {
@@ -281,6 +306,7 @@ export default function RootNavigator() {
         <Stack.Screen name="BackgroundInfo" component={BackgroundInfoRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="UserProfile" component={UserProfileRoute} />
         <Stack.Screen name="DM" component={DMRoute} />
+        <Stack.Screen name="DmInfo" component={DmInfoRoute} />
         <Stack.Screen name="RoomPreview" component={RoomPreviewRoute} />
         <Stack.Screen name="Room" component={RoomRoute} options={{ animation: "fade", gestureEnabled: false }} />
       </Stack.Navigator>

@@ -171,7 +171,11 @@
     "blockConfirmTitle": "Block",
     "blockConfirmBody": "Are you sure you want to block {{name}}?",
     "attachCamera": "Camera",
-    "attachGallery": "Choose from Gallery"
+    "attachGallery": "Choose from Gallery",
+    "callAction": "Call",
+    "voiceCallAction": "Voice Call",
+    "tabFiles": "Files",
+    "tabFilesEmpty": "No files have been shared in this chat yet."
   },
   "userProfile": {
     "defaultName": "User",

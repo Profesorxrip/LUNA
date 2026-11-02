@@ -171,7 +171,11 @@
     "blockConfirmTitle": "حظر",
     "blockConfirmBody": "هل أنت متأكد من حظر {{name}}؟",
     "attachCamera": "الكاميرا",
-    "attachGallery": "اختر من المعرض"
+    "attachGallery": "اختر من المعرض",
+    "callAction": "اتصال",
+    "voiceCallAction": "مكالمة صوتية",
+    "tabFiles": "الملفات",
+    "tabFilesEmpty": "لم تتم مشاركة أي ملفات في هذه المحادثة بعد."
   },
   "userProfile": {
     "defaultName": "مستخدم",

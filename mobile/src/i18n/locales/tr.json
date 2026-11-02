@@ -171,7 +171,11 @@
     "blockConfirmTitle": "Engelle",
     "blockConfirmBody": "{{name}} kullanıcısını engellemek istediğine emin misin?",
     "attachCamera": "Kamera",
-    "attachGallery": "Galeriden Seç"
+    "attachGallery": "Galeriden Seç",
+    "callAction": "Ara",
+    "voiceCallAction": "Sesli Arama",
+    "tabFiles": "Dosyalar",
+    "tabFilesEmpty": "Bu sohbette henüz dosya paylaşılmadı."
   },
   "userProfile": {
     "defaultName": "Kullanıcı",

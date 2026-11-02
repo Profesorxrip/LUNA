@@ -171,7 +171,11 @@
     "blockConfirmTitle": "Asteng bike",
     "blockConfirmBody": "Tu dixwazî {{name}} asteng bikî, tu piştrast î?",
     "attachCamera": "Kamera",
-    "attachGallery": "Ji galeriyê hilbijêre"
+    "attachGallery": "Ji galeriyê hilbijêre",
+    "callAction": "Telefon bike",
+    "voiceCallAction": "Tefona dengî",
+    "tabFiles": "Pel",
+    "tabFilesEmpty": "Di vê axaftinê de hê pelek nehatiye parve kirin."
   },
   "userProfile": {
     "defaultName": "Bikarhêner",

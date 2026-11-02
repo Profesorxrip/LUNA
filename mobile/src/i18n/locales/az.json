@@ -171,7 +171,11 @@
     "blockConfirmTitle": "Blokla",
     "blockConfirmBody": "{{name}} istifadəçisini blokla etmək istədiyinizə əminsiniz?",
     "attachCamera": "Kamera",
-    "attachGallery": "Qalereyadan seç"
+    "attachGallery": "Qalereyadan seç",
+    "callAction": "Zəng et",
+    "voiceCallAction": "Səsli zəng",
+    "tabFiles": "Fayllar",
+    "tabFilesEmpty": "Bu söhbətdə hələ fayl paylaşılmayıb."
   },
   "userProfile": {
     "defaultName": "İstifadəçi",

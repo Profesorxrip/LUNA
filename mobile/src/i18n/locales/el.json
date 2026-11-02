@@ -171,7 +171,11 @@
     "blockConfirmTitle": "Αποκλεισμός",
     "blockConfirmBody": "Είστε σίγουροι ότι θέλετε να αποκλείσετε τον/την {{name}};",
     "attachCamera": "Κάμερα",
-    "attachGallery": "Επιλογή από τη συλλογή"
+    "attachGallery": "Επιλογή από τη συλλογή",
+    "callAction": "Κλήση",
+    "voiceCallAction": "Φωνητική κλήση",
+    "tabFiles": "Αρχεία",
+    "tabFilesEmpty": "Δεν έχουν κοινοποιηθεί ακόμη αρχεία σε αυτή τη συνομιλία."
   },
   "userProfile": {
     "defaultName": "Χρήστης",

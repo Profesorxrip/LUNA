@@ -171,7 +171,11 @@
     "blockConfirmTitle": "Bloquear",
     "blockConfirmBody": "¿Seguro que quieres bloquear a {{name}}?",
     "attachCamera": "Cámara",
-    "attachGallery": "Elegir de la galería"
+    "attachGallery": "Elegir de la galería",
+    "callAction": "Llamar",
+    "voiceCallAction": "Llamada de voz",
+    "tabFiles": "Archivos",
+    "tabFilesEmpty": "Aún no se ha compartido ningún archivo en este chat."
   },
   "userProfile": {
     "defaultName": "Usuario",

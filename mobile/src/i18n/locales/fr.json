@@ -171,7 +171,11 @@
     "blockConfirmTitle": "Bloquer",
     "blockConfirmBody": "Voulez-vous vraiment bloquer {{name}} ?",
     "attachCamera": "Appareil photo",
-    "attachGallery": "Choisir dans la galerie"
+    "attachGallery": "Choisir dans la galerie",
+    "callAction": "Appeler",
+    "voiceCallAction": "Appel vocal",
+    "tabFiles": "Fichiers",
+    "tabFilesEmpty": "Aucun fichier n'a encore été partagé dans cette conversation."
   },
   "userProfile": {
     "defaultName": "Utilisateur",

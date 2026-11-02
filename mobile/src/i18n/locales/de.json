@@ -171,7 +171,11 @@
     "blockConfirmTitle": "Blockieren",
     "blockConfirmBody": "Möchtest du {{name}} wirklich blockieren?",
     "attachCamera": "Kamera",
-    "attachGallery": "Aus Galerie wählen"
+    "attachGallery": "Aus Galerie wählen",
+    "callAction": "Anrufen",
+    "voiceCallAction": "Sprachanruf",
+    "tabFiles": "Dateien",
+    "tabFilesEmpty": "In diesem Chat wurden noch keine Dateien geteilt."
   },
   "userProfile": {
     "defaultName": "Nutzer",

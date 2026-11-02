@@ -171,7 +171,11 @@
     "blockConfirmTitle": "Заблокировать",
     "blockConfirmBody": "Вы уверены, что хотите заблокировать {{name}}?",
     "attachCamera": "Камера",
-    "attachGallery": "Выбрать из галереи"
+    "attachGallery": "Выбрать из галереи",
+    "callAction": "Позвонить",
+    "voiceCallAction": "Голосовой вызов",
+    "tabFiles": "Файлы",
+    "tabFilesEmpty": "В этом чате пока не было общих файлов."
   },
   "userProfile": {
     "defaultName": "Пользователь",
