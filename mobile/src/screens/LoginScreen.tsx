@@ -366,14 +366,17 @@ export default function LoginScreen() {
                 style={styles.languageRow}
                 onPress={() => handleSelectLanguage(lang.code)}
               >
-                <Text
-                  style={[
-                    styles.languageRowText,
-                    lang.code === i18n.language && styles.languageRowTextActive,
-                  ]}
-                >
-                  {lang.label}
-                </Text>
+                <View style={styles.languageRowLeft}>
+                  <Text style={styles.languageFlag}>{lang.flag}</Text>
+                  <Text
+                    style={[
+                      styles.languageRowText,
+                      lang.code === i18n.language && styles.languageRowTextActive,
+                    ]}
+                  >
+                    {lang.label}
+                  </Text>
+                </View>
                 {lang.code === i18n.language && <FontAwesome5 name="check" size={14} color="#0EA5E9" />}
               </TouchableOpacity>
             ))}
@@ -416,6 +419,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
+  languageRowLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  languageFlag: { fontSize: 18 },
   languageRowText: { color: "rgba(255,255,255,0.8)", fontSize: 15 },
   languageRowTextActive: { color: "#FFFFFF", fontWeight: "700" },
   // marginTop negatif: "logoyu hafif yukari al" - butun grup (logo+row+alt

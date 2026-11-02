@@ -17,17 +17,20 @@ export type LanguageCode = "tr" | "en" | "de" | "fr" | "ar" | "ku" | "el" | "ru"
 
 // Dil adlari HER ZAMAN kendi dillerinde gosterilir (otonim) - hangi dil
 // secili olursa olsun bu liste degismez, uygulamalardaki standart davranis budur.
-export const LANGUAGES: { code: LanguageCode; label: string }[] = [
-  { code: "tr", label: "Türkçe" },
-  { code: "en", label: "English" },
-  { code: "de", label: "Deutsch" },
-  { code: "fr", label: "Français" },
-  { code: "ar", label: "العربية" },
-  { code: "ku", label: "Kurdî" },
-  { code: "el", label: "Ελληνικά" },
-  { code: "ru", label: "Русский" },
-  { code: "az", label: "Azərbaycan dili" },
-  { code: "es", label: "Español" },
+// Kurtce'nin Unicode'da resmi bir ulke bayragi YOK (bagimsiz bir devlete
+// karsilik gelmiyor) - bu yuzden notr bir "bayrak" sembolu kullaniliyor,
+// herhangi bir ulkenin bayragini atamak siyasi olarak yaniltici olurdu.
+export const LANGUAGES: { code: LanguageCode; label: string; flag: string }[] = [
+  { code: "tr", label: "Türkçe", flag: "🇹🇷" },
+  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
+  { code: "ar", label: "العربية", flag: "🇸🇦" },
+  { code: "ku", label: "Kurdî", flag: "🏳️" },
+  { code: "el", label: "Ελληνικά", flag: "🇬🇷" },
+  { code: "ru", label: "Русский", flag: "🇷🇺" },
+  { code: "az", label: "Azərbaycan dili", flag: "🇦🇿" },
+  { code: "es", label: "Español", flag: "🇪🇸" },
 ];
 
 const STORAGE_KEY = "app_language";
