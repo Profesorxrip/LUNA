@@ -136,7 +136,14 @@ export default function DiscoverScreen({
 
   const trimmedSearch = search.trim().toLowerCase();
   const sectionListData = getSectionTitles(t).map(({ key, title, icon }) => {
-    const filtered = sections[key].filter((r) => r.title.toLowerCase().includes(trimmedSearch) && !hiddenCodes.has(r.code));
+    // Arama artik sadece oda/video basligina degil, odadaki katilimcilarin
+    // isimlerine de bakiyor - "Ömer" yazinca Ömer'in bulundugu oda da
+    // sonuclarda cikiyor.
+    const filtered = sections[key].filter((r) => {
+      const matchesTitle = r.title.toLowerCase().includes(trimmedSearch);
+      const matchesParticipant = r.participants.some((p) => p.name.toLowerCase().includes(trimmedSearch));
+      return (matchesTitle || matchesParticipant) && !hiddenCodes.has(r.code);
+    });
     return { key, title, icon, data: chunk(filtered, numColumns) };
   }).filter((s) => s.data.length > 0);
 
