@@ -256,7 +256,7 @@ export default function DiscoverScreen({
           end={{ x: 1, y: 1 }}
           style={styles.searchBar}
         >
-          <Icon name="search" size={18} color={theme.accentBright} />
+          <Icon name="search" size={18} color="#FFFFFF" />
           <TextInput
             style={styles.searchInput}
             placeholder={t("discover.searchPlaceholder")}
