@@ -169,7 +169,9 @@
     "memberInfoTitle": "معلومات العضو",
     "cameraPermissionRequiredBody": "نحتاج إلى إذن الكاميرا لالتقاط صورة.",
     "blockConfirmTitle": "حظر",
-    "blockConfirmBody": "هل أنت متأكد من حظر {{name}}؟"
+    "blockConfirmBody": "هل أنت متأكد من حظر {{name}}؟",
+    "attachCamera": "الكاميرا",
+    "attachGallery": "اختر من المعرض"
   },
   "userProfile": {
     "defaultName": "مستخدم",

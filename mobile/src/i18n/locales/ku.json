@@ -169,7 +169,9 @@
     "memberInfoTitle": "Agahiyên endamê",
     "cameraPermissionRequiredBody": "Ji bo kişandina wêneyê destûra kamerayê pêwîst e.",
     "blockConfirmTitle": "Asteng bike",
-    "blockConfirmBody": "Tu dixwazî {{name}} asteng bikî, tu piştrast î?"
+    "blockConfirmBody": "Tu dixwazî {{name}} asteng bikî, tu piştrast î?",
+    "attachCamera": "Kamera",
+    "attachGallery": "Ji galeriyê hilbijêre"
   },
   "userProfile": {
     "defaultName": "Bikarhêner",

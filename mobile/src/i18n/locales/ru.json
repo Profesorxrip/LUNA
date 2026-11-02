@@ -169,7 +169,9 @@
     "memberInfoTitle": "Информация об участнике",
     "cameraPermissionRequiredBody": "Нам нужен доступ к камере, чтобы сделать фото.",
     "blockConfirmTitle": "Заблокировать",
-    "blockConfirmBody": "Вы уверены, что хотите заблокировать {{name}}?"
+    "blockConfirmBody": "Вы уверены, что хотите заблокировать {{name}}?",
+    "attachCamera": "Камера",
+    "attachGallery": "Выбрать из галереи"
   },
   "userProfile": {
     "defaultName": "Пользователь",

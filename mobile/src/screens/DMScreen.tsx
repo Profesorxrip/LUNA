@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { Camera as CameraIcon, Image as ImageIcon } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { getSocket, DMMessage, DMReply } from "../services/socket";
 import { supabase } from "../services/supabase";
@@ -20,6 +22,7 @@ import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import SendMediaSheet from "../components/SendMediaSheet";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
+import { uploadWithProgress } from "../utils/uploadWithProgress";
 import ChatImageBubble from "../components/ChatImageBubble";
 import Avatar from "../components/Avatar";
 
@@ -54,9 +57,17 @@ export interface DMPeer {
   handle?: string;
 }
 
+export interface DmInfoOpenParams {
+  peerAvatarUrl: string | null;
+  muted: boolean;
+  mediaMessages: DMMessage[];
+  onToggleMute: () => void;
+}
+
 interface Props {
   peer: DMPeer;
   onBack: () => void;
+  onOpenInfo?: (info: DmInfoOpenParams) => void;
 }
 
 const ACCENT = "#0EA5E9";
@@ -69,7 +80,7 @@ const MUTED = "#9A8F80";
  * baslik/avatar/uc nokta menusu, sol/sag balonlar, alinti (reply) onizlemesi,
  * "gorundu" cift tik'i ve alt aksiyon cubugu (etiket/medya/sesli mesaj) -
  * LUNA'nin siyah/yesil temasiyla. */
-export default function DMScreen({ peer, onBack }: Props) {
+export default function DMScreen({ peer, onBack, onOpenInfo }: Props) {
   const { t, i18n } = useTranslation();
   const socket = getSocket();
   const [myUserId, setMyUserId] = useState<string | null>(null);
@@ -88,8 +99,14 @@ export default function DMScreen({ peer, onBack }: Props) {
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [nowTick, setNowTick] = useState(Date.now());
-  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [attachSheetVisible, setAttachSheetVisible] = useState(false);
+  const [quickCaptureActive, setQuickCaptureActive] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const cameraReadyRef = useRef(false);
+  const cameraRef = useRef<CameraView>(null);
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
   // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
@@ -205,45 +222,126 @@ export default function DMScreen({ peer, onBack }: Props) {
     setReplyingTo(null);
   }
 
+  // Kullanici: "Mesaj yazma alanı gönderme alanı seçenekleri felan hepsini
+  // ekle profesyonel bir önizleme ekranı yap" - galeriden COKLU fotograf
+  // secilebiliyor, hepsi SendMediaSheet'te tek tek duzenlenip gonderiliyor.
   async function pickImage() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+      allowsMultipleSelection: true,
+      selectionLimit: 10,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    setAttachSheetVisible(false);
+    setPendingImages((prev) => [...prev, ...result.assets.map((a) => a.uri)]);
+  }
+
+  // Kullanici: "...basınca kamerayı açsa nasıl olur" -> "expo-camera ekle,
+  // gerçek anlık çekim yap" secildi. Bu, OS'in kendi kamera uygulamasini
+  // ACAN ImagePicker.launchCameraAsync akisi (tam kontroller/flash/on-arka
+  // kamera degistirme OS'in kendi arayuzunde).
+  async function openCamera() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.cameraPermissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
     if (result.canceled || !result.assets?.[0]) return;
-    setPendingImageUri(result.assets[0].uri);
+    setAttachSheetVisible(false);
+    setPendingImages((prev) => [...prev, result.assets[0].uri]);
+  }
+
+  // Kullanici: "ikon dışında kutuya basınca kamerayı açsa" - bu ANLIK çekim
+  // yolu, expo-camera'nin KENDI (OS kamera uygulamasini ACMADAN, sheet
+  // icinde) CameraView'iyla tek dokunusla fotograf cekiyor.
+  async function startQuickCapture() {
+    if (!cameraPermission?.granted) {
+      const res = await requestCameraPermission();
+      if (!res.granted) {
+        showAlert(t("dm.permissionRequiredTitle"), t("dm.cameraPermissionRequiredBody"));
+        return;
+      }
+    }
+    cameraReadyRef.current = false;
+    setQuickCaptureActive(true);
+  }
+
+  // expo-camera web'de "onCameraReady" ilk kareden ONCE de tetiklenebiliyor
+  // ("not enough camera data" hatasi) - birkac deneme ile bekliyoruz.
+  async function handleQuickCameraReady() {
+    cameraReadyRef.current = true;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const photo = await cameraRef.current?.takePictureAsync({ quality: 0.7 });
+        if (photo?.uri) {
+          setQuickCaptureActive(false);
+          setAttachSheetVisible(false);
+          setPendingImages((prev) => [...prev, photo.uri]);
+          return;
+        }
+      } catch {
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
+    setQuickCaptureActive(false);
+  }
+
+  function removePendingImage(index: number) {
+    setPendingImages((prev) => prev.filter((_, i) => i !== index));
+  }
+  function replacePendingImage(index: number, uri: string) {
+    setPendingImages((prev) => prev.map((u, i) => (i === index ? uri : u)));
   }
 
   // "chat-media" bucket'ina (avatars/gallery ile ayni desen, bkz.
-  // 0015_chat_media.sql) kendi klasorune yukler, ardindan "dm:sendImage" ile
-  // karsi tarafa iletir.
-  async function sendPickedImage(isAdult: boolean) {
-    if (!pendingImageUri || !myUserId) return;
+  // 0015_chat_media.sql) kendi klasorune sirayla yukler, GERCEK toplam
+  // yukleme yuzdesini hesaplar (bkz. utils/uploadWithProgress.ts), ardindan
+  // her biri icin "dm:sendImage" emit eder - yazi (caption) sadece SON
+  // fotografa ekleniyor.
+  async function sendPickedImage(caption: string) {
+    if (!pendingImages.length || !myUserId) return;
     setUploadingImage(true);
+    setUploadProgress(0);
+    const total = pendingImages.length;
     try {
-      const arrayBuffer = await uriToArrayBuffer(pendingImageUri);
-      const ext = pendingImageUri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
-      const contentType = ext === "png" ? "image/png" : "image/jpeg";
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const path = `${myUserId}/${fileName}`;
-      const { error: uploadError } = await supabase.storage.from("chat-media").upload(path, arrayBuffer, { contentType });
-      if (uploadError) throw uploadError;
-      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
-      socket.emit(
-        "dm:sendImage",
-        { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, isAdult },
-        (res: any) => {
-          if (res?.ok) setMessages((prev) => [...prev, res.message]);
-          else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.imageSendFailedBody"));
-        }
-      );
-      setPendingImageUri(null);
+      for (let i = 0; i < total; i++) {
+        const uri = pendingImages[i];
+        const arrayBuffer = await uriToArrayBuffer(uri);
+        const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
+        const contentType = ext === "png" ? "image/png" : "image/jpeg";
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const path = `${myUserId}/${fileName}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, contentType, (pct) => {
+          setUploadProgress(Math.round(((i + pct / 100) / total) * 100));
+        });
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        const isLast = i === total - 1;
+        await new Promise<void>((resolve, reject) => {
+          socket.emit(
+            "dm:sendImage",
+            { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, caption: isLast ? caption || undefined : undefined },
+            (res: any) => {
+              if (res?.ok) {
+                setMessages((prev) => [...prev, res.message]);
+                resolve();
+              } else reject(new Error(res?.error || t("dm.imageSendFailedBody")));
+            }
+          );
+        });
+      }
+      setPendingImages([]);
     } catch (err: any) {
       showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.imageSendErrorBody"));
     } finally {
       setUploadingImage(false);
+      setUploadProgress(0);
     }
   }
 
@@ -315,16 +413,23 @@ export default function DMScreen({ peer, onBack }: Props) {
         <TouchableOpacity onPress={onBack} hitSlop={10}>
           <Icon name="chevronLeft" size={22} color={TEXT} />
         </TouchableOpacity>
-        <View style={styles.headerAvatar}>
-          <Text style={styles.headerAvatarInitial}>{peer.name.charAt(0).toUpperCase()}</Text>
-        </View>
-        <View style={styles.headerTextBlock}>
-          <View style={styles.headerNameRow}>
-            <Text style={styles.headerName}>{peer.name}</Text>
-            {muted && <Icon name="bellOff" size={13} color={MUTED} />}
+        <TouchableOpacity
+          style={styles.headerProfileTouch}
+          activeOpacity={0.75}
+          disabled={!onOpenInfo}
+          onPress={() =>
+            onOpenInfo?.({ peerAvatarUrl, muted, mediaMessages, onToggleMute: toggleMute })
+          }
+        >
+          <Avatar name={peer.name} avatarUrl={peerAvatarUrl} size={40} />
+          <View style={styles.headerTextBlock}>
+            <View style={styles.headerNameRow}>
+              <Text style={styles.headerName}>{peer.name}</Text>
+              {muted && <Icon name="bellOff" size={13} color={MUTED} />}
+            </View>
+            {!!peer.handle && <Text style={styles.headerHandle}>@{peer.handle}</Text>}
           </View>
-          {!!peer.handle && <Text style={styles.headerHandle}>@{peer.handle}</Text>}
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => setMenuVisible(true)} hitSlop={10}>
           <Icon name="moreHoriz" size={22} color={TEXT} />
         </TouchableOpacity>
@@ -403,9 +508,20 @@ export default function DMScreen({ peer, onBack }: Props) {
               )}
               {(item.myReaction || item.peerReaction) && (
                 <View style={styles.reactionBadgeRow}>
-                  {item.peerReaction && <Text style={styles.reactionBadgeEmoji}>{item.peerReaction}</Text>}
-                  {item.myReaction && <Text style={styles.reactionBadgeEmoji}>{item.myReaction}</Text>}
+                  {item.peerReaction && (
+                    <View style={styles.reactionBadgeChip}>
+                      <Text style={styles.reactionBadgeEmoji}>{item.peerReaction}</Text>
+                    </View>
+                  )}
+                  {item.myReaction && (
+                    <View style={styles.reactionBadgeChip}>
+                      <Text style={styles.reactionBadgeEmoji}>{item.myReaction}</Text>
+                    </View>
+                  )}
                 </View>
+              )}
+              {item.mediaUrl && item.text && item.text !== "📷 Fotoğraf" && (
+                <Text style={[styles.mediaCaption, isMine ? styles.mediaCaptionMine : styles.mediaCaptionTheirs]}>{item.text}</Text>
               )}
               <View style={[styles.metaRow, isMine ? styles.metaRowMine : styles.metaRowTheirs]}>
                 <Text style={styles.metaTime}>
@@ -477,7 +593,7 @@ export default function DMScreen({ peer, onBack }: Props) {
             <TouchableOpacity onPress={insertMention} hitSlop={6}>
               <Icon name="mention" size={22} color={TEXT} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={pickImage} hitSlop={6}>
+            <TouchableOpacity onPress={() => setAttachSheetVisible(true)} hitSlop={6}>
               <Icon name="image" size={22} color={TEXT} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => placeholder(t("dm.voiceMessageTitle"))} hitSlop={6}>
@@ -568,11 +684,56 @@ export default function DMScreen({ peer, onBack }: Props) {
         </TouchableOpacity>
       </Modal>
 
+      <Modal visible={attachSheetVisible} transparent animationType="slide" onRequestClose={() => setAttachSheetVisible(false)} statusBarTranslucent>
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setAttachSheetVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.attachSheet}>
+            {/* Kullanici: "basınca anlık fotoğraf çekebilse ikon dışında
+                kutuya basınca kamerayı açsa" - kucuk ikon GERCEK anlik
+                cekim (expo-camera), satirin geri kalani OS'in kendi kamera
+                uygulamasini acan tam kontrollu akis. */}
+            <TouchableOpacity style={styles.attachRow} onPress={openCamera}>
+              <View style={styles.attachIconWrap}>
+                <CameraIcon size={20} color={ACCENT} />
+                <TouchableOpacity style={styles.attachQuickIcon} onPress={startQuickCapture} hitSlop={6}>
+                  <CameraIcon size={12} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.attachRowText}>{t("dm.attachCamera")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachRow} onPress={pickImage}>
+              <View style={styles.attachIconWrap}>
+                <ImageIcon size={20} color={ACCENT} />
+              </View>
+              <Text style={styles.attachRowText}>{t("dm.attachGallery")}</Text>
+            </TouchableOpacity>
+            <View style={styles.sheetHandle} />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {quickCaptureActive && cameraPermission?.granted && (
+        <View style={styles.quickCameraOverlay}>
+          <CameraView
+            ref={cameraRef}
+            style={styles.quickCameraView}
+            facing="back"
+            onCameraReady={handleQuickCameraReady}
+          />
+          <TouchableOpacity style={styles.quickCameraClose} onPress={() => setQuickCaptureActive(false)} hitSlop={10}>
+            <Icon name="close" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <SendMediaSheet
-        visible={!!pendingImageUri}
-        imageUri={pendingImageUri}
+        visible={pendingImages.length > 0}
+        images={pendingImages}
         uploading={uploadingImage}
-        onCancel={() => setPendingImageUri(null)}
+        uploadProgress={uploadProgress}
+        onCancel={() => setPendingImages([])}
+        onRemoveImage={removePendingImage}
+        onAddMore={pickImage}
+        onReplaceImage={replacePendingImage}
         onSend={sendPickedImage}
       />
     </KeyboardAvoidingView>
@@ -643,7 +804,68 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     gap: 2,
   },
+  // Kullanici: tepki rozeti icin "pill" (hap) seklinde, kalin beyaz
+  // cerceveli, mavi dolgulu bir cerceve istedi ("5 numara" + "Mavi").
+  reactionBadgeChip: {
+    height: 23,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    borderWidth: 1.6,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0c4a68",
+    borderColor: "rgba(255,255,255,0.78)",
+  },
   reactionBadgeEmoji: { fontSize: 13 },
+  headerProfileTouch: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  mediaCaption: { color: TEXT, fontSize: 13, marginTop: 5, maxWidth: 220 },
+  mediaCaptionMine: { alignSelf: "flex-end", textAlign: "right" },
+  mediaCaptionTheirs: { alignSelf: "flex-start", textAlign: "left" },
+  attachSheet: {
+    backgroundColor: "#141210",
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingTop: 18,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  attachRow: { width: "100%", flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14 },
+  attachIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(14,165,233,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  attachQuickIcon: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: ACCENT,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#141210",
+  },
+  attachRowText: { color: TEXT, fontSize: 15, fontWeight: "600" },
+  quickCameraOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#000000" },
+  quickCameraView: { flex: 1 },
+  quickCameraClose: {
+    position: "absolute",
+    top: 50,
+    left: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
   metaRowMine: { justifyContent: "flex-end" },
   metaRowTheirs: { justifyContent: "flex-start" },

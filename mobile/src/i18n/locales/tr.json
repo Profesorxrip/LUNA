@@ -169,7 +169,9 @@
     "memberInfoTitle": "Üye Bilgisi",
     "cameraPermissionRequiredBody": "Fotoğraf çekmek için kamera iznine ihtiyacımız var.",
     "blockConfirmTitle": "Engelle",
-    "blockConfirmBody": "{{name}} kullanıcısını engellemek istediğine emin misin?"
+    "blockConfirmBody": "{{name}} kullanıcısını engellemek istediğine emin misin?",
+    "attachCamera": "Kamera",
+    "attachGallery": "Galeriden Seç"
   },
   "userProfile": {
     "defaultName": "Kullanıcı",

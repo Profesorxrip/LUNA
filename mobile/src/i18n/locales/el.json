@@ -169,7 +169,9 @@
     "memberInfoTitle": "Πληροφορίες μέλους",
     "cameraPermissionRequiredBody": "Χρειαζόμαστε άδεια κάμερας για να τραβήξουμε φωτογραφία.",
     "blockConfirmTitle": "Αποκλεισμός",
-    "blockConfirmBody": "Είστε σίγουροι ότι θέλετε να αποκλείσετε τον/την {{name}};"
+    "blockConfirmBody": "Είστε σίγουροι ότι θέλετε να αποκλείσετε τον/την {{name}};",
+    "attachCamera": "Κάμερα",
+    "attachGallery": "Επιλογή από τη συλλογή"
   },
   "userProfile": {
     "defaultName": "Χρήστης",

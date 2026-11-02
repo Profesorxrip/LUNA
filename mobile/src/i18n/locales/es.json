@@ -169,7 +169,9 @@
     "memberInfoTitle": "Información del miembro",
     "cameraPermissionRequiredBody": "Necesitamos permiso de cámara para tomar una foto.",
     "blockConfirmTitle": "Bloquear",
-    "blockConfirmBody": "¿Seguro que quieres bloquear a {{name}}?"
+    "blockConfirmBody": "¿Seguro que quieres bloquear a {{name}}?",
+    "attachCamera": "Cámara",
+    "attachGallery": "Elegir de la galería"
   },
   "userProfile": {
     "defaultName": "Usuario",

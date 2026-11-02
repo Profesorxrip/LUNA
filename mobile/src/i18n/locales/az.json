@@ -169,7 +169,9 @@
     "memberInfoTitle": "Üzv məlumatı",
     "cameraPermissionRequiredBody": "Foto çəkmək üçün kameraya icazə lazımdır.",
     "blockConfirmTitle": "Blokla",
-    "blockConfirmBody": "{{name}} istifadəçisini blokla etmək istədiyinizə əminsiniz?"
+    "blockConfirmBody": "{{name}} istifadəçisini blokla etmək istədiyinizə əminsiniz?",
+    "attachCamera": "Kamera",
+    "attachGallery": "Qalereyadan seç"
   },
   "userProfile": {
     "defaultName": "İstifadəçi",
