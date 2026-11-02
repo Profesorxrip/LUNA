@@ -29,5 +29,5 @@ const SECTIONS = [
 ];
 
 export default function PrivacyScreen() {
-  return <InfoScreen title="GİZLİLİK" sections={SECTIONS} />;
+  return <InfoScreen title="GİZLİLİK POLİTİKASI" sections={SECTIONS} />;
 }
