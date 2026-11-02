@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { View } from "react-native";
 import Svg, { Defs, Filter, FeGaussianBlur, Path, Circle, G } from "react-native-svg";
 
-type NodeDef = { tag: "path"; d: string } | { tag: "circle"; cx: string; cy: string; r: string };
+type NodeDef = { tag: "path"; d: string } | { tag: "circle"; cx: string; cy: string; r: string; dot?: boolean };
 
 // Lucide'nin KENDI ham path verisi (node_modules/lucide-react-native/.../icons/*.mjs) -
 // TabBar.tsx'teki 4 sekme ikonuyla (Compass/Users/User/Settings) BIREBIR AYNI cizim.
@@ -28,24 +28,34 @@ const ICON_NODES: Record<string, NodeDef[]> = {
     { tag: "path", d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" },
     { tag: "circle", cx: "12", cy: "7", r: "4" },
   ],
-  // Kullanici: "3 nokta ikonu yuvarlak içinde 3 nokta olucaktı" - duz
-  // "ellipsis" degil, lucide'nin "circle-ellipsis" ikonu: disinda bir daire,
-  // icinde 3 nokta (nokta paftalari "h.01" kisa cizgiler - strokeLinecap
-  // "round" ile sifira yakin uzunluktaki bu cizgiler yuvarlak birer nokta
-  // gibi ciziliyor, lucide'nin KENDI tekni_gi).
+  // Kullanici: "3 nokta ikonu yuvarlak içinde 3 nokta olucaktı" (daire +
+  // 3 nokta) sonra "noktalar yuvarlak olmalı ve biraz büyümeli" - lucide'nin
+  // KENDI "h.01" cizgi hilesi yerine (stroke genisligine bagli, buyutmesi
+  // zor), net yuvarlak DOLU daireler kullaniyoruz - boyutlari stroke'tan
+  // bagimsiz, "r" ile direkt ayarlanabiliyor.
   Settings: [
     { tag: "circle", cx: "12", cy: "12", r: "10" },
-    { tag: "path", d: "M17 12h.01" },
-    { tag: "path", d: "M12 12h.01" },
-    { tag: "path", d: "M7 12h.01" },
+    { tag: "circle", cx: "17", cy: "12", r: "1.8", dot: true },
+    { tag: "circle", cx: "12", cy: "12", r: "1.8", dot: true },
+    { tag: "circle", cx: "7", cy: "12", r: "1.8", dot: true },
   ],
 };
 
 function renderNodes(nodes: NodeDef[], strokeWidth: number, color: string) {
   const common = { fill: "none", stroke: color, strokeWidth, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  return nodes.map((n, i) =>
-    n.tag === "circle" ? <Circle key={i} cx={n.cx} cy={n.cy} r={n.r} {...common} /> : <Path key={i} d={n.d} {...common} />
-  );
+  return nodes.map((n, i) => {
+    if (n.tag === "circle") {
+      // "dot" - cizgi cercevesi degil, DOLU yuvarlak bir nokta (bkz.
+      // Settings'in ic noktalari) - boyutu "r" ile ayarlanir, strokeWidth'ten
+      // bagimsizdir.
+      return n.dot ? (
+        <Circle key={i} cx={n.cx} cy={n.cy} r={n.r} fill={color} stroke="none" />
+      ) : (
+        <Circle key={i} cx={n.cx} cy={n.cy} r={n.r} {...common} />
+      );
+    }
+    return <Path key={i} d={n.d} {...common} />;
+  });
 }
 
 let idSeq = 0;
