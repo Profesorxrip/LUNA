@@ -17,24 +17,17 @@ export type LanguageCode = "tr" | "en" | "de" | "fr" | "ar" | "ku" | "el" | "ru"
 
 // Dil adlari HER ZAMAN kendi dillerinde gosterilir (otonim) - hangi dil
 // secili olursa olsun bu liste degismez, uygulamalardaki standart davranis budur.
-// "country" - uygulamada zaten var olan CountryFlag bilesenine (bkz.
-// components/CountryFlag.tsx, country-flag-icons'tan gomulu gercek PNG
-// bayraklar - emoji bayraklarin Android'de pikselli gorunmesini onluyor)
-// verilen ISO 3166-1 alpha-2 kodu. Kurtce'nin karsilik geldigi bagimsiz bir
-// ulke olmadigindan (ve herhangi bir ulkenin bayragini atamak siyasi olarak
-// yaniltici olacagindan) country burada null - CountryFlag hicbir sey
-// gostermiyor, yerine notr bir bayrak emojisi kullaniliyor.
-export const LANGUAGES: { code: LanguageCode; label: string; country: string | null }[] = [
-  { code: "tr", label: "Türkçe", country: "tr" },
-  { code: "en", label: "English", country: "gb" },
-  { code: "de", label: "Deutsch", country: "de" },
-  { code: "fr", label: "Français", country: "fr" },
-  { code: "ar", label: "العربية", country: "sa" },
-  { code: "ku", label: "Kurdî", country: null },
-  { code: "el", label: "Ελληνικά", country: "gr" },
-  { code: "ru", label: "Русский", country: "ru" },
-  { code: "az", label: "Azərbaycan dili", country: "az" },
-  { code: "es", label: "Español", country: "es" },
+export const LANGUAGES: { code: LanguageCode; label: string }[] = [
+  { code: "tr", label: "Türkçe" },
+  { code: "en", label: "English" },
+  { code: "de", label: "Deutsch" },
+  { code: "fr", label: "Français" },
+  { code: "ar", label: "العربية" },
+  { code: "ku", label: "Kurdî" },
+  { code: "el", label: "Ελληνικά" },
+  { code: "ru", label: "Русский" },
+  { code: "az", label: "Azərbaycan dili" },
+  { code: "es", label: "Español" },
 ];
 
 const STORAGE_KEY = "app_language";
