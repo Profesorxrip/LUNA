@@ -19,6 +19,7 @@ import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
 import { GoogleIcon } from "../components/SocialAuthIcons";
+import CountryFlag from "../components/CountryFlag";
 import { LANGUAGES, setAppLanguage, LanguageCode } from "../i18n";
 import LunaLogo from "../components/LunaLogo";
 import TermsScreen from "./TermsScreen";
@@ -367,7 +368,11 @@ export default function LoginScreen() {
                 onPress={() => handleSelectLanguage(lang.code)}
               >
                 <View style={styles.languageRowLeft}>
-                  <Text style={styles.languageFlag}>{lang.flag}</Text>
+                  {lang.country ? (
+                    <CountryFlag country={lang.country} size={14} />
+                  ) : (
+                    <Text style={styles.languageFlag}>🏳️</Text>
+                  )}
                   <Text
                     style={[
                       styles.languageRowText,

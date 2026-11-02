@@ -17,20 +17,24 @@ export type LanguageCode = "tr" | "en" | "de" | "fr" | "ar" | "ku" | "el" | "ru"
 
 // Dil adlari HER ZAMAN kendi dillerinde gosterilir (otonim) - hangi dil
 // secili olursa olsun bu liste degismez, uygulamalardaki standart davranis budur.
-// Kurtce'nin Unicode'da resmi bir ulke bayragi YOK (bagimsiz bir devlete
-// karsilik gelmiyor) - bu yuzden notr bir "bayrak" sembolu kullaniliyor,
-// herhangi bir ulkenin bayragini atamak siyasi olarak yaniltici olurdu.
-export const LANGUAGES: { code: LanguageCode; label: string; flag: string }[] = [
-  { code: "tr", label: "Türkçe", flag: "🇹🇷" },
-  { code: "en", label: "English", flag: "🇬🇧" },
-  { code: "de", label: "Deutsch", flag: "🇩🇪" },
-  { code: "fr", label: "Français", flag: "🇫🇷" },
-  { code: "ar", label: "العربية", flag: "🇸🇦" },
-  { code: "ku", label: "Kurdî", flag: "🏳️" },
-  { code: "el", label: "Ελληνικά", flag: "🇬🇷" },
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
-  { code: "az", label: "Azərbaycan dili", flag: "🇦🇿" },
-  { code: "es", label: "Español", flag: "🇪🇸" },
+// "country" - uygulamada zaten var olan CountryFlag bilesenine (bkz.
+// components/CountryFlag.tsx, country-flag-icons'tan gomulu gercek PNG
+// bayraklar - emoji bayraklarin Android'de pikselli gorunmesini onluyor)
+// verilen ISO 3166-1 alpha-2 kodu. Kurtce'nin karsilik geldigi bagimsiz bir
+// ulke olmadigindan (ve herhangi bir ulkenin bayragini atamak siyasi olarak
+// yaniltici olacagindan) country burada null - CountryFlag hicbir sey
+// gostermiyor, yerine notr bir bayrak emojisi kullaniliyor.
+export const LANGUAGES: { code: LanguageCode; label: string; country: string | null }[] = [
+  { code: "tr", label: "Türkçe", country: "tr" },
+  { code: "en", label: "English", country: "gb" },
+  { code: "de", label: "Deutsch", country: "de" },
+  { code: "fr", label: "Français", country: "fr" },
+  { code: "ar", label: "العربية", country: "sa" },
+  { code: "ku", label: "Kurdî", country: null },
+  { code: "el", label: "Ελληνικά", country: "gr" },
+  { code: "ru", label: "Русский", country: "ru" },
+  { code: "az", label: "Azərbaycan dili", country: "az" },
+  { code: "es", label: "Español", country: "es" },
 ];
 
 const STORAGE_KEY = "app_language";
