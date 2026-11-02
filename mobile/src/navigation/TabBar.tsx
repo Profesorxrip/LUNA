@@ -65,12 +65,17 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
 
         return (
           <TouchableOpacity key={route.key} onPress={onPress} style={styles.tab} activeOpacity={0.7}>
-            {/* TabGlowIcon gercek bir SVG Gaussian blur kullanir (bkz.
-                LunaSpinner.tsx'teki AYNI teknik) - CSS "filter: blur()"'un
-                aksine native'de (Android/iOS) de calisir. Eskiden burada
-                ustuste binen, bulaniklastirilmamis ham ikon kopyalari vardi -
-                gercek cihazda "yildiz patlamasi" gibi cirkin duruyordu. */}
-            <TabGlowIcon name={route.name as TabGlowIconName} size={28} color={isFocused ? "#FFFFFF" : INACTIVE} glow={isFocused} strokeWidth={1.8} />
+            {/* Kullanici: son onaylanan halde her sekme kendi ince daire
+                cercevesine sahipti - pasifken soluk gri, aktifken beyaza
+                donup hafifce parliyor (icondaki AYNI parlama hissi). */}
+            <View style={[styles.iconRing, isFocused && styles.iconRingActive]}>
+              {/* TabGlowIcon gercek bir SVG Gaussian blur kullanir (bkz.
+                  LunaSpinner.tsx'teki AYNI teknik) - CSS "filter: blur()"'un
+                  aksine native'de (Android/iOS) de calisir. Eskiden burada
+                  ustuste binen, bulaniklastirilmamis ham ikon kopyalari vardi -
+                  gercek cihazda "yildiz patlamasi" gibi cirkin duruyordu. */}
+              <TabGlowIcon name={route.name as TabGlowIconName} size={22} color={isFocused ? "#FFFFFF" : INACTIVE} glow={isFocused} strokeWidth={1.8} />
+            </View>
           </TouchableOpacity>
         );
       })}
@@ -86,6 +91,23 @@ const styles = StyleSheet.create({
   },
   topDivider: { position: "absolute", top: 0, left: 0, right: 0, height: 1 },
   tab: { flex: 1, alignItems: "center", justifyContent: "center" },
+  iconRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: "rgba(107,118,144,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconRingActive: {
+    borderColor: "#FFFFFF",
+    shadowColor: "#FFFFFF",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   createWrap: {
     width: 70,
     height: 70,

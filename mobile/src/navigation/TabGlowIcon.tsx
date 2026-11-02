@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { View } from "react-native";
 import Svg, { Defs, Filter, FeGaussianBlur, Path, Circle, G } from "react-native-svg";
 
-type NodeDef = { tag: "path"; d: string } | { tag: "circle"; cx: string; cy: string; r: string };
+type NodeDef = { tag: "path"; d: string } | { tag: "circle"; cx: string; cy: string; r: string; filled?: boolean };
 
 // Lucide'nin KENDI ham path verisi (node_modules/lucide-react-native/.../icons/*.mjs) -
 // TabBar.tsx'teki 4 sekme ikonuyla (Compass/Users/User/Settings) BIREBIR AYNI cizim.
@@ -28,20 +28,32 @@ const ICON_NODES: Record<string, NodeDef[]> = {
     { tag: "path", d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" },
     { tag: "circle", cx: "12", cy: "7", r: "4" },
   ],
+  // Kullanici: eski "disli" (gear) ikonu yerine, son onaylanan halde
+  // Ayarlar sekmesi uc noktali ("...") bir ikonla gosteriliyordu - lucide'nin
+  // "ellipsis" (nam-i diger "more-horizontal") ikonunun KENDI ham verisi,
+  // digerleri gibi (bkz. dosya basindaki yorum).
   Settings: [
-    {
-      tag: "path",
-      d: "M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915",
-    },
-    { tag: "circle", cx: "12", cy: "12", r: "3" },
+    { tag: "circle", cx: "5", cy: "12", r: "1.6", filled: true },
+    { tag: "circle", cx: "12", cy: "12", r: "1.6", filled: true },
+    { tag: "circle", cx: "19", cy: "12", r: "1.6", filled: true },
   ],
 };
 
 function renderNodes(nodes: NodeDef[], strokeWidth: number, color: string) {
   const common = { fill: "none", stroke: color, strokeWidth, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  return nodes.map((n, i) =>
-    n.tag === "circle" ? <Circle key={i} cx={n.cx} cy={n.cy} r={n.r} {...common} /> : <Path key={i} d={n.d} {...common} />
-  );
+  return nodes.map((n, i) => {
+    if (n.tag === "circle") {
+      // "filled" (bkz. Settings'in nokta nokta ikonu) - cizgi cercevesi
+      // degil, DOLU bir daire; strokeWidth'ten etkilenmesin diye ayri ele
+      // aliniyor.
+      return n.filled ? (
+        <Circle key={i} cx={n.cx} cy={n.cy} r={n.r} fill={color} stroke="none" />
+      ) : (
+        <Circle key={i} cx={n.cx} cy={n.cy} r={n.r} {...common} />
+      );
+    }
+    return <Path key={i} d={n.d} {...common} />;
+  });
 }
 
 let idSeq = 0;

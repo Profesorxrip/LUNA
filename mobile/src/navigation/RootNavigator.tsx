@@ -176,14 +176,14 @@ function MainTabsRoute() {
       screenOptions={{ headerShown: false }}
       // Sekme SIRASI (gorsel) degisti ama uygulama acilinca HALA Kesif'le
       // baslamasi gerekiyor - initialRouteName olmadan ilk <Tab.Screen>
-      // (artik "Friends") varsayilan olurdu.
+      // (artik "Profile") varsayilan olurdu.
       initialRouteName="Discover"
     >
-      <Tab.Screen name="Friends" component={FriendsRoute} />
+      <Tab.Screen name="Profile" component={MyProfileRoute} />
       <Tab.Screen name="Discover" component={DiscoverRoute} />
       <Tab.Screen name="Create" component={CreateRoute} />
       <Tab.Screen name="Settings" component={SettingsRoute} />
-      <Tab.Screen name="Profile" component={MyProfileRoute} />
+      <Tab.Screen name="Friends" component={FriendsRoute} />
     </Tab.Navigator>
   );
 }
