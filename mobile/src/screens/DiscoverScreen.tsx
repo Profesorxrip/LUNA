@@ -10,6 +10,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Users } from "lucide-react-native";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { Inter_700Bold } from "@expo-google-fonts/inter";
 import { useTranslation } from "react-i18next";
@@ -289,7 +290,14 @@ export default function DiscoverScreen({
         }
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeaderRow}>
-            <Icon name={section.icon} size={20} color={theme.textMuted} />
+            {/* "Arkadaşlar" başlığı artık TabBar.tsx'teki Arkadaşlar sekmesiyle
+                AYNI ikonu (lucide Users) kullanıyor - eskiden Icon.tsx'teki
+                ayrı bir "people" (ParticipantsIcon) ikonuydu. */}
+            {section.key === "friends" ? (
+              <Users size={20} color={theme.textMuted} strokeWidth={1.8} />
+            ) : (
+              <Icon name={section.icon} size={20} color={theme.textMuted} />
+            )}
             <Text style={styles.sectionHeader}>{section.title}</Text>
           </View>
         )}
