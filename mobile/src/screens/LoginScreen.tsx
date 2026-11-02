@@ -477,6 +477,11 @@ const styles = StyleSheet.create({
   emailRow: { flexDirection: "row", width: "100%", columnGap: 8 },
   emailInput: {
     flex: 1,
+    // Kullanici: "Kod gönder butonu dışa taşıyor" - web'de flex:1 olan bir
+    // input, varsayilan olarak kendi placeholder/icerik genisligi altina
+    // KUCULMEZ (min-width: auto), bu yuzden yanindaki buton disari tasiyordu.
+    // minWidth: 0 bu varsayilani kapatip gercekten kucculebilmesini sagliyor.
+    minWidth: 0,
     height: 46,
     borderRadius: 12,
     paddingHorizontal: 14,
