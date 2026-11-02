@@ -32,7 +32,9 @@ export default function InfoScreen({ title, sections }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#000000" },
+  // Kullanici: "arka plan bu kutunun rengi olmalı" - LoginScreen'deki dil
+  // secici kutusuyla (languageSheet) AYNI renk.
+  screen: { flex: 1, backgroundColor: "#15202B" },
   scrollContent: { paddingHorizontal: 20, paddingTop: 54, paddingBottom: 48 },
   title: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, marginBottom: 20 },
   section: { marginBottom: 20 },
