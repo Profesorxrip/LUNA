@@ -855,16 +855,27 @@ io.on("connection", (socket: Socket) => {
 
   // DM'de GERCEK fotograf gonderme - client fotografi "chat-media" storage
   // bucket'ina kendisi yukler (bkz. 0015_chat_media.sql), buraya sadece
-  // ortaya cikan public URL'i ve "+18 isaretle" tercihini gonderir.
+  // ortaya cikan public URL'i (+ istege bagli bir caption) gonderir. "+18
+  // icerik" client'in kendi beyanina DEGIL, oda sohbetindeki chat:sendImage
+  // ile AYNI sekilde sunucunun nsfwjs ile kendisi yaptigi otomatik
+  // siniflandirmaya dayanir (bkz. nsfwDetector.ts).
   socket.on(
     "dm:sendImage",
-    async ({ toUserId, mediaUrl, isAdult }: { toUserId: string; mediaUrl: string; isAdult?: boolean }, ack) => {
+    async ({ toUserId, mediaUrl, caption }: { toUserId: string; mediaUrl: string; caption?: string }, ack) => {
       if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isNonEmptyString(mediaUrl, 2000)) {
         return ack?.({ ok: false });
       }
-      if (isAdult !== undefined && !isBoolean(isAdult)) return ack?.({ ok: false });
+      if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
-      const result = await sendImageMessage(myDb!, toUserId, mediaUrl, isAdult === true);
+      let isAdult = false;
+      try {
+        const res = await fetch(mediaUrl, { signal: AbortSignal.timeout(10_000) });
+        const buffer = Buffer.from(await res.arrayBuffer());
+        isAdult = await isImageAdult(buffer);
+      } catch (err) {
+        console.error("DM fotografi indirilemedi, +18 tespiti atlaniyor:", err);
+      }
+      const result = await sendImageMessage(myDb!, toUserId, mediaUrl, isAdult, caption?.trim() || undefined);
       if (!result.ok || !result.message) {
         return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
       }

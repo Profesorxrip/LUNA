@@ -113,9 +113,15 @@ export async function sendImageMessage(
   db: SupabaseClient,
   toUserId: string,
   mediaUrl: string,
-  isAdult: boolean
+  isAdult: boolean,
+  caption?: string
 ): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
-  const { data, error } = await db.rpc("send_dm_image", { to_user: toUserId, media_url: mediaUrl, is_adult: isAdult });
+  const { data, error } = await db.rpc("send_dm_image", {
+    to_user: toUserId,
+    media_url: mediaUrl,
+    is_adult: isAdult,
+    caption: caption ?? null,
+  });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
   }
