@@ -301,13 +301,17 @@ export default function DiscoverScreen({
             <Text style={styles.sectionHeader}>{section.title}</Text>
           </View>
         )}
-        renderItem={({ item: row }) => (
+        renderItem={({ item: row, section }) => (
           <View style={styles.row}>
             {row.map((item) => (
               <RoomCardVariantD
                 key={item.code}
                 room={item}
-                friendIds={friendIds}
+                // Arkadas cercevesi SADECE "Arkadaslar" bolumunde gosterilsin
+                // diye diger bolumlerde (Yakindakiler/Acik) friendIds hic
+                // verilmiyor - RoomCardVariantD varsayilani (bos Set) ile
+                // isFriend hep false oluyor.
+                friendIds={section.key === "friends" ? friendIds : undefined}
                 onPress={() => joinByCode(item.code)}
                 onLongPress={() => onOpenRoomPreview(item)}
                 onOpenParticipant={onOpenParticipant}

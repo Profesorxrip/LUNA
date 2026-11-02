@@ -130,6 +130,16 @@ export default function RoomCardVariantD({
               >
                 {room.participants.map((p, i) => {
                   const isFriend = Boolean(p.userId && friendIds.has(p.userId));
+                  const initial = (
+                    <LinearGradient
+                      colors={AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.avatarGradient}
+                    >
+                      <Text style={styles.avatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
+                    </LinearGradient>
+                  );
                   return (
                     <TouchableOpacity
                       key={i}
@@ -137,16 +147,24 @@ export default function RoomCardVariantD({
                       onPress={() => p.userId && onOpenParticipant?.({ userId: p.userId, name: p.name })}
                       onLongPress={() => p.userId && onLongPressParticipant?.({ userId: p.userId, name: p.name })}
                       delayLongPress={350}
-                      style={[styles.avatar, { marginLeft: i === 0 ? 0 : 4 }, isFriend && styles.avatarFriend]}
+                      style={{ marginLeft: i === 0 ? 0 : 4 }}
                     >
-                      <LinearGradient
-                        colors={AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.avatarGradient}
-                      >
-                        <Text style={styles.avatarInitial}>{p.name.charAt(0).toUpperCase()}</Text>
-                      </LinearGradient>
+                      {isFriend ? (
+                        // Arkadas oldugu bilinen katilimcinin cercevesi artik
+                        // DUZ bir renk degil, beyazdan maviye gecen bir
+                        // degrade halka (TabBar/arama cubugu cercevesindeki
+                        // AYNI mavi-beyaz degrade motifi).
+                        <LinearGradient
+                          colors={["#FFFFFF", "#38BDF8"]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.avatarFriendRing}
+                        >
+                          <View style={styles.avatarFriendMask}>{initial}</View>
+                        </LinearGradient>
+                      ) : (
+                        <View style={styles.avatar}>{initial}</View>
+                      )}
                     </TouchableOpacity>
                   );
                 })}
@@ -261,7 +279,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   avatarGradient: { flex: 1, alignItems: "center", justifyContent: "center" },
-  avatarFriend: { borderWidth: 2.2, borderColor: theme.accentBright },
+  // Arkadas halkasi - disaridaki degrade (avatarFriendRing) ile icerideki
+  // gercek avatar (avatarFriendMask) arasinda "padding" kadar bosluk
+  // birakarak bir HALKA gorunumu olusturuyor (RN'de borderColor dogrudan
+  // degrade olamadigi icin).
+  avatarFriendRing: { width: 40, height: 40, borderRadius: 20, padding: 2.2 },
+  avatarFriendMask: { flex: 1, borderRadius: 17.8, overflow: "hidden" },
   // Varsayilan font satir yuksekligi harfi dikeyde hafifce kaydiriyordu -
   // lineHeight'i fontSize'a esitleyip Android'teki fazladan ic boslugu
   // (includeFontPadding) kapatarak harf tam gobege oturuyor.
