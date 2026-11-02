@@ -369,7 +369,7 @@ export default function LoginScreen() {
               {LANGUAGES.map((lang) => (
                 <TouchableOpacity
                   key={lang.code}
-                  style={styles.languageRow}
+                  style={[styles.languageRow, lang.code === i18n.language && styles.languageRowActive]}
                   onPress={() => handleSelectLanguage(lang.code)}
                 >
                   <Text
@@ -380,7 +380,6 @@ export default function LoginScreen() {
                   >
                     {lang.label}
                   </Text>
-                  {lang.code === i18n.language && <FontAwesome5 name="check" size={14} color="#0EA5E9" />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -423,10 +422,15 @@ const styles = StyleSheet.create({
   languageRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 14,
+    marginHorizontal: 10,
+    borderRadius: 14,
   },
+  // Kullanici: "Seçilen dilin yanındaki tiki kaldıralım onun yerine
+  // seçilenin kutu içinde olduğu birşey yapsak" - tik yerine secili satir
+  // kendi yuvarlak kose kutusuna sahip oluyor.
+  languageRowActive: { backgroundColor: "rgba(14,165,233,0.18)" },
   languageRowText: { color: "rgba(255,255,255,0.8)", fontSize: 15 },
   languageRowTextActive: { color: "#FFFFFF", fontWeight: "700" },
   // marginTop negatif: "logoyu hafif yukari al" - butun grup (logo+row+alt
