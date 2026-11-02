@@ -35,11 +35,10 @@ const ICON_NODES: Record<string, NodeDef[]> = {
   // bagimsiz, "r" ile direkt ayarlanabiliyor.
   Settings: [
     { tag: "circle", cx: "12", cy: "12", r: "10" },
-    // Kullanici: "noktaları da 2px yapalım" - digerleriyle (2px) AYNI
-    // kalinlikta gorunmeleri icin r=0.86 (28px gosterimde cap ~2px).
-    { tag: "circle", cx: "17", cy: "12", r: "0.86", dot: true },
-    { tag: "circle", cx: "12", cy: "12", r: "0.86", dot: true },
-    { tag: "circle", cx: "7", cy: "12", r: "0.86", dot: true },
+    // Kullanici: "noktaları 3 px yapalım" - 28px gosterimde cap ~3px icin r=1.29.
+    { tag: "circle", cx: "17", cy: "12", r: "1.29", dot: true },
+    { tag: "circle", cx: "12", cy: "12", r: "1.29", dot: true },
+    { tag: "circle", cx: "7", cy: "12", r: "1.29", dot: true },
   ],
 };
 
