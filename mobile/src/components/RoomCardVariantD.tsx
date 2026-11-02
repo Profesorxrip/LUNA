@@ -274,6 +274,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.25)",
     overflow: "hidden",
   },
   avatarGradient: { flex: 1, alignItems: "center", justifyContent: "center" },
