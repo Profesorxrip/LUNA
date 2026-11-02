@@ -9,6 +9,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
@@ -360,23 +361,29 @@ export default function LoginScreen() {
           onPress={() => setLanguageSheetVisible(false)}
         >
           <TouchableOpacity activeOpacity={1} style={styles.languageSheet}>
-            {LANGUAGES.map((lang) => (
-              <TouchableOpacity
-                key={lang.code}
-                style={styles.languageRow}
-                onPress={() => handleSelectLanguage(lang.code)}
-              >
-                <Text
-                  style={[
-                    styles.languageRowText,
-                    lang.code === i18n.language && styles.languageRowTextActive,
-                  ]}
+            {/* Kullanici: "Kutunun dışına taşıyor kaydırmalıydı halbuki o
+                isimler" - duz bir View'e maxHeight vermek icerigi KIRPMIYOR,
+                sadece tasiyor (scroll da yok). ScrollView'e cevirip
+                maxHeight'i ona tasidik. */}
+            <ScrollView style={styles.languageScroll} showsVerticalScrollIndicator={false}>
+              {LANGUAGES.map((lang) => (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={styles.languageRow}
+                  onPress={() => handleSelectLanguage(lang.code)}
                 >
-                  {lang.label}
-                </Text>
-                {lang.code === i18n.language && <FontAwesome5 name="check" size={14} color="#0EA5E9" />}
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.languageRowText,
+                      lang.code === i18n.language && styles.languageRowTextActive,
+                    ]}
+                  >
+                    {lang.label}
+                  </Text>
+                  {lang.code === i18n.language && <FontAwesome5 name="check" size={14} color="#0EA5E9" />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -408,7 +415,11 @@ const styles = StyleSheet.create({
   },
   languageButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   languageOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 32 },
-  languageSheet: { backgroundColor: "#15202B", borderRadius: 18, paddingVertical: 8, maxHeight: 420 },
+  languageSheet: { backgroundColor: "#15202B", borderRadius: 18, paddingVertical: 8, maxHeight: 420, overflow: "hidden" },
+  // maxHeight burada (SADECE disaridaki kapta degil) olmali - yoksa
+  // ScrollView kendi kaydirilabilir alanini hic kurmuyor, disaridaki
+  // overflow:hidden icerigi kirpiyor ama kaydirma calismiyordu.
+  languageScroll: { maxHeight: 404 },
   languageRow: {
     flexDirection: "row",
     alignItems: "center",
