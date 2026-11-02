@@ -283,8 +283,8 @@ const styles = StyleSheet.create({
   // gercek avatar (avatarFriendMask) arasinda "padding" kadar bosluk
   // birakarak bir HALKA gorunumu olusturuyor (RN'de borderColor dogrudan
   // degrade olamadigi icin).
-  avatarFriendRing: { width: 40, height: 40, borderRadius: 20, padding: 1 },
-  avatarFriendMask: { flex: 1, borderRadius: 19, overflow: "hidden" },
+  avatarFriendRing: { width: 40, height: 40, borderRadius: 20, padding: 2 },
+  avatarFriendMask: { flex: 1, borderRadius: 18, overflow: "hidden" },
   // Varsayilan font satir yuksekligi harfi dikeyde hafifce kaydiriyordu -
   // lineHeight'i fontSize'a esitleyip Android'teki fazladan ic boslugu
   // (includeFontPadding) kapatarak harf tam gobege oturuyor.
