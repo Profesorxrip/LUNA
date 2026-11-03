@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Linking } from "react-native";
-import { DarkTheme, NavigationContainer, RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { DarkTheme, NavigationContainer, NavigatorScreenParams, RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { createNativeStackNavigator, NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { createBottomTabNavigator, BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
@@ -37,7 +37,11 @@ export type MainTabsParamList = {
 };
 
 export type RootStackParamList = {
-  MainTabs: undefined;
+  // RoomPreviewScreen gibi Tab.Navigator'in DISINDAKI ekranlar buradan
+  // MainTabs'a DONERKEN hangi sekmeye gidilecegini de belirtebilsin diye
+  // (bkz. RoomPreviewRoute onNavigateTab) sadece "undefined" degil,
+  // MainTabsParamList'in kendi (opsiyonel) parametreleri kabul ediliyor.
+  MainTabs: NavigatorScreenParams<MainTabsParamList>;
   Premium: undefined;
   Privacy: undefined;
   BackgroundInfo: undefined;
@@ -261,6 +265,14 @@ function RoomPreviewRoute() {
       onBack={() => navigation.goBack()}
       onJoin={joinRoomFromPreview}
       onOpenParticipant={(peer) => navigation.navigate("UserProfile", { own: false, peer })}
+      // Tab.Navigator'in DISINDAN (bkz. yukarisi) MainTabs'a, istenen sekmeyle
+      // geri donuyor - MainTabs zaten yiginda oldugu icin bu hem "geri" hem
+      // "sekme degistir" islevini TEK seferde gorur.
+      // "as never": react-navigation'in NavigatorScreenParams'i her sekme icin
+      // AYRI bir discriminated union uyesi uretiyor - "tab" bizim tarafimizda
+      // zaten TabKey (o 5 sekmeyle BIREBIR ayni) ile kisitli oldugu icin bu
+      // tur-guvenli bir atlama, gercek bir tip kacagi degil.
+      onNavigateTab={(tab) => navigation.navigate("MainTabs", { screen: tab } as never)}
     />
   );
 }

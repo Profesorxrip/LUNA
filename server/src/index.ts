@@ -1012,6 +1012,7 @@ io.on("connection", (socket: Socket) => {
           avatarUrl: profile?.avatarUrl ?? null,
           country: profile?.country ?? null,
           isHost: p.isHost,
+          muted: p.muted,
         };
       }),
     });

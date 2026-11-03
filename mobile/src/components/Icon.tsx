@@ -36,7 +36,7 @@ import {
   LanguageIcon,
 } from "react-native-heroicons/solid";
 import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, User, UserPlus, UserX, UserMinus, UserCheck } from "lucide-react-native";
-import { PaperPlaneIcon, ParticipantsIcon, PersonBlockIcon, PersonBanIcon, MicIcon, MicOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
+import { PaperPlaneIcon, ParticipantsIcon, PersonBlockIcon, PersonBanIcon, MicIcon, MicOffIcon, VideoIcon, VideoOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
 import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
@@ -48,6 +48,8 @@ export type IconName =
   | "people"
   | "mic"
   | "micOff"
+  | "video"
+  | "videoOff"
   | "send"
   | "plus"
   | "mention"
@@ -172,6 +174,8 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   people: ParticipantsIcon,
   mic: MicIcon,
   micOff: MicOffIcon,
+  video: VideoIcon,
+  videoOff: VideoOffIcon,
   image: SquarePhotoIcon,
   invite: InvitePersonIcon,
   inviteKey: OrnateKeyIcon,

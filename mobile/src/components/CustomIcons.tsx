@@ -1,3 +1,4 @@
+import { Image } from "react-native";
 import Svg, { Circle, Defs, G, Line, Mask, Path, Rect } from "react-native-svg";
 
 interface Props {
@@ -89,6 +90,48 @@ export function MicOffIcon({ size = 24, color = "#F5F5F7" }: Props) {
       </G>
       <Line x1={3.5} y1={3.5} x2={20.5} y2={20.5} stroke={color} strokeWidth={2} strokeLinecap="round" />
     </Svg>
+  );
+}
+
+// Kamera ikonu - kullanicinin dogrudan gonderdigi referans gorselden
+// cikarilmis GERCEK siluet (assets/icons/video-camera.png, siyah zemin
+// alpha'ya cevrilerek silindi) - elle cizilmis bir SVG yaklasimi DEGIL,
+// kullanicinin acikca istedigi gibi orijinal ikon piksel piksel kullaniliyor.
+// "video" ve "videoOff" ayni goruntuyu paylasiyor (LunaLogo.tsx'teki
+// tintColor teknigiyle renklendiriliyor) - uygulamada gercek bir kamera
+// ozelligi olmadigi icin tek bir disli/bos siluet yeterli.
+export function VideoIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Image
+      source={require("../../assets/icons/video-camera.png")}
+      style={{ width: size, height: size, tintColor: color }}
+      resizeMode="contain"
+    />
+  );
+}
+
+export function VideoOffIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Image
+      source={require("../../assets/icons/video-camera.png")}
+      style={{ width: size, height: size, tintColor: color }}
+      resizeMode="contain"
+    />
+  );
+}
+
+// "Mikrofon" - kullanicinin kamera ikonuyla AYNI referans gorselinden
+// cikarilmis GERCEK siluet (assets/icons/microphone.png) - SADECE
+// RoomPreviewScreen.tsx'teki katilimci satirinda, kameranin hemen yaninda
+// kullaniliyor (kullanicinin istegiyle), uygulamanin geri kalanindaki
+// mevcut dolu (MIC_PATHS) mikrofon ikonu DEGISMEDEN kaliyor.
+export function RoomMicIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Image
+      source={require("../../assets/icons/microphone.png")}
+      style={{ width: size, height: size, tintColor: color }}
+      resizeMode="contain"
+    />
   );
 }
 

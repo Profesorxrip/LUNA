@@ -1,37 +1,39 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
-import { ChevronLeftIcon } from "react-native-heroicons/outline";
+import { TriangleAlert, Trash } from "lucide-react-native";
+import { useFonts, Inter_700Bold } from "@expo-google-fonts/inter";
 import { useTranslation } from "react-i18next";
-import { getSocket, PublicRoomSummary, RoomParticipantDetail, PrivacyLevel } from "../services/socket";
+import { getSocket, PublicRoomSummary, RoomParticipantDetail } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
+import { RoomMicIcon } from "../components/CustomIcons";
 import CrownBadge from "../components/CrownBadge";
+import LunaLogo from "../components/LunaLogo";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import PlatformBadge from "../components/PlatformBadge";
 import AdultBadge from "../components/AdultBadge";
-import CountryFlag from "../components/CountryFlag";
+import FilledFriendsIcon from "../components/FilledFriendsIcon";
 import { badgeInfoForSource, coverUrlForSource } from "../utils/media";
 import { hideRoomFromDiscover } from "../utils/hiddenRooms";
+import StaticTabBar, { TabKey } from "../navigation/StaticTabBar";
 
 interface Props {
   room: PublicRoomSummary;
   onBack: () => void;
   onJoin: () => void;
   onOpenParticipant: (peer: { userId: string; name: string; handle?: string }) => void;
+  // Bu ekran Tab.Navigator'in DISINDA (bkz. RootNavigator.tsx RootStackParamList
+  // yorumu) - alttaki sekme cubugu burada STATIK olarak tekrar cizilip, bir
+  // sekmeye basilinca MainTabs'a (o sekmeye) donulmesi bu callback'le saglaniyor.
+  onNavigateTab: (tab: TabKey) => void;
 }
 
-const AVATAR_COLORS = ["#3A2F22", "#1F3D24", "#2E4A2F", "#4A3B22"];
-
-function getPrivacyLabels(t: (key: string) => string): Record<PrivacyLevel, string> {
-  return {
-    open: t("roomPreview.privacyOpen"),
-    nearby: t("roomPreview.privacyNearby"),
-    friends: t("roomPreview.privacyFriends"),
-    invite: t("roomPreview.privacyInvite"),
-  };
-}
+// Discover karti/RoomCardVariantD'deki canli AVATAR_GRADIENTS ile ayni
+// renk ailesi - katilimci avatarinin HEM dolgusu HEM de cercevesi bu
+// renkten (eskiden sadece kahverengi/yesil tonlarda, cercevesizdi).
+const AVATAR_COLORS = ["#6366F1", "#14B8A6", "#F472B6", "#FBBF24", "#38BDF8"];
 
 function formatTime(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -50,7 +52,11 @@ function formatOpenedTime(ms: number): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticipant }: Props) {
+export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticipant, onNavigateTab }: Props) {
+  // AdultBadge (+18 rozeti) Inter_700Bold kullaniyor - bu ekran onu HICBIR
+  // zaman yuklemiyordu, bu yuzden sistemin varsayilan (garip duran) fontuna
+  // duşuyordu (bkz. DiscoverScreen.tsx'teki AYNI yukleme).
+  useFonts({ Inter_700Bold });
   const { t } = useTranslation();
   const [participants, setParticipants] = useState<RoomParticipantDetail[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(true);
@@ -110,22 +116,17 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
   const platform = badgeInfoForSource(room.source);
   const coverUrl = coverUrlForSource(room.source);
   const statusText = hasEnded ? t("roomPreview.ended") : room.isPlaying ? t("roomPreview.playing") : t("roomPreview.paused");
-  const privacyLabels = getPrivacyLabels(t);
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} hitSlop={10}>
-          <ChevronLeftIcon size={22} color={theme.text} strokeWidth={2.6} />
+        <TouchableOpacity onPress={reportRoom} hitSlop={10} style={styles.warningIconWrap}>
+          <TriangleAlert size={28} color="#FFFFFF" strokeWidth={1.8} />
         </TouchableOpacity>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={reportRoom} hitSlop={10} style={styles.warningIconWrap}>
-            <Icon name="warning" size={20} color={theme.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={confirmHideRoom} hitSlop={10} style={styles.trashIconWrap}>
-            <Icon name="trash" size={20} color={theme.danger} />
-          </TouchableOpacity>
-        </View>
+        <LunaLogo width={88} style={{ marginTop: -19 }} />
+        <TouchableOpacity onPress={confirmHideRoom} hitSlop={10} style={styles.trashIconWrap}>
+          <Trash size={28} color={theme.danger} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.coverWrap} activeOpacity={0.9} onPress={onJoin}>
@@ -150,10 +151,21 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
       <Text style={styles.title} numberOfLines={2}>
         {room.title}
       </Text>
-      {platform && <Text style={styles.platformLabel}>{platform.label}</Text>}
 
       <View style={styles.statusRow}>
         <View style={styles.statusLeft}>
+          {room.privacy === "friends" ? (
+            <FilledFriendsIcon size={16} color={theme.textMuted} />
+          ) : (
+            <Icon name={room.privacy === "invite" ? "inviteKey" : room.privacy === "nearby" ? "radar" : "worldOpen"} size={16} color={theme.textMuted} />
+          )}
+          {platform && (
+            <>
+              <Text style={styles.statusDot}>•</Text>
+              <Text style={styles.statusText}>{platform.label}</Text>
+            </>
+          )}
+          <Text style={styles.statusDot}>•</Text>
           <Text style={styles.statusText}>{statusText}</Text>
           {hasDuration && (
             <>
@@ -163,9 +175,6 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
               </Text>
             </>
           )}
-          <Text style={styles.statusDot}>•</Text>
-          <Text style={styles.statusText}>{privacyLabels[room.privacy]}</Text>
-          <Icon name={room.privacy === "friends" ? "people" : room.privacy === "invite" ? "inviteKey" : room.privacy === "nearby" ? "radar" : "worldOpen"} size={16} color={theme.textMuted} />
           <Text style={styles.statusDot}>•</Text>
           <Text style={styles.statusText}>{t("roomPreview.openedAt", { time: formatOpenedTime(room.createdAtMs) })}</Text>
         </View>
@@ -191,9 +200,15 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
           >
             <View style={styles.avatarWrap}>
               {item.avatarUrl ? (
-                <Image source={{ uri: item.avatarUrl }} style={styles.participantAvatar} />
+                <Image source={{ uri: item.avatarUrl }} style={[styles.participantAvatar, { borderColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]} />
               ) : (
-                <View style={[styles.participantAvatar, styles.participantAvatarFallback, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
+                <View
+                  style={[
+                    styles.participantAvatar,
+                    styles.participantAvatarFallback,
+                    { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length], borderColor: AVATAR_COLORS[index % AVATAR_COLORS.length] },
+                  ]}
+                >
                   <Text style={styles.participantAvatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
                 </View>
               )}
@@ -207,10 +222,18 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
               <Text style={styles.participantName}>{item.name}</Text>
               {item.handle && <Text style={styles.participantHandle}>@{item.handle}</Text>}
             </View>
-            <CountryFlag country={item.country} size={22} />
+            <View style={styles.participantStatusIcons}>
+              {/* Kamera ozelligi LUNA'da hic yok (sadece sesli sohbet var) -
+                  bu yuzden kamera ikonu HER ZAMAN kapali gosteriliyor, sadece
+                  gorsel. Mikrofon ikonu ise GERCEK susturma durumunu (bkz.
+                  server/src/index.ts room:participants) yansitiyor. */}
+              <Icon name="videoOff" size={24} color={theme.textMuted} />
+              <RoomMicIcon size={24} color={item.muted ? theme.danger : "#FFFFFF"} />
+            </View>
           </TouchableOpacity>
         )}
       />
+      <StaticTabBar activeTab="Discover" onSelect={onNavigateTab} />
     </View>
   );
 }
@@ -232,22 +255,20 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 12,
   },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
   // Uyari ucgeni ve cop kutusu glifleri kendi 20x20 kutularinin icinde FARKLI
   // doluluk oranina sahip (ucgen ustte bosluk birakiyor, cop kutusu kulpuyla
   // birlikte kutunun daha alt kismini dolduruyor) - bu yuzden "alignItems:
   // center" ile kutular ortalansa bile gozle bakinca gorsel agirlik merkezleri
   // ayni cizgide durmuyor. Ikisini ayni optik hizaya getirmek icin kucuk bir
   // duzeltme.
-  warningIconWrap: { marginTop: 2 },
-  trashIconWrap: { marginTop: -2 },
+  warningIconWrap: { marginTop: -2 },
+  trashIconWrap: { marginTop: -6 },
   coverWrap: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden" },
   cover: { width: "100%", aspectRatio: 16 / 10 },
   coverPlaceholder: { backgroundColor: theme.surfaceAlt },
   platformBadge: { position: "absolute", top: 12, right: 12 },
   adultBadge: { position: "absolute", top: 12, left: 12 },
   title: { color: theme.text, fontSize: 20, fontWeight: "700", marginHorizontal: 16, marginTop: 16 },
-  platformLabel: { color: theme.textMuted, fontSize: 14, marginHorizontal: 16, marginTop: 4 },
   statusRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -267,12 +288,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   avatarWrap: { position: "relative" },
-  participantAvatar: { width: 48, height: 48, borderRadius: 24 },
+  participantAvatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2 },
   participantAvatarFallback: { alignItems: "center", justifyContent: "center" },
   // Lider rozeti - CrownBadge.tsx, profil fotografinin TAM USTUNE (negatif top ile) oturur.
   hostBadge: { position: "absolute", top: -16, left: 0, right: 0, alignItems: "center" },
-  participantAvatarInitial: { color: theme.accent, fontSize: 18, fontWeight: "700" },
+  participantAvatarInitial: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
   participantInfo: { flex: 1 },
   participantName: { color: theme.text, fontSize: 15, fontWeight: "600" },
   participantHandle: { color: theme.textMuted, fontSize: 13, marginTop: 1 },
+  participantStatusIcons: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 2 },
 });

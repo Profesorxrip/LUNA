@@ -235,6 +235,10 @@ export interface RoomParticipantDetail {
   avatarUrl: string | null;
   country: string | null;
   isHost: boolean;
+  // Sesli sohbetteki GERCEK susturma durumu (bkz. server/src/index.ts
+  // room:participants, room:muteParticipant) - RoomPreviewScreen.tsx'teki
+  // mikrofon ikonu bunu yansitir.
+  muted: boolean;
 }
 
 export type FriendStatus = "none" | "outgoing" | "incoming" | "friends" | "blocked";
