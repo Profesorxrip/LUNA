@@ -719,15 +719,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               <Text style={styles.avatarInitial}>{initial}</Text>
             )}
           </View>
-          {/* TAM bir halka (her tarafi ayni kalinlikta cevreleyen) bir
-              "cerceve" gibi okunuyor - bunun yerine SADECE fotografin
-              kapak fotografiyla (banner) kesistigi UST kisimda (tasma
-              miktari kadar - bkz. avatarSquareOverlap) arkaplanla uyumlu
-              bir ayrim gorunsun, govde tarafinda (banner'in disinda)
-              HICBIR cizgi olmasin diye bu kisim bir pencereyle kirpiliyor. */}
-          <View style={styles.avatarRingClip} pointerEvents="none">
-            <View style={styles.avatarRingOverlay} />
-          </View>
+          <View style={styles.avatarRingOverlay} pointerEvents="none" />
         </TouchableOpacity>
 
         <View style={styles.nameBlockLeft}>
@@ -1299,15 +1291,10 @@ const styles = StyleSheet.create({
   // Sadece bannerin icine tasan ust kisim kadar (avatarSquareOverlap'taki
   // 23px ile AYNI) yukseklikte bir pencere - halka sadece bu pencerenin
   // icinde gorunur, govde tarafinda (23px'ten sonrasi) kirpilip yok olur.
-  avatarRingClip: {
+  avatarRingOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
-    width: 92,
-    height: 23,
-    overflow: "hidden",
-  },
-  avatarRingOverlay: {
     width: 92,
     height: 92,
     borderRadius: 46,
