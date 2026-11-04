@@ -719,11 +719,15 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               <Text style={styles.avatarInitial}>{initial}</Text>
             )}
           </View>
-          {/* Fotografin kapak fotografiyla (banner) birlestigi noktada
-              arkaplanla uyumlu ince bir ayrim cizgisi - fotografin TAM
-              boyutunun UZERINE binen ayri bir katman (pointerEvents yok,
-              sadece gorsel), fotografi kucultup kesen bir ic cerceve DEGIL. */}
-          <View style={styles.avatarRingOverlay} pointerEvents="none" />
+          {/* TAM bir halka (her tarafi ayni kalinlikta cevreleyen) bir
+              "cerceve" gibi okunuyor - bunun yerine SADECE fotografin
+              kapak fotografiyla (banner) kesistigi UST kisimda (tasma
+              miktari kadar - bkz. avatarSquareOverlap) arkaplanla uyumlu
+              bir ayrim gorunsun, govde tarafinda (banner'in disinda)
+              HICBIR cizgi olmasin diye bu kisim bir pencereyle kirpiliyor. */}
+          <View style={styles.avatarRingClip} pointerEvents="none">
+            <View style={styles.avatarRingOverlay} />
+          </View>
         </TouchableOpacity>
 
         <View style={styles.nameBlockLeft}>
@@ -1292,21 +1296,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  avatarRingOverlay: {
+  // Sadece bannerin icine tasan ust kisim kadar (avatarSquareOverlap'taki
+  // 23px ile AYNI) yukseklikte bir pencere - halka sadece bu pencerenin
+  // icinde gorunur, govde tarafinda (23px'ten sonrasi) kirpilip yok olur.
+  avatarRingClip: {
     position: "absolute",
     top: 0,
     left: 0,
+    width: 92,
+    height: 23,
+    overflow: "hidden",
+  },
+  avatarRingOverlay: {
     width: 92,
     height: 92,
     borderRadius: 46,
     borderWidth: 4,
     borderColor: AVATAR_FRAME,
   },
-  // Fotografi KESEN bir ic cerceve (eskisi) DEGIL - fotografin TAM
-  // boyutunda (92px) cizilip DOGRUDAN UZERINE binen, sadece kenarda ince
-  // bir halka cizen ayri bir katman - ic tarafi seffaf oldugu icin
-  // fotograf oldugu gibi gorunuyor, sadece en disdaki birkac piksel bu
-  // halkanin rengiyle (arkaplanla ayni) kaplaniyor.
   presenceDot: {
     position: "absolute",
     bottom: 2,
