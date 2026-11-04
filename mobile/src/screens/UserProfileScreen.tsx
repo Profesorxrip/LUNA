@@ -719,6 +719,12 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               <Text style={styles.avatarInitial}>{initial}</Text>
             )}
           </View>
+          {/* Fotografin kenarini "kesen" bir cerceve DEGIL - fotografin
+              TAM boyutunda cizilip ustune binen, arkaplanla ayni renkte
+              ince bir halka (pointerEvents olmadan, sadece gorsel). Boylece
+              "cerceve" degil, sanki arkaplanin kendisi ppnin kenarina
+              tasmis gibi gorunuyor. */}
+          <View style={styles.avatarRingOverlay} pointerEvents="none" />
         </TouchableOpacity>
 
         <View style={styles.nameBlockLeft}>
@@ -1282,12 +1288,25 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 46,
-    borderWidth: 3,
-    borderColor: AVATAR_FRAME,
     backgroundColor: AVATAR_FRAME,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+  },
+  // Fotografi KESEN bir ic cerceve (eskisi) DEGIL - fotografin TAM
+  // boyutunda (92px) cizilip DOGRUDAN UZERINE binen, sadece kenarda ince
+  // bir halka cizen ayri bir katman - ic tarafi seffaf oldugu icin
+  // fotograf oldugu gibi gorunuyor, sadece en disdaki birkac piksel bu
+  // halkanin rengiyle (arkaplanla ayni) kaplaniyor.
+  avatarRingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 4,
+    borderColor: AVATAR_FRAME,
   },
   presenceDot: {
     position: "absolute",
@@ -1304,7 +1323,7 @@ const styles = StyleSheet.create({
   // icin halkanin ekstra 20px'lik yer kaplamasina gerek yok - kutuyu
   // kuculterek ismi fotografa biraz daha yaklastiriyoruz.
   avatarInitial: { color: ACCENT, fontSize: 30, fontWeight: "700" },
-  avatarImage: { width: "100%", height: "100%", borderRadius: 43 },
+  avatarImage: { width: "100%", height: "100%", borderRadius: 46 },
   nameBlockLeft: { marginBottom: 14, gap: 4 },
   // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
   // yana gostermek icin (bkz. isPremium).
