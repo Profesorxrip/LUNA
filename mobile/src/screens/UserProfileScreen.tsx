@@ -702,9 +702,19 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           </View>
         )}
 
-        {/* PP (avatar) gecici olarak kaldirildi - kullanici tekrar
-            eklenmesini isteyene kadar. Kod/stiller asagida dursun, sadece
-            render edilmiyor. */}
+        {/* PP (fotograf/bas harf icerigi) gecici olarak kaldirildi, ama
+            CERCEVE (halka) kullanicinin istegiyle banner uzerinde KALMALI -
+            icerik gosterilmiyor, sadece bos/seffaf bir daire + beyaz halka. */}
+        <TouchableOpacity
+          style={[styles.avatarSquareWrap, (own || bannerText) && styles.avatarSquareOverlap]}
+          onPress={() => own && setAvatarSheetVisible(true)}
+          onLongPress={() => own && setAvatarSheetVisible(true)}
+          delayLongPress={350}
+          disabled={!own}
+        >
+          <View style={styles.avatarSquareCore} />
+          <View style={styles.avatarRingOverlay} pointerEvents="none" />
+        </TouchableOpacity>
 
         <View style={styles.nameBlockLeft}>
           {editingField === "name" ? (
