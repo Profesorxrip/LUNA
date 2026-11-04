@@ -719,6 +719,11 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               <Text style={styles.avatarInitial}>{initial}</Text>
             )}
           </View>
+          {/* Fotografin kapak fotografiyla (banner) birlestigi noktada
+              arkaplanla uyumlu ince bir ayrim cizgisi - fotografin TAM
+              boyutunun UZERINE binen ayri bir katman (pointerEvents yok,
+              sadece gorsel), fotografi kucultup kesen bir ic cerceve DEGIL. */}
+          <View style={styles.avatarRingOverlay} pointerEvents="none" />
         </TouchableOpacity>
 
         <View style={styles.nameBlockLeft}>
@@ -1286,6 +1291,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+  },
+  avatarRingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 4,
+    borderColor: AVATAR_FRAME,
   },
   // Fotografi KESEN bir ic cerceve (eskisi) DEGIL - fotografin TAM
   // boyutunda (92px) cizilip DOGRUDAN UZERINE binen, sadece kenarda ince
