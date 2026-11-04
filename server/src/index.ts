@@ -19,6 +19,7 @@ import {
   updateRoomSettings,
   setHostMicOpen,
   setParticipantMuted,
+  setParticipantCamMuted,
   setChatBanned,
   voteSkipAdultContent,
   proposeSource,
@@ -1013,6 +1014,7 @@ io.on("connection", (socket: Socket) => {
           country: profile?.country ?? null,
           isHost: p.isHost,
           muted: p.muted,
+          camMuted: p.camMuted ?? false,
         };
       }),
     });
@@ -1769,6 +1771,22 @@ io.on("connection", (socket: Socket) => {
     // false, geri aciliyorsa oda genel politikasina (micOpenToAll) doner.
     const canPublish = !muted && room.micOpenToAll;
     syncVoicePermissions(currentRoomCode, [{ socketId: targetSocketId, canPublish }]).catch(() => {});
+  });
+
+  // Kamera ikonu (bkz. rooms.ts Participant.camMuted) - LUNA'da gercek bir
+  // kamera yayini YOK, bu yuzden "izin" (micOpenToAll gibi) kavrami burada
+  // gecerli degil: kisi KENDI satirini her zaman serbestce degistirebilir,
+  // baskasininkini ise SADECE lider/moderator (setParticipantCamMuted
+  // icindeki canModerate kontrolu).
+  socket.on("room:setCamMuted", ({ targetSocketId, camMuted }: { targetSocketId: string; camMuted: boolean }, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
+    if (!isNonEmptyString(targetSocketId, 100) || !isBoolean(camMuted)) return ack?.({ ok: false, error: "Gecersiz istek." });
+    const room = getRoom(currentRoomCode);
+    if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
+    const applied = setParticipantCamMuted(room, socket.id, targetSocketId, camMuted);
+    if (!applied) return ack?.({ ok: false, error: "Bu islemi sadece lider/moderator yapabilir." });
+    ack?.({ ok: true });
+    broadcastRoom(currentRoomCode);
   });
 
   // "Chati Kapat/Ac" - room:muteParticipant ile AYNI yetki kurali

@@ -1390,6 +1390,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     socket.emit("room:muteParticipant", { targetSocketId, muted }, () => {});
   }
 
+  // Kamera ikonu - SADECE GORSEL (bkz. ParticipantsModal.tsx
+  // onMuteCameraParticipant yorumu, server/src/rooms.ts Participant.camMuted).
+  function setCamMuted(targetSocketId: string, camMuted: boolean) {
+    socket.emit("room:setCamMuted", { targetSocketId, camMuted }, () => {});
+  }
+
   // Katilimci secenek paneli (bkz. ProfileOptionsSheet.tsx) - Rave'deki gibi
   // bir katilimciya BASILI TUTUNCA acilir (bkz. ParticipantsModal.tsx
   // onLongPressParticipant).
@@ -2140,10 +2146,11 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         isHost={isHost}
         isModerator={isModerator}
         onMuteParticipant={muteParticipant}
+        onMuteCameraParticipant={setCamMuted}
         onLongPressParticipant={openProfileOptions}
-        hostMicOpen={room.micOpenToAll}
-        myMicOpen={voice.connected && !voice.muted}
         onToggleOwnMic={handleMicPress}
+        micOnBySocket={socket.id ? { ...voice.remoteMicOn, [socket.id]: voice.connected && !voice.muted } : voice.remoteMicOn}
+        speakingSocketIds={voice.speakingIds}
         topOffset={topBarHeight}
         onShowMap={() => {
           setParticipantsVisible(false);

@@ -47,6 +47,16 @@ export interface Participant {
   // index.ts "room:setChatBanned", rooms.ts setChatBanned, "chat:send").
   // Susturulan kisi sohbeti OKUYABILIR, sadece mesaj GONDEREMEZ.
   chatBanned?: boolean;
+  // LUNA'da gercek bir kamera/video akisi YOK (sadece sesli sohbet) - bu
+  // yuzden bu alan hicbir goruntuyu acip kapatmaz, SADECE Katilimcilar
+  // panelindeki/oda onizlemesindeki kamera ikonunun kirmizi/beyaz
+  // gorunmesini belirleyen GORSEL bir durum bayragidir (bkz. index.ts
+  // "room:setCamMuted", rooms.ts setParticipantCamMuted). Kisinin KENDISI
+  // HER ZAMAN serbestce degistirebilir (mikrofondaki gibi acmak icin
+  // izin gerekmez, cunku acilacak gercek bir yayin yok); baskasininkini
+  // ise lider/moderator setParticipantMuted ile AYNI yetki kuraliyla
+  // (canModerate) degistirebilir.
+  camMuted?: boolean;
 }
 
 // Ayarlar ekranindaki "GIZLILIK" secenekleri:
@@ -819,6 +829,24 @@ export function setChatBanned(room: Room, requesterId: string, targetSocketId: s
   const participant = room.participants.get(targetSocketId);
   if (!participant || participant.chatBanned === banned) return false;
   participant.chatBanned = banned;
+  return true;
+}
+
+// Kamera ikonunu (sadece GORSEL - bkz. Participant.camMuted) kirmizi/beyaz
+// yapar. Mikrofondan farkli olarak KENDI satirini kapatmak/acmak icin
+// kisinin IZNE ihtiyaci yoktur (acilacak gercek bir goruntu akisi yok, bu
+// yuzden mute ile AYNI "host acsin" kisitlamasi burada anlamsiz) - sadece
+// BASKASINI degistirmek icin setParticipantMuted ile AYNI yetki kurali
+// (canModerate) gecerlidir.
+export function setParticipantCamMuted(room: Room, requesterId: string, targetSocketId: string, camMuted: boolean): boolean {
+  const isSelf = requesterId === targetSocketId;
+  if (!isSelf) {
+    if (targetSocketId === room.hostSocketId) return false;
+    if (!canModerate(room, requesterId, targetSocketId)) return false;
+  }
+  const participant = room.participants.get(targetSocketId);
+  if (!participant || participant.camMuted === camMuted) return false;
+  participant.camMuted = camMuted;
   return true;
 }
 

@@ -8,6 +8,7 @@ import { getSocket, PublicRoomSummary, RoomParticipantDetail } from "../services
 import { theme } from "../theme";
 import Icon from "../components/Icon";
 import { RoomMicIcon } from "../components/CustomIcons";
+import WaveFillIcon from "../components/WaveFillIcon";
 import CrownBadge from "../components/CrownBadge";
 import LunaLogo from "../components/LunaLogo";
 import { showAlert } from "../components/CustomAlert";
@@ -35,6 +36,16 @@ interface Props {
 // renkten (eskiden sadece kahverengi/yesil tonlarda, cercevesizdi).
 const AVATAR_COLORS = ["#6366F1", "#14B8A6", "#F472B6", "#FBBF24", "#38BDF8"];
 
+// WaveFillIcon'un dalgali maskesi icin HAM PNG kaynaklari (CustomIcons.tsx'teki
+// VideoIcon/RoomMicIcon ile AYNI dosyalar - bkz. o dosyadaki yorum, kullanicinin
+// gonderdigi referans gorselden piksel piksel cikarilmis siluetler).
+const VIDEO_ICON_SOURCE = require("../../assets/icons/video-camera.png");
+const MIC_ICON_SOURCE = require("../../assets/icons/microphone.png");
+// Ic bosluklari (kamera govdesi/mikrofon ovali) doldurulmus "solid" halleri -
+// SADECE WaveFillIcon'un dalgasinin maskesi icin (bkz. o dosyadaki yorum).
+const VIDEO_ICON_FILLED_SOURCE = require("../../assets/icons/video-camera-filled.png");
+const MIC_ICON_FILLED_SOURCE = require("../../assets/icons/microphone-filled.png");
+
 function formatTime(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
   const h = Math.floor(s / 3600);
@@ -50,6 +61,26 @@ function formatTime(totalSeconds: number): string {
 function formatOpenedTime(ms: number): string {
   const d = new Date(ms);
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// Kamera/mikrofon ikonu - KIRMIZI/GRI/BEYAZ 3 durum, konusuyorsa (speaking)
+// WaveFillIcon ile dalgali beyaz dolgu gosterilir (bkz. WaveFillIcon.tsx).
+// statusIconStack disaridan AYNI sabit kutu boyutunu (24x24) veriyor ki
+// konusma baslayip bitince satirdaki diger ikonlar KAYMASIN.
+function renderStatusIcon(
+  source: any,
+  filledSource: any,
+  staticIcon: React.ReactNode,
+  muted: boolean,
+  on: boolean | undefined,
+  speaking: boolean | undefined
+) {
+  const showWave = Boolean(speaking) && !muted && on;
+  return (
+    <View style={styles.statusIconStack}>
+      {showWave ? <WaveFillIcon size={24} source={source} filledSource={filledSource} /> : staticIcon}
+    </View>
+  );
 }
 
 export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticipant, onNavigateTab }: Props) {
@@ -223,12 +254,33 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
               {item.handle && <Text style={styles.participantHandle}>@{item.handle}</Text>}
             </View>
             <View style={styles.participantStatusIcons}>
-              {/* Kamera ozelligi LUNA'da hic yok (sadece sesli sohbet var) -
-                  bu yuzden kamera ikonu HER ZAMAN kapali gosteriliyor, sadece
-                  gorsel. Mikrofon ikonu ise GERCEK susturma durumunu (bkz.
-                  server/src/index.ts room:participants) yansitiyor. */}
-              <Icon name="videoOff" size={24} color={theme.textMuted} />
-              <RoomMicIcon size={24} color={item.muted ? theme.danger : "#FFFFFF"} />
+              {/* 3 durum - KIRMIZI: lider/moderator/kendisi izni kapatmis
+                  (camMuted/muted). GRI: izni kapali degil ama fiilen acik
+                  oldugu bilinmiyor (bkz. RoomParticipantDetail.micOn/camOn
+                  yorumu - sunucu bugun bunu hic doldurmuyor, bu yuzden
+                  pratikte hep gri). BEYAZ (+ konusuyorsa dalgalanma):
+                  micOn/camOn true geldiginde - ParticipantsModal.tsx'teki
+                  AYNI gorsel dil, sadece veri kaynagi farkli. */}
+              {renderStatusIcon(
+                VIDEO_ICON_SOURCE,
+                VIDEO_ICON_FILLED_SOURCE,
+                <Icon
+                  name={item.camMuted ? "videoOff" : "video"}
+                  size={24}
+                  color={item.camMuted ? theme.danger : item.camOn ? "#FFFFFF" : theme.textMuted}
+                />,
+                item.camMuted,
+                item.camOn,
+                item.camSpeaking
+              )}
+              {renderStatusIcon(
+                MIC_ICON_SOURCE,
+                MIC_ICON_FILLED_SOURCE,
+                <RoomMicIcon size={24} color={item.muted ? theme.danger : item.micOn ? "#FFFFFF" : theme.textMuted} />,
+                item.muted,
+                item.micOn,
+                item.micSpeaking
+              )}
             </View>
           </TouchableOpacity>
         )}
@@ -297,4 +349,7 @@ const styles = StyleSheet.create({
   participantName: { color: theme.text, fontSize: 15, fontWeight: "600" },
   participantHandle: { color: theme.textMuted, fontSize: 13, marginTop: 1 },
   participantStatusIcons: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 2 },
+  // Ikonla AYNI boyut - SpeakingPulse (dalgalanma) bunu tam dolduracak
+  // sekilde cizilir (bkz. ParticipantsModal.tsx micIconStack ile AYNI fikir).
+  statusIconStack: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
 });

@@ -39,6 +39,11 @@ export interface Participant {
   // Lider/moderator bu katilimcinin sohbete YAZMASINI kapatti mi (bkz.
   // RoomScreen.tsx chat:send ack, ProfileOptionsSheet.tsx "Chati Kapat/Ac").
   chatBanned?: boolean;
+  // Kamera ikonu SADECE GORSEL bir durum (bkz. server/src/rooms.ts
+  // Participant.camMuted) - LUNA'da gercek bir kamera yayini yok. Lider/
+  // moderator ya da kisinin KENDISI (acmak icin izin GEREKMEZ, mikrofondan
+  // farkli olarak) "room:setCamMuted" ile degistirir.
+  camMuted?: boolean;
 }
 
 /** Oynatilan medyanin turu - bkz. sunucu tarafi rooms.ts:
@@ -239,6 +244,22 @@ export interface RoomParticipantDetail {
   // room:participants, room:muteParticipant) - RoomPreviewScreen.tsx'teki
   // mikrofon ikonu bunu yansitir.
   muted: boolean;
+  // Kamera ikonu icin SADECE GORSEL durum (bkz. Participant.camMuted yorumu
+  // yukarida) - RoomPreviewScreen.tsx'teki kamera ikonu bunu yansitir.
+  camMuted: boolean;
+  // Asagidaki 4 alan SUNUCUDAN GELMEZ (su an her zaman undefined/false) -
+  // sunucu bu ekrana sadece TEK SEFERLIK bir anlik goruntu gonderiyor
+  // (room:participants), LiveKit'in o anki canli mikrofon/konusma durumu
+  // ise HICBIR ZAMAN sunucuda tutulmuyor (bkz. ParticipantsModal.tsx
+  // micOnBySocket/speakingSocketIds - sadece odaya FIILEN katilmis bir
+  // cihazda bilinir). Yine de RoomPreviewScreen.tsx'teki ikon GORSELI
+  // (kirmizi/gri/beyaz + dalgalanma) bu alanlara gore ciziliyor, boylece
+  // ileride bu ekran da canli veriye baglanirsa SADECE veri kaynagi
+  // degisir, ikon mantigi degismez.
+  micOn?: boolean;
+  micSpeaking?: boolean;
+  camOn?: boolean;
+  camSpeaking?: boolean;
 }
 
 export type FriendStatus = "none" | "outgoing" | "incoming" | "friends" | "blocked";

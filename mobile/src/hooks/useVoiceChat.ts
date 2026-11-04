@@ -16,6 +16,18 @@ export function useVoiceChat() {
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nativeModuleMissing, setNativeModuleMissing] = useState(false);
+  // Diger katilimcilarin (identity = socketId, bkz. server/src/livekit.ts
+  // createVoiceToken) o ANKI mikrofon durumu - "izni var ama acmamis" (gri)
+  // ile "izni var VE acik" (beyaz) ayrimi icin (bkz. ParticipantsModal.tsx).
+  // Sunucu bunu BILMEZ (LiveKit baglantisi tamamen istemciler arasi), bu
+  // yuzden SADECE sesli sohbete fiilen baglanmis birinin cihazinda dolu olur.
+  const [remoteMicOn, setRemoteMicOn] = useState<Record<string, boolean>>({});
+  // O an KONUSAN katilimcilarin (ses seviyesine gore LiveKit'in kendi
+  // "active speaker" tespiti) identity listesi - mikrofon ikonunun
+  // etrafindaki dalgalanma animasyonu icin (bkz. ParticipantsModal.tsx
+  // SpeakingPulse). Yerel katilimci da (kendimiz) bu listeye LiveKit
+  // tarafindan otomatik dahil edilir.
+  const [speakingIds, setSpeakingIds] = useState<string[]>([]);
   // "Sessize Al" (bkz. ProfileOptionsSheet.tsx) - belirli bir katilimcinin
   // sesini SADECE BENIM icin kisan kimlikler (LiveKit identity = socketId,
   // bkz. server/src/livekit.ts). Katilimci henuz ses yayinina baslamamissa
@@ -52,13 +64,53 @@ export function useVoiceChat() {
       mutedIdentitiesRef.current = new Set();
       await livekitReactNative.AudioSession.startAudioSession();
       const room = new livekitClient.Room();
-      room.on(livekitClient.RoomEvent.Disconnected, () => setConnected(false));
+      room.on(livekitClient.RoomEvent.Disconnected, () => {
+        setConnected(false);
+        setRemoteMicOn({});
+        setSpeakingIds([]);
+      });
       room.on(livekitClient.RoomEvent.TrackSubscribed, (track: any, _pub: any, participant: any) => {
         if (track?.kind === livekitClient.Track.Kind.Audio && mutedIdentitiesRef.current.has(participant.identity)) {
           track.setVolume?.(0);
         }
       });
+      // Mikrofon ikonunun gri/beyaz ayrimi (bkz. yukaridaki remoteMicOn
+      // yorumu) - bir katilimci mikrofonunu acip/kapattikca LiveKit bu
+      // ikisini tetikler (yerel katilimcinin kendi degisimi zaten setMuted
+      // ile ayri takip ediliyor, burasi SADECE uzak katilimcilar icin).
+      room.on(livekitClient.RoomEvent.TrackMuted, (pub: any, participant: any) => {
+        if (pub?.kind === livekitClient.Track.Kind.Audio && participant?.identity) {
+          setRemoteMicOn((prev) => ({ ...prev, [participant.identity]: false }));
+        }
+      });
+      room.on(livekitClient.RoomEvent.TrackUnmuted, (pub: any, participant: any) => {
+        if (pub?.kind === livekitClient.Track.Kind.Audio && participant?.identity) {
+          setRemoteMicOn((prev) => ({ ...prev, [participant.identity]: true }));
+        }
+      });
+      room.on(livekitClient.RoomEvent.ParticipantConnected, (participant: any) => {
+        setRemoteMicOn((prev) => ({ ...prev, [participant.identity]: !!participant.isMicrophoneEnabled }));
+      });
+      room.on(livekitClient.RoomEvent.ParticipantDisconnected, (participant: any) => {
+        setRemoteMicOn((prev) => {
+          const next = { ...prev };
+          delete next[participant.identity];
+          return next;
+        });
+        setSpeakingIds((prev) => prev.filter((id) => id !== participant.identity));
+      });
+      room.on(livekitClient.RoomEvent.ActiveSpeakersChanged, (speakers: any[]) => {
+        setSpeakingIds(speakers.map((p: any) => p.identity));
+      });
       await room.connect(res.livekitUrl, res.token);
+      // Biz baglanmadan ONCE odada zaten bulunan katilimcilarin o anki
+      // mikrofon durumunu da baslangicta dolduruyoruz (yoksa ilk
+      // TrackMuted/Unmuted tetiklenene kadar hepsi "bilinmiyor" gorunurdu).
+      const initialMicOn: Record<string, boolean> = {};
+      room.remoteParticipants.forEach((p: any) => {
+        initialMicOn[p.identity] = !!p.isMicrophoneEnabled;
+      });
+      setRemoteMicOn(initialMicOn);
       // "Herkes mikrofon acabilsin" kapaliysa (bkz. RoomScreen.tsx
       // handleMicPress) host disindakiler SESSIZ (sadece dinleyici) olarak
       // baglanir - sunucu zaten LiveKit token'inda canPublish'i kapatiyor
@@ -84,6 +136,8 @@ export function useVoiceChat() {
       // native modul zaten yoksa yapacak bir sey yok
     }
     setConnected(false);
+    setRemoteMicOn({});
+    setSpeakingIds([]);
   }, []);
 
   const toggleMute = useCallback(async () => {
@@ -119,5 +173,17 @@ export function useVoiceChat() {
     });
   }, []);
 
-  return { connected, muted, error, nativeModuleMissing, join, leave, toggleMute, setRemoteVolume, setParticipantVolume };
+  return {
+    connected,
+    muted,
+    error,
+    nativeModuleMissing,
+    join,
+    leave,
+    toggleMute,
+    setRemoteVolume,
+    setParticipantVolume,
+    remoteMicOn,
+    speakingIds,
+  };
 }
