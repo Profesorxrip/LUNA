@@ -628,24 +628,31 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.topBlock}>
-        <View style={styles.header}>
-          {/* "Profil" TAB'i olarak (own=true) kullanildiginda onBack hic
-              verilmez - donulecek bir "geri" hedefi olmadigi icin (kalici
-              bir sekme) ok hic gosterilmiyor (bkz. RootNavigator.tsx
-              MyProfileRoute). Baska birinin profili (own=false, disaridaki
-              Stack) ya da eski kullanim yerlerinde onBack hep verilir. */}
-          {onBack && (
-            <TouchableOpacity onPress={onBack} hitSlop={10}>
-              <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
-            </TouchableOpacity>
-          )}
-          {!own && (
-            <TouchableOpacity onPress={() => placeholder(t("userProfile.more"))} hitSlop={10}>
-              <Icon name="moreHoriz" size={30} color={TEXT} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <View style={[styles.topBlock, !(own || bannerText) && styles.topBlockNoBanner]}>
+        {/* Kapak fotografi ekranin en ustunden (ScrollView'in dolgusu olmadan)
+            baslasin diye bu satir artik akisin icinde yer kaplamiyor - geri/
+            diger butonu banner'in UZERINE mutlak konumlu olarak biniyor.
+            "Profil" TAB'i olarak (own=true) kullanildiginda onBack hic
+            verilmez - donulecek bir "geri" hedefi olmadigi icin (kalici
+            bir sekme) ok hic gosterilmiyor (bkz. RootNavigator.tsx
+            MyProfileRoute). Baska birinin profili (own=false, disaridaki
+            Stack) ya da eski kullanim yerlerinde onBack hep verilir. */}
+        {(onBack || !own) && (
+          <View style={styles.header}>
+            {onBack ? (
+              <TouchableOpacity style={styles.bannerActionButton} onPress={onBack} hitSlop={10}>
+                <ChevronLeft size={22} color={TEXT} strokeWidth={3} />
+              </TouchableOpacity>
+            ) : (
+              <View />
+            )}
+            {!own && (
+              <TouchableOpacity style={styles.bannerActionButton} onPress={() => placeholder(t("userProfile.more"))} hitSlop={10}>
+                <Icon name="moreHoriz" size={22} color={TEXT} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {(own || bannerText) && (
           <View style={styles.bannerWrap}>
@@ -1209,10 +1216,24 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
-  scrollContent: { paddingTop: 50, paddingBottom: 40 },
-  topBlock: { paddingHorizontal: 24 },
+  scrollContent: { paddingBottom: 40 },
+  topBlock: { paddingHorizontal: 24, position: "relative" },
+  // Kapak fotografi olmayan (baskasinin profili + banner'i kapali) nadir
+  // durumda - banner YOKKEN geri/diger butonu mutlak konumlu HALA en ustte
+  // biniyor olacagindan, altindaki avatarla CARPISMASIN diye bu durumda
+  // topBlock'a eskisi gibi bir ust bosluk veriyoruz.
+  topBlockNoBanner: { paddingTop: 50 },
   bodyContent: { paddingHorizontal: 16 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, marginBottom: 26 },
+  header: {
+    position: "absolute",
+    top: 14,
+    left: 0,
+    right: 0,
+    zIndex: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   bannerWrap: {
     height: 150,
     overflow: "hidden",
