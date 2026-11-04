@@ -698,8 +698,10 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         )}
 
         {/* PP (fotograf/bas harf icerigi) gecici olarak kaldirildi, ama
-            CERCEVE (halka) kullanicinin istegiyle banner uzerinde KALMALI -
-            icerik gosterilmiyor, sadece bos/seffaf bir daire + beyaz halka. */}
+            CERCEVE kullanicinin istegiyle banner uzerinde KALMALI. Cerceve
+            ve ic ayri renkler (beyaz cerceve + degrade ic) DEGIL - tek bir
+            daire, ucdan uca Discover ile AYNI paylasilan arkaplana
+            (App.tsx'teki AppBackground degradesi) tabi. */}
         <TouchableOpacity
           style={[styles.avatarSquareWrap, (own || bannerText) && styles.avatarSquareOverlap]}
           onPress={() => own && setAvatarSheetVisible(true)}
@@ -708,13 +710,8 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           disabled={!own}
         >
           <View style={styles.avatarSquareCore}>
-            {/* Banner'in cizgili dokusu DEGIL - Discover ile AYNI paylasilan
-                arkaplan (App.tsx'teki AppBackground degradesi, bkz.
-                components/AppBackground.tsx) - daire bu PAYLASILAN
-                arkaplana tabi olsun diye aynen iceri tasiniyor. */}
             <AppBackground />
           </View>
-          <View style={styles.avatarRingOverlay} pointerEvents="none" />
         </TouchableOpacity>
 
         <View style={styles.nameBlockLeft}>
@@ -1286,16 +1283,6 @@ const styles = StyleSheet.create({
   // Sadece bannerin icine tasan ust kisim kadar (avatarSquareOverlap'taki
   // 23px ile AYNI) yukseklikte bir pencere - halka sadece bu pencerenin
   // icinde gorunur, govde tarafinda (23px'ten sonrasi) kirpilip yok olur.
-  avatarRingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 4,
-    borderColor: "#FFFFFF",
-  },
   presenceDot: {
     position: "absolute",
     bottom: 2,
