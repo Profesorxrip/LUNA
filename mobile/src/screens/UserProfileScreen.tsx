@@ -1215,7 +1215,11 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: BG },
+  // Discover/diger ekranlardaki GIBI - App.tsx'teki PAYLASILAN AppBackground
+  // degradesi (koyu lacivertten siyaha) arkadan gorunsun diye opak siyah
+  // DEGIL, seffaf (eskiden BG ile opak siyaha boyanip bu degradeyi tamamen
+  // kapatiyordu).
+  screen: { flex: 1, backgroundColor: "transparent" },
   scrollContent: { paddingBottom: 40 },
   topBlock: { paddingHorizontal: 24, position: "relative" },
   // Kapak fotografi olmayan (baskasinin profili + banner'i kapali) nadir
@@ -1271,8 +1275,8 @@ const styles = StyleSheet.create({
     height: 92,
     borderRadius: 46,
     borderWidth: 3,
-    borderColor: BG,
-    backgroundColor: BG,
+    borderColor: "transparent",
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
