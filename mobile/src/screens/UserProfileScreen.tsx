@@ -1275,13 +1275,8 @@ const styles = StyleSheet.create({
     height: 92,
     borderRadius: 46,
     borderWidth: 3,
-    // Tamamen seffaf olunca (eskisi) fotograf YOKKEN (sadece bas harf)
-    // gorunur hicbir cerceve kalmiyordu - "profil fotografi kayboldu"
-    // izlenimi veriyordu. Yari saydam beyaz bir cerceve/dolgu hem HER
-    // ZAMAN gorunur bir daire birakiyor hem de arkaplanin degrade
-    // rengiyle (opak siyah/gri DEGIL) uyumlu karisiyor.
-    borderColor: "rgba(255,255,255,0.18)",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    borderColor: BG,
+    backgroundColor: BG,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
