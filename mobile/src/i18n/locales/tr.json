@@ -232,7 +232,15 @@
     "deletePostTitle": "Paylaşımı sil",
     "deletePostBody": "Bu paylaşımı kaldırmak istediğine emin misin?",
     "withPeople": "{{names}} ile birlikte",
-    "bannerPlaceholder": "Profil Başlığı"
+    "bannerPlaceholder": "Profil Başlığı",
+    "locationFieldPlaceholder": "Konum ekle",
+    "joinedOn": "{{date}} tarihinde katıldı",
+    "birthdayPlaceholder": "Doğum tarihi ekle",
+    "birthdayOn": "{{date}} doğdu",
+    "editProfile": "Profili Düzenle",
+    "noTaggedPosts": "Henüz etiketlendiği bir paylaşım yok.",
+    "tabPosts": "Gönderiler",
+    "tabTagged": "Etiketlendiklerim"
   },
   "room": {
     "kickedTitle": "Odadan atıldın",

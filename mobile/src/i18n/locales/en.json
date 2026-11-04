@@ -232,7 +232,15 @@
     "deletePostTitle": "Delete post",
     "deletePostBody": "Are you sure you want to remove this post?",
     "withPeople": "with {{names}}",
-    "bannerPlaceholder": "Profile Title"
+    "bannerPlaceholder": "Profile Title",
+    "locationFieldPlaceholder": "Add location",
+    "joinedOn": "Joined {{date}}",
+    "birthdayPlaceholder": "Add birthday",
+    "birthdayOn": "Born {{date}}",
+    "editProfile": "Edit Profile",
+    "noTaggedPosts": "No posts tagged yet.",
+    "tabPosts": "Posts",
+    "tabTagged": "Tagged"
   },
   "room": {
     "kickedTitle": "You were removed",

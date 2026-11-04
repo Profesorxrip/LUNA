@@ -13,7 +13,7 @@ import {
   Easing,
   Dimensions,
 } from "react-native";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../services/supabase";
@@ -79,6 +79,7 @@ interface GalleryPhoto {
 
 interface Post {
   id: string;
+  userId: string;
   text: string | null;
   imageUrls: string[];
   locationName: string | null;
@@ -155,7 +156,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   // ekran buyuk haliyle acilir.
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [editingField, setEditingField] = useState<"name" | "handle" | "bio" | "banner_text" | null>(null);
+  const [editingField, setEditingField] = useState<
+    "name" | "handle" | "bio" | "banner_text" | "profile_location" | "birthday" | null
+  >(null);
   const [galleryVisible, setGalleryVisible] = useState(true);
   const [statVisibility, setStatVisibility] = useState(DEFAULT_STAT_VISIBILITY);
   const [selectedDay, setSelectedDay] = useState(8);
@@ -177,7 +180,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [uploadingGalleryPhoto, setUploadingGalleryPhoto] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsVisible, setPostsVisible] = useState(true);
-  const [postAuthors, setPostAuthors] = useState<Record<string, { name: string }>>({});
+  const [profileCache, setProfileCache] = useState<Record<string, { name: string; handle: string; avatarUrl: string }>>({});
   const [composerVisible, setComposerVisible] = useState(false);
   const [composerText, setComposerText] = useState("");
   const [composerImages, setComposerImages] = useState<string[]>([]);
@@ -187,6 +190,10 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [composerFriends, setComposerFriends] = useState<{ userId: string; name: string }[]>([]);
   const [postingBusy, setPostingBusy] = useState(false);
   const [bannerText, setBannerText] = useState("");
+  const [profileLocation, setProfileLocation] = useState("");
+  const [birthday, setBirthday] = useState("");
+  const [topTab, setTopTab] = useState<"posts" | "tagged" | "history" | "liked">("posts");
+  const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
 
   const effectiveUserId = own ? myUserId : peerUserId;
   // Kendi profilinde HER ZAMAN cevrimicisindir (uygulamayi kullaniyorsun) -
@@ -231,7 +238,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       supabase
         .from("profiles")
         .select(
-          "name,handle,bio,avatar_url,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,posts_visible,banner_text,is_premium"
+          "name,handle,bio,avatar_url,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,posts_visible,banner_text,profile_location,birthday,is_premium"
         )
         .eq("id", userId)
         .maybeSingle()
@@ -250,6 +257,8 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           if (profile.stats_visible !== undefined) setStatsVisible(profile.stats_visible !== false);
           if (profile.posts_visible !== undefined) setPostsVisible(profile.posts_visible !== false);
           setBannerText(profile.banner_text || "");
+          setProfileLocation(profile.profile_location || "");
+          setBirthday(profile.birthday || "");
           setIsPremium(profile.is_premium === true);
         });
     });
@@ -277,6 +286,8 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         setStatsVisible(res.profile.statsVisible !== false);
         setPostsVisible(res.profile.postsVisible !== false);
         setBannerText(res.profile.bannerText || "");
+        setProfileLocation(res.profile.profileLocation || "");
+        setBirthday(res.profile.birthday || "");
         setIsPremium(Boolean(res.profile.isPremium));
       }
     });
@@ -347,42 +358,67 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       });
   }, [effectiveUserId]);
 
-  // Paylasimlar - gallery_photos ile AYNI kalip (supabase/migrations/0021_
-  // posts.sql): RLS "kendi gonderilerim VEYA posts_visible acik olan
-  // birinin gonderileri" diye filtreliyor, burada dogrudan sorguluyoruz.
+  // Gonderi yazarlarinin / etiketlenen kisilerin isim-kullanici adi-avatar
+  // bilgisini dogrudan Supabase'den cozen ortak yardimci - profiles_select_all
+  // RLS politikasi (0001_init.sql) herkesin bu alanlari okumasina izin verir.
+  async function resolveProfiles(ids: string[]) {
+    const unique = Array.from(new Set(ids)).filter(Boolean);
+    if (unique.length === 0) return;
+    const { data } = await supabase.from("profiles").select("id,name,handle,avatar_url").in("id", unique);
+    if (!data) return;
+    setProfileCache((prev) => {
+      const next = { ...prev };
+      for (const p of data as any[]) next[p.id] = { name: p.name || "", handle: p.handle || "", avatarUrl: p.avatar_url || "" };
+      return next;
+    });
+  }
+
+  function rowToPost(row: any): Post {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      text: row.text,
+      imageUrls: row.image_urls || [],
+      locationName: row.location_name,
+      taggedUserIds: row.tagged_user_ids || [],
+      createdAt: new Date(row.created_at).getTime(),
+    };
+  }
+
+  // Paylasimlar (KENDI gonderileri) - gallery_photos ile AYNI kalip (supabase/
+  // migrations/0021_posts.sql): RLS "kendi gonderilerim VEYA posts_visible
+  // acik olan birinin gonderileri" diye filtreliyor, burada dogrudan
+  // sorguluyoruz.
   useEffect(() => {
     if (!effectiveUserId) return;
     supabase
       .from("posts")
-      .select("id,text,image_urls,location_name,tagged_user_ids,created_at")
+      .select("id,user_id,text,image_urls,location_name,tagged_user_ids,created_at")
       .eq("user_id", effectiveUserId)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         const rows = data || [];
-        setPosts(
-          rows.map((row: any) => ({
-            id: row.id,
-            text: row.text,
-            imageUrls: row.image_urls || [],
-            locationName: row.location_name,
-            taggedUserIds: row.tagged_user_ids || [],
-            createdAt: new Date(row.created_at).getTime(),
-          }))
-        );
-        const taggedIds = Array.from(new Set(rows.flatMap((row: any) => row.tagged_user_ids || [])));
-        if (taggedIds.length === 0) return;
-        // profiles_select_all RLS politikasi herkesin ismini okumaya izin
-        // verir (bkz. 0001_init.sql) - etiketli kisilerin isimlerini
-        // cozmek icin ekstra bir yetki kontrolune gerek yok.
-        supabase
-          .from("profiles")
-          .select("id,name")
-          .in("id", taggedIds)
-          .then(({ data: profiles }) => {
-            const map: Record<string, { name: string }> = {};
-            for (const p of profiles || []) map[p.id] = { name: p.name || "" };
-            setPostAuthors(map);
-          });
+        setPosts(rows.map(rowToPost));
+        resolveProfiles([effectiveUserId, ...rows.flatMap((row: any) => row.tagged_user_ids || [])]);
+      });
+  }, [effectiveUserId]);
+
+  // "Etiketlendiklerim" - baskalarinin BU kullaniciyi etiketledigi
+  // gonderiler (tagged_user_ids dizisi effectiveUserId'yi iceren TUM
+  // gonderiler, yazari kim olursa olsun - RLS zaten o yazarin kendi
+  // posts_visible tercihine gore filtreliyor, burada ekstra kontrole
+  // gerek yok).
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    supabase
+      .from("posts")
+      .select("id,user_id,text,image_urls,location_name,tagged_user_ids,created_at")
+      .contains("tagged_user_ids", [effectiveUserId])
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        const rows = data || [];
+        setTaggedPosts(rows.map(rowToPost));
+        resolveProfiles(rows.flatMap((row: any) => [row.user_id, ...(row.tagged_user_ids || [])]));
       });
   }, [effectiveUserId]);
 
@@ -411,17 +447,19 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 
   // Isim/kullanici adi/biyografi duzenlemeleri eskiden SADECE yerel state'ti -
   // yazip kapatinca hicbir yere kaydedilmiyordu, sayfa yenilenince kayboluyordu.
-  async function persistField(field: "name" | "handle" | "bio" | "banner_text", value: string) {
+  type EditableField = "name" | "handle" | "bio" | "banner_text" | "profile_location" | "birthday";
+
+  async function persistField(field: EditableField, value: string) {
     if (!own || !myUserId) return;
-    await supabase.from("profiles").update({ [field]: value }).eq("id", myUserId);
+    await supabase.from("profiles").update({ [field]: value || null }).eq("id", myUserId);
   }
 
-  function toggleFieldEdit(field: "name" | "handle" | "bio" | "banner_text") {
+  function toggleFieldEdit(field: EditableField) {
     if (!own) return;
     setEditingField(field);
   }
 
-  function closeFieldEdit(field: "name" | "handle" | "bio" | "banner_text", value: string) {
+  function closeFieldEdit(field: EditableField, value: string) {
     setEditingField(null);
     persistField(field, value);
   }
@@ -690,26 +728,16 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           location_name: composerLocation.trim() || null,
           tagged_user_ids: composerTaggedIds,
         })
-        .select("id,text,image_urls,location_name,tagged_user_ids,created_at")
+        .select("id,user_id,text,image_urls,location_name,tagged_user_ids,created_at")
         .single();
       if (insertError) throw insertError;
-      setPosts((prev) => [
-        {
-          id: row.id,
-          text: row.text,
-          imageUrls: row.image_urls || [],
-          locationName: row.location_name,
-          taggedUserIds: row.tagged_user_ids || [],
-          createdAt: new Date(row.created_at).getTime(),
-        },
-        ...prev,
-      ]);
+      setPosts((prev) => [rowToPost(row), ...prev]);
       if (composerTaggedIds.length) {
-        setPostAuthors((prev) => {
+        setProfileCache((prev) => {
           const next = { ...prev };
           for (const id of composerTaggedIds) {
             const friend = composerFriends.find((f) => f.userId === id);
-            if (friend) next[id] = { name: friend.name };
+            if (friend) next[id] = { name: friend.name, handle: next[id]?.handle || "", avatarUrl: next[id]?.avatarUrl || "" };
           }
           return next;
         });
@@ -808,7 +836,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               {bannerStripes.map((left, i) => (
                 <View
                   key={i}
-                  style={[styles.bannerStripe, { left, backgroundColor: i % 2 === 0 ? "#123349" : "#0B1E2B" }]}
+                  style={[styles.bannerStripe, { left, backgroundColor: i % 2 === 0 ? "#F1F1EE" : "#E1E1DC" }]}
                 />
               ))}
             </View>
@@ -822,7 +850,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                 onSubmitEditing={() => closeFieldEdit("banner_text", bannerText)}
                 onBlur={() => closeFieldEdit("banner_text", bannerText)}
                 placeholder={t("userProfile.bannerPlaceholder")}
-                placeholderTextColor="rgba(245,240,230,0.5)"
+                placeholderTextColor="rgba(0,0,0,0.35)"
               />
             ) : (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("banner_text")} style={styles.bannerTextTouch}>
@@ -831,48 +859,42 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                 </Text>
               </TouchableOpacity>
             )}
+            {own && (
+              <View style={styles.bannerActionsRow}>
+                <TouchableOpacity style={styles.bannerActionButton} onPress={openComposer} hitSlop={6}>
+                  <Icon name="plus" size={18} color={TEXT} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.bannerActionButton} onPress={() => placeholder(t("tabs.settings"))} hitSlop={6}>
+                  <Icon name="settings" size={18} color={TEXT} />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
 
         <TouchableOpacity
-          style={[styles.avatarWrap, !showPresenceRing && styles.avatarWrapCompact]}
+          style={[styles.avatarSquareWrap, (own || bannerText) && styles.avatarSquareOverlap]}
           activeOpacity={avatarUrl || own ? 0.8 : 1}
           onPress={() => (avatarUrl ? setViewingPhotoUrl(avatarUrl) : own && setAvatarSheetVisible(true))}
           onLongPress={() => own && setAvatarSheetVisible(true)}
           delayLongPress={350}
           disabled={!avatarUrl && !own}
         >
-          <Animated.View
-            style={[
-              styles.ringOuter,
-              showPresenceRing
-                ? {
-                    backgroundColor: isOnline ? ACCENT : OFFLINE_GRAY,
-                    opacity: pulseOpacity,
-                    transform: [{ scale: pulseScale }],
-                  }
-                : styles.ringHidden,
-            ]}
-          />
-          <View style={styles.avatarInnerCenter} pointerEvents="box-none">
-            <View style={styles.ringMiddle}>
-              <View style={styles.avatarCore}>
-                {uploadingAvatar ? (
-                  <ActivityIndicator color={ACCENT} />
-                ) : avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-                ) : (
-                  <Text style={styles.avatarInitial}>{initial}</Text>
-                )}
-              </View>
-            </View>
+          <View style={styles.avatarSquareCore}>
+            {uploadingAvatar ? (
+              <ActivityIndicator color={ACCENT} />
+            ) : avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarInitial}>{initial}</Text>
+            )}
           </View>
         </TouchableOpacity>
 
-        <View style={styles.nameBlock}>
+        <View style={styles.nameBlockLeft}>
           {editingField === "name" ? (
             <TextInput
-              style={styles.nameInput}
+              style={styles.nameInputLeft}
               value={name}
               onChangeText={setName}
               autoFocus
@@ -903,30 +925,17 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           ) : (
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("handle")}>
               <View style={styles.handleRow}>
-                <Text style={styles.handle}>@{handle}</Text>
+                <Text style={styles.handle}>@{handle.toUpperCase()}</Text>
                 <CountryFlag country={country} size={13} />
               </View>
             </TouchableOpacity>
           )}
-        </View>
-        </View>
-        <View style={styles.bodyContent}>
-        {(own || (bioVisible && bio.trim().length > 0)) && (
-          <>
-            <View style={styles.fullDivider} />
-            <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>{t("userProfile.sectionBio")}</Text>
-              {own && (
-                <TouchableOpacity onPress={toggleBioVisible} hitSlop={6}>
-                  <Icon name={bioVisible ? "eye" : "eyeOff"} size={16} color={bioVisible ? ACCENT : MUTED} />
-                </TouchableOpacity>
-              )}
-            </View>
-            <View style={styles.fullDivider} />
-            {editingField === "bio" ? (
+
+          {(own || (bioVisible && bio.trim().length > 0)) &&
+            (editingField === "bio" ? (
               <View>
                 <TextInput
-                  style={styles.bioInput}
+                  style={styles.bioInputLeft}
                   value={bio}
                   onChangeText={setBio}
                   multiline
@@ -940,15 +949,79 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               </View>
             ) : (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("bio")}>
-                <Text style={bio ? styles.bio : [styles.emptyHistoryText, { marginTop: 14 }]}>
-                  {bio || t("userProfile.noBio")}
+                <Text style={bio ? styles.bioLeft : own ? styles.emptyHistoryText : undefined}>
+                  {bio || (own ? t("userProfile.noBio") : "")}
                 </Text>
               </TouchableOpacity>
-            )}
-          </>
-        )}
+            ))}
 
-        {!own && (
+          {(own || profileLocation) &&
+            (editingField === "profile_location" ? (
+              <View style={styles.metaRow}>
+                <Icon name="pin" size={14} color={MUTED} />
+                <TextInput
+                  style={styles.metaInput}
+                  value={profileLocation}
+                  onChangeText={setProfileLocation}
+                  autoFocus
+                  autoCapitalize="characters"
+                  onSubmitEditing={() => closeFieldEdit("profile_location", profileLocation)}
+                  onBlur={() => closeFieldEdit("profile_location", profileLocation)}
+                  placeholder={t("userProfile.locationFieldPlaceholder")}
+                  placeholderTextColor={MUTED}
+                />
+              </View>
+            ) : (
+              <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("profile_location")} style={styles.metaRow}>
+                <Icon name="pin" size={14} color={MUTED} />
+                <Text style={styles.metaText}>
+                  {(profileLocation || (own ? t("userProfile.locationFieldPlaceholder") : "")).toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+          {joinDateMs != null && (own || statVisibility.joinDate !== false) && (
+            <View style={styles.metaRow}>
+              <Icon name="calendar" size={14} color={MUTED} />
+              <Text style={styles.metaText}>{t("userProfile.joinedOn", { date: formatDate(joinDateMs, i18n.language) })}</Text>
+            </View>
+          )}
+
+          {(own || birthday) &&
+            (editingField === "birthday" ? (
+              <View style={styles.metaRow}>
+                <Gift size={14} color={MUTED} />
+                <TextInput
+                  style={styles.metaInput}
+                  value={birthday}
+                  onChangeText={setBirthday}
+                  autoFocus
+                  onSubmitEditing={() => closeFieldEdit("birthday", birthday)}
+                  onBlur={() => closeFieldEdit("birthday", birthday)}
+                  placeholder={t("userProfile.birthdayPlaceholder")}
+                  placeholderTextColor={MUTED}
+                />
+              </View>
+            ) : (
+              <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("birthday")} style={styles.metaRow}>
+                <Gift size={14} color={MUTED} />
+                <Text style={styles.metaText}>
+                  {birthday ? t("userProfile.birthdayOn", { date: birthday }) : own ? t("userProfile.birthdayPlaceholder") : ""}
+                </Text>
+              </TouchableOpacity>
+            ))}
+        </View>
+
+        {own ? (
+          <View style={styles.ownActionRow}>
+            <TouchableOpacity style={styles.pillOutlineButton} onPress={() => placeholder(t("userProfile.share"))}>
+              <Text style={styles.pillOutlineButtonText}>{t("userProfile.share").toUpperCase()}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.pillOutlineButton} onPress={() => toggleFieldEdit("bio")}>
+              <Text style={styles.pillOutlineButtonText}>{t("userProfile.editProfile").toUpperCase()}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
           <View style={styles.actionRow}>
             {friendStatus === "friends" ? (
               <TouchableOpacity
@@ -971,6 +1044,169 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               </TouchableOpacity>
             )}
           </View>
+        )}
+
+        <View style={styles.topTabsRow}>
+          {(
+            [
+              { key: "posts", icon: Newspaper },
+              { key: "tagged", icon: Tag },
+              { key: "history", icon: HistoryIcon },
+              { key: "liked", icon: Heart },
+            ] as const
+          ).map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.topTabTouch, topTab === tab.key && styles.topTabTouchActive]}
+              onPress={() => setTopTab(tab.key)}
+            >
+              <tab.icon size={20} color={topTab === tab.key ? ACCENT : MUTED} />
+            </TouchableOpacity>
+          ))}
+        </View>
+        </View>
+        <View style={styles.bodyContent}>
+        {topTab === "posts" && (
+          <>
+            {own && (
+              <View style={styles.tabActionsRow}>
+                <TouchableOpacity onPress={openComposer} hitSlop={6}>
+                  <Icon name="plus" size={18} color={ACCENT} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={togglePostsVisible} hitSlop={6}>
+                  <Icon name={postsVisible ? "eye" : "eyeOff"} size={18} color={postsVisible ? ACCENT : MUTED} />
+                </TouchableOpacity>
+              </View>
+            )}
+            {(own || postsVisible) ? (
+              posts.length === 0 ? (
+                <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noPosts")}</Text>
+              ) : (
+                <View>
+                  {posts.map((post, i) => (
+                    <React.Fragment key={post.id}>
+                      {i > 0 && <View style={styles.postDivider} />}
+                      <PostCard
+                        avatarUrl={profileCache[post.userId]?.avatarUrl || avatarUrl}
+                        initial={(profileCache[post.userId]?.name || name).charAt(0).toUpperCase()}
+                        name={profileCache[post.userId]?.name || name}
+                        handle={profileCache[post.userId]?.handle || handle}
+                        timeLabel={timeAgo(post.createdAt, t, i18n.language)}
+                        text={post.text}
+                        imageUrls={post.imageUrls}
+                        locationName={post.locationName}
+                        taggedNames={post.taggedUserIds.map((id) => profileCache[id]?.name).filter(Boolean) as string[]}
+                        onPressImage={setViewingPhotoUrl}
+                        onLongPress={own ? () => confirmDeletePost(post) : undefined}
+                      />
+                    </React.Fragment>
+                  ))}
+                </View>
+              )
+            ) : (
+              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noPosts")}</Text>
+            )}
+          </>
+        )}
+
+        {topTab === "tagged" && (
+          taggedPosts.length === 0 ? (
+            <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noTaggedPosts")}</Text>
+          ) : (
+            <View>
+              {taggedPosts.map((post, i) => (
+                <React.Fragment key={post.id}>
+                  {i > 0 && <View style={styles.postDivider} />}
+                  <PostCard
+                    avatarUrl={profileCache[post.userId]?.avatarUrl || ""}
+                    initial={(profileCache[post.userId]?.name || "?").charAt(0).toUpperCase()}
+                    name={profileCache[post.userId]?.name || "—"}
+                    handle={profileCache[post.userId]?.handle || ""}
+                    timeLabel={timeAgo(post.createdAt, t, i18n.language)}
+                    text={post.text}
+                    imageUrls={post.imageUrls}
+                    locationName={post.locationName}
+                    taggedNames={post.taggedUserIds.map((id) => profileCache[id]?.name).filter(Boolean) as string[]}
+                    onPressImage={setViewingPhotoUrl}
+                  />
+                </React.Fragment>
+              ))}
+            </View>
+          )
+        )}
+
+        {topTab === "history" && (own || videosVisible) && (
+          <>
+            <View style={styles.historyTabsRow}>
+              {(
+                [
+                  { key: "history", label: t("userProfile.tabHistory") },
+                  { key: "best", label: t("userProfile.tabBest") },
+                ] as const
+              ).map((tab) => (
+                <TouchableOpacity
+                  key={tab.key}
+                  onPress={() => setHistoryTab(tab.key)}
+                  style={[styles.historyTabTouch, historyTab === tab.key && styles.historyTabTouchActive]}
+                >
+                  <Text style={[styles.historyTabText, historyTab === tab.key && styles.historyTabTextActive]}>
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {historyList.length === 0 ? (
+              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noJoinedRooms")}</Text>
+            ) : (
+              <View style={styles.videoGrid}>
+                {historyList.map((item) => (
+                  <TouchableOpacity key={`v-${item.eventId}`} style={styles.videoCard} onPress={() => openHistoryVideo(item)}>
+                    <View style={styles.videoThumb}>
+                      {item.mediaCoverUrl ? (
+                        <Image source={{ uri: item.mediaCoverUrl }} style={styles.videoThumbImage} />
+                      ) : (
+                        <View style={styles.videoPlayBadge}>
+                          <Icon name="play" size={11} color={TEXT} />
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.videoTitle} numberOfLines={2}>
+                      {item.mediaLabel}
+                    </Text>
+                    <Text style={styles.videoMeta}>
+                      {historyTab === "best" ? t("userProfile.peopleCount", { count: item.participantCount }) : timeAgo(item.createdAt, t, i18n.language)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </>
+        )}
+
+        {topTab === "liked" && (own || videosVisible) && (
+          likedHistory.length === 0 ? (
+            <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noLikedVideos")}</Text>
+          ) : (
+            <View style={styles.videoGrid}>
+              {likedHistory.map((item) => (
+                <TouchableOpacity key={`v-${item.eventId}`} style={styles.videoCard} onPress={() => openHistoryVideo(item)}>
+                  <View style={styles.videoThumb}>
+                    {item.mediaCoverUrl ? (
+                      <Image source={{ uri: item.mediaCoverUrl }} style={styles.videoThumbImage} />
+                    ) : (
+                      <View style={styles.videoPlayBadge}>
+                        <Icon name="play" size={11} color={TEXT} />
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.videoTitle} numberOfLines={2}>
+                    {item.mediaLabel}
+                  </Text>
+                  <Text style={styles.videoMeta}>{timeAgo(item.createdAt, t, i18n.language)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )
         )}
 
         {activeRoom && (
@@ -1100,111 +1336,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           </>
         )}
 
-        {(own || videosVisible) && (own || history.length > 0) && (
-          <>
-            <View style={styles.fullDivider} />
-            <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>{t("userProfile.sectionHistory")}</Text>
-              {own && (
-                <TouchableOpacity onPress={toggleVideosVisible} hitSlop={6}>
-                  <Icon name={videosVisible ? "eye" : "eyeOff"} size={16} color={videosVisible ? ACCENT : MUTED} />
-                </TouchableOpacity>
-              )}
-            </View>
-            <View style={styles.historyTabsRow}>
-              {(
-                [
-                  { key: "history", label: t("userProfile.tabHistory") },
-                  { key: "liked", label: t("userProfile.tabLiked") },
-                  { key: "best", label: t("userProfile.tabBest") },
-                ] as const
-              ).map((tab) => (
-                <TouchableOpacity
-                  key={tab.key}
-                  onPress={() => setHistoryTab(tab.key)}
-                  style={[styles.historyTabTouch, historyTab === tab.key && styles.historyTabTouchActive]}
-                >
-                  <Text style={[styles.historyTabText, historyTab === tab.key && styles.historyTabTextActive]}>
-                    {tab.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {historyList.length === 0 ? (
-              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>
-                {historyTab === "liked"
-                  ? t("userProfile.noLikedVideos")
-                  : t("userProfile.noJoinedRooms")}
-              </Text>
-            ) : (
-              <View style={styles.videoGrid}>
-                {historyList.map((item) => (
-                  <TouchableOpacity key={`v-${item.eventId}`} style={styles.videoCard} onPress={() => openHistoryVideo(item)}>
-                    <View style={styles.videoThumb}>
-                      {item.mediaCoverUrl ? (
-                        <Image source={{ uri: item.mediaCoverUrl }} style={styles.videoThumbImage} />
-                      ) : (
-                        <View style={styles.videoPlayBadge}>
-                          <Icon name="play" size={11} color={TEXT} />
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.videoTitle} numberOfLines={2}>
-                      {item.mediaLabel}
-                    </Text>
-                    <Text style={styles.videoMeta}>
-                      {historyTab === "best" ? t("userProfile.peopleCount", { count: item.participantCount }) : timeAgo(item.createdAt, t, i18n.language)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </>
-        )}
-
-        {(own || postsVisible) && (own || posts.length > 0) && (
-          <>
-            <View style={styles.fullDivider} />
-            <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>{t("userProfile.sectionPosts")}</Text>
-              {own && (
-                <View style={styles.sectionHeaderActions}>
-                  <TouchableOpacity onPress={openComposer} hitSlop={6}>
-                    <Icon name="plus" size={16} color={ACCENT} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={togglePostsVisible} hitSlop={6}>
-                    <Icon name={postsVisible ? "eye" : "eyeOff"} size={16} color={postsVisible ? ACCENT : MUTED} />
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-            <View style={styles.fullDivider} />
-            {posts.length === 0 ? (
-              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noPosts")}</Text>
-            ) : (
-              <View>
-                {posts.map((post, i) => (
-                  <React.Fragment key={post.id}>
-                    {i > 0 && <View style={styles.postDivider} />}
-                    <PostCard
-                      avatarUrl={avatarUrl}
-                      initial={initial}
-                      name={name}
-                      handle={handle}
-                      timeLabel={timeAgo(post.createdAt, t, i18n.language)}
-                      text={post.text}
-                      imageUrls={post.imageUrls}
-                      locationName={post.locationName}
-                      taggedNames={post.taggedUserIds.map((id) => postAuthors[id]?.name).filter(Boolean) as string[]}
-                      onPressImage={setViewingPhotoUrl}
-                      onLongPress={own ? () => confirmDeletePost(post) : undefined}
-                    />
-                  </React.Fragment>
-                ))}
-              </View>
-            )}
-          </>
-        )}
         </View>
       </ScrollView>
 
@@ -1380,84 +1511,76 @@ const styles = StyleSheet.create({
   bodyContent: { paddingHorizontal: 16 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, marginBottom: 26 },
   bannerWrap: {
-    height: 104,
-    borderRadius: 16,
+    height: 150,
     overflow: "hidden",
     marginHorizontal: -24,
-    marginBottom: 18,
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "center",
-    backgroundColor: "#0B1E2B",
+    backgroundColor: "#ECECE8",
   },
-  bannerStripe: { position: "absolute", top: -90, width: 22, height: 320, transform: [{ rotate: "-20deg" }] },
-  bannerTextTouch: { paddingHorizontal: 20 },
-  bannerText: { color: TEXT, fontSize: 28, fontWeight: "900", letterSpacing: 1.5, textAlign: "center" },
+  bannerStripe: { position: "absolute", top: -90, width: 22, height: 400, transform: [{ rotate: "-20deg" }] },
+  bannerTextTouch: { paddingLeft: 24, paddingRight: 90, maxWidth: "100%" },
+  bannerText: { color: "#0A0A0A", fontSize: 34, fontWeight: "900", letterSpacing: 0.5 },
   bannerInput: {
-    color: TEXT,
-    fontSize: 28,
+    color: "#0A0A0A",
+    fontSize: 34,
     fontWeight: "900",
-    letterSpacing: 1.5,
-    textAlign: "center",
-    paddingHorizontal: 20,
+    letterSpacing: 0.5,
+    paddingLeft: 24,
+    paddingRight: 90,
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
+  bannerActionsRow: { position: "absolute", top: 14, right: 14, flexDirection: "row", gap: 8 },
+  bannerActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(20,20,20,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarSquareWrap: { width: 92, height: 92, marginLeft: 24, marginTop: 18, marginBottom: 10 },
+  avatarSquareOverlap: { marginTop: -46 },
+  avatarSquareCore: {
+    width: 92,
+    height: 92,
+    borderRadius: 28,
+    borderWidth: 3,
+    borderColor: BG,
+    backgroundColor: "#1F1F1F",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  presenceDot: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: BG,
+  },
   avatarWrap: { width: 128, height: 128, alignSelf: "center", marginBottom: 18 },
   // Halka gizliyken (showPresenceRing=false) gosterecek bir sey olmadigi
   // icin halkanin ekstra 20px'lik yer kaplamasina gerek yok - kutuyu
   // kuculterek ismi fotografa biraz daha yaklastiriyoruz.
-  avatarWrapCompact: { width: 108, height: 108 },
-  // Disaridaki dekoratif halka - BASKA bir cember eklemek yerine ayni halka
-  // su an acik/aktif ise (showPresenceRing) renklenip disa dogru dalgalanan
-  // animasyona donusuyor, degilse eskisi gibi sabit koyu renginde kaliyor.
-  ringOuter: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: "#1C1C1C",
-  },
-  // Cevrimici durumu gizliyse (showPresenceRing=false) halkanin ozel rengi
-  // yerine dogrudan arkaplanla AYNI siyah - boylece bos bir "halka" gormus
-  // gibi olmuyoruz, sanki hic yokmus gibi arkaplana karisiyor.
-  ringHidden: { backgroundColor: BG },
-  avatarInnerCenter: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-  // Disaridaki (renkli/animasyonlu olabilen) halka ile fotografin arasinda
-  // HER ZAMAN arkaplanla ayni siyah bosluk - renkli halka varsa kontrast
-  // icin, gizliyken hicbir sey gorunmemesi icin.
-  ringMiddle: {
-    width: 108,
-    height: 108,
-    borderRadius: 54,
-    backgroundColor: BG,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarCore: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: "#1F1F1F",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarInitial: { color: ACCENT, fontSize: 32, fontWeight: "700" },
-  avatarImage: { width: 88, height: 88, borderRadius: 44 },
-  nameBlock: { alignItems: "center", marginBottom: 6 },
+  avatarInitial: { color: ACCENT, fontSize: 30, fontWeight: "700" },
+  avatarImage: { width: "100%", height: "100%", borderRadius: 25 },
+  nameBlockLeft: { marginBottom: 14, gap: 4 },
   // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
   // yana gostermek icin (bkz. isPremium).
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   name: { color: TEXT, fontSize: 22, fontWeight: "800", letterSpacing: 0.3 },
-  nameInput: {
+  nameInputLeft: {
     color: TEXT,
     fontSize: 24,
     fontWeight: "700",
     borderBottomWidth: 1,
     borderBottomColor: MUTED,
     minWidth: 140,
-    textAlign: "center",
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
@@ -1476,13 +1599,12 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  bio: { color: "#C9BFAE", fontSize: 13, lineHeight: 19, marginTop: 14, marginBottom: 24 },
-  bioInput: {
+  bioLeft: { color: "#C9BFAE", fontSize: 14, lineHeight: 20, marginTop: 6 },
+  bioInputLeft: {
     color: "#C9BFAE",
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 14,
-    marginBottom: 24,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
     borderWidth: 1,
     borderColor: "#262626",
     borderRadius: 8,
@@ -1500,10 +1622,36 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    marginTop: -16,
-    marginBottom: 24,
+    marginTop: 6,
   },
   bioSaveButtonText: { color: "#04140D", fontSize: 13, fontWeight: "800" },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 8 },
+  metaText: { color: MUTED, fontSize: 12.5, fontWeight: "700", letterSpacing: 0.3 },
+  metaInput: {
+    color: TEXT,
+    fontSize: 12.5,
+    fontWeight: "700",
+    borderBottomWidth: 1,
+    borderBottomColor: MUTED,
+    minWidth: 100,
+    paddingVertical: 2,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
+  ownActionRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
+  pillOutlineButton: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: ACCENT,
+    borderRadius: 24,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  pillOutlineButtonText: { color: TEXT, fontSize: 13, fontWeight: "800", letterSpacing: 0.4 },
+  topTabsRow: { flexDirection: "row", justifyContent: "space-around", borderTopWidth: 1, borderColor: "#1C1C1C", marginHorizontal: -24, paddingTop: 4 },
+  topTabTouch: { flex: 1, alignItems: "center", paddingVertical: 12 },
+  topTabTouchActive: { borderBottomWidth: 2, borderBottomColor: ACCENT },
+  tabActionsRow: { flexDirection: "row", justifyContent: "flex-end", gap: 14, marginTop: 14 },
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   activeRoomCard: { margin: 0, marginTop: 14, marginBottom: 24 },
   sectionHeaderActions: { flexDirection: "row", alignItems: "center", gap: 14 },
