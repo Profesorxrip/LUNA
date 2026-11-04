@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Dimensions,
 } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -22,6 +23,7 @@ import { showAlert } from "../components/CustomAlert";
 import CountryFlag from "../components/CountryFlag";
 import RoomCard from "../components/RoomCard";
 import PhotoViewerModal from "../components/PhotoViewerModal";
+import PostCard from "../components/PostCard";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 
 interface Props {
@@ -40,6 +42,9 @@ const MUTED = "#9A8F80";
 // Cevrimdisi halka rengi - MUTED'dan (etiket/metin gri tonu) daha acik,
 // avatarin koyu arka planinda daha net secilsin diye.
 const OFFLINE_GRAY = "#C2C2C2";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const BANNER_STRIPE_W = 26;
 
 // Su an gercek bir "kullanicilar arasi gezinme" ekrani yok - baskasinin
 // profilini (own=false) test etmek icin sabit bir demo kimlik kullaniyoruz.
@@ -69,6 +74,15 @@ interface ActivityStats {
 interface GalleryPhoto {
   id: string;
   url: string;
+  createdAt: number;
+}
+
+interface Post {
+  id: string;
+  text: string | null;
+  imageUrls: string[];
+  locationName: string | null;
+  taggedUserIds: string[];
   createdAt: number;
 }
 
@@ -141,7 +155,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   // ekran buyuk haliyle acilir.
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [editingField, setEditingField] = useState<"name" | "handle" | "bio" | null>(null);
+  const [editingField, setEditingField] = useState<"name" | "handle" | "bio" | "banner_text" | null>(null);
   const [galleryVisible, setGalleryVisible] = useState(true);
   const [statVisibility, setStatVisibility] = useState(DEFAULT_STAT_VISIBILITY);
   const [selectedDay, setSelectedDay] = useState(8);
@@ -161,6 +175,18 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [activeRoom, setActiveRoom] = useState<PublicRoomSummary | null>(null);
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
   const [uploadingGalleryPhoto, setUploadingGalleryPhoto] = useState(false);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [postsVisible, setPostsVisible] = useState(true);
+  const [postAuthors, setPostAuthors] = useState<Record<string, { name: string }>>({});
+  const [composerVisible, setComposerVisible] = useState(false);
+  const [composerText, setComposerText] = useState("");
+  const [composerImages, setComposerImages] = useState<string[]>([]);
+  const [composerLocation, setComposerLocation] = useState("");
+  const [composerTaggedIds, setComposerTaggedIds] = useState<string[]>([]);
+  const [composerTagPickerVisible, setComposerTagPickerVisible] = useState(false);
+  const [composerFriends, setComposerFriends] = useState<{ userId: string; name: string }[]>([]);
+  const [postingBusy, setPostingBusy] = useState(false);
+  const [bannerText, setBannerText] = useState("");
 
   const effectiveUserId = own ? myUserId : peerUserId;
   // Kendi profilinde HER ZAMAN cevrimicisindir (uygulamayi kullaniyorsun) -
@@ -205,7 +231,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       supabase
         .from("profiles")
         .select(
-          "name,handle,bio,avatar_url,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,is_premium"
+          "name,handle,bio,avatar_url,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,posts_visible,banner_text,is_premium"
         )
         .eq("id", userId)
         .maybeSingle()
@@ -222,6 +248,8 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           if (profile.videos_visible !== undefined) setVideosVisible(profile.videos_visible !== false);
           if (profile.bio_visible !== undefined) setBioVisible(profile.bio_visible !== false);
           if (profile.stats_visible !== undefined) setStatsVisible(profile.stats_visible !== false);
+          if (profile.posts_visible !== undefined) setPostsVisible(profile.posts_visible !== false);
+          setBannerText(profile.banner_text || "");
           setIsPremium(profile.is_premium === true);
         });
     });
@@ -247,6 +275,8 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         setVideosVisible(res.profile.videosVisible !== false);
         setBioVisible(res.profile.bioVisible !== false);
         setStatsVisible(res.profile.statsVisible !== false);
+        setPostsVisible(res.profile.postsVisible !== false);
+        setBannerText(res.profile.bannerText || "");
         setIsPremium(Boolean(res.profile.isPremium));
       }
     });
@@ -317,6 +347,54 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       });
   }, [effectiveUserId]);
 
+  // Paylasimlar - gallery_photos ile AYNI kalip (supabase/migrations/0021_
+  // posts.sql): RLS "kendi gonderilerim VEYA posts_visible acik olan
+  // birinin gonderileri" diye filtreliyor, burada dogrudan sorguluyoruz.
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    supabase
+      .from("posts")
+      .select("id,text,image_urls,location_name,tagged_user_ids,created_at")
+      .eq("user_id", effectiveUserId)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        const rows = data || [];
+        setPosts(
+          rows.map((row: any) => ({
+            id: row.id,
+            text: row.text,
+            imageUrls: row.image_urls || [],
+            locationName: row.location_name,
+            taggedUserIds: row.tagged_user_ids || [],
+            createdAt: new Date(row.created_at).getTime(),
+          }))
+        );
+        const taggedIds = Array.from(new Set(rows.flatMap((row: any) => row.tagged_user_ids || [])));
+        if (taggedIds.length === 0) return;
+        // profiles_select_all RLS politikasi herkesin ismini okumaya izin
+        // verir (bkz. 0001_init.sql) - etiketli kisilerin isimlerini
+        // cozmek icin ekstra bir yetki kontrolune gerek yok.
+        supabase
+          .from("profiles")
+          .select("id,name")
+          .in("id", taggedIds)
+          .then(({ data: profiles }) => {
+            const map: Record<string, { name: string }> = {};
+            for (const p of profiles || []) map[p.id] = { name: p.name || "" };
+            setPostAuthors(map);
+          });
+      });
+  }, [effectiveUserId]);
+
+  // Etiketleme listesi icin gercek arkadas listesi - DiscoverScreen/
+  // RoomPreviewScreen'deki friends:list cagrisiyla AYNI.
+  useEffect(() => {
+    if (!own) return;
+    getSocket().emit("friends:list", {}, (res: any) => {
+      if (res?.ok) setComposerFriends(res.friends.map((f: { userId: string; name: string }) => ({ userId: f.userId, name: f.name })));
+    });
+  }, [own]);
+
   function placeholder(label: string) {
     showAlert(label, t("profile.comingSoon"));
   }
@@ -333,17 +411,17 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 
   // Isim/kullanici adi/biyografi duzenlemeleri eskiden SADECE yerel state'ti -
   // yazip kapatinca hicbir yere kaydedilmiyordu, sayfa yenilenince kayboluyordu.
-  async function persistField(field: "name" | "handle" | "bio", value: string) {
+  async function persistField(field: "name" | "handle" | "bio" | "banner_text", value: string) {
     if (!own || !myUserId) return;
     await supabase.from("profiles").update({ [field]: value }).eq("id", myUserId);
   }
 
-  function toggleFieldEdit(field: "name" | "handle" | "bio") {
+  function toggleFieldEdit(field: "name" | "handle" | "bio" | "banner_text") {
     if (!own) return;
     setEditingField(field);
   }
 
-  function closeFieldEdit(field: "name" | "handle" | "bio", value: string) {
+  function closeFieldEdit(field: "name" | "handle" | "bio" | "banner_text", value: string) {
     setEditingField(null);
     persistField(field, value);
   }
@@ -540,6 +618,137 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     });
   }
 
+  function togglePostsVisible() {
+    if (!own || !myUserId) return;
+    setPostsVisible((v) => {
+      const next = !v;
+      supabase.from("profiles").update({ posts_visible: next }).eq("id", myUserId);
+      return next;
+    });
+  }
+
+  function openComposer() {
+    setComposerText("");
+    setComposerImages([]);
+    setComposerLocation("");
+    setComposerTaggedIds([]);
+    setComposerVisible(true);
+  }
+
+  async function pickComposerImages() {
+    if (composerImages.length >= 2) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: 2 - composerImages.length,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    setComposerImages((prev) => [...prev, ...result.assets.map((a) => a.uri)].slice(0, 2));
+  }
+
+  function removeComposerImage(uri: string) {
+    setComposerImages((prev) => prev.filter((u) => u !== uri));
+  }
+
+  function toggleComposerTag(userId: string) {
+    setComposerTaggedIds((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]));
+  }
+
+  // "Paylaş" - gallery fotograflarindaki uploadGalleryPhoto ile AYNI direkt
+  // Supabase Storage yukleme deseni, sadece hedef bucket "post-images" ve
+  // sonunda tek bir "posts" satiri ekleniyor (metin + en fazla 2 foto +
+  // konum adi + etiketlenen kisi id'leri).
+  async function submitPost() {
+    if (!myUserId) return;
+    if (!composerText.trim() && composerImages.length === 0) return;
+    setPostingBusy(true);
+    try {
+      const imageUrls: string[] = [];
+      for (const uri of composerImages) {
+        const arrayBuffer = await uriToArrayBuffer(uri);
+        const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
+        const contentType = ext === "png" ? "image/png" : "image/jpeg";
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const path = `${myUserId}/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from("post-images").upload(path, arrayBuffer, { contentType });
+        if (uploadError) throw uploadError;
+        const { data: publicUrlData } = supabase.storage.from("post-images").getPublicUrl(path);
+        imageUrls.push(publicUrlData.publicUrl);
+      }
+      const { data: row, error: insertError } = await supabase
+        .from("posts")
+        .insert({
+          user_id: myUserId,
+          text: composerText.trim() || null,
+          image_urls: imageUrls,
+          location_name: composerLocation.trim() || null,
+          tagged_user_ids: composerTaggedIds,
+        })
+        .select("id,text,image_urls,location_name,tagged_user_ids,created_at")
+        .single();
+      if (insertError) throw insertError;
+      setPosts((prev) => [
+        {
+          id: row.id,
+          text: row.text,
+          imageUrls: row.image_urls || [],
+          locationName: row.location_name,
+          taggedUserIds: row.tagged_user_ids || [],
+          createdAt: new Date(row.created_at).getTime(),
+        },
+        ...prev,
+      ]);
+      if (composerTaggedIds.length) {
+        setPostAuthors((prev) => {
+          const next = { ...prev };
+          for (const id of composerTaggedIds) {
+            const friend = composerFriends.find((f) => f.userId === id);
+            if (friend) next[id] = { name: friend.name };
+          }
+          return next;
+        });
+      }
+      setComposerVisible(false);
+    } catch (err: any) {
+      showAlert(t("userProfile.postFailedTitle"), err?.message || t("userProfile.postFailedBody"));
+    } finally {
+      setPostingBusy(false);
+    }
+  }
+
+  function confirmDeletePost(post: Post) {
+    if (!own) return;
+    showAlert(t("userProfile.deletePostTitle"), t("userProfile.deletePostBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("userProfile.delete"), style: "destructive", onPress: () => deletePost(post) },
+    ]);
+  }
+
+  async function deletePost(post: Post) {
+    setPosts((prev) => prev.filter((p) => p.id !== post.id));
+    await supabase.from("posts").delete().eq("id", post.id);
+    for (const url of post.imageUrls) {
+      const path = url.split("/post-images/")[1]?.split("?")[0];
+      if (path) await supabase.storage.from("post-images").remove([path]);
+    }
+  }
+
+  // Profil ustundeki "bayrak" bandi - capraz cizgili bir desen istendigi
+  // icin (bkz. kullanicinin referans gorseli), gercek bir repeating-
+  // gradient yerine (React Native'de yok) dondurulmus ince seritlerle
+  // elde ediliyor - ekran genisligini asip her iki tarafa da tasacak
+  // kadar genis bir aralikta tekrarlaniyor.
+  const bannerStripes = Array.from(
+    { length: Math.ceil((SCREEN_WIDTH + 300) / BANNER_STRIPE_W) },
+    (_, i) => -150 + i * BANNER_STRIPE_W
+  );
+
   const initial = name.charAt(0).toUpperCase();
   const historyList =
     historyTab === "liked" ? likedHistory : historyTab === "best" ? [...history].sort((a, b) => b.participantCount - a.participantCount) : history;
@@ -592,6 +801,38 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             </TouchableOpacity>
           )}
         </View>
+
+        {(own || bannerText) && (
+          <View style={styles.bannerWrap}>
+            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+              {bannerStripes.map((left, i) => (
+                <View
+                  key={i}
+                  style={[styles.bannerStripe, { left, backgroundColor: i % 2 === 0 ? "#123349" : "#0B1E2B" }]}
+                />
+              ))}
+            </View>
+            {editingField === "banner_text" ? (
+              <TextInput
+                style={styles.bannerInput}
+                value={bannerText}
+                onChangeText={setBannerText}
+                autoFocus
+                autoCapitalize="characters"
+                onSubmitEditing={() => closeFieldEdit("banner_text", bannerText)}
+                onBlur={() => closeFieldEdit("banner_text", bannerText)}
+                placeholder={t("userProfile.bannerPlaceholder")}
+                placeholderTextColor="rgba(245,240,230,0.5)"
+              />
+            ) : (
+              <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("banner_text")} style={styles.bannerTextTouch}>
+                <Text style={styles.bannerText} numberOfLines={1}>
+                  {(bannerText || (own ? t("userProfile.bannerPlaceholder") : "")).toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         <TouchableOpacity
           style={[styles.avatarWrap, !showPresenceRing && styles.avatarWrapCompact]}
@@ -920,8 +1161,182 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             )}
           </>
         )}
+
+        {(own || postsVisible) && (own || posts.length > 0) && (
+          <>
+            <View style={styles.fullDivider} />
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>{t("userProfile.sectionPosts")}</Text>
+              {own && (
+                <View style={styles.sectionHeaderActions}>
+                  <TouchableOpacity onPress={openComposer} hitSlop={6}>
+                    <Icon name="plus" size={16} color={ACCENT} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={togglePostsVisible} hitSlop={6}>
+                    <Icon name={postsVisible ? "eye" : "eyeOff"} size={16} color={postsVisible ? ACCENT : MUTED} />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+            <View style={styles.fullDivider} />
+            {posts.length === 0 ? (
+              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noPosts")}</Text>
+            ) : (
+              <View>
+                {posts.map((post, i) => (
+                  <React.Fragment key={post.id}>
+                    {i > 0 && <View style={styles.postDivider} />}
+                    <PostCard
+                      avatarUrl={avatarUrl}
+                      initial={initial}
+                      name={name}
+                      handle={handle}
+                      timeLabel={timeAgo(post.createdAt, t, i18n.language)}
+                      text={post.text}
+                      imageUrls={post.imageUrls}
+                      locationName={post.locationName}
+                      taggedNames={post.taggedUserIds.map((id) => postAuthors[id]?.name).filter(Boolean) as string[]}
+                      onPressImage={setViewingPhotoUrl}
+                      onLongPress={own ? () => confirmDeletePost(post) : undefined}
+                    />
+                  </React.Fragment>
+                ))}
+              </View>
+            )}
+          </>
+        )}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={composerVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setComposerVisible(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.composerOverlay}>
+          <View style={styles.composerCard}>
+            <View style={styles.composerHeaderRow}>
+              <TouchableOpacity onPress={() => setComposerVisible(false)}>
+                <Text style={styles.composerCancel}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+              <Text style={styles.composerTitle}>{t("userProfile.newPost")}</Text>
+              <TouchableOpacity
+                onPress={submitPost}
+                disabled={postingBusy || (!composerText.trim() && composerImages.length === 0)}
+              >
+                {postingBusy ? (
+                  <ActivityIndicator color={ACCENT} size="small" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.composerShare,
+                      !composerText.trim() && composerImages.length === 0 && styles.composerShareDisabled,
+                    ]}
+                  >
+                    {t("userProfile.share")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.composerInput}
+              value={composerText}
+              onChangeText={setComposerText}
+              multiline
+              autoFocus
+              placeholder={t("userProfile.postTextPlaceholder")}
+              placeholderTextColor={MUTED}
+            />
+
+            {composerImages.length > 0 && (
+              <View style={styles.composerImageRow}>
+                {composerImages.map((uri) => (
+                  <View key={uri} style={styles.composerImageWrap}>
+                    <Image source={{ uri }} style={styles.composerImage} />
+                    <TouchableOpacity style={styles.composerImageRemove} onPress={() => removeComposerImage(uri)}>
+                      <Text style={styles.composerImageRemoveText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <TextInput
+              style={styles.composerLocationInput}
+              value={composerLocation}
+              onChangeText={setComposerLocation}
+              placeholder={t("userProfile.locationPlaceholder")}
+              placeholderTextColor={MUTED}
+            />
+
+            {composerTaggedIds.length > 0 && (
+              <Text style={styles.composerTaggedPreview}>
+                {t("userProfile.withPeople", {
+                  names: composerTaggedIds
+                    .map((id) => composerFriends.find((f) => f.userId === id)?.name)
+                    .filter(Boolean)
+                    .join(", "),
+                })}
+              </Text>
+            )}
+
+            <View style={styles.composerActionsRow}>
+              <TouchableOpacity
+                style={styles.composerActionButton}
+                onPress={pickComposerImages}
+                disabled={composerImages.length >= 2}
+              >
+                <Icon name="image" size={18} color={composerImages.length >= 2 ? MUTED : ACCENT} />
+                <Text style={styles.composerActionText}>{t("userProfile.addPhoto")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.composerActionButton} onPress={() => setComposerTagPickerVisible(true)}>
+                <Icon name="people" size={18} color={ACCENT} />
+                <Text style={styles.composerActionText}>{t("userProfile.tagPeople")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={composerTagPickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setComposerTagPickerVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.sheetOverlay}
+          activeOpacity={1}
+          onPress={() => setComposerTagPickerVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+            {composerFriends.length === 0 ? (
+              <Text style={[styles.emptyHistoryText, { padding: 16 }]}>{t("userProfile.noFriendsToTag")}</Text>
+            ) : (
+              composerFriends.map((friend) => {
+                const checked = composerTaggedIds.includes(friend.userId);
+                return (
+                  <TouchableOpacity
+                    key={friend.userId}
+                    style={[styles.sheetRow, styles.tagPickerRow]}
+                    onPress={() => toggleComposerTag(friend.userId)}
+                  >
+                    <Text style={styles.sheetRowText}>{friend.name}</Text>
+                    {checked && <Icon name="check" size={16} color={ACCENT} />}
+                  </TouchableOpacity>
+                );
+              })
+            )}
+            <TouchableOpacity style={styles.sheetRow} onPress={() => setComposerTagPickerVisible(false)}>
+              <Text style={[styles.sheetRowText, styles.sheetCancelText]}>{t("userProfile.tagPeopleDone")}</Text>
+            </TouchableOpacity>
+            <View style={styles.sheetHandle} />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <Modal
         visible={avatarSheetVisible}
@@ -964,6 +1379,29 @@ const styles = StyleSheet.create({
   topBlock: { paddingHorizontal: 24 },
   bodyContent: { paddingHorizontal: 16 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, marginBottom: 26 },
+  bannerWrap: {
+    height: 104,
+    borderRadius: 16,
+    overflow: "hidden",
+    marginHorizontal: -24,
+    marginBottom: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0B1E2B",
+  },
+  bannerStripe: { position: "absolute", top: -90, width: 22, height: 320, transform: [{ rotate: "-20deg" }] },
+  bannerTextTouch: { paddingHorizontal: 20 },
+  bannerText: { color: TEXT, fontSize: 28, fontWeight: "900", letterSpacing: 1.5, textAlign: "center" },
+  bannerInput: {
+    color: TEXT,
+    fontSize: 28,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    textAlign: "center",
+    paddingHorizontal: 20,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
   avatarWrap: { width: 128, height: 128, alignSelf: "center", marginBottom: 18 },
   // Halka gizliyken (showPresenceRing=false) gosterecek bir sey olmadigi
   // icin halkanin ekstra 20px'lik yer kaplamasina gerek yok - kutuyu
@@ -1162,4 +1600,59 @@ const styles = StyleSheet.create({
   sheetRowText: { color: TEXT, fontSize: 16, fontWeight: "700" },
   sheetCancelText: { color: MUTED },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#262626", marginTop: 14 },
+  tagPickerRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20 },
+
+  postDivider: { height: 1, backgroundColor: "#141414", marginVertical: 4 },
+
+  composerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  composerCard: {
+    backgroundColor: "#0B0B0B",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    paddingBottom: 32,
+    gap: 14,
+  },
+  composerHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  composerCancel: { color: MUTED, fontSize: 15 },
+  composerTitle: { color: TEXT, fontSize: 15, fontWeight: "700" },
+  composerShare: { color: ACCENT, fontSize: 15, fontWeight: "800" },
+  composerShareDisabled: { color: MUTED },
+  composerInput: {
+    color: TEXT,
+    fontSize: 15,
+    lineHeight: 21,
+    minHeight: 70,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
+  composerImageRow: { flexDirection: "row", gap: 8 },
+  composerImageWrap: { width: 90, height: 90, borderRadius: 12, overflow: "hidden" },
+  composerImage: { width: "100%", height: "100%" },
+  composerImageRemove: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  composerImageRemoveText: { color: TEXT, fontSize: 13, lineHeight: 14, fontWeight: "700" },
+  composerLocationInput: {
+    color: "#C9BFAE",
+    fontSize: 13,
+    borderWidth: 1,
+    borderColor: "#262626",
+    borderRadius: 8,
+    padding: 10,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
+  composerTaggedPreview: { color: ACCENT, fontSize: 13 },
+  composerActionsRow: { flexDirection: "row", gap: 20, borderTopWidth: 1, borderColor: "#1C1C1C", paddingTop: 14 },
+  composerActionButton: { flexDirection: "row", alignItems: "center", gap: 6 },
+  composerActionText: { color: TEXT, fontSize: 13, fontWeight: "600" },
 });
