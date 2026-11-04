@@ -37,12 +37,6 @@ interface Props {
 
 const ACCENT = "#0EA5E9";
 const BG = "#000000";
-// Avatar cercevesi icin - "BG" (duz siyah) DEGIL, cunku App.tsx'teki
-// PAYLASILAN AppBackground hicbir zaman duz siyah degil, koyu lacivert bir
-// degrade (bkz. AppBackground.tsx GRADIENT_COLORS) - cerceve duz siyaha
-// boyanirsa gradyanin yaninda sert/uyumsuz durur. Bu, gradyanin ust
-// taraflarina yakin tonlarindan biri (avatar sayfanin UST kismina yakin).
-const AVATAR_FRAME = "#0d1828";
 const TEXT = "#F5F0E6";
 const MUTED = "#9A8F80";
 // Cevrimdisi halka rengi - MUTED'dan (etiket/metin gri tonu) daha acik,
@@ -1277,7 +1271,7 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 46,
-    backgroundColor: AVATAR_FRAME,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
