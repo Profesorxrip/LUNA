@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { TriangleAlert, Trash } from "lucide-react-native";
 import { useFonts, Inter_700Bold } from "@expo-google-fonts/inter";
 import { useTranslation } from "react-i18next";
@@ -92,6 +93,12 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
   const [participants, setParticipants] = useState<RoomParticipantDetail[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(true);
   const [position, setPosition] = useState(room.positionSeconds);
+  // Discover'daki oda kartlarindaki/RoomScreen.tsx'teki (ParticipantsModal
+  // friendIds) ile AYNI gercek arkadaslik halkasi - buraya kadar hic
+  // GETIRILMIYORDU, katilimci avatarlari SADECE dekoratif sira-rengi
+  // cerceveye sahipti (bkz. AVATAR_COLORS), gercek arkadas olup olmadigini
+  // hic yansitmiyordu.
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     getSocket().emit("room:participants", { code: room.code }, (res: any) => {
@@ -99,6 +106,12 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
       setLoadingParticipants(false);
     });
   }, [room.code]);
+
+  useEffect(() => {
+    getSocket().emit("friends:list", {}, (res: any) => {
+      if (res?.ok) setFriendIds(new Set(res.friends.map((f: { userId: string }) => f.userId)));
+    });
+  }, []);
 
   // "Odayı Sil" - odayi GERCEKTEN silmiyor/kapatmiyor, sadece bu kullanicinin
   // KENDI Keşfet listesinden gizliyor (bkz. utils/hiddenRooms.ts) - herkes
@@ -230,22 +243,38 @@ export default function RoomPreviewScreen({ room, onBack, onJoin, onOpenParticip
             onPress={() => item.userId && onOpenParticipant({ userId: item.userId, name: item.name, handle: item.handle || undefined })}
           >
             <View style={styles.avatarWrap}>
-              {item.avatarUrl ? (
-                <Image source={{ uri: item.avatarUrl }} style={[styles.participantAvatar, { borderColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]} />
-              ) : (
-                <View
-                  style={[
-                    styles.participantAvatar,
-                    styles.participantAvatarFallback,
-                    { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length], borderColor: AVATAR_COLORS[index % AVATAR_COLORS.length] },
-                  ]}
-                >
-                  <Text style={styles.participantAvatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
-                </View>
-              )}
+              {/* Gercek arkadasimizsa (bkz. yukarida friendIds) RoomCardVariantD.tsx'teki
+                  (Discover'daki oda karti) GERCEK "arkadas halkasi" ile BIREBIR
+                  AYNI teknik - duz bir renk DEGIL, beyazdan maviye gecen bir
+                  degrade halka (TabBar/arama cubugu cercevesindeki AYNI motif).
+                  Daha once burada yanlislikla Avatar.tsx'teki (kullanilmayan)
+                  duz accentBright kenarligi taklit edilmisti. */}
+              {(() => {
+                const isFriend = Boolean(item.userId && friendIds.has(item.userId));
+                const content = item.avatarUrl ? (
+                  <Image source={{ uri: item.avatarUrl }} style={styles.participantAvatarInner} />
+                ) : (
+                  <View
+                    style={[
+                      styles.participantAvatarInner,
+                      styles.participantAvatarFallback,
+                      { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] },
+                    ]}
+                  >
+                    <Text style={styles.participantAvatarInitial}>{item.name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                );
+                return isFriend ? (
+                  <LinearGradient colors={["#FFFFFF", "#38BDF8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatarFriendRing}>
+                    <View style={styles.avatarFriendMask}>{content}</View>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.participantAvatar}>{content}</View>
+                );
+              })()}
               {item.isHost && (
                 <View style={styles.hostBadge}>
-                  <CrownBadge size={20} color={theme.accent} />
+                  <CrownBadge size={26} />
                 </View>
               )}
             </View>
@@ -340,10 +369,20 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   avatarWrap: { position: "relative" },
-  participantAvatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2 },
+  // Arkadas OLMAYAN katilimcilarda artik HICBIR cerceve yok (bkz. asagidaki
+  // avatarFriendRing - SADECE gercek arkadaslar o degrade halkayi tasir,
+  // digerleri duz/cercevesiz). Eskiden sira-rengi (AVATAR_COLORS) bir
+  // kenarlik vardi, kullanicinin istegi uzerine kaldirildi.
+  participantAvatar: { width: 48, height: 48, borderRadius: 24, overflow: "hidden" },
+  // Arkadas halkasi - RoomCardVariantD.tsx'teki avatarFriendRing/avatarFriendMask
+  // ile AYNI oran (padding 2, ic borderRadius disarinkinden 2 kucuk) - disaridaki
+  // degrade ile icerideki gercek avatar arasinda ince bir "halka" bosluk birakir.
+  avatarFriendRing: { width: 48, height: 48, borderRadius: 24, padding: 2 },
+  avatarFriendMask: { flex: 1, borderRadius: 22, overflow: "hidden" },
+  participantAvatarInner: { width: "100%", height: "100%" },
   participantAvatarFallback: { alignItems: "center", justifyContent: "center" },
   // Lider rozeti - CrownBadge.tsx, profil fotografinin TAM USTUNE (negatif top ile) oturur.
-  hostBadge: { position: "absolute", top: -16, left: 0, right: 0, alignItems: "center" },
+  hostBadge: { position: "absolute", top: -18, left: 0, right: 0, alignItems: "center" },
   participantAvatarInitial: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
   participantInfo: { flex: 1 },
   participantName: { color: theme.text, fontSize: 15, fontWeight: "600" },

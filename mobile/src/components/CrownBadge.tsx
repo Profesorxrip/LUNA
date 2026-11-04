@@ -1,25 +1,33 @@
-import Svg, { Path } from "react-native-svg";
+import { Image } from "react-native";
 
 interface Props {
   size?: number;
-  color?: string;
 }
 
-/** Katilimcilar listesindeki lider rozeti - lucide'nin orijinal, tanidik
- * "crown" glyph'inin AYNISI (bkz. Icon.tsx "crown"), SADECE alt kenari
- * (orijinalde duz bir "H" cizgisi) profil fotografinin yuvarlak ust
- * hattini saracak sekilde hafifce kivrilmis (Q egrisi). Geri kalan her
- * sey - sivri uclar, mücevher kabartmalari - BIREBIR ayni. */
-export default function CrownBadge({ size = 20, color = "#0EA5E9" }: Props) {
+// crown.png'nin GERCEK en/boy orani (376x292) - kare olmayan bir siluet
+// oldugu icin, verilen "size" (genislik) ile dogru oranli bir yukseklik
+// hesaplamak icin.
+const ASPECT = 292 / 376;
+
+/** Katilimcilar listesindeki lider rozeti - kullanicinin gonderdigi bir
+ * referans taç sayfasindan (4 secenekten 3.sü - ALT SOL) piksel piksel
+ * cikarilmis GERCEK siluet (eskiden lucide'nin hazir "crown" glyph'inden
+ * elle uyarlanmisti, kullanicinin artik gercek bir referans gorseli
+ * oldugu icin o yaklasim terk edildi).
+ *
+ * assets/icons/crown.png artik TEK RENKLI bir siluet DEGIL - kullanici
+ * kendi yayinladigimiz "Taç Boyama" sayfasinda (bir HTML + canvas araci,
+ * fircasi SADECE ikonun kendi opak piksellerine yapisacak sekilde
+ * source-atop ile sinirlandirilmisti) dis anahatti BEYAZ, ust mücevheri
+ * ve 3 elmasi MAVI (#0EA5E9) boyadi - bu yuzden BURADA ARTIK tintColor
+ * UYGULANMIYOR (uygulansa butun ikonu TEK renge boyar, iki renkliligi
+ * yok ederdi) - PNG'nin kendi renkleri DOGRUDAN kullaniliyor. */
+export default function CrownBadge({ size = 20 }: Props) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734Q12 15 5.81 16.999a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"
-        stroke={color}
-        strokeWidth={2.2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
+    <Image
+      source={require("../../assets/icons/crown.png")}
+      style={{ width: size, height: size * ASPECT }}
+      resizeMode="contain"
+    />
   );
 }

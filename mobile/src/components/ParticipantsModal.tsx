@@ -149,7 +149,7 @@ export default function ParticipantsModal({
                     />
                     {item.isHost && (
                       <View style={styles.hostBadge}>
-                        <CrownBadge size={20} color={theme.accent} />
+                        <CrownBadge size={20} />
                       </View>
                     )}
                     {item.isModerator && (

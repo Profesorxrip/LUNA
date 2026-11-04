@@ -158,7 +158,7 @@ function ChatAvatar({ name, avatarUrl, isFriend, isHost, isModerator }: { name: 
       <Avatar name={name} avatarUrl={avatarUrl} size={32} isFriend={isFriend} />
       {isHost && (
         <View style={styles.chatHostBadge}>
-          <CrownBadge size={16} color={theme.accent} />
+          <CrownBadge size={16} />
         </View>
       )}
       {isModerator && (
