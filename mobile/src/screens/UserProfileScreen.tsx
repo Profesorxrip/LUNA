@@ -45,7 +45,18 @@ const MUTED = "#9A8F80";
 const OFFLINE_GRAY = "#C2C2C2";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+const SCREEN_HEIGHT = Dimensions.get("window").height;
 const BANNER_STRIPE_W = 26;
+// Avatar'in EKRANDAKI (scroll=0 haliyle) sabit konumu - topBlock'un sol
+// dolgusu (24) ve banner yuksekligi (150) eksi tasma miktari (23) - bu
+// sabitler asagidaki stiller ile AYNI (bannerWrap/avatarSquareOverlap).
+// Avatarin icindeki "arkaplan penceresi" bu offsetle + canli scroll
+// konumuyla kaydirilarak, PAYLASILAN AppBackground'in TAM boyutlu bir
+// kopyasini tam o noktaya hizaliyor - boylece gercekten "o noktadaki
+// arkaplanin kendisi" gibi gorunuyor, kendi basina kucultulmus/bagimsiz
+// bir degrade DEGIL.
+const AVATAR_SCREEN_X = 24;
+const AVATAR_SCREEN_Y = 150 - 23;
 
 // Su an gercek bir "kullanicilar arasi gezinme" ekrani yok - baskasinin
 // profilini (own=false) test etmek icin sabit bir demo kimlik kullaniyoruz.
@@ -149,6 +160,10 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [composerTaggedIds, setComposerTaggedIds] = useState<string[]>([]);
   const [composerTagPickerVisible, setComposerTagPickerVisible] = useState(false);
   const [composerFriends, setComposerFriends] = useState<{ userId: string; name: string }[]>([]);
+  // Avatarin icindeki "arkaplan penceresinin" kaydirmayla (scroll) birlikte
+  // dogru hizada kalmasi icin - AppBackground sayfanin SABIT arkasinda
+  // durur, ScrollView icerigi onun ONUNDE kayar.
+  const [scrollY, setScrollY] = useState(0);
   const [postingBusy, setPostingBusy] = useState(false);
   const [bannerText, setBannerText] = useState("");
   const [profileLocation, setProfileLocation] = useState("");
@@ -628,7 +643,12 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
+      >
         <View style={[styles.topBlock, !(own || bannerText) && styles.topBlockNoBanner]}>
         {/* Kapak fotografi ekranin en ustunden (ScrollView'in dolgusu olmadan)
             baslasin diye bu satir artik akisin icinde yer kaplamiyor - geri/
@@ -710,7 +730,20 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           disabled={!own}
         >
           <View style={styles.avatarSquareCore}>
-            <AppBackground />
+            {/* AppBackground'in TAM boyutlu (ekran genisligi/yuksekligi)
+                bir kopyasi, avatarin GERCEK ekran konumunun TAM TERSI
+                kadar kaydirilip (+ canli scroll konumu) buraya konuyor -
+                daire SADECE bunun 92x92'lik bir penceresini gosteriyor.
+                Boylece kucultulmus/bagimsiz bir degrade DEGIL, o
+                noktadaki GERCEK arkaplanin kendisi gorunuyor. */}
+            <View
+              style={[
+                styles.avatarBgWindow,
+                { left: -AVATAR_SCREEN_X, top: -AVATAR_SCREEN_Y + scrollY },
+              ]}
+            >
+              <AppBackground />
+            </View>
           </View>
         </TouchableOpacity>
 
@@ -1279,6 +1312,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+  },
+  avatarBgWindow: {
+    position: "absolute",
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   // Sadece bannerin icine tasan ust kisim kadar (avatarSquareOverlap'taki
   // 23px ile AYNI) yukseklikte bir pencere - halka sadece bu pencerenin
