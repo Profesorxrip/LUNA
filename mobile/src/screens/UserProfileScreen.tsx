@@ -706,7 +706,17 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           delayLongPress={350}
           disabled={!own}
         >
-          <View style={styles.avatarSquareCore} />
+          <View style={styles.avatarSquareCore}>
+            {/* Duz beyaz dolgu DEGIL - banner'daki AYNI capraz cizgili
+                doku (bkz. bannerStripes/bannerStripe), daire bu dokuya
+                "tabi" olsun diye icine de tasiniyor. */}
+            {bannerStripes.map((left, i) => (
+              <View
+                key={i}
+                style={[styles.bannerStripe, { left, backgroundColor: i % 2 === 0 ? "#F1F1EE" : "#E1E1DC" }]}
+              />
+            ))}
+          </View>
           <View style={styles.avatarRingOverlay} pointerEvents="none" />
         </TouchableOpacity>
 
