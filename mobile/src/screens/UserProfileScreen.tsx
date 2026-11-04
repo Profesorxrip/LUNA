@@ -702,25 +702,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           </View>
         )}
 
-        <TouchableOpacity
-          style={[styles.avatarSquareWrap, (own || bannerText) && styles.avatarSquareOverlap]}
-          activeOpacity={avatarUrl || own ? 0.8 : 1}
-          onPress={() => (avatarUrl ? setViewingPhotoUrl(avatarUrl) : own && setAvatarSheetVisible(true))}
-          onLongPress={() => own && setAvatarSheetVisible(true)}
-          delayLongPress={350}
-          disabled={!avatarUrl && !own}
-        >
-          <View style={styles.avatarSquareCore}>
-            {uploadingAvatar ? (
-              <ActivityIndicator color={ACCENT} />
-            ) : avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-            ) : (
-              <Text style={styles.avatarInitial}>{initial}</Text>
-            )}
-          </View>
-          <View style={styles.avatarRingOverlay} pointerEvents="none" />
-        </TouchableOpacity>
+        {/* PP (avatar) gecici olarak kaldirildi - kullanici tekrar
+            eklenmesini isteyene kadar. Kod/stiller asagida dursun, sadece
+            render edilmiyor. */}
 
         <View style={styles.nameBlockLeft}>
           {editingField === "name" ? (
