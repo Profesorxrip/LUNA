@@ -24,6 +24,7 @@ import CountryFlag from "../components/CountryFlag";
 import RoomCard from "../components/RoomCard";
 import PhotoViewerModal from "../components/PhotoViewerModal";
 import PostCard from "../components/PostCard";
+import AppBackground from "../components/AppBackground";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 
 interface Props {
@@ -707,15 +708,11 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           disabled={!own}
         >
           <View style={styles.avatarSquareCore}>
-            {/* Duz beyaz dolgu DEGIL - banner'daki AYNI capraz cizgili
-                doku (bkz. bannerStripes/bannerStripe), daire bu dokuya
-                "tabi" olsun diye icine de tasiniyor. */}
-            {bannerStripes.map((left, i) => (
-              <View
-                key={i}
-                style={[styles.bannerStripe, { left, backgroundColor: i % 2 === 0 ? "#F1F1EE" : "#E1E1DC" }]}
-              />
-            ))}
+            {/* Banner'in cizgili dokusu DEGIL - Discover ile AYNI paylasilan
+                arkaplan (App.tsx'teki AppBackground degradesi, bkz.
+                components/AppBackground.tsx) - daire bu PAYLASILAN
+                arkaplana tabi olsun diye aynen iceri tasiniyor. */}
+            <AppBackground />
           </View>
           <View style={styles.avatarRingOverlay} pointerEvents="none" />
         </TouchableOpacity>
