@@ -1299,7 +1299,7 @@ const styles = StyleSheet.create({
     height: 92,
     borderRadius: 46,
     borderWidth: 4,
-    borderColor: AVATAR_FRAME,
+    borderColor: "#FFFFFF",
   },
   presenceDot: {
     position: "absolute",
