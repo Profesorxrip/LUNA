@@ -1275,7 +1275,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarSquareWrap: { width: 92, height: 92, marginTop: 18, marginBottom: 10 },
-  avatarSquareOverlap: { marginTop: -46 },
+  // Avatarin yuksekliginin (92px) sadece %25'i banner'in icine taşsin diye
+  // -46 (yarisi, %50 tasma) yerine -23.
+  avatarSquareOverlap: { marginTop: -23 },
   avatarSquareCore: {
     width: 92,
     height: 92,
