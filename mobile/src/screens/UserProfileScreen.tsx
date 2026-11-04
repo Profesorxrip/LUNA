@@ -719,12 +719,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               <Text style={styles.avatarInitial}>{initial}</Text>
             )}
           </View>
-          {/* Fotografin kenarini "kesen" bir cerceve DEGIL - fotografin
-              TAM boyutunda cizilip ustune binen, arkaplanla ayni renkte
-              ince bir halka (pointerEvents olmadan, sadece gorsel). Boylece
-              "cerceve" degil, sanki arkaplanin kendisi ppnin kenarina
-              tasmis gibi gorunuyor. */}
-          <View style={styles.avatarRingOverlay} pointerEvents="none" />
         </TouchableOpacity>
 
         <View style={styles.nameBlockLeft}>
@@ -1298,16 +1292,6 @@ const styles = StyleSheet.create({
   // bir halka cizen ayri bir katman - ic tarafi seffaf oldugu icin
   // fotograf oldugu gibi gorunuyor, sadece en disdaki birkac piksel bu
   // halkanin rengiyle (arkaplanla ayni) kaplaniyor.
-  avatarRingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 4,
-    borderColor: AVATAR_FRAME,
-  },
   presenceDot: {
     position: "absolute",
     bottom: 2,
