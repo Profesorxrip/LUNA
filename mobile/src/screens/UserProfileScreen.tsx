@@ -1308,11 +1308,13 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 46,
-    // Beyaz (eskisi) DEGIL - borderRadius kirpmasinin kenarinda (anti-
-    // aliasing) bu renk ince bir seffaf-olmayan cizgi gibi disari sizip
-    // "beyaz cizgiler" gibi gorunuyordu. Gradyanin en koyu tonlarindan
-    // biriyle degistirildi, kenarda sizsa bile fark edilmez.
-    backgroundColor: "#04070c",
+    // SABIT bir renk (eskisi beyaz, sonra koyu) DEGIL - borderRadius
+    // kirpmasinin kenarindaki (anti-aliasing) ince seritte bu renk GERCEK
+    // arkaplan penceresiyle (asagidaki avatarBgWindow) tam ortusmuyordu,
+    // bu da kenarda farkli tonda ince bir cizgi gibi goruluyordu. Seffaf
+    // yapilinca o kenarda bile GERCEK arkaplanin kendisi (banner/govde)
+    // gorunuyor - yani cizgi de "arkaplana tabi" oluyor.
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
