@@ -1308,7 +1308,11 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 46,
-    backgroundColor: "#FFFFFF",
+    // Beyaz (eskisi) DEGIL - borderRadius kirpmasinin kenarinda (anti-
+    // aliasing) bu renk ince bir seffaf-olmayan cizgi gibi disari sizip
+    // "beyaz cizgiler" gibi gorunuyordu. Gradyanin en koyu tonlarindan
+    // biriyle degistirildi, kenarda sizsa bile fark edilmez.
+    backgroundColor: "#04070c",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
