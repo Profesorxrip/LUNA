@@ -18,7 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../services/supabase";
 import { getSocket, PublicRoomSummary, HistoryItem, MediaSource, SourceType, RoomState } from "../services/socket";
-import Icon, { IconName } from "../components/Icon";
+import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
 import CountryFlag from "../components/CountryFlag";
 import RoomCard from "../components/RoomCard";
@@ -64,19 +64,6 @@ const DEFAULT_STAT_VISIBILITY: Record<string, boolean> = {
   biggestRoom: true,
 };
 
-interface ActivityStats {
-  totalHours: number;
-  longestSessionHours: number;
-  biggestRoom: number;
-  daily: Record<string, number>;
-}
-
-interface GalleryPhoto {
-  id: string;
-  url: string;
-  createdAt: number;
-}
-
 interface Post {
   id: string;
   userId: string;
@@ -109,32 +96,12 @@ function formatDate(ms: number, lang: string): string {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-function formatHours(hours: number, t: (key: string, opts?: any) => string): string {
-  if (hours < 1) return t("userProfile.minutesShort", { count: Math.round(hours * 60) });
-  return t("userProfile.hoursShort", { count: Number(hours.toFixed(hours < 10 ? 1 : 0)) });
-}
-
 function timeAgo(ms: number, t: (key: string, opts?: any) => string, lang: string): string {
   const diffDays = Math.floor((Date.now() - ms) / (24 * 60 * 60 * 1000));
   if (diffDays <= 0) return t("userProfile.today");
   if (diffDays === 1) return t("userProfile.yesterday");
   if (diffDays < 30) return t("friends.daysAgo", { count: diffDays });
   return formatDate(ms, lang);
-}
-
-// get_user_activity_stats RPC'sinin "daily" jsonb'si {"YYYY-MM-DD": saat}
-// seklinde - grafigin ihtiyac duydugu son 9 gunluk siraya ceviriyor,
-// veri olmayan gunler 0 saat olarak gosteriliyor.
-function buildDailyActivity(daily: Record<string, number>, lang: string): { date: string; hours: number }[] {
-  const months = MONTHS[lang] ?? MONTHS.en;
-  const days: { date: string; hours: number }[] = [];
-  for (let i = 8; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    days.push({ date: `${d.getDate()} ${months[d.getMonth()]}`, hours: daily[iso] || 0 });
-  }
-  return days;
 }
 
 /** "Vinil Kayıt" konsepti - kartelanın (bkz. tasarım oturumu) ilk seçeneği,
@@ -159,25 +126,18 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [editingField, setEditingField] = useState<
     "name" | "handle" | "bio" | "banner_text" | "profile_location" | "birthday" | null
   >(null);
-  const [galleryVisible, setGalleryVisible] = useState(true);
   const [statVisibility, setStatVisibility] = useState(DEFAULT_STAT_VISIBILITY);
-  const [selectedDay, setSelectedDay] = useState(8);
   const [videosVisible, setVideosVisible] = useState(true);
   const [bioVisible, setBioVisible] = useState(true);
-  const [statsVisible, setStatsVisible] = useState(true);
   const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "friends">("none");
   // supabase/migrations/0018_is_premium.sql - su an herkeste false (henuz
   // gercek bir satin alma akisi yok, bkz. PremiumScreen.tsx) - dolu gelince
   // isim yaninda parıltı rozeti gosteriliyor.
   const [isPremium, setIsPremium] = useState(false);
-  const [friendCount, setFriendCount] = useState(0);
-  const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [likedHistory, setLikedHistory] = useState<HistoryItem[]>([]);
   const [historyTab, setHistoryTab] = useState<"best" | "history" | "liked">("history");
   const [activeRoom, setActiveRoom] = useState<PublicRoomSummary | null>(null);
-  const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
-  const [uploadingGalleryPhoto, setUploadingGalleryPhoto] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsVisible, setPostsVisible] = useState(true);
   const [profileCache, setProfileCache] = useState<Record<string, { name: string; handle: string; avatarUrl: string }>>({});
@@ -238,7 +198,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       supabase
         .from("profiles")
         .select(
-          "name,handle,bio,avatar_url,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,posts_visible,banner_text,profile_location,birthday,is_premium"
+          "name,handle,bio,avatar_url,country,created_at,stat_visibility,videos_visible,bio_visible,posts_visible,banner_text,profile_location,birthday,is_premium"
         )
         .eq("id", userId)
         .maybeSingle()
@@ -251,10 +211,8 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           setCountry(profile.country || null);
           if (profile.created_at) setJoinDateMs(new Date(profile.created_at).getTime());
           if (profile.stat_visibility) setStatVisibility(profile.stat_visibility);
-          if (profile.gallery_visible !== undefined) setGalleryVisible(profile.gallery_visible !== false);
           if (profile.videos_visible !== undefined) setVideosVisible(profile.videos_visible !== false);
           if (profile.bio_visible !== undefined) setBioVisible(profile.bio_visible !== false);
-          if (profile.stats_visible !== undefined) setStatsVisible(profile.stats_visible !== false);
           if (profile.posts_visible !== undefined) setPostsVisible(profile.posts_visible !== false);
           setBannerText(profile.banner_text || "");
           setProfileLocation(profile.profile_location || "");
@@ -280,10 +238,8 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         setIsOnline(Boolean(res.profile.isOnline));
         if (res.profile.createdAt) setJoinDateMs(res.profile.createdAt);
         if (res.profile.statVisibility) setStatVisibility(res.profile.statVisibility);
-        setGalleryVisible(res.profile.galleryVisible !== false);
         setVideosVisible(res.profile.videosVisible !== false);
         setBioVisible(res.profile.bioVisible !== false);
-        setStatsVisible(res.profile.statsVisible !== false);
         setPostsVisible(res.profile.postsVisible !== false);
         setBannerText(res.profile.bannerText || "");
         setProfileLocation(res.profile.profileLocation || "");
@@ -316,12 +272,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   useEffect(() => {
     if (!effectiveUserId) return;
     const socket = getSocket();
-    socket.emit("user:activityStats", { userId: effectiveUserId }, (res: any) => {
-      if (res?.ok) setActivityStats(res.stats);
-    });
-    socket.emit("user:friendCount", { userId: effectiveUserId }, (res: any) => {
-      if (res?.ok) setFriendCount(res.count);
-    });
     socket.emit("user:roomHistory", { userId: effectiveUserId }, (res: any) => {
       if (res?.ok) setHistory(res.history);
     });
@@ -340,22 +290,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     socket.emit("user:activeRoom", { userId: effectiveUserId }, (res: any) => {
       if (res?.ok) setActiveRoom(res.room);
     });
-  }, [effectiveUserId]);
-
-  // Galeri - gercek yuklenen fotograflar (supabase/migrations/0004_gallery_
-  // photos.sql). RLS zaten "sadece kendi fotograflarim VEYA gallery_visible
-  // acik olan birinin fotograflari" diye filtreliyor - burada ekstra kontrole
-  // gerek yok, dogrudan sorgulayabiliriz (avatar_url'de oldugu gibi).
-  useEffect(() => {
-    if (!effectiveUserId) return;
-    supabase
-      .from("gallery_photos")
-      .select("id,url,created_at")
-      .eq("user_id", effectiveUserId)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setGalleryPhotos((data || []).map((row: any) => ({ id: row.id, url: row.url, createdAt: new Date(row.created_at).getTime() })));
-      });
   }, [effectiveUserId]);
 
   // Gonderi yazarlarinin / etiketlenen kisilerin isim-kullanici adi-avatar
@@ -524,51 +458,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   // Galeriye GERCEK fotograf yukleme - avatarin tek dosyalik "upsert" deseninin
   // aksine, her secim YENI bir satir/dosya olusturur (bkz. 0004_gallery_
   // photos.sql) cunku bir kullanicinin birden fazla galeri fotografi olabilir.
-  async function pickGalleryPhotos() {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.length) return;
-    setUploadingGalleryPhoto(true);
-    try {
-      for (const asset of result.assets) {
-        await uploadGalleryPhoto(asset.uri);
-      }
-    } finally {
-      setUploadingGalleryPhoto(false);
-    }
-  }
-
-  async function uploadGalleryPhoto(uri: string) {
-    if (!myUserId) return;
-    try {
-      const arrayBuffer = await uriToArrayBuffer(uri);
-      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
-      const contentType = ext === "png" ? "image/png" : "image/jpeg";
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const path = `${myUserId}/${fileName}`;
-      const { error: uploadError } = await supabase.storage.from("gallery").upload(path, arrayBuffer, { contentType });
-      if (uploadError) throw uploadError;
-      const { data: publicUrlData } = supabase.storage.from("gallery").getPublicUrl(path);
-      const { data: row, error: insertError } = await supabase
-        .from("gallery_photos")
-        .insert({ user_id: myUserId, url: publicUrlData.publicUrl })
-        .select("id,url,created_at")
-        .single();
-      if (insertError) throw insertError;
-      setGalleryPhotos((prev) => [{ id: row.id, url: row.url, createdAt: new Date(row.created_at).getTime() }, ...prev]);
-    } catch (err: any) {
-      showAlert(t("userProfile.uploadFailedTitle"), err?.message || t("userProfile.uploadFailedBody"));
-    }
-  }
-
   // GEÇMİŞ'teki bir video kartına dokununca, o videoyla GERÇEK yeni bir oda
   // açıp dogrudan icine giriyoruz - "+" ile yeni oda acma (DiscoverScreen.tsx
   // createRoomWithSource) ile AYNI room:create cagrisi, sadece kaynak
@@ -593,42 +482,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       });
   }
 
-  function confirmDeleteGalleryPhoto(photo: GalleryPhoto) {
-    if (!own) return;
-    showAlert(t("userProfile.deletePhotoTitle"), t("userProfile.deletePhotoBody"), [
-      { text: t("common.cancel"), style: "cancel" },
-      { text: t("userProfile.delete"), style: "destructive", onPress: () => deleteGalleryPhoto(photo) },
-    ]);
-  }
-
-  async function deleteGalleryPhoto(photo: GalleryPhoto) {
-    setGalleryPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-    await supabase.from("gallery_photos").delete().eq("id", photo.id);
-    const path = photo.url.split("/gallery/")[1]?.split("?")[0];
-    if (path) await supabase.storage.from("gallery").remove([path]);
-  }
-
-  // "goz" ikonlari eskiden SADECE yerel state'ti - uygulamadan cikinca
-  // sifirlaniyordu, baskasinin HER SEYI gormesine izin veriyordu. Artik
-  // profiles.stat_visibility/gallery_visible/videos_visible'a kaydediliyor.
-  function toggleStat(key: string) {
-    if (!own || !myUserId) return;
-    setStatVisibility((v) => {
-      const next = { ...v, [key]: !v[key] };
-      supabase.from("profiles").update({ stat_visibility: next }).eq("id", myUserId);
-      return next;
-    });
-  }
-
-  function toggleGalleryVisible() {
-    if (!own || !myUserId) return;
-    setGalleryVisible((v) => {
-      const next = !v;
-      supabase.from("profiles").update({ gallery_visible: next }).eq("id", myUserId);
-      return next;
-    });
-  }
-
   function toggleVideosVisible() {
     if (!own || !myUserId) return;
     setVideosVisible((v) => {
@@ -643,15 +496,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     setBioVisible((v) => {
       const next = !v;
       supabase.from("profiles").update({ bio_visible: next }).eq("id", myUserId);
-      return next;
-    });
-  }
-
-  function toggleStatsVisible() {
-    if (!own || !myUserId) return;
-    setStatsVisible((v) => {
-      const next = !v;
-      supabase.from("profiles").update({ stats_visible: next }).eq("id", myUserId);
       return next;
     });
   }
@@ -780,33 +624,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const initial = name.charAt(0).toUpperCase();
   const historyList =
     historyTab === "liked" ? likedHistory : historyTab === "best" ? [...history].sort((a, b) => b.participantCount - a.participantCount) : history;
-  const dailyActivity = activityStats ? buildDailyActivity(activityStats.daily, i18n.language) : buildDailyActivity({}, i18n.language);
-  const dailyMax = Math.max(1, ...dailyActivity.map((d) => d.hours));
-  // Siralama: Cevrimici (ayri render ediliyor, en basta) -> Katilim Tarihi
-  // -> En Uzun Oturum -> En Buyuk Oda -> LUNA Suresi -> Arkadaslar ->
-  // Gunluk Saatler (grafik, en sonda render ediliyor).
-  const statRows: { key: string; icon: IconName; label: string; value: string }[] = [
-    { key: "joinDate", icon: "calendar", label: t("userProfile.statJoinDate"), value: joinDateMs ? formatDate(joinDateMs, i18n.language) : "—" },
-    {
-      key: "longestSession",
-      icon: "hourglass",
-      label: t("userProfile.statLongestSession"),
-      value: activityStats ? formatHours(activityStats.longestSessionHours, t) : "—",
-    },
-    {
-      key: "biggestRoom",
-      icon: "people",
-      label: t("userProfile.statBiggestRoom"),
-      value: activityStats && activityStats.biggestRoom > 0 ? t("userProfile.peopleCount", { count: activityStats.biggestRoom }) : "—",
-    },
-    {
-      key: "totalHours",
-      icon: "clock",
-      label: t("userProfile.statTotalHours"),
-      value: activityStats ? formatHours(activityStats.totalHours, t) : "—",
-    },
-    { key: "friends", icon: "people", label: t("discover.sectionFriends"), value: String(friendCount) },
-  ];
 
   return (
     <View style={styles.screen}>
@@ -1219,120 +1036,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               onPress={() => onOpenRoomPreview?.(activeRoom)}
               style={styles.activeRoomCard}
             />
-          </>
-        )}
-
-        {(own || galleryVisible) && (own || galleryPhotos.length > 0) && (
-          <>
-            <View style={styles.fullDivider} />
-            <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>{t("userProfile.sectionGallery")}</Text>
-              {own && (
-                <View style={styles.sectionHeaderActions}>
-                  <TouchableOpacity onPress={pickGalleryPhotos} hitSlop={6} disabled={uploadingGalleryPhoto}>
-                    {uploadingGalleryPhoto ? (
-                      <ActivityIndicator color={ACCENT} size="small" />
-                    ) : (
-                      <Icon name="plus" size={16} color={ACCENT} />
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={toggleGalleryVisible} hitSlop={6}>
-                    <Icon name={galleryVisible ? "eye" : "eyeOff"} size={16} color={galleryVisible ? ACCENT : MUTED} />
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-            <View style={styles.fullDivider} />
-            {galleryPhotos.length === 0 ? (
-              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noGalleryPhotos")}</Text>
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.galleryScroll}
-                contentContainerStyle={styles.galleryRow}
-              >
-                {galleryPhotos.map((photo) => (
-                  <TouchableOpacity
-                    key={photo.id}
-                    style={styles.galleryThumb}
-                    activeOpacity={0.7}
-                    onPress={() => setViewingPhotoUrl(photo.url)}
-                    onLongPress={own ? () => confirmDeleteGalleryPhoto(photo) : undefined}
-                  >
-                    <Image source={{ uri: photo.url }} style={styles.galleryThumbImage} />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-          </>
-        )}
-
-        {(own || statsVisible) && (
-          <>
-        <View style={styles.fullDivider} />
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionHeader, { paddingVertical: 0 }]}>{t("userProfile.sectionStats")}</Text>
-          {own && (
-            <TouchableOpacity onPress={toggleStatsVisible} hitSlop={6}>
-              <Icon name={statsVisible ? "eye" : "eyeOff"} size={16} color={statsVisible ? ACCENT : MUTED} />
-            </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.fullDivider} />
-        <View style={styles.statsBlock}>
-          {statRows.map((stat) => {
-            const visible = statVisibility[stat.key];
-            if (!own && !visible) return null;
-            return (
-              <View key={stat.key} style={styles.statRow}>
-                <Icon name={stat.icon} size={20} color={TEXT} />
-                <Text style={styles.statRowLabel}>{stat.label}</Text>
-                <Text style={styles.statRowValue}>{stat.value}</Text>
-                {own && (
-                  <TouchableOpacity onPress={() => toggleStat(stat.key)} hitSlop={6}>
-                    <Icon name={visible ? "eye" : "eyeOff"} size={18} color={visible ? ACCENT : MUTED} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            );
-          })}
-
-          {(own || statVisibility.activityChart) && (
-            <View style={styles.chartBlock}>
-              <View style={styles.statRow}>
-                <Text style={styles.statRowLabel}>{t("userProfile.dailyHoursChart")}</Text>
-                {own && (
-                  <TouchableOpacity onPress={() => toggleStat("activityChart")} hitSlop={6}>
-                    <Icon
-                      name={statVisibility.activityChart ? "eye" : "eyeOff"}
-                      size={18}
-                      color={statVisibility.activityChart ? ACCENT : MUTED}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-              <View style={styles.chartBars}>
-                {dailyActivity.map((d, i) => (
-                  <TouchableOpacity key={d.date + i} style={styles.chartBarTouch} onPress={() => setSelectedDay(i)}>
-                    <View
-                      style={[
-                        styles.chartBar,
-                        {
-                          height: Math.max(4, (d.hours / dailyMax) * 100),
-                          backgroundColor: i === selectedDay ? ACCENT : "#163449",
-                        },
-                      ]}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <Text style={styles.chartSelected}>
-                {dailyActivity[selectedDay].date} · {formatHours(dailyActivity[selectedDay].hours, t)}
-              </Text>
-            </View>
-          )}
-        </View>
           </>
         )}
 
