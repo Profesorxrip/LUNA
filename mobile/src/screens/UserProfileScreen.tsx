@@ -1264,15 +1264,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarSquareWrap: { width: 92, height: 92, marginLeft: 24, marginTop: 18, marginBottom: 10 },
+  avatarSquareWrap: { width: 92, height: 92, marginTop: 18, marginBottom: 10 },
   avatarSquareOverlap: { marginTop: -46 },
   avatarSquareCore: {
     width: 92,
     height: 92,
-    borderRadius: 28,
+    borderRadius: 46,
     borderWidth: 3,
     borderColor: BG,
-    backgroundColor: "#1F1F1F",
+    backgroundColor: BG,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -1292,7 +1292,7 @@ const styles = StyleSheet.create({
   // icin halkanin ekstra 20px'lik yer kaplamasina gerek yok - kutuyu
   // kuculterek ismi fotografa biraz daha yaklastiriyoruz.
   avatarInitial: { color: ACCENT, fontSize: 30, fontWeight: "700" },
-  avatarImage: { width: "100%", height: "100%", borderRadius: 25 },
+  avatarImage: { width: "100%", height: "100%", borderRadius: 43 },
   nameBlockLeft: { marginBottom: 14, gap: 4 },
   // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
   // yana gostermek icin (bkz. isPremium).
