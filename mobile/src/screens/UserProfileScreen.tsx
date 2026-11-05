@@ -56,7 +56,7 @@ const BANNER_STRIPE_W = 26;
 // arkaplanin kendisi" gibi gorunuyor, kendi basina kucultulmus/bagimsiz
 // bir degrade DEGIL.
 const AVATAR_SCREEN_X = 24;
-const AVATAR_SCREEN_Y = 150 - 23;
+const AVATAR_SCREEN_Y = 150 - 22.75;
 
 // Su an gercek bir "kullanicilar arasi gezinme" ekrani yok - baskasinin
 // profilini (own=false) test etmek icin sabit bir demo kimlik kullaniyoruz.
@@ -1305,14 +1305,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarSquareWrap: { width: 92, height: 92, marginTop: 18, marginBottom: 10 },
-  // Avatarin yuksekliginin (92px) sadece %25'i banner'in icine taşsin diye
-  // -46 (yarisi, %50 tasma) yerine -23.
-  avatarSquareOverlap: { marginTop: -23 },
+  avatarSquareWrap: { width: 91, height: 91, marginTop: 18, marginBottom: 10 },
+  // Avatarin yuksekliginin (91px) sadece %25'i banner'in icine taşsin diye.
+  avatarSquareOverlap: { marginTop: -22.75 },
   avatarSquareCore: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
+    width: 91,
+    height: 91,
+    borderRadius: 45.5,
     // SABIT bir renk (eskisi beyaz, sonra koyu) DEGIL - borderRadius
     // kirpmasinin kenarindaki (anti-aliasing) ince seritte bu renk GERCEK
     // arkaplan penceresiyle (asagidaki avatarBgWindow) tam ortusmuyordu,
@@ -1347,7 +1346,7 @@ const styles = StyleSheet.create({
   // icin halkanin ekstra 20px'lik yer kaplamasina gerek yok - kutuyu
   // kuculterek ismi fotografa biraz daha yaklastiriyoruz.
   avatarInitial: { color: ACCENT, fontSize: 30, fontWeight: "700" },
-  avatarImage: { width: "100%", height: "100%", borderRadius: 46 },
+  avatarImage: { width: "100%", height: "100%", borderRadius: 45.5 },
   nameBlockLeft: { marginBottom: 14, gap: 4 },
   // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
   // yana gostermek icin (bkz. isPremium).
