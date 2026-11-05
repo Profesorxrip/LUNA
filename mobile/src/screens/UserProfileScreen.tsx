@@ -1502,10 +1502,10 @@ const styles = StyleSheet.create({
   // "sadece kenarlik gradyanli" gorunumu taklit ediliyor.
   pillGradientBorder: {
     borderRadius: 24,
-    padding: 1.5,
+    padding: 2,
   },
   pillInner: {
-    borderRadius: 22.5,
+    borderRadius: 22,
     paddingVertical: 13,
     alignItems: "center",
     backgroundColor: "#0b1422",
