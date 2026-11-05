@@ -974,10 +974,10 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           ).map((tab) => (
             <TouchableOpacity
               key={tab.key}
-              style={[styles.topTabTouch, topTab === tab.key && styles.topTabTouchActive]}
+              style={styles.topTabTouch}
               onPress={() => setTopTab(tab.key)}
             >
-              <tab.icon size={20} color={topTab === tab.key ? ACCENT : MUTED} />
+              <tab.icon size={20} color={topTab === tab.key ? TEXT : MUTED} />
             </TouchableOpacity>
           ))}
         </View>
@@ -1514,7 +1514,6 @@ const styles = StyleSheet.create({
   pillOutlineButtonText: { color: TEXT, fontSize: 13, fontWeight: "800", letterSpacing: 0.4 },
   topTabsRow: { flexDirection: "row", justifyContent: "space-around", marginHorizontal: -24, paddingTop: 4 },
   topTabTouch: { flex: 1, alignItems: "center", paddingVertical: 12 },
-  topTabTouchActive: { borderBottomWidth: 2, borderBottomColor: ACCENT },
   topTabsBottomBar: { height: 1, marginHorizontal: -24 },
   tabActionsRow: { flexDirection: "row", justifyContent: "flex-end", gap: 14, marginTop: 14 },
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
