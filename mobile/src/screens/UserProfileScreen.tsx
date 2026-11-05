@@ -1308,14 +1308,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarSquareWrap: { width: 90, height: 90, marginTop: 18, marginBottom: 10 },
+  avatarSquareWrap: { width: 88, height: 88, marginTop: 18, marginBottom: 10 },
   // SABIT bir deger (AVATAR_OVERLAP) - avatar boyutu degisse bile bu
   // taşma miktarı ORANLA degil, px olarak SABIT kalir.
   avatarSquareOverlap: { marginTop: -AVATAR_OVERLAP },
   avatarSquareCore: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     // SABIT bir renk (eskisi beyaz, sonra koyu) DEGIL - borderRadius
     // kirpmasinin kenarindaki (anti-aliasing) ince seritte bu renk GERCEK
     // arkaplan penceresiyle (asagidaki avatarBgWindow) tam ortusmuyordu,
@@ -1350,7 +1350,7 @@ const styles = StyleSheet.create({
   // icin halkanin ekstra 20px'lik yer kaplamasina gerek yok - kutuyu
   // kuculterek ismi fotografa biraz daha yaklastiriyoruz.
   avatarInitial: { color: ACCENT, fontSize: 30, fontWeight: "700" },
-  avatarImage: { width: "100%", height: "100%", borderRadius: 45 },
+  avatarImage: { width: "100%", height: "100%", borderRadius: 44 },
   nameBlockLeft: { marginBottom: 14, gap: 4 },
   // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
   // yana gostermek icin (bkz. isPremium).
