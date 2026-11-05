@@ -860,7 +860,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           {(own || profileLocation) &&
             (editingField === "profile_location" ? (
               <View style={styles.metaRow}>
-                <Icon name="pin" size={14} color={MUTED} />
+                <View style={styles.metaIconNudge}>
+                  <Icon name="pin" size={14} color={MUTED} />
+                </View>
                 <TextInput
                   style={styles.metaInput}
                   value={profileLocation}
@@ -875,7 +877,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               </View>
             ) : (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("profile_location")} style={styles.metaRow}>
-                <Icon name="pin" size={14} color={MUTED} />
+                <View style={styles.metaIconNudge}>
+                  <Icon name="pin" size={14} color={MUTED} />
+                </View>
                 <Text style={styles.metaText}>
                   {(profileLocation || (own ? t("userProfile.locationFieldPlaceholder") : "")).toUpperCase()}
                 </Text>
@@ -884,7 +888,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 
           {joinDateMs != null && (own || statVisibility.joinDate !== false) && (
             <View style={styles.metaRow}>
-              <Icon name="calendar" size={14} color={MUTED} />
+              <View style={styles.metaIconNudge}>
+                <Icon name="calendar" size={14} color={MUTED} />
+              </View>
               <Text style={styles.metaText}>{t("userProfile.joinedOn", { date: formatDate(joinDateMs, i18n.language) })}</Text>
             </View>
           )}
@@ -1453,7 +1459,20 @@ const styles = StyleSheet.create({
   },
   bioSaveButtonText: { color: "#04140D", fontSize: 13, fontWeight: "800" },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 8 },
-  metaText: { color: MUTED, fontSize: 12.5, fontWeight: "700", letterSpacing: 0.3 },
+  // Pin ve takvim ikonlari (govdeleri/kuyruklari nedeniyle) yaninndaki
+  // yaziya gore hafifce asagida duruyordu - yukari nudge.
+  metaIconNudge: { marginTop: -2 },
+  metaText: {
+    color: MUTED,
+    fontSize: 12.5,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    // Ikon (14px) ile dikey hizayi tutturmak icin - yazi tipi/platform
+    // varsayilan satir yuksekligindeki fazladan bosluk (Android'de
+    // includeFontPadding) ikona gore ortalamayi kaydiriyordu.
+    lineHeight: 15,
+    includeFontPadding: false,
+  } as any,
   metaInput: {
     color: TEXT,
     fontSize: 12.5,
