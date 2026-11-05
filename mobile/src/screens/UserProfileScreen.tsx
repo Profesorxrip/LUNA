@@ -979,7 +979,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           <>
             {(own || postsVisible) ? (
               posts.length === 0 ? (
-                <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noPosts")}</Text>
+                <Text style={[styles.emptyHistoryText, { marginTop: 14, textAlign: "center" }]}>{t("userProfile.noPosts")}</Text>
               ) : (
                 <View>
                   {posts.map((post, i) => (
@@ -1003,7 +1003,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                 </View>
               )
             ) : (
-              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noPosts")}</Text>
+              <Text style={[styles.emptyHistoryText, { marginTop: 14, textAlign: "center" }]}>{t("userProfile.noPosts")}</Text>
             )}
           </>
         )}
