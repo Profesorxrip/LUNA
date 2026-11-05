@@ -1488,7 +1488,7 @@ const styles = StyleSheet.create({
   },
   pillInner: {
     borderRadius: 22,
-    paddingVertical: 13,
+    paddingVertical: 10,
     alignItems: "center",
     backgroundColor: BG,
   },
