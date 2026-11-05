@@ -68,7 +68,7 @@ const AVATAR_SCREEN_Y = BANNER_HEIGHT - AVATAR_OVERLAP;
 // boylece banner'in icindeki ust kismi banner'dan "oyulmus" gibi,
 // alt kismi (gercek govdeye tasan kismi) ise zaten govdeyle AYNI
 // arkaplani gosterdigi icin govdeyle kesintisiz birlesiyor.
-const NOTCH_DIAMETER = 160;
+const NOTCH_DIAMETER = 120;
 // PP 88px - yatay merkezi AVATAR_SCREEN_X + 44.
 const NOTCH_CENTER_X = AVATAR_SCREEN_X + 44;
 const NOTCH_X = NOTCH_CENTER_X - NOTCH_DIAMETER / 2;
