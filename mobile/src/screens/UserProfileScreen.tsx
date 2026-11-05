@@ -14,6 +14,7 @@ import {
   Dimensions,
 } from "react-native";
 import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../services/supabase";
@@ -923,10 +924,18 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         {own ? (
           <View style={styles.ownActionRow}>
             <TouchableOpacity style={styles.pillOutlineButton} onPress={() => placeholder(t("userProfile.share"))}>
-              <Text style={styles.pillOutlineButtonText}>{t("userProfile.share").toUpperCase()}</Text>
+              <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.pillGradientBorder}>
+                <View style={styles.pillInner}>
+                  <Text style={styles.pillOutlineButtonText}>{t("userProfile.share").toUpperCase()}</Text>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity style={styles.pillOutlineButton} onPress={() => toggleFieldEdit("bio")}>
-              <Text style={styles.pillOutlineButtonText}>{t("userProfile.editProfile").toUpperCase()}</Text>
+              <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.pillGradientBorder}>
+                <View style={styles.pillInner}>
+                  <Text style={styles.pillOutlineButtonText}>{t("userProfile.editProfile").toUpperCase()}</Text>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         ) : (
@@ -1486,13 +1495,20 @@ const styles = StyleSheet.create({
     outlineStyle: "none",
   } as any,
   ownActionRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
-  pillOutlineButton: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: ACCENT,
+  pillOutlineButton: { flex: 1 },
+  // Mavi-beyaz gradyan "cerceve" - gercek bir borderColor degrade
+  // olamadigi icin, disi gradyanla dolu bir kutu + icinde 1.5px (border
+  // kalinligi) kucuk, govde rengine yakin dolgulu bir ic kutu ile
+  // "sadece kenarlik gradyanli" gorunumu taklit ediliyor.
+  pillGradientBorder: {
     borderRadius: 24,
+    padding: 1.5,
+  },
+  pillInner: {
+    borderRadius: 22.5,
     paddingVertical: 13,
     alignItems: "center",
+    backgroundColor: "#0b1422",
   },
   pillOutlineButtonText: { color: TEXT, fontSize: 13, fontWeight: "800", letterSpacing: 0.4 },
   topTabsRow: { flexDirection: "row", justifyContent: "space-around", borderTopWidth: 1, borderColor: "#1C1C1C", marginHorizontal: -24, paddingTop: 4 },
