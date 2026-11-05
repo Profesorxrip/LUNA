@@ -58,7 +58,7 @@ const BANNER_STRIPE_W = 26;
 const AVATAR_SCREEN_X = 24;
 // Avatar banner'in icine SABIT bu kadar (px) tasar - avatar boyutu
 // degisse bile bu deger ORANLA degil, SABIT kalir.
-const AVATAR_OVERLAP = 22.5;
+const AVATAR_OVERLAP = 44;
 const AVATAR_SCREEN_Y = 150 - AVATAR_OVERLAP;
 
 // Su an gercek bir "kullanicilar arasi gezinme" ekrani yok - baskasinin
