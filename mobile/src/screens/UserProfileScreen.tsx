@@ -541,15 +541,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     });
   }
 
-  function togglePostsVisible() {
-    if (!own || !myUserId) return;
-    setPostsVisible((v) => {
-      const next = !v;
-      supabase.from("profiles").update({ posts_visible: next }).eq("id", myUserId);
-      return next;
-    });
-  }
-
   function openComposer() {
     setComposerText("");
     setComposerImages([]);
@@ -986,16 +977,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         <View style={styles.bodyContent}>
         {topTab === "posts" && (
           <>
-            {own && (
-              <View style={styles.tabActionsRow}>
-                <TouchableOpacity onPress={openComposer} hitSlop={6}>
-                  <Icon name="plus" size={18} color={ACCENT} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={togglePostsVisible} hitSlop={6}>
-                  <Icon name={postsVisible ? "eye" : "eyeOff"} size={18} color={postsVisible ? ACCENT : MUTED} />
-                </TouchableOpacity>
-              </View>
-            )}
             {(own || postsVisible) ? (
               posts.length === 0 ? (
                 <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noPosts")}</Text>
@@ -1515,7 +1496,6 @@ const styles = StyleSheet.create({
   topTabsRow: { flexDirection: "row", justifyContent: "space-around", marginHorizontal: -24, paddingTop: 4 },
   topTabTouch: { flex: 1, alignItems: "center", paddingVertical: 12 },
   topTabsBottomBar: { height: 1, marginHorizontal: -24 },
-  tabActionsRow: { flexDirection: "row", justifyContent: "flex-end", gap: 14, marginTop: 14 },
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   activeRoomCard: { margin: 0, marginTop: 14, marginBottom: 24 },
   sectionHeaderActions: { flexDirection: "row", alignItems: "center", gap: 14 },
