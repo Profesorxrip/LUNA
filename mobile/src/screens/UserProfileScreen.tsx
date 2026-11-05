@@ -61,8 +61,8 @@ const BANNER_HEIGHT = 150;
 // degisse bile bu deger ORANLA degil, SABIT kalir.
 const AVATAR_OVERLAP_BASE = 44;
 // PP ve cikinti ikisi birden asagi kaysin diye - eski tasma miktarinin
-// (AVATAR_OVERLAP_BASE) %25'i kadar.
-const AVATAR_SHIFT_DOWN = AVATAR_OVERLAP_BASE * 0.25;
+// (AVATAR_OVERLAP_BASE) %25'i kadar, arti ekstra bir miktar daha.
+const AVATAR_SHIFT_DOWN = AVATAR_OVERLAP_BASE * 0.25 + 10;
 const AVATAR_OVERLAP = AVATAR_OVERLAP_BASE - AVATAR_SHIFT_DOWN;
 const AVATAR_SCREEN_Y = BANNER_HEIGHT - AVATAR_OVERLAP;
 // Banner'in alt kenari DUZ bir cizgi degil - pp'nin oldugu yerde,
@@ -72,7 +72,7 @@ const AVATAR_SCREEN_Y = BANNER_HEIGHT - AVATAR_OVERLAP;
 // boylece banner'in icindeki ust kismi banner'dan "oyulmus" gibi,
 // alt kismi (gercek govdeye tasan kismi) ise zaten govdeyle AYNI
 // arkaplani gosterdigi icin govdeyle kesintisiz birlesiyor.
-const NOTCH_DIAMETER = 100;
+const NOTCH_DIAMETER = 95;
 // PP 88px - yatay merkezi AVATAR_SCREEN_X + 44.
 const NOTCH_CENTER_X = AVATAR_SCREEN_X + 44;
 const NOTCH_X = NOTCH_CENTER_X - NOTCH_DIAMETER / 2;
