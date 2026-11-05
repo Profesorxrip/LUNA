@@ -59,7 +59,11 @@ const AVATAR_SCREEN_X = 24;
 const BANNER_HEIGHT = 150;
 // Avatar banner'in icine SABIT bu kadar (px) tasar - avatar boyutu
 // degisse bile bu deger ORANLA degil, SABIT kalir.
-const AVATAR_OVERLAP = 44;
+const AVATAR_OVERLAP_BASE = 44;
+// PP ve cikinti ikisi birden asagi kaysin diye - eski tasma miktarinin
+// (AVATAR_OVERLAP_BASE) %25'i kadar.
+const AVATAR_SHIFT_DOWN = AVATAR_OVERLAP_BASE * 0.25;
+const AVATAR_OVERLAP = AVATAR_OVERLAP_BASE - AVATAR_SHIFT_DOWN;
 const AVATAR_SCREEN_Y = BANNER_HEIGHT - AVATAR_OVERLAP;
 // Banner'in alt kenari DUZ bir cizgi degil - pp'nin oldugu yerde,
 // pp'den daha BUYUK, yuvarlak bir "kabarti/cikinti" var (bkz. bannerNotch
@@ -72,7 +76,7 @@ const NOTCH_DIAMETER = 100;
 // PP 88px - yatay merkezi AVATAR_SCREEN_X + 44.
 const NOTCH_CENTER_X = AVATAR_SCREEN_X + 44;
 const NOTCH_X = NOTCH_CENTER_X - NOTCH_DIAMETER / 2;
-const NOTCH_Y = BANNER_HEIGHT - NOTCH_DIAMETER / 2;
+const NOTCH_Y = BANNER_HEIGHT - NOTCH_DIAMETER / 2 + AVATAR_SHIFT_DOWN;
 
 // Su an gercek bir "kullanicilar arasi gezinme" ekrani yok - baskasinin
 // profilini (own=false) test etmek icin sabit bir demo kimlik kullaniyoruz.
