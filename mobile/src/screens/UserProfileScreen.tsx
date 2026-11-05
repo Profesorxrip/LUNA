@@ -981,6 +981,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             </TouchableOpacity>
           ))}
         </View>
+        <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.topTabsBottomBar} />
         </View>
         <View style={styles.bodyContent}>
         {topTab === "posts" && (
@@ -1511,9 +1512,10 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   pillOutlineButtonText: { color: TEXT, fontSize: 13, fontWeight: "800", letterSpacing: 0.4 },
-  topTabsRow: { flexDirection: "row", justifyContent: "space-around", borderTopWidth: 1, borderColor: "#1C1C1C", marginHorizontal: -24, paddingTop: 4 },
+  topTabsRow: { flexDirection: "row", justifyContent: "space-around", marginHorizontal: -24, paddingTop: 4 },
   topTabTouch: { flex: 1, alignItems: "center", paddingVertical: 12 },
   topTabTouchActive: { borderBottomWidth: 2, borderBottomColor: ACCENT },
+  topTabsBottomBar: { height: 1, marginHorizontal: -24 },
   tabActionsRow: { flexDirection: "row", justifyContent: "flex-end", gap: 14, marginTop: 14 },
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   activeRoomCard: { margin: 0, marginTop: 14, marginBottom: 24 },
