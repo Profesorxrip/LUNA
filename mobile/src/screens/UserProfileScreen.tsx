@@ -56,10 +56,23 @@ const BANNER_STRIPE_W = 26;
 // arkaplanin kendisi" gibi gorunuyor, kendi basina kucultulmus/bagimsiz
 // bir degrade DEGIL.
 const AVATAR_SCREEN_X = 24;
+const BANNER_HEIGHT = 150;
 // Avatar banner'in icine SABIT bu kadar (px) tasar - avatar boyutu
 // degisse bile bu deger ORANLA degil, SABIT kalir.
 const AVATAR_OVERLAP = 44;
-const AVATAR_SCREEN_Y = 150 - AVATAR_OVERLAP;
+const AVATAR_SCREEN_Y = BANNER_HEIGHT - AVATAR_OVERLAP;
+// Banner'in alt kenari DUZ bir cizgi degil - pp'nin oldugu yerde,
+// pp'den daha BUYUK, yuvarlak bir "kabarti/cikinti" var (bkz. bannerNotch
+// stili). Bu da avatarBgWindow ile AYNI teknikle (tam ekran boyutlu
+// PAYLASILAN arkaplanin o noktaya hizalanmis bir penceresi) cizildi -
+// boylece banner'in icindeki ust kismi banner'dan "oyulmus" gibi,
+// alt kismi (gercek govdeye tasan kismi) ise zaten govdeyle AYNI
+// arkaplani gosterdigi icin govdeyle kesintisiz birlesiyor.
+const NOTCH_DIAMETER = 160;
+// PP 88px - yatay merkezi AVATAR_SCREEN_X + 44.
+const NOTCH_CENTER_X = AVATAR_SCREEN_X + 44;
+const NOTCH_X = NOTCH_CENTER_X - NOTCH_DIAMETER / 2;
+const NOTCH_Y = BANNER_HEIGHT - NOTCH_DIAMETER / 2;
 
 // Su an gercek bir "kullanicilar arasi gezinme" ekrani yok - baskasinin
 // profilini (own=false) test etmek icin sabit bir demo kimlik kullaniyoruz.
@@ -720,6 +733,23 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           </View>
         )}
 
+        {/* Banner'in alt kenarindaki yuvarlak "kabarti" - pp'den BUYUK,
+            pp'nin tam ortasinda. Üst yarisi banner'in icini oyuyor gibi
+            gorunur, alt yarisi zaten govdeyle AYNI arkaplani gosterdigi
+            icin govdeye kesintisiz karisir. */}
+        {(own || bannerText) && (
+          <View
+            pointerEvents="none"
+            style={[styles.bannerNotch, { left: NOTCH_X, top: NOTCH_Y }]}
+          >
+            <View
+              style={[styles.avatarBgWindow, { left: -NOTCH_X, top: -NOTCH_Y + scrollY }]}
+            >
+              <AppBackground />
+            </View>
+          </View>
+        )}
+
         {/* PP (fotograf/bas harf icerigi) gecici olarak kaldirildi, ama
             CERCEVE kullanicinin istegiyle banner uzerinde KALMALI. Cerceve
             ve ic ayri renkler (beyaz cerceve + degrade ic) DEGIL - tek bir
@@ -1279,7 +1309,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   bannerWrap: {
-    height: 150,
+    height: BANNER_HEIGHT,
     overflow: "hidden",
     marginHorizontal: -24,
     alignItems: "flex-start",
@@ -1331,6 +1361,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
+  },
+  bannerNotch: {
+    position: "absolute",
+    width: NOTCH_DIAMETER,
+    height: NOTCH_DIAMETER,
+    borderRadius: NOTCH_DIAMETER / 2,
+    overflow: "hidden",
   },
   // Sadece bannerin icine tasan ust kisim kadar (avatarSquareOverlap'taki
   // 23px ile AYNI) yukseklikte bir pencere - halka sadece bu pencerenin
