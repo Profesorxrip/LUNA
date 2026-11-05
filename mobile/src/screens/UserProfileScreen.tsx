@@ -1508,7 +1508,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     paddingVertical: 13,
     alignItems: "center",
-    backgroundColor: "#0b1422",
+    backgroundColor: BG,
   },
   pillOutlineButtonText: { color: TEXT, fontSize: 13, fontWeight: "800", letterSpacing: 0.4 },
   topTabsRow: { flexDirection: "row", justifyContent: "space-around", borderTopWidth: 1, borderColor: "#1C1C1C", marginHorizontal: -24, paddingTop: 4 },
