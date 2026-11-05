@@ -56,7 +56,10 @@ const BANNER_STRIPE_W = 26;
 // arkaplanin kendisi" gibi gorunuyor, kendi basina kucultulmus/bagimsiz
 // bir degrade DEGIL.
 const AVATAR_SCREEN_X = 24;
-const AVATAR_SCREEN_Y = 150 - 22.5;
+// Avatar banner'in icine SABIT bu kadar (px) tasar - avatar boyutu
+// degisse bile bu deger ORANLA degil, SABIT kalir.
+const AVATAR_OVERLAP = 22.5;
+const AVATAR_SCREEN_Y = 150 - AVATAR_OVERLAP;
 
 // Su an gercek bir "kullanicilar arasi gezinme" ekrani yok - baskasinin
 // profilini (own=false) test etmek icin sabit bir demo kimlik kullaniyoruz.
@@ -1306,8 +1309,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarSquareWrap: { width: 90, height: 90, marginTop: 18, marginBottom: 10 },
-  // Avatarin yuksekliginin (90px) sadece %25'i banner'in icine taşsin diye.
-  avatarSquareOverlap: { marginTop: -22.5 },
+  // SABIT bir deger (AVATAR_OVERLAP) - avatar boyutu degisse bile bu
+  // taşma miktarı ORANLA degil, px olarak SABIT kalir.
+  avatarSquareOverlap: { marginTop: -AVATAR_OVERLAP },
   avatarSquareCore: {
     width: 90,
     height: 90,
