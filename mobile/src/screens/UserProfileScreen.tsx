@@ -55,7 +55,11 @@ const BANNER_STRIPE_W = 26;
 // kopyasini tam o noktaya hizaliyor - boylece gercekten "o noktadaki
 // arkaplanin kendisi" gibi gorunuyor, kendi basina kucultulmus/bagimsiz
 // bir degrade DEGIL.
-const AVATAR_SCREEN_X = 24;
+// Cikinti/pp/isim/handle/bio/konum/katilim tarihi/dogum tarihi topBlock'un
+// normal sol dolgusundan (24) bu kadar (LEFT_SHIFT) SOLA kaydirildi -
+// banner yazisi/sekmeler/govde bundan ETKILENMEZ, sadece bu blok.
+const LEFT_SHIFT = 8;
+const AVATAR_SCREEN_X = 24 - LEFT_SHIFT;
 const BANNER_HEIGHT = 150;
 // Avatar banner'in icine SABIT bu kadar (px) tasar - avatar boyutu
 // degisse bile bu deger ORANLA degil, SABIT kalir.
@@ -1342,7 +1346,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarSquareWrap: { width: 88, height: 88, marginTop: 18, marginBottom: 10 },
+  avatarSquareWrap: { width: 88, height: 88, marginTop: 18, marginBottom: 10, marginLeft: -LEFT_SHIFT },
   // SABIT bir deger (AVATAR_OVERLAP) - avatar boyutu degisse bile bu
   // taşma miktarı ORANLA degil, px olarak SABIT kalir.
   avatarSquareOverlap: { marginTop: -AVATAR_OVERLAP },
@@ -1392,7 +1396,7 @@ const styles = StyleSheet.create({
   // kuculterek ismi fotografa biraz daha yaklastiriyoruz.
   avatarInitial: { color: ACCENT, fontSize: 30, fontWeight: "700" },
   avatarImage: { width: "100%", height: "100%", borderRadius: 44 },
-  nameBlockLeft: { marginBottom: 14, gap: 4 },
+  nameBlockLeft: { marginBottom: 14, gap: 4, marginLeft: -LEFT_SHIFT },
   // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
   // yana gostermek icin (bkz. isPremium).
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
