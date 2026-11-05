@@ -724,18 +724,16 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             (App.tsx'teki AppBackground degradesi) tabi. */}
         <TouchableOpacity
           style={[styles.avatarSquareWrap, (own || bannerText) && styles.avatarSquareOverlap]}
-          onPress={() => own && setAvatarSheetVisible(true)}
+          activeOpacity={avatarUrl || own ? 0.8 : 1}
+          onPress={() => (avatarUrl ? setViewingPhotoUrl(avatarUrl) : own && setAvatarSheetVisible(true))}
           onLongPress={() => own && setAvatarSheetVisible(true)}
           delayLongPress={350}
-          disabled={!own}
+          disabled={!avatarUrl && !own}
         >
           <View style={styles.avatarSquareCore}>
-            {/* AppBackground'in TAM boyutlu (ekran genisligi/yuksekligi)
-                bir kopyasi, avatarin GERCEK ekran konumunun TAM TERSI
-                kadar kaydirilip (+ canli scroll konumu) buraya konuyor -
-                daire SADECE bunun 92x92'lik bir penceresini gosteriyor.
-                Boylece kucultulmus/bagimsiz bir degrade DEGIL, o
-                noktadaki GERCEK arkaplanin kendisi gorunuyor. */}
+            {/* Fotograf/bas harf YOKKEN (uploadingAvatar da degilken) bu
+                arkaplan penceresi gorunur kalir - fotograf gelince onun
+                UZERINE biner, tamamen kapatir. */}
             <View
               style={[
                 styles.avatarBgWindow,
@@ -744,6 +742,13 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             >
               <AppBackground />
             </View>
+            {uploadingAvatar ? (
+              <ActivityIndicator color={ACCENT} />
+            ) : avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarInitial}>{initial}</Text>
+            )}
           </View>
         </TouchableOpacity>
 
