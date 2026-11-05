@@ -725,28 +725,14 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             ve ic ayri renkler (beyaz cerceve + degrade ic) DEGIL - tek bir
             daire, ucdan uca Discover ile AYNI paylasilan arkaplana
             (App.tsx'teki AppBackground degradesi) tabi. */}
-        <View style={[styles.avatarRingWrap, (own || bannerText) && styles.avatarSquareOverlap]}>
-          {showPresenceRing && (
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.presenceRing,
-                {
-                  borderColor: isOnline ? ACCENT : OFFLINE_GRAY,
-                  transform: [{ scale: pulseScale }],
-                  opacity: pulseOpacity,
-                },
-              ]}
-            />
-          )}
-          <TouchableOpacity
-            style={styles.avatarSquareWrap}
-            activeOpacity={avatarUrl || own ? 0.8 : 1}
-            onPress={() => (avatarUrl ? setViewingPhotoUrl(avatarUrl) : own && setAvatarSheetVisible(true))}
-            onLongPress={() => own && setAvatarSheetVisible(true)}
-            delayLongPress={350}
-            disabled={!avatarUrl && !own}
-          >
+        <TouchableOpacity
+          style={[styles.avatarSquareWrap, (own || bannerText) && styles.avatarSquareOverlap]}
+          activeOpacity={avatarUrl || own ? 0.8 : 1}
+          onPress={() => (avatarUrl ? setViewingPhotoUrl(avatarUrl) : own && setAvatarSheetVisible(true))}
+          onLongPress={() => own && setAvatarSheetVisible(true)}
+          delayLongPress={350}
+          disabled={!avatarUrl && !own}
+        >
           <View style={styles.avatarSquareCore}>
             {/* Fotograf/bas harf YOKKEN (uploadingAvatar da degilken) bu
                 arkaplan penceresi gorunur kalir - fotograf gelince onun
@@ -767,8 +753,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               <Text style={styles.avatarInitial}>{initial}</Text>
             )}
           </View>
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.nameBlockLeft}>
           {editingField === "name" ? (
@@ -1323,35 +1308,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Avatarin + cevrimici halkasinin BIRLIKTE konumlanip tasindigi disi
-  // kutu - margin/tasma burada, avatarSquareWrap SADECE 88x88'lik kendi
-  // alanini kaplar (halka onun disina, bu kutunun icinde tasar).
-  avatarRingWrap: {
-    width: 88,
-    height: 88,
-    marginTop: 18,
-    marginBottom: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  avatarSquareWrap: { width: 88, height: 88, marginTop: 18, marginBottom: 10 },
   // SABIT bir deger (AVATAR_OVERLAP) - avatar boyutu degisse bile bu
   // taşma miktarı ORANLA degil, px olarak SABIT kalir.
   avatarSquareOverlap: { marginTop: -AVATAR_OVERLAP },
-  avatarSquareWrap: { width: 88, height: 88 },
-  // Cevrimici/cevrimdisi gostergesi - avatarin etrafinda disa dogru
-  // dalgalanan (sonar gibi buyuyup sonup kaybolan) halka (bkz.
-  // showPresenceRing/pulseScale/pulseOpacity). Avatardan biraz daha
-  // buyuk, onun TAM ortasinda - renk cevrimiciyse mavi (ACCENT),
-  // degilse gri (OFFLINE_GRAY).
-  presenceRing: {
-    position: "absolute",
-    top: -6,
-    left: -6,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 2,
-  },
   avatarSquareCore: {
     width: 88,
     height: 88,
