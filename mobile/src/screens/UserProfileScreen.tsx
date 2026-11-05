@@ -1472,6 +1472,7 @@ const styles = StyleSheet.create({
     // includeFontPadding) ikona gore ortalamayi kaydiriyordu.
     lineHeight: 15,
     includeFontPadding: false,
+    marginTop: 2,
   } as any,
   metaInput: {
     color: TEXT,
