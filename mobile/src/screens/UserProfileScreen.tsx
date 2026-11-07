@@ -715,12 +715,16 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                 placeholder={t("userProfile.bannerPlaceholder")}
                 placeholderTextColor="rgba(0,0,0,0.35)"
               />
-            ) : (
+            ) : bannerText ? (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("banner_text")} style={styles.bannerTextTouch}>
                 <Text style={styles.bannerText} numberOfLines={1}>
-                  {(bannerText || (own ? t("userProfile.bannerPlaceholder") : "")).toUpperCase()}
+                  {bannerText.toUpperCase()}
                 </Text>
               </TouchableOpacity>
+            ) : (
+              own && (
+                <TouchableOpacity onPress={() => toggleFieldEdit("banner_text")} style={StyleSheet.absoluteFill} />
+              )
             )}
             {own && (
               <View style={styles.bannerActionsRow}>
@@ -1325,7 +1329,7 @@ const styles = StyleSheet.create({
   },
   // Kapak fotografi/metni HENUZ eklenmediyse (bannerText bos) - cizgili
   // desen yerine duz, mat gri bir yer tutucu.
-  bannerWrapEmpty: { backgroundColor: "#8C8C86" },
+  bannerWrapEmpty: { backgroundColor: "#55554F" },
   bannerStripe: { position: "absolute", top: -90, width: 22, height: 400, transform: [{ rotate: "-20deg" }] },
   bannerTextTouch: { paddingLeft: 24, paddingRight: 90, maxWidth: "100%" },
   bannerText: { color: "#0A0A0A", fontSize: 34, fontWeight: "900", letterSpacing: 0.5 },
