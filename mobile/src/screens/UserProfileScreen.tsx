@@ -75,7 +75,9 @@ function PremiumBadge({ size }: { size: number }) {
         <SvgPath d={d} fill="#fff" />
       </Svg>
       <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
-        <Check size={size * 0.42} color="#04070c" strokeWidth={3.5} />
+        <View style={{ transform: [{ translateX: -size * 0.07 }, { translateY: -size * 0.02 }] }}>
+          <Check size={size * 0.42} color="#04070c" strokeWidth={3.5} />
+        </View>
       </View>
     </View>
   );
@@ -862,7 +864,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")}>
               <View style={styles.nameRow}>
                 <Text style={styles.name}>{name.toUpperCase()}</Text>
-                {isPremium && <PremiumBadge size={22} />}
+                {isPremium && <PremiumBadge size={16} />}
               </View>
             </TouchableOpacity>
           )}
