@@ -810,6 +810,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")}>
               <View style={styles.nameRow}>
                 <Text style={styles.name}>{name.toUpperCase()}</Text>
+                {isPremium && <Icon name="sparkles" size={18} color={ACCENT} />}
               </View>
             </TouchableOpacity>
           )}
@@ -830,7 +831,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("handle")}>
               <View style={styles.handleRow}>
                 <Text style={styles.handle}>@{handle.toUpperCase()}</Text>
-                {isPremium && <Icon name="sparkles" size={14} color={ACCENT} />}
                 <CountryFlag country={country} size={13} />
               </View>
             </TouchableOpacity>
