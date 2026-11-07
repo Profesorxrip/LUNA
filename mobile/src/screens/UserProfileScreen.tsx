@@ -13,7 +13,8 @@ import {
   Easing,
   Dimensions,
 } from "react-native";
-import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Settings, BadgeCheck } from "lucide-react-native";
+import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Settings, Check } from "lucide-react-native";
+import Svg, { Path as SvgPath } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
@@ -28,6 +29,57 @@ import PostCard from "../components/PostCard";
 import AppBackground from "../components/AppBackground";
 import { colorForName } from "../components/Avatar";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
+
+/** Premium rozetinin disli/yildiz kenarini (hem disa hem ice sivri, hafif
+ * oval uclu) ciziyor - her kosede (hem disa hem ice sivri ucta) quadratic
+ * bezier ile hafifce yuvarlatiyor (roundAmt). */
+function roundedStarPath(size: number, points: number, innerRatio: number, roundAmt: number): string {
+  const center = size / 2;
+  const outerR = center;
+  const innerR = center * innerRatio;
+  const total = points * 2;
+  const verts: { x: number; y: number }[] = [];
+  for (let i = 0; i < total; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = (i / total) * Math.PI * 2 - Math.PI / 2;
+    verts.push({ x: center + r * Math.cos(angle), y: center + r * Math.sin(angle) });
+  }
+  let d = "";
+  for (let i = 0; i < total; i++) {
+    const curr = verts[i];
+    const prev = verts[(i - 1 + total) % total];
+    const next = verts[(i + 1) % total];
+    const pIn = { x: curr.x + (prev.x - curr.x) * roundAmt, y: curr.y + (prev.y - curr.y) * roundAmt };
+    const pOut = { x: curr.x + (next.x - curr.x) * roundAmt, y: curr.y + (next.y - curr.y) * roundAmt };
+    if (i === 0) d += `M ${pIn.x} ${pIn.y} `;
+    else d += `L ${pIn.x} ${pIn.y} `;
+    d += `Q ${curr.x} ${curr.y} ${pOut.x} ${pOut.y} `;
+  }
+  d += "Z";
+  return d;
+}
+
+// Iki onayli dis preseti elde tutuluyor - D1 (6 dis) ve D2 (8 dis), ikisi
+// de ayni oval-uclu stil (innerRatio/roundAmt). Su an D2 kullaniliyor,
+// istenirse D1'e gecmek icin asagidaki PremiumBadge'teki points degerini
+// degistirmek yeterli.
+const PREMIUM_BADGE_D1 = { points: 6, innerRatio: 0.55, roundAmt: 0.6 };
+const PREMIUM_BADGE_D2 = { points: 8, innerRatio: 0.55, roundAmt: 0.6 };
+const PREMIUM_BADGE_ACTIVE = PREMIUM_BADGE_D2;
+
+function PremiumBadge({ size }: { size: number }) {
+  const d = roundedStarPath(size, PREMIUM_BADGE_ACTIVE.points, PREMIUM_BADGE_ACTIVE.innerRatio, PREMIUM_BADGE_ACTIVE.roundAmt);
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size}>
+        <SvgPath d={d} fill="#fff" />
+      </Svg>
+      <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
+        <Check size={size * 0.42} color="#04070c" strokeWidth={3.5} />
+      </View>
+    </View>
+  );
+}
 
 interface Props {
   own?: boolean;
@@ -810,7 +862,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")}>
               <View style={styles.nameRow}>
                 <Text style={styles.name}>{name.toUpperCase()}</Text>
-                {isPremium && <BadgeCheck size={22} color="#04070c" fill="#fff" strokeWidth={2} />}
+                {isPremium && <PremiumBadge size={22} />}
               </View>
             </TouchableOpacity>
           )}
