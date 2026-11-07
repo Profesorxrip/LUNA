@@ -26,6 +26,7 @@ import RoomCard from "../components/RoomCard";
 import PhotoViewerModal from "../components/PhotoViewerModal";
 import PostCard from "../components/PostCard";
 import AppBackground from "../components/AppBackground";
+import { colorForName } from "../components/Avatar";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 
 interface Props {
@@ -786,7 +787,11 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             ) : avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
             ) : (
-              <Text style={styles.avatarInitial}>{initial}</Text>
+              // Pp henuz eklenmediyse - Discover'daki (RoomCard/Avatar.tsx)
+              // isimden sabit renk + beyaz bas harf yedegiyle AYNI gorunum.
+              <View style={[styles.avatarFallback, { backgroundColor: colorForName(name) }]}>
+                <Text style={styles.avatarInitial}>{initial}</Text>
+              </View>
             )}
           </View>
         </TouchableOpacity>
@@ -1400,7 +1405,8 @@ const styles = StyleSheet.create({
   // Halka gizliyken (showPresenceRing=false) gosterecek bir sey olmadigi
   // icin halkanin ekstra 20px'lik yer kaplamasina gerek yok - kutuyu
   // kuculterek ismi fotografa biraz daha yaklastiriyoruz.
-  avatarInitial: { color: ACCENT, fontSize: 30, fontWeight: "700" },
+  avatarFallback: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
+  avatarInitial: { color: "#fff", fontSize: 30, fontWeight: "700" },
   avatarImage: { width: "100%", height: "100%", borderRadius: 44 },
   nameBlockLeft: { marginBottom: 14, gap: 4, marginLeft: -LEFT_SHIFT },
   // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
