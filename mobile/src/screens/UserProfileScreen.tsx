@@ -70,12 +70,12 @@ const PREMIUM_BADGE_ACTIVE = PREMIUM_BADGE_D2;
 function PremiumBadge({ size }: { size: number }) {
   const d = roundedStarPath(size, PREMIUM_BADGE_ACTIVE.points, PREMIUM_BADGE_ACTIVE.innerRatio, PREMIUM_BADGE_ACTIVE.roundAmt);
   return (
-    <View style={{ width: size, height: size }}>
+    <View style={{ width: size, height: size, marginTop: -1 }}>
       <Svg width={size} height={size}>
         <SvgPath d={d} fill="#fff" />
       </Svg>
       <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
-        <View style={{ transform: [{ translateX: size * 0.03 }, { translateY: size * 0.033 + 1 }] }}>
+        <View style={{ transform: [{ translateX: size * 0.03 }, { translateY: size * 0.033 }] }}>
           <Check size={size * 0.42} color="#04070c" strokeWidth={3.5} />
         </View>
       </View>
