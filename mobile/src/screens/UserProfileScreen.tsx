@@ -22,7 +22,6 @@ import { supabase } from "../services/supabase";
 import { getSocket, PublicRoomSummary, HistoryItem, MediaSource, SourceType, RoomState } from "../services/socket";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
-import CountryFlag from "../components/CountryFlag";
 import RoomCard from "../components/RoomCard";
 import PhotoViewerModal from "../components/PhotoViewerModal";
 import PostCard from "../components/PostCard";
@@ -885,7 +884,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("handle")}>
               <View style={styles.handleRow}>
                 <Text style={styles.handle}>@{handle.toUpperCase()}</Text>
-                <CountryFlag country={country} size={13} />
               </View>
             </TouchableOpacity>
           )}
