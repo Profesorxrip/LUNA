@@ -916,7 +916,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             (editingField === "profile_location" ? (
               <View style={styles.metaRow}>
                 <View style={styles.metaIconNudge}>
-                  <Icon name="pin" size={14} color={MUTED} />
+                  <Icon name="pin" size={12} color={MUTED} />
                 </View>
                 <TextInput
                   style={styles.metaInput}
@@ -933,7 +933,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             ) : (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("profile_location")} style={styles.metaRow}>
                 <View style={styles.metaIconNudge}>
-                  <Icon name="pin" size={14} color={MUTED} />
+                  <Icon name="pin" size={12} color={MUTED} />
                 </View>
                 <Text style={styles.metaText}>
                   {(profileLocation || (own ? t("userProfile.locationFieldPlaceholder") : "")).toUpperCase()}
@@ -944,7 +944,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           {joinDateMs != null && (own || statVisibility.joinDate !== false) && (
             <View style={styles.metaRow}>
               <View style={styles.metaIconNudge}>
-                <Icon name="calendar" size={14} color={MUTED} />
+                <Icon name="calendar" size={12} color={MUTED} />
               </View>
               <Text style={styles.metaText}>{t("userProfile.joinedOn", { date: formatDate(joinDateMs, i18n.language) })}</Text>
             </View>
@@ -953,7 +953,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           {(own || birthday) &&
             (editingField === "birthday" ? (
               <View style={styles.metaRow}>
-                <Gift size={14} color={MUTED} />
+                <Gift size={12} color={MUTED} />
                 <TextInput
                   style={styles.metaInput}
                   value={birthday}
@@ -967,7 +967,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               </View>
             ) : (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("birthday")} style={styles.metaRow}>
-                <Gift size={14} color={MUTED} />
+                <Gift size={12} color={MUTED} />
                 <Text style={styles.metaText}>
                   {birthday ? t("userProfile.birthdayOn", { date: birthday }) : own ? t("userProfile.birthdayPlaceholder") : ""}
                 </Text>
@@ -1516,25 +1516,25 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   bioSaveButtonText: { color: "#04140D", fontSize: 13, fontWeight: "800" },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 8 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   // Pin ve takvim ikonlari (govdeleri/kuyruklari nedeniyle) yaninndaki
   // yaziya gore hafifce asagida duruyordu - yukari nudge.
   metaIconNudge: { marginTop: -2 },
   metaText: {
     color: MUTED,
-    fontSize: 12.5,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.3,
     // Ikon (14px) ile dikey hizayi tutturmak icin - yazi tipi/platform
     // varsayilan satir yuksekligindeki fazladan bosluk (Android'de
     // includeFontPadding) ikona gore ortalamayi kaydiriyordu.
-    lineHeight: 15,
+    lineHeight: 13,
     includeFontPadding: false,
     marginTop: 2,
   } as any,
   metaInput: {
     color: TEXT,
-    fontSize: 12.5,
+    fontSize: 11,
     fontWeight: "700",
     borderBottomWidth: 1,
     borderBottomColor: MUTED,
