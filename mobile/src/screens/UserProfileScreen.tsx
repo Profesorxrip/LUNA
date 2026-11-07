@@ -13,7 +13,7 @@ import {
   Easing,
   Dimensions,
 } from "react-native";
-import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Settings, Check } from "lucide-react-native";
+import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Settings, BadgeCheck } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
@@ -810,7 +810,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")}>
               <View style={styles.nameRow}>
                 <Text style={styles.name}>{name.toUpperCase()}</Text>
-                {isPremium && <Check size={20} color={ACCENT} strokeWidth={3.5} />}
+                {isPremium && <BadgeCheck size={22} color="#04070c" fill="#fff" strokeWidth={2} />}
               </View>
             </TouchableOpacity>
           )}
