@@ -810,16 +810,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")}>
               <View style={styles.nameRow}>
                 <Text style={styles.name}>{name.toUpperCase()}</Text>
-                {isPremium && (
-                  <LinearGradient
-                    colors={[ACCENT, "#FFFFFF"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.premiumBadge}
-                  >
-                    <Check size={12} color="#04070c" strokeWidth={3.5} />
-                  </LinearGradient>
-                )}
+                {isPremium && <Check size={20} color={ACCENT} strokeWidth={3.5} />}
               </View>
             </TouchableOpacity>
           )}
@@ -1421,13 +1412,6 @@ const styles = StyleSheet.create({
   // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
   // yana gostermek icin (bkz. isPremium).
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  premiumBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   name: { color: TEXT, fontSize: 22, fontWeight: "800", letterSpacing: 0.3 },
   nameInputLeft: {
     color: TEXT,
