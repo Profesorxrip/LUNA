@@ -864,7 +864,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")}>
               <View style={styles.nameRow}>
                 <Text style={styles.name}>{name.toUpperCase()}</Text>
-                {isPremium && <PremiumBadge size={16} />}
+                {isPremium && <PremiumBadge size={19} />}
               </View>
             </TouchableOpacity>
           )}
