@@ -1343,7 +1343,7 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  bannerActionsRow: { position: "absolute", top: 22, right: 14, flexDirection: "row", gap: 8 },
+  bannerActionsRow: { position: "absolute", top: 34, right: 14, flexDirection: "row", gap: 8 },
   bannerActionButton: {
     width: 36,
     height: 36,
