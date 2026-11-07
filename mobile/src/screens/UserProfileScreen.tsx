@@ -13,7 +13,7 @@ import {
   Easing,
   Dimensions,
 } from "react-native";
-import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus } from "lucide-react-native";
+import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Settings } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
@@ -732,7 +732,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                   <Plus size={18} color={TEXT} strokeWidth={3} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.bannerActionButton} onPress={() => placeholder(t("tabs.settings"))} hitSlop={6}>
-                  <Icon name="settings" size={18} color={TEXT} />
+                  <Settings size={18} color={TEXT} strokeWidth={2} />
                 </TouchableOpacity>
               </View>
             )}
