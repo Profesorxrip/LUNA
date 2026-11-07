@@ -75,7 +75,7 @@ function PremiumBadge({ size }: { size: number }) {
         <SvgPath d={d} fill="#fff" />
       </Svg>
       <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
-        <View style={{ transform: [{ translateX: -size * 0.07 }, { translateY: -size * 0.02 }] }}>
+        <View style={{ transform: [{ translateX: size * 0.03 }, { translateY: size * 0.033 }] }}>
           <Check size={size * 0.42} color="#04070c" strokeWidth={3.5} />
         </View>
       </View>
