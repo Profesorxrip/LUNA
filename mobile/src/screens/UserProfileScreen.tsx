@@ -968,7 +968,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             ) : (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("birthday")} style={styles.metaRow}>
                 <Gift size={12} color={MUTED} />
-                <Text style={styles.metaText}>
+                <Text style={[styles.metaText, { marginTop: 3 }]}>
                   {birthday ? t("userProfile.birthdayOn", { date: birthday }) : own ? t("userProfile.birthdayPlaceholder") : ""}
                 </Text>
               </TouchableOpacity>
