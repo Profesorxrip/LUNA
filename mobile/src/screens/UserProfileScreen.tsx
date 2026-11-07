@@ -692,15 +692,17 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         )}
 
         {(own || bannerText) && (
-          <View style={styles.bannerWrap}>
-            <View style={StyleSheet.absoluteFill} pointerEvents="none">
-              {bannerStripes.map((left, i) => (
-                <View
-                  key={i}
-                  style={[styles.bannerStripe, { left, backgroundColor: i % 2 === 0 ? "#F1F1EE" : "#E1E1DC" }]}
-                />
-              ))}
-            </View>
+          <View style={[styles.bannerWrap, !bannerText && styles.bannerWrapEmpty]}>
+            {bannerText && (
+              <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                {bannerStripes.map((left, i) => (
+                  <View
+                    key={i}
+                    style={[styles.bannerStripe, { left, backgroundColor: i % 2 === 0 ? "#F1F1EE" : "#E1E1DC" }]}
+                  />
+                ))}
+              </View>
+            )}
             {editingField === "banner_text" ? (
               <TextInput
                 style={styles.bannerInput}
@@ -1321,6 +1323,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#ECECE8",
   },
+  // Kapak fotografi/metni HENUZ eklenmediyse (bannerText bos) - cizgili
+  // desen yerine duz, mat gri bir yer tutucu.
+  bannerWrapEmpty: { backgroundColor: "#8C8C86" },
   bannerStripe: { position: "absolute", top: -90, width: 22, height: 400, transform: [{ rotate: "-20deg" }] },
   bannerTextTouch: { paddingLeft: 24, paddingRight: 90, maxWidth: "100%" },
   bannerText: { color: "#0A0A0A", fontSize: 34, fontWeight: "900", letterSpacing: 0.5 },
