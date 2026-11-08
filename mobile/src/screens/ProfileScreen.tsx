@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, A
 import { LinearGradient } from "expo-linear-gradient";
 import * as StoreReview from "expo-store-review";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { Inter_700Bold } from "@expo-google-fonts/inter";
 import { useTranslation } from "react-i18next";
 import {
   Link as LinkIcon,
@@ -72,8 +73,11 @@ export default function ProfileScreen({
   const { t, i18n } = useTranslation();
   // Bolum basliklari (BAGLI HESAP/AYARLAR/GERI BILDIRIM/YARDIM) - diger
   // ekranlarda da kullanilan ayni "afis" fontu (bkz. LoginScreen.tsx,
-  // DiscoverScreen.tsx emptyTitleFontLoaded).
-  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
+  // DiscoverScreen.tsx emptyTitleFontLoaded). Inter_700Bold da burada
+  // yukleniyor ki AdultBadge'in "18+" yazisi (zaten Inter_700Bold
+  // kullanan ortak bilesen) DiscoverScreen'deki rozetle birebir ayni
+  // fontla cizilsin (bkz. DiscoverScreen.tsx ayni ikili useFonts).
+  const [fontsLoaded] = useFonts({ BebasNeue_400Regular, Inter_700Bold });
   const INVITE_OPTIONS: { key: InviteRestriction; label: string }[] = [
     { key: "everyone", label: t("profile.inviteEveryone") },
     { key: "friends", label: t("profile.inviteFriends") },
