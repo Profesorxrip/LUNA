@@ -399,9 +399,11 @@ export default function ProfileScreen({
         />
         <GradientDivider />
 
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Text style={styles.signOutText}>{t("profile.signOutTitle")}</Text>
-        </TouchableOpacity>
+        <LinearGradient colors={["#FFFFFF", "#38BDF8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.signOutGradientBorder}>
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <Text style={styles.signOutText}>{t("profile.signOutTitle")}</Text>
+          </TouchableOpacity>
+        </LinearGradient>
       </ScrollView>
 
       <EmojiPickerSheet
@@ -686,17 +688,15 @@ const styles = StyleSheet.create({
   diagnosticsCloseBtn: { marginTop: 16, alignItems: "center" },
   diagnosticsCloseText: { color: "#0EA5E9", fontSize: 14, fontWeight: "800" },
   dangerText: { color: "#FF8A8A" },
-  // Kullanicinin gonderdigi ekran goruntusundeki gibi - kirmizi dolgu DEGIL,
-  // mavi/beyaz CERCEVE (outline) hap buton.
+  // Mavi/beyaz degrade "hap" cerceve (sectionDivider'daki AYNI gradyan) -
+  // disarida gradyan kenarlik, icinde siyah dolgulu buton (kullanicinin
+  // istegi uzerine kirmizi dolgudan buraya gecildi).
+  signOutGradientBorder: { marginHorizontal: 18, marginTop: 24, borderRadius: 30, padding: 2 },
   signOutButton: {
-    marginHorizontal: 18,
-    marginTop: 24,
-    backgroundColor: "transparent",
-    borderRadius: 30,
+    backgroundColor: "#000000",
+    borderRadius: 28,
     paddingVertical: 14,
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.8)",
   },
   signOutText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800", letterSpacing: 0.2, textTransform: "uppercase" },
 });
