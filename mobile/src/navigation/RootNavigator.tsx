@@ -14,6 +14,7 @@ import PrivacyScreen from "../screens/PrivacyScreen";
 import BackgroundInfoScreen from "../screens/BackgroundInfoScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import DMScreen, { DMPeer, DmInfoOpenParams } from "../screens/DMScreen";
+import DMListScreen from "../screens/DMListScreen";
 import DmInfoScreen from "../screens/DmInfoScreen";
 import { DMMessage } from "../services/socket";
 import RoomPreviewScreen from "../screens/RoomPreviewScreen";
@@ -33,7 +34,10 @@ export type MainTabsParamList = {
   Friends: undefined;
   Create: undefined;
   Profile: undefined;
-  Settings: undefined;
+  // Eskiden uygulama ayarlarini (ProfileScreen) acardi - artik DM listesini
+  // aciyor (bkz. DMsRoute); ayarlar artik Stack'teki "AppSettings" ekrani
+  // (profildeki carktan erisiliyor, bkz. MyProfileRoute onOpenSettings).
+  DMs: undefined;
 };
 
 export type RootStackParamList = {
@@ -42,6 +46,11 @@ export type RootStackParamList = {
   // (bkz. RoomPreviewRoute onNavigateTab) sadece "undefined" degil,
   // MainTabsParamList'in kendi (opsiyonel) parametreleri kabul ediliyor.
   MainTabs: NavigatorScreenParams<MainTabsParamList>;
+  // Uygulama ayarlari (ProfileScreen) - ARTIK bir sekme degil, sadece
+  // UserProfileScreen'deki banner carkindan buraya push ediliyor (bkz.
+  // AppSettingsRoute, MyProfileRoute onOpenSettings). ProfileScreen'in
+  // KENDISI hic degismedi - sadece erisim yolu degisti.
+  AppSettings: undefined;
   Premium: undefined;
   Privacy: undefined;
   BackgroundInfo: undefined;
@@ -157,16 +166,29 @@ function MyProfileRoute() {
         const parent = navigation.getParent<Nav>();
         if (parent) enterRoom(parent, room);
       }}
-      onOpenSettings={() => navigation.navigate("Settings")}
+      onOpenSettings={() => {
+        const parent = navigation.getParent<Nav>();
+        if (parent) parent.navigate("AppSettings");
+      }}
     />
   );
 }
 
-function SettingsRoute() {
-  const navigation = useNavigation<TabNav<"Settings">>();
+function DMsRoute() {
+  const navigation = useNavigation<TabNav<"DMs">>();
+  return <DMListScreen onOpenDM={(peer) => navigation.navigate("DM", { peer })} />;
+}
+
+// ProfileScreen'in KENDISI degismedi, SADECE buraya nasil gelindigi degisti -
+// eskiden bir Tab.Screen'di (alt bardaki "..." sekmesi), artik Stack'te
+// UserProfileScreen'deki carktan push edilen bagimsiz bir ekran (bkz.
+// MyProfileRoute onOpenSettings). "onOpenUserProfile" de artik Tab yerine
+// Stack nav'i kullanip dogrudan Profil sekmesine gidiyor.
+function AppSettingsRoute() {
+  const navigation = useNavigation<Nav>();
   return (
     <ProfileScreen
-      onOpenUserProfile={() => navigation.navigate("Profile")}
+      onOpenUserProfile={() => navigation.navigate("MainTabs", { screen: "Profile" })}
       onOpenPremium={() => navigation.navigate("Premium")}
       onOpenPrivacy={() => navigation.navigate("Privacy")}
       onOpenBackgroundInfo={() => navigation.navigate("BackgroundInfo")}
@@ -187,7 +209,7 @@ function MainTabsRoute() {
       <Tab.Screen name="Profile" component={MyProfileRoute} />
       <Tab.Screen name="Discover" component={DiscoverRoute} />
       <Tab.Screen name="Create" component={CreateRoute} />
-      <Tab.Screen name="Settings" component={SettingsRoute} />
+      <Tab.Screen name="DMs" component={DMsRoute} />
       <Tab.Screen name="Friends" component={FriendsRoute} />
     </Tab.Navigator>
   );
@@ -314,6 +336,7 @@ export default function RootNavigator() {
             "derinlemesine" bir akisin parcasi degil) - asagidan yukari
             kayarak gelen bir "sayfa/sheet" hissi veriyor, geri kalan
             navigasyon akisindan gorsel olarak ayrisiyor. */}
+        <Stack.Screen name="AppSettings" component={AppSettingsRoute} />
         <Stack.Screen name="Premium" component={PremiumRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="Privacy" component={PrivacyRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="BackgroundInfo" component={BackgroundInfoRoute} options={{ animation: "slide_from_bottom" }} />

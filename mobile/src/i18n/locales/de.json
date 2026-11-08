@@ -134,6 +134,10 @@
     "unblockConfirmTitle": "Blockierung aufheben",
     "unblockConfirmBody": "Möchtest du die Blockierung dieser Person wirklich aufheben?"
   },
+  "dmList": {
+    "title": "Nachrichten",
+    "emptyText": "Noch keine Nachrichten."
+  },
   "dm": {
     "expiryOff": "Aus",
     "expiry1Hour": "1 Stunde",

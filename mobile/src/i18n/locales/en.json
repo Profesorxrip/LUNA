@@ -134,6 +134,10 @@
     "unblockConfirmTitle": "Unblock",
     "unblockConfirmBody": "Are you sure you want to unblock this person?"
   },
+  "dmList": {
+    "title": "Messages",
+    "emptyText": "No messages yet."
+  },
   "dm": {
     "expiryOff": "Off",
     "expiry1Hour": "1 Hour",

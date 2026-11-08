@@ -134,6 +134,10 @@
     "unblockConfirmTitle": "Blokdan Çıxar",
     "unblockConfirmBody": "Bu şəxsin blokunu götürmək istədiyinə əminsən?"
   },
+  "dmList": {
+    "title": "Mesajlar",
+    "emptyText": "Hələ mesajınız yoxdur."
+  },
   "dm": {
     "expiryOff": "Bağlı",
     "expiry1Hour": "1 Saat",

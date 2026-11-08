@@ -134,6 +134,10 @@
     "unblockConfirmTitle": "Разблокировать",
     "unblockConfirmBody": "Ты уверен(а), что хочешь разблокировать этого человека?"
   },
+  "dmList": {
+    "title": "Сообщения",
+    "emptyText": "Пока нет сообщений."
+  },
   "dm": {
     "expiryOff": "Выкл.",
     "expiry1Hour": "1 час",

@@ -134,6 +134,10 @@
     "unblockConfirmTitle": "Desbloquear",
     "unblockConfirmBody": "¿Seguro que quieres desbloquear a esta persona?"
   },
+  "dmList": {
+    "title": "Mensajes",
+    "emptyText": "Aún no tienes mensajes."
+  },
   "dm": {
     "expiryOff": "Desactivado",
     "expiry1Hour": "1 Hora",

@@ -134,6 +134,10 @@
     "unblockConfirmTitle": "Astengê Rake",
     "unblockConfirmBody": "Tu bawer î ku dixwazî astengê vî kesî rakî?"
   },
+  "dmList": {
+    "title": "Peyam",
+    "emptyText": "Hêj peyamek tune ye."
+  },
   "dm": {
     "expiryOff": "Girtî",
     "expiry1Hour": "1 Saet",

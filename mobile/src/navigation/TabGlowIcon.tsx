@@ -33,7 +33,10 @@ const ICON_NODES: Record<string, NodeDef[]> = {
   // KENDI "h.01" cizgi hilesi yerine (stroke genisligine bagli, buyutmesi
   // zor), net yuvarlak DOLU daireler kullaniyoruz - boyutlari stroke'tan
   // bagimsiz, "r" ile direkt ayarlanabiliyor.
-  Settings: [
+  // Bu sekme eskiden uygulama ayarlarini aciyordu (anahtar ismi de
+  // "Settings"ti) - artik DM listesini aciyor, ayarlara profildeki
+  // carktan gidiliyor (bkz. RootNavigator.tsx AppSettingsRoute).
+  DMs: [
     { tag: "circle", cx: "12", cy: "12", r: "10" },
     // Kullanici: "noktaları 3 px yapalım" - 28px gosterimde cap ~3px icin r=1.29.
     { tag: "circle", cx: "17", cy: "12", r: "1.29", dot: true },

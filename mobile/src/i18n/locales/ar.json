@@ -134,6 +134,10 @@
     "unblockConfirmTitle": "إلغاء الحظر",
     "unblockConfirmBody": "هل أنت متأكد أنك تريد إلغاء حظر هذا الشخص؟"
   },
+  "dmList": {
+    "title": "الرسائل",
+    "emptyText": "لا توجد رسائل بعد."
+  },
   "dm": {
     "expiryOff": "متوقف",
     "expiry1Hour": "ساعة واحدة",

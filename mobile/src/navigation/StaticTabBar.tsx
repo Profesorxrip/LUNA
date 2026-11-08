@@ -14,7 +14,7 @@ export type TabKey = TabGlowIconName | "Create";
 // GERCEK sirasiyla birebir ayni - TabBar.tsx'in normal durumda state.routes
 // uzerinden aldigi sirayi, Tab.Navigator DISINDAKI ekranlar (orn.
 // RoomPreviewScreen) icin burada sabit tekrar ediyoruz.
-const TAB_ORDER: TabKey[] = ["Profile", "Discover", "Create", "Settings", "Friends"];
+const TAB_ORDER: TabKey[] = ["Profile", "Discover", "Create", "DMs", "Friends"];
 
 interface Props {
   activeTab: TabKey | null;

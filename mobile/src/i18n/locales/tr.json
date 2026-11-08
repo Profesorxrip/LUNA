@@ -134,6 +134,10 @@
     "unblockConfirmTitle": "Engeli Kaldır",
     "unblockConfirmBody": "Bu kişinin engelini kaldırmak istediğinize emin misiniz?"
   },
+  "dmList": {
+    "title": "Mesajlar",
+    "emptyText": "Henüz mesajın yok."
+  },
   "dm": {
     "expiryOff": "Kapalı",
     "expiry1Hour": "1 Saat",

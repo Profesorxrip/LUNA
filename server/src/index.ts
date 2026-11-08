@@ -56,6 +56,7 @@ import { createVoiceToken, syncVoicePermissions } from "./livekit";
 import {
   openConversation,
   previewConversation,
+  listConversations,
   sendMessage,
   sendImageMessage,
   setExpiryMs,
@@ -821,6 +822,13 @@ io.on("connection", (socket: Socket) => {
     if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200)) return ack?.({ ok: false });
     const lastMessage = await previewConversation(myDb!, myUserId!, withUserId);
     ack?.({ ok: true, lastMessage });
+  });
+
+  // Alt bardaki DM listesi sekmesi icin - tum konusmalarin ozeti.
+  socket.on("dm:list", async (_payload, ack) => {
+    if (!requireAuth(ack)) return;
+    const conversations = await listConversations(myDb!, myUserId!);
+    ack?.({ ok: true, conversations });
   });
 
   socket.on("dm:open", async ({ withUserId }: { withUserId: string }, ack) => {
