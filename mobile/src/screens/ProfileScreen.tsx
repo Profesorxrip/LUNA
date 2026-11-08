@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator, Switch } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator, Switch } from "react-native";
 import * as StoreReview from "expo-store-review";
 import { useTranslation } from "react-i18next";
 import {
@@ -25,7 +25,6 @@ import {
 } from "lucide-react-native";
 import { supabase } from "../services/supabase";
 import { getSocket, SERVER_URL } from "../services/socket";
-import { theme } from "../theme";
 import Icon from "../components/Icon";
 import AdultBadge from "../components/AdultBadge";
 import EmojiPickerSheet from "../components/EmojiPickerSheet";
@@ -299,32 +298,6 @@ export default function ProfileScreen({
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.iconTouch} />
-          <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.headerLogo} resizeMode="contain" />
-          {/* "Ayarlar" artik kalici bir TAB - donulecek bir "geri" hedefi
-              olmadigi icin sag tarafta da sol spacer ile ayni gorunmez
-              bosluk var, logo ortalanmis kaliyor (eskiden burada kapatma
-              icin bir ChevronRight butonu vardi). */}
-          <View style={styles.iconTouch} />
-        </View>
-
-        <TouchableOpacity style={styles.avatarWrap} onPress={onOpenUserProfile} activeOpacity={0.8}>
-          <View style={styles.avatar}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-            ) : (
-              <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
-            )}
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.nameRow}>
-          <Text style={styles.name}>{name.toUpperCase()}</Text>
-          {isPremium && <Icon name="sparkles" size={18} color={theme.accent} />}
-        </View>
-        <Text style={styles.handle}>@{handle}</Text>
-
         <SectionHeader title={t("profile.sectionAccounts")} />
         <TouchableOpacity
           style={styles.accountRow}
@@ -575,46 +548,7 @@ function SwitchRow({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#000000" },
-  scrollContent: { paddingBottom: 60 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    // "flex-end" (alttan hizali) - ikonlar (iconTouch, 38x38) ile logo
-    // FARKLI yukseklikte (34) oldugu icin "center" ile ortalanirlarsa
-    // gorsel olarak ayni hizada DURMUYORLARDI (bkz. headerLogo).
-    alignItems: "flex-end",
-    paddingHorizontal: 18,
-    paddingTop: 50,
-    paddingBottom: 10,
-  },
-  // header "flex-end" (alttan hizali) - ama ikon GLYPH'leri kendi 38x38
-  // kutusunun icinde tabanindan boslukluyken logo PNG'sindeki "LUNA" yazisi
-  // kendi kutusunun neredeyse tabanina kadar uzaniyor - kutular alttan
-  // hizlansa bile yazi daha asagida GORUNUYORDU (piksel olculdu, ~7-8px,
-  // bkz. DiscoverScreen.tsx headerLogo AYNI olcum). marginBottom bunu
-  // yukari kaydirip gercek GORSEL tabanlari esitliyor.
-  headerLogo: { width: 74, height: 34, marginBottom: 7, tintColor: "#FFFFFF" },
-  iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
-  avatarWrap: { alignItems: "center", marginTop: 24 },
-  avatar: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
-    overflow: "hidden",
-  },
-  avatarImage: { width: "100%", height: "100%" },
-  avatarInitial: { color: "#FFFFFF", fontSize: 56, fontWeight: "700" },
-  name: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, textAlign: "center" },
-  // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
-  // yana gostermek icin (bkz. isPremium). Eski "name" stilinin marginTop'u
-  // buraya tasindi (artik satirin kendisi degil, bu satiri saran View).
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 18 },
-  handle: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "600", letterSpacing: 0.2, textAlign: "center", marginTop: 4, marginBottom: 18 },
+  scrollContent: { paddingTop: 50, paddingBottom: 60 },
   sectionHeader: {
     paddingHorizontal: 18,
     paddingVertical: 12,
