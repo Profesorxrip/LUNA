@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
   // LUNA'yi Degerlendir, Hesabi Sil satirlarinin altinda) kullaniliyor,
   // diger tum satir cizgileri kaldirildi. marginHorizontal YOK - ekranin
   // sagina/soluna tam yapisiyor (bkz. kullanicinin istegi).
-  sectionDivider: { height: 4 },
+  sectionDivider: { height: 8 },
   accountRow: {
     flexDirection: "row",
     alignItems: "center",
