@@ -13,7 +13,6 @@ import {
   Vibrate,
   Languages as LanguagesIcon,
   Volume2,
-  VolumeX,
   MapPin,
   Globe,
   Lock,
@@ -368,7 +367,7 @@ export default function ProfileScreen({
         <SwitchRow
           icon={
             muteOnOtherAudio ? (
-              <VolumeX size={30} color={ROW_ICON_COLOR} strokeWidth={2} />
+              <Icon name="sesKapali1" size={30} color={ROW_ICON_COLOR} />
             ) : (
               <Volume2 size={30} color={ROW_ICON_COLOR} strokeWidth={2} />
             )
