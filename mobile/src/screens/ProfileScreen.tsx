@@ -57,7 +57,6 @@ interface DiagnosticResult {
   detail?: string;
 }
 
-const APP_VERSION = "1.0.0 (1)";
 
 /** Rave'in gercek profil/ayarlar ekraninin birebir kopyasi (bkz. kullanicinin
  * gonderdigi ekran goruntuleri) - sadece marka "LUNA" olarak degistirildi.
@@ -399,7 +398,6 @@ export default function ProfileScreen({
           onPress={handleDeleteAccount}
         />
         <GradientDivider />
-        <Text style={styles.versionText}>{APP_VERSION}</Text>
 
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <Text style={styles.signOutText}>{t("profile.signOutTitle")}</Text>
@@ -688,7 +686,6 @@ const styles = StyleSheet.create({
   diagnosticsCloseBtn: { marginTop: 16, alignItems: "center" },
   diagnosticsCloseText: { color: "#0EA5E9", fontSize: 14, fontWeight: "800" },
   dangerText: { color: "#FF8A8A" },
-  versionText: { color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: "500", paddingHorizontal: 18, paddingVertical: 10 },
   // Kullanicinin gonderdigi ekran goruntusundeki gibi - kirmizi dolgu DEGIL,
   // mavi/beyaz CERCEVE (outline) hap buton.
   signOutButton: {
