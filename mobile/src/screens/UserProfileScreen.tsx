@@ -1548,7 +1548,7 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  ownActionRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
+  ownActionRow: { flexDirection: "row", gap: 10, marginBottom: 20, marginLeft: -LEFT_SHIFT },
   pillOutlineButton: { flex: 1 },
   // Mavi-beyaz gradyan "cerceve" - gercek bir borderColor degrade
   // olamadigi icin, disi gradyanla dolu bir kutu + icinde 1.5px (border
