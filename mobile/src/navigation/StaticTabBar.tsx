@@ -52,7 +52,7 @@ export default function StaticTabBar({ activeTab, onSelect }: Props) {
 
         return (
           <TouchableOpacity key={tab} onPress={() => onSelect(tab)} style={styles.tab} activeOpacity={0.7}>
-            <TabGlowIcon name={tab} size={30} color={isFocused ? "#FFFFFF" : INACTIVE} glow={isFocused} strokeWidth={1.8} />
+            <TabGlowIcon name={tab} size={28} color={isFocused ? "#FFFFFF" : INACTIVE} glow={isFocused} strokeWidth={1.8} />
           </TouchableOpacity>
         );
       })}
