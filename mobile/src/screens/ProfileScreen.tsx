@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator, Switch } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as StoreReview from "expo-store-review";
+import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { useTranslation } from "react-i18next";
 import {
   Link as LinkIcon,
@@ -69,6 +70,10 @@ export default function ProfileScreen({
   onOpenBackgroundInfo,
 }: Props) {
   const { t, i18n } = useTranslation();
+  // Bolum basliklari (BAGLI HESAP/AYARLAR/GERI BILDIRIM/YARDIM) - diger
+  // ekranlarda da kullanilan ayni "afis" fontu (bkz. LoginScreen.tsx,
+  // DiscoverScreen.tsx emptyTitleFontLoaded).
+  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
   const INVITE_OPTIONS: { key: InviteRestriction; label: string }[] = [
     { key: "everyone", label: t("profile.inviteEveryone") },
     { key: "friends", label: t("profile.inviteFriends") },
@@ -299,7 +304,7 @@ export default function ProfileScreen({
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <SectionHeader title={t("profile.sectionAccounts")} />
+        <SectionHeader title={t("profile.sectionAccounts")} fontsLoaded={fontsLoaded} />
         <TouchableOpacity
           style={styles.accountRow}
           onPress={() => (googleLinked ? undefined : placeholder(t("profile.connectGoogleAlertTitle")))}
@@ -325,7 +330,7 @@ export default function ProfileScreen({
         </TouchableOpacity>
         <GradientDivider />
 
-        <SectionHeader title={t("profile.sectionSettings")} />
+        <SectionHeader title={t("profile.sectionSettings")} fontsLoaded={fontsLoaded} />
         <ChevronRow icon={<Crown size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.premiumTitle")} onPress={onOpenPremium} />
         <ChevronRow
           icon={<Heart size={22} color={ROW_ICON_COLOR} strokeWidth={2} />}
@@ -374,11 +379,11 @@ export default function ProfileScreen({
         <ChevronRow icon={<ChartBar size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.statsTitle")} onPress={() => placeholder(t("profile.statsTitle"))} />
         <GradientDivider />
 
-        <SectionHeader title={t("profile.sectionFeedback")} />
+        <SectionHeader title={t("profile.sectionFeedback")} fontsLoaded={fontsLoaded} />
         <ChevronRow icon={<Star size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.rateTitle")} onPress={handleRateApp} />
         <GradientDivider />
 
-        <SectionHeader title={t("profile.sectionHelp")} />
+        <SectionHeader title={t("profile.sectionHelp")} fontsLoaded={fontsLoaded} />
         <ChevronRow icon={<BookOpen size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.userGuideTitle")} onPress={() => placeholder(t("profile.userGuideTitle"))} />
         <ChevronRow icon={<MessageCircle size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.contactTitle")} onPress={handleContactUs} />
         <ChevronRow icon={<Activity size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.diagnosticsRun")} onPress={runDiagnostics} />
@@ -478,10 +483,10 @@ export default function ProfileScreen({
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, fontsLoaded }: { title: string; fontsLoaded: boolean }) {
   return (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>{title}</Text>
+      <Text style={[styles.sectionHeaderText, fontsLoaded && styles.sectionHeaderTextFontLoaded]}>{title}</Text>
     </View>
   );
 }
@@ -567,6 +572,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   sectionHeaderText: { color: "rgba(255,255,255,0.65)", fontSize: 12.5, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
+  sectionHeaderTextFontLoaded: {
+    fontFamily: "BebasNeue_400Regular",
+    fontWeight: "400",
+    fontSize: 16,
+    letterSpacing: 1.4,
+  },
   // Mavi/beyaz degrade "hap" cercevesiyle (bkz. StaticTabBar.tsx topDivider)
   // AYNI mantik - ama sadece 4 belirli yerde (Google, Istatistikler,
   // LUNA'yi Degerlendir, Hesabi Sil satirlarinin altinda) kullaniliyor,
