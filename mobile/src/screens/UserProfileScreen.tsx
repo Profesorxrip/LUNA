@@ -89,6 +89,7 @@ interface Props {
   onOpenDM?: (peer: { userId: string; name: string; handle?: string }) => void;
   onOpenRoomPreview?: (room: PublicRoomSummary) => void;
   onOpenRoom?: (room: RoomState) => void;
+  onOpenSettings?: () => void;
 }
 
 const ACCENT = "#0EA5E9";
@@ -198,7 +199,7 @@ function timeAgo(ms: number, t: (key: string, opts?: any) => string, lang: strin
 /** "Vinil Kayıt" konsepti - kartelanın (bkz. tasarım oturumu) ilk seçeneği,
  * kullanıcının kendi profili (own) ve başkasının profili (!own) icin
  * ortak bir govde uzerinde farkli baslik/aksiyon satiri gosterir. */
-export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, onOpenRoomPreview, onOpenRoom }: Props) {
+export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, onOpenRoomPreview, onOpenRoom, onOpenSettings }: Props) {
   const { t, i18n } = useTranslation();
   const peerUserId = peer?.userId || DEMO_PEER_USER_ID;
   const [myUserId, setMyUserId] = useState<string | null>(null);
@@ -785,7 +786,11 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                 <TouchableOpacity style={styles.bannerActionButton} onPress={openComposer} hitSlop={6}>
                   <Plus size={18} color={TEXT} strokeWidth={3} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.bannerActionButton} onPress={() => placeholder(t("tabs.settings"))} hitSlop={6}>
+                <TouchableOpacity
+                  style={styles.bannerActionButton}
+                  onPress={() => (onOpenSettings ? onOpenSettings() : placeholder(t("tabs.settings")))}
+                  hitSlop={6}
+                >
                   <View>
                     <Settings size={18} color={TEXT} fill={TEXT} strokeWidth={2} />
                     <View style={styles.settingsGearHole} />

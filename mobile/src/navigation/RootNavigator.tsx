@@ -157,6 +157,7 @@ function MyProfileRoute() {
         const parent = navigation.getParent<Nav>();
         if (parent) enterRoom(parent, room);
       }}
+      onOpenSettings={() => navigation.navigate("Settings")}
     />
   );
 }
