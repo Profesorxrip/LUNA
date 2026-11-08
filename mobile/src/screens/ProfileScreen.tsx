@@ -1,11 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator, Switch } from "react-native";
 import * as StoreReview from "expo-store-review";
 import { useTranslation } from "react-i18next";
+import {
+  Link as LinkIcon,
+  Crown,
+  Heart,
+  MailPlus,
+  Vibrate,
+  Languages as LanguagesIcon,
+  VolumeX,
+  MapPin,
+  Globe,
+  Lock,
+  Bell,
+  Ban,
+  ChartBar,
+  Star,
+  BookOpen,
+  MessageCircle,
+  Activity,
+  Antenna,
+  Trash,
+} from "lucide-react-native";
 import { supabase } from "../services/supabase";
 import { getSocket, SERVER_URL } from "../services/socket";
 import { theme } from "../theme";
 import Icon from "../components/Icon";
+import AdultBadge from "../components/AdultBadge";
 import EmojiPickerSheet from "../components/EmojiPickerSheet";
 import { showAlert } from "../components/CustomAlert";
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic } from "../utils/haptics";
@@ -14,6 +36,8 @@ import { isHideLocationEnabled, setHideLocationEnabled } from "../utils/location
 import { LANGUAGES, setAppLanguage, LanguageCode } from "../i18n";
 
 const SUPPORT_EMAIL = "destek@luna.app";
+const ROW_ICON_COLOR = "#FFFFFF";
+const SWITCH_TRACK_ON = "#38BDF8";
 
 type InviteRestriction = "everyone" | "friends" | "none";
 
@@ -50,15 +74,6 @@ export default function ProfileScreen({
     { key: "friends", label: t("profile.inviteFriends") },
     { key: "none", label: t("profile.inviteNone") },
   ];
-  const ADULT_CONTENT_OPTIONS = [
-    { key: "hidden", label: t("profile.adultHidden") },
-    { key: "shown", label: t("profile.adultShown") },
-  ];
-  const ON_OFF_OPTIONS = [
-    { key: "on", label: t("common.open") },
-    { key: "off", label: t("common.closed") },
-  ];
-  const currentLanguageLabel = LANGUAGES.find((l) => l.code === i18n.language)?.label ?? LANGUAGES[0].label;
   const [languageSheetVisible, setLanguageSheetVisible] = useState(false);
 
   const [myUserId, setMyUserId] = useState<string | null>(null);
@@ -73,6 +88,7 @@ export default function ProfileScreen({
 
   const [quickReaction, setQuickReaction] = useState("❤️");
   const [emojiSheetVisible, setEmojiSheetVisible] = useState(false);
+  const [inviteSheetVisible, setInviteSheetVisible] = useState(false);
   const [inviteRestriction, setInviteRestriction] = useState<InviteRestriction>("everyone");
   const [hideAdult, setHideAdult] = useState(false);
   const [haptics, setHaptics] = useState(false);
@@ -314,6 +330,9 @@ export default function ProfileScreen({
           style={styles.accountRow}
           onPress={() => (googleLinked ? undefined : placeholder(t("profile.connectGoogleAlertTitle")))}
         >
+          <View style={styles.rowIcon}>
+            <LinkIcon size={18} color={ROW_ICON_COLOR} strokeWidth={2} />
+          </View>
           <Text style={styles.accountLabel}>{t("profile.google")}</Text>
           <View style={styles.accountValue}>
             {googleLinked ? (
@@ -332,86 +351,68 @@ export default function ProfileScreen({
         </TouchableOpacity>
 
         <SectionHeader title={t("profile.sectionSettings")} />
-        <ToggleRow title={t("profile.premiumTitle")} subtitle={t("profile.premiumSubtitle")} onPress={onOpenPremium} hideIndicator />
-        <ToggleRow
+        <ChevronRow icon={<Crown size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.premiumTitle")} onPress={onOpenPremium} />
+        <ChevronRow
+          icon={<Heart size={18} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.quickReactionTitle")}
-          subtitle={t("profile.quickReactionSubtitle")}
           onPress={() => setEmojiSheetVisible(true)}
-          rightElement={<Text style={styles.emoji}>{quickReaction}</Text>}
         />
-        <ToggleRow
+        <ChevronRow
+          icon={<MailPlus size={18} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.restrictInvitesTitle")}
-          subtitle={t("profile.restrictInvitesSubtitle")}
-          rightElement={
-            <OptionButton value={inviteRestriction} options={INVITE_OPTIONS} onChange={(v) => applyInviteRestriction(v as InviteRestriction)} />
-          }
+          onPress={() => setInviteSheetVisible(true)}
         />
-        <ToggleRow
+        <SwitchRow
+          icon={<AdultBadge size={20} />}
           title={t("profile.hideAdultTitle")}
-          subtitle={t("profile.hideAdultSubtitle")}
-          rightElement={
-            <OptionButton
-              value={hideAdult ? "hidden" : "shown"}
-              options={ADULT_CONTENT_OPTIONS}
-              onChange={(v) => applyHideAdultContent(v === "hidden")}
-            />
-          }
+          value={!hideAdult}
+          onValueChange={(v) => applyHideAdultContent(!v)}
         />
-        <ToggleRow
+        <SwitchRow
+          icon={<Vibrate size={18} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.hapticsTitle")}
-          subtitle={t("profile.hapticsSubtitle")}
-          rightElement={
-            <OptionButton value={haptics ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => applyHaptics(v === "on")} />
-          }
+          value={haptics}
+          onValueChange={applyHaptics}
         />
-        <ToggleRow
+        <SwitchRow
+          icon={<LanguagesIcon size={18} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.autoTranslateTitle")}
-          subtitle={t("profile.autoTranslateSubtitle")}
-          rightElement={
-            <OptionButton value={autoTranslate ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => applyAutoTranslate(v === "on")} />
-          }
+          value={autoTranslate}
+          onValueChange={applyAutoTranslate}
         />
-        <ToggleRow
+        <SwitchRow
+          icon={<VolumeX size={18} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.muteOtherAudioTitle")}
-          subtitle={t("profile.muteOtherAudioSubtitle")}
-          rightElement={
-            <OptionButton
-              value={muteOnOtherAudio ? "on" : "off"}
-              options={ON_OFF_OPTIONS}
-              onChange={(v) => applyMuteOnOtherAudio(v === "on")}
-            />
-          }
+          value={muteOnOtherAudio}
+          onValueChange={applyMuteOnOtherAudio}
         />
-        <ToggleRow
+        <SwitchRow
+          icon={<MapPin size={18} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.hideLocationTitle")}
-          subtitle={t("profile.hideLocationSubtitle")}
-          rightElement={
-            <OptionButton value={hideLocation ? "on" : "off"} options={ON_OFF_OPTIONS} onChange={(v) => applyHideLocation(v === "on")} />
-          }
+          value={hideLocation}
+          onValueChange={applyHideLocation}
         />
-        <ChevronRow title={t("profile.languageTitle")} subtitle={currentLanguageLabel} onPress={() => setLanguageSheetVisible(true)} />
-        <ChevronRow title={t("profile.privacyTitle")} onPress={onOpenPrivacy} />
+        <ChevronRow icon={<Globe size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.languageTitle")} onPress={() => setLanguageSheetVisible(true)} />
+        <ChevronRow icon={<Lock size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.privacyTitle")} onPress={onOpenPrivacy} />
+        <ChevronRow icon={<Bell size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.notificationsTitle")} onPress={() => placeholder(t("profile.notificationsTitle"))} />
+        <ChevronRow icon={<Ban size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.blockedTitle")} onPress={() => placeholder(t("profile.blockedTitle"))} />
+        <ChevronRow icon={<ChartBar size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.statsTitle")} onPress={() => placeholder(t("profile.statsTitle"))} />
 
         <SectionHeader title={t("profile.sectionFeedback")} />
-        <TouchableOpacity style={styles.simpleRow} onPress={handleRateApp}>
-          <Text style={styles.simpleTitle}>{t("profile.rateTitle")}</Text>
-          <Text style={styles.simpleSubtitle}>{t("profile.rateSubtitle")}</Text>
-        </TouchableOpacity>
+        <ChevronRow icon={<Star size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.rateTitle")} onPress={handleRateApp} />
 
         <SectionHeader title={t("profile.sectionHelp")} />
-        <TouchableOpacity style={styles.simpleRow} onPress={handleContactUs}>
-          <Text style={styles.simpleTitle}>{t("profile.contactTitle")}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.simpleRow} onPress={runDiagnostics}>
-          <Text style={styles.simpleTitle}>{t("profile.diagnosticsRun")}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.simpleRow} onPress={onOpenBackgroundInfo}>
-          <Text style={styles.simpleTitle}>{t("profile.backgroundTitle")}</Text>
-        </TouchableOpacity>
+        <ChevronRow icon={<BookOpen size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.userGuideTitle")} onPress={() => placeholder(t("profile.userGuideTitle"))} />
+        <ChevronRow icon={<MessageCircle size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.contactTitle")} onPress={handleContactUs} />
+        <ChevronRow icon={<Activity size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.diagnosticsRun")} onPress={runDiagnostics} />
+        <ChevronRow icon={<Antenna size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.backgroundTitle")} onPress={onOpenBackgroundInfo} />
+        <ChevronRow
+          icon={<Trash size={18} color="#FF8A8A" strokeWidth={2} />}
+          title={t("profile.deleteAccountTitle")}
+          titleStyle={styles.dangerText}
+          onPress={handleDeleteAccount}
+        />
         <Text style={styles.versionText}>{APP_VERSION}</Text>
-        <TouchableOpacity style={styles.simpleRow} onPress={handleDeleteAccount}>
-          <Text style={[styles.simpleTitle, styles.dangerText]}>{t("profile.deleteAccountTitle")}</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <Text style={styles.signOutText}>{t("profile.signOutTitle")}</Text>
@@ -424,6 +425,27 @@ export default function ProfileScreen({
         onSelect={selectQuickReaction}
         onClose={() => setEmojiSheetVisible(false)}
       />
+
+      <Modal visible={inviteSheetVisible} transparent animationType="fade" onRequestClose={() => setInviteSheetVisible(false)} statusBarTranslucent>
+        <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setInviteSheetVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.optionSheet}>
+            {INVITE_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                style={styles.optionRow}
+                onPress={() => {
+                  triggerHaptic();
+                  applyInviteRestriction(opt.key);
+                  setInviteSheetVisible(false);
+                }}
+              >
+                <Text style={[styles.optionRowText, opt.key === inviteRestriction && styles.optionRowTextActive]}>{opt.label}</Text>
+                {opt.key === inviteRestriction && <Icon name="check" size={16} color="#0EA5E9" />}
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <Modal
         visible={languageSheetVisible}
@@ -486,48 +508,19 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function ToggleRow({
+function ChevronRow({
+  icon,
   title,
   subtitle,
-  checked,
-  onToggle,
+  titleStyle,
   onPress,
-  rightElement,
-  hideIndicator,
 }: {
+  icon?: React.ReactNode;
   title: string;
   subtitle?: string;
-  checked?: boolean;
-  onToggle?: () => void;
-  onPress?: () => void;
-  rightElement?: React.ReactNode;
-  hideIndicator?: boolean;
+  titleStyle?: object;
+  onPress: () => void;
 }) {
-  return (
-    <TouchableOpacity
-      style={styles.row}
-      onPress={() => {
-        triggerHaptic();
-        (onPress || onToggle)?.();
-      }}
-      activeOpacity={0.7}
-    >
-      <View style={styles.rowText}>
-        <Text style={styles.rowTitle}>{title}</Text>
-        {subtitle && <Text style={styles.rowSubtitle}>{subtitle}</Text>}
-      </View>
-      {hideIndicator ? null : rightElement ? (
-        rightElement
-      ) : (
-        <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-          {checked && <Text style={styles.checkboxMark}>✓</Text>}
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-}
-
-function ChevronRow({ title, subtitle, onPress }: { title: string; subtitle?: string; onPress: () => void }) {
   return (
     <TouchableOpacity
       style={styles.row}
@@ -536,8 +529,9 @@ function ChevronRow({ title, subtitle, onPress }: { title: string; subtitle?: st
         onPress();
       }}
     >
+      {icon && <View style={styles.rowIcon}>{icon}</View>}
       <View style={styles.rowText}>
-        <Text style={styles.rowTitle}>{title}</Text>
+        <Text style={[styles.rowTitle, titleStyle]}>{title}</Text>
         {subtitle && <Text style={styles.rowSubtitle}>{subtitle}</Text>}
       </View>
       <Icon name="chevronRight" size={20} color="rgba(255,255,255,0.6)" />
@@ -545,53 +539,37 @@ function ChevronRow({ title, subtitle, onPress }: { title: string; subtitle?: st
   );
 }
 
-/** Secili degeri gosteren TEK bir buton - ToggleRow'un rightElement'i olarak
- * kullaniliyor. Basinca secenekleri listeleyen kucuk bir sayfa aciliyor
- * (2 secenekli Acik/Kapali gibi ayarlar icin de, Davetleri Kisitla'nin 3
- * secenegi - Herkes/Arkadaslar/Hickimse - icin de ayni bilesen calisiyor). */
-function OptionButton({
+/** Carktaki (bkz. AYARLAR bolumu) acik/kapali ayarlar artik gercek bir
+ * anahtar (Switch) ile gosteriliyor - kullanicinin gonderdigi ekran
+ * goruntusundeki mavi/beyaz ios-tarzi anahtarlarla birebir ayni. */
+function SwitchRow({
+  icon,
+  title,
   value,
-  options,
-  onChange,
+  onValueChange,
 }: {
-  value: string;
-  options: { key: string; label: string }[];
-  onChange: (key: string) => void;
+  icon?: React.ReactNode;
+  title: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
 }) {
-  const [visible, setVisible] = useState(false);
-  const current = options.find((o) => o.key === value);
   return (
-    <>
-      <TouchableOpacity
-        style={styles.optionButton}
-        onPress={() => {
+    <View style={styles.row}>
+      {icon && <View style={styles.rowIcon}>{icon}</View>}
+      <View style={styles.rowText}>
+        <Text style={styles.rowTitle}>{title}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={(next) => {
           triggerHaptic();
-          setVisible(true);
+          onValueChange(next);
         }}
-      >
-        <Text style={styles.optionButtonText}>{current?.label ?? value}</Text>
-      </TouchableOpacity>
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)} statusBarTranslucent>
-        <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setVisible(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.optionSheet}>
-            {options.map((opt) => (
-              <TouchableOpacity
-                key={opt.key}
-                style={styles.optionRow}
-                onPress={() => {
-                  triggerHaptic();
-                  onChange(opt.key);
-                  setVisible(false);
-                }}
-              >
-                <Text style={[styles.optionRowText, opt.key === value && styles.optionRowTextActive]}>{opt.label}</Text>
-                {opt.key === value && <Icon name="check" size={16} color="#0EA5E9" />}
-              </TouchableOpacity>
-            ))}
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-    </>
+        trackColor={{ false: "rgba(255,255,255,0.2)", true: SWITCH_TRACK_ON }}
+        thumbColor="#FFFFFF"
+        ios_backgroundColor="rgba(255,255,255,0.2)"
+      />
+    </View>
   );
 }
 
@@ -647,14 +625,14 @@ const styles = StyleSheet.create({
   sectionHeaderText: { color: "rgba(255,255,255,0.65)", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
   accountRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.08)",
+    gap: 12,
   },
-  accountLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  accountLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "700", flex: 1 },
   accountValue: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 },
   checkBadge: {
     width: 20,
@@ -676,28 +654,10 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(255,255,255,0.08)",
     gap: 12,
   },
+  rowIcon: { width: 22, alignItems: "center", justifyContent: "center" },
   rowText: { flex: 1 },
   rowTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   rowSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", marginTop: 3, lineHeight: 16 },
-  emoji: { fontSize: 24 },
-  checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkboxChecked: { backgroundColor: "#D4C9F5", borderColor: "#D4C9F5" },
-  checkboxMark: { color: "#3a2140", fontSize: 15, fontWeight: "700" },
-  optionButton: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  optionButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   optionOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" },
   optionSheet: {
     backgroundColor: "#0A0A0A",
@@ -747,13 +707,19 @@ const styles = StyleSheet.create({
   diagnosticsFail: { color: "#FF8A8A" },
   diagnosticsCloseBtn: { marginTop: 16, alignItems: "center" },
   diagnosticsCloseText: { color: "#0EA5E9", fontSize: 14, fontWeight: "800" },
-  simpleRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.08)" },
-  simpleTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  simpleSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", marginTop: 3, lineHeight: 16 },
   dangerText: { color: "#FF8A8A" },
   versionText: { color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: "500", paddingHorizontal: 18, paddingVertical: 10 },
-  // Renkleri (arkaplan/kenarlik) AYNI kaldi, sadece sekli NowPlayingBar.tsx
-  // "hap" cercevesiyle (borderRadius:30, ayni mantik) birebir ayni oldu.
-  signOutButton: { marginHorizontal: 18, marginTop: 24, backgroundColor: "rgba(255,77,79,0.15)", borderRadius: 30, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,77,79,0.4)" },
-  signOutText: { color: "#FF8A8A", fontSize: 15, fontWeight: "800", letterSpacing: 0.2, textTransform: "uppercase" },
+  // Kullanicinin gonderdigi ekran goruntusundeki gibi - kirmizi dolgu DEGIL,
+  // mavi/beyaz CERCEVE (outline) hap buton.
+  signOutButton: {
+    marginHorizontal: 18,
+    marginTop: 24,
+    backgroundColor: "transparent",
+    borderRadius: 30,
+    paddingVertical: 14,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.8)",
+  },
+  signOutText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800", letterSpacing: 0.2, textTransform: "uppercase" },
 });
