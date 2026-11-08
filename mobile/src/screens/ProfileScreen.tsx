@@ -575,8 +575,8 @@ const styles = StyleSheet.create({
   sectionHeaderTextFontLoaded: {
     fontFamily: "BebasNeue_400Regular",
     fontWeight: "400",
-    fontSize: 16,
-    letterSpacing: 1.4,
+    fontSize: 20,
+    letterSpacing: 1.6,
   },
   // Mavi/beyaz degrade "hap" cercevesiyle (bkz. StaticTabBar.tsx topDivider)
   // AYNI mantik - ama sadece 4 belirli yerde (Google, Istatistikler,
