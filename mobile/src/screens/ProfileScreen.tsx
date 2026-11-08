@@ -310,7 +310,7 @@ export default function ProfileScreen({
           onPress={() => (googleLinked ? undefined : placeholder(t("profile.connectGoogleAlertTitle")))}
         >
           <View style={styles.rowIcon}>
-            <LinkIcon size={22} color={ROW_ICON_COLOR} strokeWidth={2} />
+            <LinkIcon size={44} color={ROW_ICON_COLOR} strokeWidth={2} />
           </View>
           <Text style={styles.accountLabel}>{t("profile.google")}</Text>
           <View style={styles.accountValue}>
@@ -331,65 +331,65 @@ export default function ProfileScreen({
         <GradientDivider />
 
         <SectionHeader title={t("profile.sectionSettings")} fontsLoaded={fontsLoaded} />
-        <ChevronRow icon={<Crown size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.premiumTitle")} onPress={onOpenPremium} />
+        <ChevronRow icon={<Crown size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.premiumTitle")} onPress={onOpenPremium} />
         <ChevronRow
-          icon={<Heart size={22} color={ROW_ICON_COLOR} strokeWidth={2} />}
+          icon={<Heart size={44} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.quickReactionTitle")}
           onPress={() => setEmojiSheetVisible(true)}
         />
         <ChevronRow
-          icon={<MailPlus size={22} color={ROW_ICON_COLOR} strokeWidth={2} />}
+          icon={<MailPlus size={44} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.restrictInvitesTitle")}
           onPress={() => setInviteSheetVisible(true)}
         />
         <SwitchRow
-          icon={<AdultBadge size={25} />}
+          icon={<AdultBadge size={50} />}
           title={t("profile.hideAdultTitle")}
           value={!hideAdult}
           onValueChange={(v) => applyHideAdultContent(!v)}
         />
         <SwitchRow
-          icon={<Vibrate size={22} color={ROW_ICON_COLOR} strokeWidth={2} />}
+          icon={<Vibrate size={44} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.hapticsTitle")}
           value={haptics}
           onValueChange={applyHaptics}
         />
         <SwitchRow
-          icon={<LanguagesIcon size={22} color={ROW_ICON_COLOR} strokeWidth={2} />}
+          icon={<LanguagesIcon size={44} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.autoTranslateTitle")}
           value={autoTranslate}
           onValueChange={applyAutoTranslate}
         />
         <SwitchRow
-          icon={<VolumeX size={22} color={ROW_ICON_COLOR} strokeWidth={2} />}
+          icon={<VolumeX size={44} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.muteOtherAudioTitle")}
           value={muteOnOtherAudio}
           onValueChange={applyMuteOnOtherAudio}
         />
         <SwitchRow
-          icon={<MapPin size={22} color={ROW_ICON_COLOR} strokeWidth={2} />}
+          icon={<MapPin size={44} color={ROW_ICON_COLOR} strokeWidth={2} />}
           title={t("profile.hideLocationTitle")}
           value={hideLocation}
           onValueChange={applyHideLocation}
         />
-        <ChevronRow icon={<Globe size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.languageTitle")} onPress={() => setLanguageSheetVisible(true)} />
-        <ChevronRow icon={<Lock size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.privacyTitle")} onPress={onOpenPrivacy} />
-        <ChevronRow icon={<Bell size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.notificationsTitle")} onPress={() => placeholder(t("profile.notificationsTitle"))} />
-        <ChevronRow icon={<Ban size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.blockedTitle")} onPress={() => placeholder(t("profile.blockedTitle"))} />
-        <ChevronRow icon={<ChartBar size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.statsTitle")} onPress={() => placeholder(t("profile.statsTitle"))} />
+        <ChevronRow icon={<Globe size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.languageTitle")} onPress={() => setLanguageSheetVisible(true)} />
+        <ChevronRow icon={<Lock size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.privacyTitle")} onPress={onOpenPrivacy} />
+        <ChevronRow icon={<Bell size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.notificationsTitle")} onPress={() => placeholder(t("profile.notificationsTitle"))} />
+        <ChevronRow icon={<Ban size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.blockedTitle")} onPress={() => placeholder(t("profile.blockedTitle"))} />
+        <ChevronRow icon={<ChartBar size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.statsTitle")} onPress={() => placeholder(t("profile.statsTitle"))} />
         <GradientDivider />
 
         <SectionHeader title={t("profile.sectionFeedback")} fontsLoaded={fontsLoaded} />
-        <ChevronRow icon={<Star size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.rateTitle")} onPress={handleRateApp} />
+        <ChevronRow icon={<Star size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.rateTitle")} onPress={handleRateApp} />
         <GradientDivider />
 
         <SectionHeader title={t("profile.sectionHelp")} fontsLoaded={fontsLoaded} />
-        <ChevronRow icon={<BookOpen size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.userGuideTitle")} onPress={() => placeholder(t("profile.userGuideTitle"))} />
-        <ChevronRow icon={<MessageCircle size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.contactTitle")} onPress={handleContactUs} />
-        <ChevronRow icon={<Activity size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.diagnosticsRun")} onPress={runDiagnostics} />
-        <ChevronRow icon={<Antenna size={22} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.backgroundTitle")} onPress={onOpenBackgroundInfo} />
+        <ChevronRow icon={<BookOpen size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.userGuideTitle")} onPress={() => placeholder(t("profile.userGuideTitle"))} />
+        <ChevronRow icon={<MessageCircle size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.contactTitle")} onPress={handleContactUs} />
+        <ChevronRow icon={<Activity size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.diagnosticsRun")} onPress={runDiagnostics} />
+        <ChevronRow icon={<Antenna size={44} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.backgroundTitle")} onPress={onOpenBackgroundInfo} />
         <ChevronRow
-          icon={<Trash size={22} color="#FF8A8A" strokeWidth={2} />}
+          icon={<Trash size={44} color="#FF8A8A" strokeWidth={2} />}
           title={t("profile.deleteAccountTitle")}
           titleStyle={styles.dangerText}
           onPress={handleDeleteAccount}
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 14,
   },
-  accountLabel: { color: "#FFFFFF", fontSize: 16, fontWeight: "700", flex: 1 },
+  accountLabel: { color: "#FFFFFF", fontSize: 32, fontWeight: "700", flex: 1 },
   accountValue: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 },
   checkBadge: {
     width: 20,
@@ -611,9 +611,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 14,
   },
-  rowIcon: { width: 26, alignItems: "center", justifyContent: "center" },
+  rowIcon: { width: 52, alignItems: "center", justifyContent: "center" },
   rowText: { flex: 1 },
-  rowTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  rowTitle: { color: "#FFFFFF", fontSize: 32, fontWeight: "700" },
   rowSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: "500", marginTop: 3, lineHeight: 17 },
   optionOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" },
   optionSheet: {
