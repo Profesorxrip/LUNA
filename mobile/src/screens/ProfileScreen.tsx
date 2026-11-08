@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator, Switch } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import * as StoreReview from "expo-store-review";
 import { useTranslation } from "react-i18next";
 import {
@@ -322,6 +323,7 @@ export default function ProfileScreen({
             )}
           </View>
         </TouchableOpacity>
+        <GradientDivider />
 
         <SectionHeader title={t("profile.sectionSettings")} />
         <ChevronRow icon={<Crown size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.premiumTitle")} onPress={onOpenPremium} />
@@ -370,9 +372,11 @@ export default function ProfileScreen({
         <ChevronRow icon={<Bell size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.notificationsTitle")} onPress={() => placeholder(t("profile.notificationsTitle"))} />
         <ChevronRow icon={<Ban size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.blockedTitle")} onPress={() => placeholder(t("profile.blockedTitle"))} />
         <ChevronRow icon={<ChartBar size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.statsTitle")} onPress={() => placeholder(t("profile.statsTitle"))} />
+        <GradientDivider />
 
         <SectionHeader title={t("profile.sectionFeedback")} />
         <ChevronRow icon={<Star size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.rateTitle")} onPress={handleRateApp} />
+        <GradientDivider />
 
         <SectionHeader title={t("profile.sectionHelp")} />
         <ChevronRow icon={<BookOpen size={18} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.userGuideTitle")} onPress={() => placeholder(t("profile.userGuideTitle"))} />
@@ -385,6 +389,7 @@ export default function ProfileScreen({
           titleStyle={styles.dangerText}
           onPress={handleDeleteAccount}
         />
+        <GradientDivider />
         <Text style={styles.versionText}>{APP_VERSION}</Text>
 
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
@@ -481,6 +486,12 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
+function GradientDivider() {
+  return (
+    <LinearGradient colors={["#FFFFFF", "#38BDF8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.sectionDivider} />
+  );
+}
+
 function ChevronRow({
   icon,
   title,
@@ -554,18 +565,18 @@ const styles = StyleSheet.create({
   sectionHeader: {
     paddingHorizontal: 18,
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#1C1C1C",
   },
   sectionHeaderText: { color: "rgba(255,255,255,0.65)", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
+  // Mavi/beyaz degrade "hap" cercevesiyle (bkz. StaticTabBar.tsx topDivider)
+  // AYNI mantik - ama sadece 4 belirli yerde (Google, Istatistikler,
+  // LUNA'yi Degerlendir, Hesabi Sil satirlarinin altinda) kullaniliyor,
+  // diger tum satir cizgileri kaldirildi.
+  sectionDivider: { height: 2.5, marginHorizontal: 18 },
   accountRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.08)",
     gap: 12,
   },
   accountLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "700", flex: 1 },
@@ -586,8 +597,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.08)",
     gap: 12,
   },
   rowIcon: { width: 22, alignItems: "center", justifyContent: "center" },
