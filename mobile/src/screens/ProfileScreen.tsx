@@ -343,7 +343,7 @@ export default function ProfileScreen({
           onPress={() => setInviteSheetVisible(true)}
         />
         <SwitchRow
-          icon={<AdultBadge size={34} />}
+          icon={<AdultBadge size={34} color={ROW_ICON_COLOR} />}
           title={t("profile.hideAdultTitle")}
           value={!hideAdult}
           onValueChange={(v) => applyHideAdultContent(!v)}
