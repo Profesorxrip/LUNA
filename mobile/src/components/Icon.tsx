@@ -35,7 +35,7 @@ import {
   GlobeEuropeAfricaIcon,
   LanguageIcon,
 } from "react-native-heroicons/solid";
-import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, User, UserPlus, UserX, UserMinus, UserCheck } from "lucide-react-native";
+import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, User, UserPlus, UserX, UserMinus, UserCheck, Volume2 } from "lucide-react-native";
 import { PaperPlaneIcon, ParticipantsIcon, PersonBlockIcon, PersonBanIcon, MicIcon, MicOffIcon, VideoIcon, VideoOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon } from "./CustomIcons";
 import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
@@ -100,6 +100,10 @@ export type IconName =
   | "collapse"
   | "volume"
   | "volumeOff"
+  // Kullanicinin ayri ayri onayladigi/numaralandirdigi yeni ikon seti -
+  // mevcut "volume" (Heroicons solid) ile KARISTIRILMASIN, o baska
+  // yerlerde (oda ses ayari, profil secenekleri) zaten kullaniliyor.
+  | "sesAcik1"
   | "chatBubble"
   | "clipboard"
   | "person"
@@ -164,6 +168,7 @@ const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: num
   playOnlyControl: CirclePlay,
   autoplayQueue: ListVideo,
   voteBox: Vote,
+  sesAcik1: Volume2,
 };
 
 const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
