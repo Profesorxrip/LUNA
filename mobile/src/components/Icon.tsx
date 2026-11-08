@@ -35,8 +35,8 @@ import {
   GlobeEuropeAfricaIcon,
   LanguageIcon,
 } from "react-native-heroicons/solid";
-import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, User, UserPlus, UserX, UserMinus, UserCheck, VolumeX } from "lucide-react-native";
-import { PaperPlaneIcon, ParticipantsIcon, PersonBlockIcon, PersonBanIcon, MicIcon, MicOffIcon, VideoIcon, VideoOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon, VolumeOnIcon } from "./CustomIcons";
+import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, User, UserPlus, UserX, UserMinus, UserCheck } from "lucide-react-native";
+import { PaperPlaneIcon, ParticipantsIcon, PersonBlockIcon, PersonBanIcon, MicIcon, MicOffIcon, VideoIcon, VideoOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon, VolumeOnIcon, VolumeOffIcon } from "./CustomIcons";
 import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
 import ModeratorBadge from "./ModeratorBadge";
@@ -169,7 +169,6 @@ const LUCIDE_FALLBACK: Partial<Record<IconName, React.ComponentType<{ size?: num
   playOnlyControl: CirclePlay,
   autoplayQueue: ListVideo,
   voteBox: Vote,
-  sesKapali1: VolumeX,
 };
 
 const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
@@ -194,6 +193,7 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   shareBox: ShareBoxIcon,
   personBlock: PersonBlockIcon,
   sesAcik1: VolumeOnIcon,
+  sesKapali1: VolumeOffIcon,
   personBan: PersonBanIcon,
 };
 

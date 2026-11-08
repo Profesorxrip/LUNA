@@ -355,3 +355,16 @@ export function VolumeOnIcon({ size = 24, color = "#F5F5F7" }: Props) {
     />
   );
 }
+
+// "Ses kapali" - VolumeOnIcon ile AYNI yontem, kullanicinin gonderdigi
+// ikinci referans gorselden cikarilmis GERCEK siluet (assets/icons/
+// volume-off.png).
+export function VolumeOffIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Image
+      source={require("../../assets/icons/volume-off.png")}
+      style={{ width: size, height: size, tintColor: color }}
+      resizeMode="contain"
+    />
+  );
+}
