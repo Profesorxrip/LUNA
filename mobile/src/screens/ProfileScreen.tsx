@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
   },
   pillThumbOff: { left: 3 },
   pillThumbOn: { right: 3 },
-  scrollContent: { paddingTop: 50, paddingBottom: 60 },
+  scrollContent: { paddingTop: 50, paddingBottom: 24 },
   sectionHeader: {
     paddingHorizontal: 18,
     paddingVertical: 12,
