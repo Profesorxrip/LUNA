@@ -786,7 +786,10 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                   <Plus size={18} color={TEXT} strokeWidth={3} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.bannerActionButton} onPress={() => placeholder(t("tabs.settings"))} hitSlop={6}>
-                  <Settings size={18} color={TEXT} strokeWidth={2} />
+                  <View>
+                    <Settings size={18} color={TEXT} fill={TEXT} strokeWidth={2} />
+                    <View style={styles.settingsGearHole} />
+                  </View>
                 </TouchableOpacity>
               </View>
             )}
@@ -1409,6 +1412,18 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(20,20,20,0.75)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  // Dolu cark ikonunun (fill=TEXT) ortasindaki deligi geri getirmek icin -
+  // butonun arkaplan rengiyle AYNI renkte kucuk bir daire ustune bindirilip
+  // "delinmis" gibi gosteriliyor.
+  settingsGearHole: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(20,20,20,0.75)",
   },
   avatarSquareWrap: { width: 88, height: 88, marginTop: 18, marginBottom: 10, marginLeft: -LEFT_SHIFT },
   // SABIT bir deger (AVATAR_OVERLAP) - avatar boyutu degisse bile bu
