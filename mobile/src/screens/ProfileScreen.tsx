@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as StoreReview from "expo-store-review";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { Inter_700Bold } from "@expo-google-fonts/inter";
+import { LockClosedIcon } from "react-native-heroicons/outline";
 import { useTranslation } from "react-i18next";
 import {
   Link as LinkIcon,
@@ -14,7 +15,6 @@ import {
   Languages as LanguagesIcon,
   MapPin,
   Globe,
-  Lock,
   Bell,
   Ban,
   ChartBar,
@@ -376,7 +376,7 @@ export default function ProfileScreen({
           onValueChange={applyHideLocation}
         />
         <ChevronRow icon={<Globe size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.languageTitle")} onPress={() => setLanguageSheetVisible(true)} />
-        <ChevronRow icon={<Lock size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.privacyTitle")} onPress={onOpenPrivacy} />
+        <ChevronRow icon={<LockClosedIcon size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.privacyTitle")} onPress={onOpenPrivacy} />
         <ChevronRow icon={<Bell size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.notificationsTitle")} onPress={() => placeholder(t("profile.notificationsTitle"))} />
         <ChevronRow icon={<Ban size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.blockedTitle")} onPress={() => placeholder(t("profile.blockedTitle"))} />
         <ChevronRow icon={<ChartBar size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.statsTitle")} onPress={() => placeholder(t("profile.statsTitle"))} />
