@@ -547,7 +547,9 @@ function SwitchRow({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#000000" },
+  // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor -
+  // UserProfileScreen.tsx'teki gibi (bkz. "screen" stili orada).
+  screen: { flex: 1, backgroundColor: "transparent" },
   scrollContent: { paddingTop: 50, paddingBottom: 60 },
   sectionHeader: {
     paddingHorizontal: 18,
