@@ -341,3 +341,17 @@ export function PhoneDeviceOffIcon({ size = 24, color = "#F5F5F7" }: Props) {
     </Svg>
   );
 }
+
+// "Ses acik" - VideoIcon/RoomMicIcon'daki AYNI yontem: kullanicinin
+// dogrudan gonderdigi referans gorselden cikarilmis GERCEK siluet
+// (assets/icons/volume-on.png, siyah zemin alpha'ya cevrilerek silindi,
+// glow/parlama kenarlari AYNEN korunuyor) - elle cizilmis bir SVG degil.
+export function VolumeOnIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Image
+      source={require("../../assets/icons/volume-on.png")}
+      style={{ width: size, height: size, tintColor: color }}
+      resizeMode="contain"
+    />
+  );
+}
