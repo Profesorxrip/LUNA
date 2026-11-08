@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as StoreReview from "expo-store-review";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { Inter_700Bold } from "@expo-google-fonts/inter";
+import { Rubik_700Bold } from "@expo-google-fonts/rubik";
 import { LockClosedIcon } from "react-native-heroicons/outline";
 import { useTranslation } from "react-i18next";
 import {
@@ -76,7 +77,7 @@ export default function ProfileScreen({
   // yukleniyor ki AdultBadge'in "18+" yazisi (zaten Inter_700Bold
   // kullanan ortak bilesen) DiscoverScreen'deki rozetle birebir ayni
   // fontla cizilsin (bkz. DiscoverScreen.tsx ayni ikili useFonts).
-  const [fontsLoaded] = useFonts({ BebasNeue_400Regular, Inter_700Bold });
+  const [fontsLoaded] = useFonts({ BebasNeue_400Regular, Inter_700Bold, Rubik_700Bold });
   const INVITE_OPTIONS: { key: InviteRestriction; label: string }[] = [
     { key: "everyone", label: t("profile.inviteEveryone") },
     { key: "friends", label: t("profile.inviteFriends") },
@@ -322,12 +323,12 @@ export default function ProfileScreen({
                 <View style={styles.checkBadge}>
                   <Text style={styles.checkBadgeText}>✓</Text>
                 </View>
-                <Text style={styles.accountValueText} numberOfLines={1}>
+                <Text style={[styles.accountValueText, fontsLoaded && styles.accountValueTextFontLoaded]} numberOfLines={1}>
                   {t("profile.googleConnected", { email })}
                 </Text>
               </>
             ) : (
-              <Text style={styles.accountValueText}>{t("profile.notConnected")}</Text>
+              <Text style={[styles.accountValueText, fontsLoaded && styles.accountValueTextFontLoaded]}>{t("profile.notConnected")}</Text>
             )}
           </View>
         </TouchableOpacity>
@@ -624,6 +625,7 @@ const styles = StyleSheet.create({
   },
   checkBadgeText: { color: "#1a2a6c", fontSize: 12, fontWeight: "700" },
   accountValueText: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "500", flexShrink: 1 },
+  accountValueTextFontLoaded: { fontFamily: "Rubik_700Bold", fontWeight: "400" },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
