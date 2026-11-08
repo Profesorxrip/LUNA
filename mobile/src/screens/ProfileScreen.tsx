@@ -23,7 +23,7 @@ import {
   BookOpen,
   MessageCircle,
   Activity,
-  Antenna,
+  RadioTower,
   Trash,
 } from "lucide-react-native";
 import { supabase } from "../services/supabase";
@@ -391,7 +391,7 @@ export default function ProfileScreen({
         <ChevronRow icon={<BookOpen size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.userGuideTitle")} onPress={() => placeholder(t("profile.userGuideTitle"))} />
         <ChevronRow icon={<MessageCircle size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.contactTitle")} onPress={handleContactUs} />
         <ChevronRow icon={<Activity size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.diagnosticsRun")} onPress={runDiagnostics} />
-        <ChevronRow icon={<Antenna size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.backgroundTitle")} onPress={onOpenBackgroundInfo} />
+        <ChevronRow icon={<RadioTower size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.backgroundTitle")} onPress={onOpenBackgroundInfo} />
         <ChevronRow
           icon={<Trash size={30} color="#FF8A8A" strokeWidth={2} />}
           title={t("profile.deleteAccountTitle")}
