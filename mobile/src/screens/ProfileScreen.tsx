@@ -12,6 +12,7 @@ import {
   MailPlus,
   Vibrate,
   Languages as LanguagesIcon,
+  Volume2,
   VolumeX,
   MapPin,
   Globe,
@@ -365,7 +366,13 @@ export default function ProfileScreen({
           onValueChange={applyAutoTranslate}
         />
         <SwitchRow
-          icon={<VolumeX size={30} color={ROW_ICON_COLOR} strokeWidth={2} />}
+          icon={
+            muteOnOtherAudio ? (
+              <VolumeX size={30} color={ROW_ICON_COLOR} strokeWidth={2} />
+            ) : (
+              <Volume2 size={30} color={ROW_ICON_COLOR} strokeWidth={2} />
+            )
+          }
           title={t("profile.muteOtherAudioTitle")}
           value={muteOnOtherAudio}
           onValueChange={applyMuteOnOtherAudio}
