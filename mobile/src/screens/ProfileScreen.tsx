@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator, Switch } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as StoreReview from "expo-store-review";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
@@ -38,7 +38,7 @@ import { LANGUAGES, setAppLanguage, LanguageCode } from "../i18n";
 
 const SUPPORT_EMAIL = "destek@luna.app";
 const ROW_ICON_COLOR = "#FFFFFF";
-const SWITCH_TRACK_ON = "#38BDF8";
+const PILL_TRACK_ON = "#38BDF8";
 
 type InviteRestriction = "everyone" | "friends" | "none";
 
@@ -528,9 +528,9 @@ function ChevronRow({
   );
 }
 
-/** Carktaki (bkz. AYARLAR bolumu) acik/kapali ayarlar artik gercek bir
- * anahtar (Switch) ile gosteriliyor - kullanicinin gonderdigi ekran
- * goruntusundeki mavi/beyaz ios-tarzi anahtarlarla birebir ayni. */
+/** Carktaki (bkz. AYARLAR bolumu) acik/kapali ayarlar - ozel bir "hap"
+ * anahtar (duz mavi dolgu, Switch DEGIL) ile gosteriliyor; kullanici
+ * degrade yerine duz mavi istedi (bkz. toggle onerileri). */
 function SwitchRow({
   icon,
   title,
@@ -543,22 +543,22 @@ function SwitchRow({
   onValueChange: (next: boolean) => void;
 }) {
   return (
-    <View style={styles.row}>
+    <TouchableOpacity
+      style={styles.row}
+      activeOpacity={0.8}
+      onPress={() => {
+        triggerHaptic();
+        onValueChange(!value);
+      }}
+    >
       {icon && <View style={styles.rowIcon}>{icon}</View>}
       <View style={styles.rowText}>
         <Text style={styles.rowTitle}>{title}</Text>
       </View>
-      <Switch
-        value={value}
-        onValueChange={(next) => {
-          triggerHaptic();
-          onValueChange(next);
-        }}
-        trackColor={{ false: "rgba(255,255,255,0.2)", true: SWITCH_TRACK_ON }}
-        thumbColor="#FFFFFF"
-        ios_backgroundColor="rgba(255,255,255,0.2)"
-      />
-    </View>
+      <View style={[styles.pillTrack, value && styles.pillTrackOn]}>
+        <View style={[styles.pillThumb, value ? styles.pillThumbOn : styles.pillThumbOff]} />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -566,6 +566,24 @@ const styles = StyleSheet.create({
   // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor -
   // UserProfileScreen.tsx'teki gibi (bkz. "screen" stili orada).
   screen: { flex: 1, backgroundColor: "transparent" },
+  // Ozel "hap" anahtar (SwitchRow) - duz mavi dolgu (degrade DEGIL).
+  pillTrack: {
+    width: 46,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+  },
+  pillTrackOn: { backgroundColor: PILL_TRACK_ON },
+  pillThumb: {
+    position: "absolute",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+  },
+  pillThumbOff: { left: 3 },
+  pillThumbOn: { right: 3 },
   scrollContent: { paddingTop: 50, paddingBottom: 60 },
   sectionHeader: {
     paddingHorizontal: 18,
