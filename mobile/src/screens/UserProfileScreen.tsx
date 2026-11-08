@@ -882,8 +882,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             </View>
           ) : (
             <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("handle")}>
-              <View style={styles.handleRow}>
-                <Text style={styles.handle}>@{handle.toUpperCase()}</Text>
+              <View style={[styles.handleRow, { alignItems: "flex-start", gap: 0 }]}>
+                <Text style={[styles.handle, styles.handleAtNudge]}>@</Text>
+                <Text style={styles.handle}>{handle.toUpperCase()}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -1477,6 +1478,10 @@ const styles = StyleSheet.create({
   } as any,
   handleRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
   handle: { color: MUTED, fontSize: 14, fontWeight: "600", letterSpacing: 0.2 },
+  // @ isareti bu fontta buyuk harflerin tepe yuksekligine gore kisa
+  // ciziliyor (hemen hemen her fontta boyle) - harflerle tepeden
+  // hizalansin diye yukari kaydiriliyor.
+  handleAtNudge: { marginTop: -2 },
   handleEditRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   handleAt: { color: MUTED, fontSize: 14, fontWeight: "600" },
   handleInput: {
