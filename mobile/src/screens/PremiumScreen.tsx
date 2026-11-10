@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import Icon from "../components/Icon";
 import PremiumBadge from "../components/PremiumBadge";
@@ -79,9 +80,11 @@ export default function PremiumScreen() {
           })}
         </View>
 
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.85}>
-          <Text style={styles.continueButtonText}>{t("premium.continue")}</Text>
-        </TouchableOpacity>
+        <LinearGradient colors={["#FFFFFF", "#38BDF8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueGradientBorder}>
+          <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.85}>
+            <Text style={styles.continueButtonText}>{t("premium.continue")}</Text>
+          </TouchableOpacity>
+        </LinearGradient>
         <Text style={styles.disclaimer}>{t("premium.disclaimer")}</Text>
       </ScrollView>
     </View>
@@ -150,14 +153,15 @@ const styles = StyleSheet.create({
   planLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   planNote: { color: ACCENT, fontSize: 11, fontWeight: "700", marginTop: 2 },
   planPrice: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
+  // Mavi/beyaz degrade cerceve, siyah dolgulu buton - ProfileScreen.tsx'teki
+  // "Cikis Yap" butonuyla AYNI yontem (kullanicinin istegi uzerine).
+  continueGradientBorder: { marginHorizontal: 18, marginTop: 28, borderRadius: 14, padding: 2 },
   continueButton: {
-    marginHorizontal: 18,
-    marginTop: 28,
-    backgroundColor: ACCENT,
-    borderRadius: 14,
+    backgroundColor: "#000000",
+    borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
   },
-  continueButtonText: { color: "#04140D", fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
+  continueButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
   disclaimer: { color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: "500", textAlign: "center", marginTop: 14 },
 });
