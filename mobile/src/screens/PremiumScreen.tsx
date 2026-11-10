@@ -11,11 +11,15 @@ const ACCENT = "#0EA5E9";
 
 type PlanKey = "monthly" | "yearly";
 
+interface Props {
+  onClose: () => void;
+}
+
 /** Gercek bir odeme ekrani - plan secimi ve "Devam Et" akisi tamamen
  * calisiyor, ama GERCEK tahsilat (App Store/Play Store IAP ya da Stripe)
  * henuz baglanmadi (magaza hesaplari bu ortamdan kurulamiyor) - bu yuzden
  * "Devam Et" su an durumu acikca soyleyen bir bilgi mesaji gosteriyor. */
-export default function PremiumScreen() {
+export default function PremiumScreen({ onClose }: Props) {
   const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<PlanKey>("yearly");
 
@@ -34,6 +38,11 @@ export default function PremiumScreen() {
 
   return (
     <View style={styles.screen}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onClose} hitSlop={10} style={styles.backTouch}>
+          <Icon name="chevronLeft" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <View style={styles.crownBadge}>
@@ -95,8 +104,10 @@ const styles = StyleSheet.create({
   // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor -
   // ProfileScreen.tsx/UserProfileScreen.tsx'teki gibi (bkz. "screen" stili orada).
   screen: { flex: 1, backgroundColor: "transparent" },
+  header: { flexDirection: "row", paddingHorizontal: 14, paddingTop: 50 },
+  backTouch: { width: 36, height: 36, alignItems: "flex-start", justifyContent: "center" },
   scrollContent: { paddingBottom: 48 },
-  hero: { alignItems: "center", paddingTop: 54, paddingHorizontal: 24 },
+  hero: { alignItems: "center", paddingTop: 12, paddingHorizontal: 24 },
   crownBadge: {
     width: 72,
     height: 72,

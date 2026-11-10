@@ -216,7 +216,8 @@ function MainTabsRoute() {
 }
 
 function PremiumRoute() {
-  return <PremiumScreen />;
+  const navigation = useNavigation<Nav>();
+  return <PremiumScreen onClose={() => navigation.goBack()} />;
 }
 
 function PrivacyRoute() {
