@@ -47,7 +47,7 @@ export default function PremiumScreen() {
           {BENEFITS.map((b) => (
             <View key={b} style={styles.benefitRow}>
               <View style={styles.benefitCheck}>
-                <Icon name="check" size={14} color={ACCENT} />
+                <Icon name="check" size={14} color="#FFFFFF" />
               </View>
               <Text style={styles.benefitText}>{b}</Text>
             </View>
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.4)",
+    borderColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
   },
