@@ -147,11 +147,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  radioActive: { borderColor: ACCENT },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: ACCENT },
+  radioActive: { borderColor: "#FFFFFF" },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFFFFF" },
   planTextCol: { flex: 1 },
   planLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  planNote: { color: ACCENT, fontSize: 11, fontWeight: "700", marginTop: 2 },
+  planNote: { color: "#FFFFFF", fontSize: 11, fontWeight: "700", marginTop: 2 },
   planPrice: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
   // Mavi/beyaz degrade cerceve, siyah dolgulu buton - ProfileScreen.tsx'teki
   // "Cikis Yap" butonuyla AYNI yontem (kullanicinin istegi uzerine).
