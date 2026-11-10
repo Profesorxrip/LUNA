@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { useTranslation } from "react-i18next";
 import Icon from "../components/Icon";
+import PremiumBadge from "../components/PremiumBadge";
 import { showAlert } from "../components/CustomAlert";
 import { triggerHaptic } from "../utils/haptics";
 
@@ -35,7 +36,7 @@ export default function PremiumScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <View style={styles.crownBadge}>
-            <Icon name="crown" size={36} color={ACCENT} />
+            <PremiumBadge size={40} />
           </View>
           <Text style={styles.title}>LUNA PREMIUM</Text>
           <Text style={styles.tagline}>{t("premium.tagline")}</Text>
