@@ -36,7 +36,7 @@ export default function PremiumScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <View style={styles.crownBadge}>
-            <PremiumBadge size={40} />
+            <PremiumBadge size={50} />
           </View>
           <Text style={styles.title}>LUNA PREMIUM</Text>
           <Text style={styles.tagline}>{t("premium.tagline")}</Text>
