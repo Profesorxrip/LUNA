@@ -9,7 +9,7 @@ import { triggerHaptic } from "../utils/haptics";
 
 const ACCENT = "#0EA5E9";
 
-type PlanKey = "monthly" | "yearly";
+type PlanKey = "monthly" | "sixMonth" | "nineMonth" | "yearly";
 
 interface Props {
   onClose: () => void;
@@ -28,6 +28,8 @@ export default function PremiumScreen({ onClose }: Props) {
   // birimi/tutar su an icin sabit, cevrilmiyor (bkz. yukaridaki yorum).
   const PLANS: { key: PlanKey; label: string; price: string; note?: string }[] = [
     { key: "monthly", label: t("premium.monthly"), price: "₺49,99" },
+    { key: "sixMonth", label: t("premium.sixMonth"), price: "₺249,99", note: t("premium.sixMonthNote") },
+    { key: "nineMonth", label: t("premium.nineMonth"), price: "₺349,99", note: t("premium.nineMonthNote") },
     { key: "yearly", label: t("premium.yearly"), price: "₺399,99", note: t("premium.yearlyNote") },
   ];
 
