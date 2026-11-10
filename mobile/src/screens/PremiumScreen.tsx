@@ -88,7 +88,9 @@ export default function PremiumScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#000000" },
+  // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor -
+  // ProfileScreen.tsx/UserProfileScreen.tsx'teki gibi (bkz. "screen" stili orada).
+  screen: { flex: 1, backgroundColor: "transparent" },
   scrollContent: { paddingBottom: 48 },
   hero: { alignItems: "center", paddingTop: 54, paddingHorizontal: 24 },
   crownBadge: {
