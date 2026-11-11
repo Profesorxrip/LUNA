@@ -85,7 +85,10 @@ export default function CustomAlertHost() {
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: 32 },
-  card: { width: "100%", maxWidth: 320, backgroundColor: theme.surface, borderRadius: 16, overflow: "hidden" },
+  // Davetler/Dil popover'larindaki AYNI lacivert (theme.surface DEGIL -
+  // theme.surface baska bircok ekranda (oda kartlari, medya oynatici)
+  // paylasiliyor, burayi degistirmek onlari da etkilerdi).
+  card: { width: "100%", maxWidth: 320, backgroundColor: "#15202B", borderRadius: 18, overflow: "hidden" },
   title: { color: theme.text, fontSize: 16, fontWeight: "700", textAlign: "center", paddingTop: 20, paddingHorizontal: 20 },
   message: { color: theme.textMuted, fontSize: 14, textAlign: "center", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20, lineHeight: 19 },
   buttonGroup: { borderTopWidth: 1, borderColor: theme.border },
