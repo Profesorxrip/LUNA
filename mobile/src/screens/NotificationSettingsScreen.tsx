@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { UserPlus, MessageCircle, DoorOpen, Heart, Megaphone } from "lucide-react-native";
 import Icon from "../components/Icon";
 import { triggerHaptic } from "../utils/haptics";
@@ -30,6 +31,7 @@ const CATEGORIES: { key: NotificationCategory; icon: React.ReactNode; titleKey: 
  * tercihler notificationSettings.ts (AsyncStorage) uzerinden okunur/yazilir. */
 export default function NotificationSettingsScreen({ onBack }: Props) {
   const { t } = useTranslation();
+  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
   const [values, setValues] = useState<Partial<Record<NotificationCategory, boolean>>>({});
 
   useEffect(() => {
@@ -52,9 +54,10 @@ export default function NotificationSettingsScreen({ onBack }: Props) {
         <TouchableOpacity onPress={onBack} hitSlop={10} style={styles.backTouch}>
           <Icon name="chevronLeft" size={22} color="#FFFFFF" />
         </TouchableOpacity>
+        <Text style={[styles.title, fontsLoaded && styles.titleFontLoaded]}>{t("notifications.title")}</Text>
+        <View style={styles.headerSpacer} />
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{t("notifications.title")}</Text>
         {CATEGORIES.map((c) => {
           const value = values[c.key] ?? true;
           return (
@@ -77,10 +80,19 @@ export default function NotificationSettingsScreen({ onBack }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "transparent" },
-  header: { flexDirection: "row", paddingHorizontal: 14, paddingTop: 50 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingTop: 54,
+    paddingBottom: 14,
+  },
   backTouch: { width: 36, height: 36, alignItems: "flex-start", justifyContent: "center" },
+  headerSpacer: { width: 36 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 48 },
-  title: { color: "#FFFFFF", fontSize: 22, fontWeight: "800", letterSpacing: 0.3, marginBottom: 20 },
+  title: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", letterSpacing: 0.3 },
+  titleFontLoaded: { fontFamily: "BebasNeue_400Regular", fontWeight: "400", fontSize: 22, letterSpacing: 1.4 },
   row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14 },
   rowIcon: { width: 32, alignItems: "center", justifyContent: "center" },
   rowText: { flex: 1 },
