@@ -13,6 +13,7 @@ import PremiumScreen from "../screens/PremiumScreen";
 import PrivacyScreen from "../screens/PrivacyScreen";
 import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
 import BlockedUsersScreen from "../screens/BlockedUsersScreen";
+import StatsScreen from "../screens/StatsScreen";
 import BackgroundInfoScreen from "../screens/BackgroundInfoScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import DMScreen, { DMPeer, DmInfoOpenParams } from "../screens/DMScreen";
@@ -57,6 +58,7 @@ export type RootStackParamList = {
   Privacy: undefined;
   Notifications: undefined;
   Blocked: undefined;
+  Stats: undefined;
   BackgroundInfo: undefined;
   // Baska birinin profilini goruntülemek icin (own:false + peer) - kendi
   // profilimiz artik MainTabs icindeki "Profile" sekmesi (bkz. MyProfileRoute).
@@ -197,6 +199,7 @@ function AppSettingsRoute() {
       onOpenPrivacy={() => navigation.navigate("Privacy")}
       onOpenNotifications={() => navigation.navigate("Notifications")}
       onOpenBlocked={() => navigation.navigate("Blocked")}
+      onOpenStats={() => navigation.navigate("Stats")}
       onOpenBackgroundInfo={() => navigation.navigate("BackgroundInfo")}
     />
   );
@@ -239,6 +242,11 @@ function NotificationsRoute() {
 function BlockedRoute() {
   const navigation = useNavigation<Nav>();
   return <BlockedUsersScreen onBack={() => navigation.goBack()} />;
+}
+
+function StatsRoute() {
+  const navigation = useNavigation<Nav>();
+  return <StatsScreen onBack={() => navigation.goBack()} />;
 }
 
 function BackgroundInfoRoute() {
@@ -359,6 +367,7 @@ export default function RootNavigator() {
         <Stack.Screen name="Privacy" component={PrivacyRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="Notifications" component={NotificationsRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="Blocked" component={BlockedRoute} options={{ animation: "slide_from_bottom" }} />
+        <Stack.Screen name="Stats" component={StatsRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="BackgroundInfo" component={BackgroundInfoRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="UserProfile" component={UserProfileRoute} />
         <Stack.Screen name="DM" component={DMRoute} />

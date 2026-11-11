@@ -614,11 +614,14 @@ io.on("connection", (socket: Socket) => {
   // Gunluk Saatler" - supabase/migrations/0003_profile_stats_and_history.sql
   // icindeki get_user_activity_stats RPC'si room_events'i hesaplayarak
   // bu dort degeri dondurur (herkese acik - profil sayfasinda gosteriliyor).
+  // "days" ARTIK VERILMIYOR (bkz. 0024_activity_stats_full_history.sql) -
+  // kullanici "girdigim her gun gozukmeli" dedi, "daily" artik hesabin
+  // TUM gecmisindeki gercek oturum gunlerini donduruyor.
   socket.on("user:activityStats", async ({ userId }: { userId: string }, ack) => {
     if (!isNonEmptyString(userId, 200)) return ack?.({ ok: false, error: "Gecersiz kullanici." });
     const db = myDb || publicReadClient();
     if (!db) return ack?.({ ok: false, error: "Sunucu yapilandirilmamis." });
-    const { data, error } = await db.rpc("get_user_activity_stats", { target: userId, days: 9 });
+    const { data, error } = await db.rpc("get_user_activity_stats", { target: userId });
     if (error || !data || !data[0]) return ack?.({ ok: false, error: "Istatistikler alinamadi." });
     const row = data[0];
     ack?.({
@@ -642,6 +645,22 @@ io.on("connection", (socket: Socket) => {
     const { data, error } = await db.rpc("get_friend_count", { target: userId });
     if (error) return ack?.({ ok: false, error: "Sayi alinamadi." });
     ack?.({ ok: true, count: Number(data) || 0 });
+  });
+
+  // Ayarlar > "İstatistikler" ekranindaki "Platformlar" halka grafigi -
+  // supabase/migrations/0025_user_platform_stats.sql icindeki
+  // get_user_platform_stats RPC'si saat bazinda platform dagilimini dondurur
+  // (herkese acik - sadece SAYI/saat, oda icerigi degil).
+  socket.on("user:platformStats", async ({ userId }: { userId: string }, ack) => {
+    if (!isNonEmptyString(userId, 200)) return ack?.({ ok: false, error: "Gecersiz kullanici." });
+    const db = myDb || publicReadClient();
+    if (!db) return ack?.({ ok: false, error: "Sunucu yapilandirilmamis." });
+    const { data, error } = await db.rpc("get_user_platform_stats", { target: userId });
+    if (error) return ack?.({ ok: false, error: "Platform istatistikleri alinamadi." });
+    ack?.({
+      ok: true,
+      platforms: (data || []).map((row: any) => ({ platform: row.platform as string, hours: Number(row.hours) || 0 })),
+    });
   });
 
   // Profildeki GERCEK "Galeri"/"Videolar" - get_user_room_history RPC'si
