@@ -328,14 +328,9 @@ export default function ProfileScreen({
           <Text style={styles.accountLabel}>{t("profile.google")}</Text>
           <View style={styles.accountValue}>
             {googleLinked ? (
-              <>
-                <View style={styles.checkBadge}>
-                  <Text style={styles.checkBadgeText}>✓</Text>
-                </View>
-                <Text style={[styles.accountValueText, fontsLoaded && styles.accountValueTextFontLoaded]} numberOfLines={1}>
-                  {t("profile.googleConnected", { email })}
-                </Text>
-              </>
+              <Text style={[styles.accountValueText, fontsLoaded && styles.accountValueTextFontLoaded]} numberOfLines={1}>
+                {email}
+              </Text>
             ) : (
               <Text style={[styles.accountValueText, fontsLoaded && styles.accountValueTextFontLoaded]}>{t("profile.notConnected")}</Text>
             )}
@@ -663,15 +658,6 @@ const styles = StyleSheet.create({
   },
   accountLabel: { color: "#FFFFFF", fontSize: 20, fontWeight: "700", flex: 1 },
   accountValue: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 },
-  checkBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkBadgeText: { color: "#1a2a6c", fontSize: 12, fontWeight: "700" },
   accountValueText: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "500", flexShrink: 1 },
   accountValueTextFontLoaded: { fontFamily: "Rubik_700Bold", fontWeight: "400" },
   row: {
