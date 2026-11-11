@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Modal, ActivityIndicator, Dimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as StoreReview from "expo-store-review";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
@@ -97,6 +97,8 @@ export default function ProfileScreen({
   const [quickReaction, setQuickReaction] = useState("❤️");
   const [emojiSheetVisible, setEmojiSheetVisible] = useState(false);
   const [inviteSheetVisible, setInviteSheetVisible] = useState(false);
+  const [inviteAnchor, setInviteAnchor] = useState<{ top: number; right: number } | null>(null);
+  const inviteRowRef = useRef<View>(null);
   const [inviteRestriction, setInviteRestriction] = useState<InviteRestriction>("everyone");
   const [hideAdult, setHideAdult] = useState(false);
   const [haptics, setHaptics] = useState(false);
@@ -340,11 +342,19 @@ export default function ProfileScreen({
           title={t("profile.quickReactionTitle")}
           onPress={() => setEmojiSheetVisible(true)}
         />
-        <ChevronRow
-          icon={<MailPlus size={30} color={ROW_ICON_COLOR} strokeWidth={2} />}
-          title={t("profile.restrictInvitesTitle")}
-          onPress={() => setInviteSheetVisible(true)}
-        />
+        <View ref={inviteRowRef} collapsable={false}>
+          <ChevronRow
+            icon={<MailPlus size={30} color={ROW_ICON_COLOR} strokeWidth={2} />}
+            title={t("profile.restrictInvitesTitle")}
+            onPress={() => {
+              inviteRowRef.current?.measureInWindow((x, y, width, height) => {
+                const screenWidth = Dimensions.get("window").width;
+                setInviteAnchor({ top: y + height + 6, right: screenWidth - (x + width) });
+                setInviteSheetVisible(true);
+              });
+            }}
+          />
+        </View>
         <SwitchRow
           icon={<AdultBadge size={34} color={ROW_ICON_COLOR} />}
           title={t("profile.hideAdultTitle")}
@@ -414,12 +424,20 @@ export default function ProfileScreen({
       />
 
       <Modal visible={inviteSheetVisible} transparent animationType="fade" onRequestClose={() => setInviteSheetVisible(false)} statusBarTranslucent>
-        <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setInviteSheetVisible(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.optionSheet}>
+        <TouchableOpacity style={styles.anchoredOverlay} activeOpacity={1} onPress={() => setInviteSheetVisible(false)}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[
+              styles.optionSheet,
+              styles.inviteSheet,
+              styles.anchoredSheet,
+              inviteAnchor && { top: inviteAnchor.top, right: inviteAnchor.right },
+            ]}
+          >
             {INVITE_OPTIONS.map((opt) => (
               <TouchableOpacity
                 key={opt.key}
-                style={styles.optionRow}
+                style={[styles.optionRow, styles.inviteOptionRow, opt.key === inviteRestriction && styles.inviteOptionRowActive]}
                 onPress={() => {
                   triggerHaptic();
                   applyInviteRestriction(opt.key);
@@ -427,7 +445,6 @@ export default function ProfileScreen({
                 }}
               >
                 <Text style={[styles.optionRowText, opt.key === inviteRestriction && styles.optionRowTextActive]}>{opt.label}</Text>
-                {opt.key === inviteRestriction && <Icon name="check" size={16} color="#0EA5E9" />}
               </TouchableOpacity>
             ))}
           </TouchableOpacity>
@@ -639,6 +656,11 @@ const styles = StyleSheet.create({
   rowTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "700" },
   rowSubtitle: { color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: "500", marginTop: 3, lineHeight: 17 },
   optionOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" },
+  anchoredOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)" },
+  anchoredSheet: { position: "absolute" },
+  inviteSheet: { backgroundColor: "#15202B", borderRadius: 18, borderWidth: 0 },
+  inviteOptionRow: { marginHorizontal: 10, borderRadius: 14 },
+  inviteOptionRowActive: { backgroundColor: "rgba(14,165,233,0.18)" },
   optionSheet: {
     backgroundColor: "#0A0A0A",
     borderRadius: 16,
