@@ -28,6 +28,10 @@ const SECTIONS = [
   },
 ];
 
-export default function PrivacyScreen() {
-  return <InfoScreen title="GİZLİLİK POLİTİKASI" sections={SECTIONS} />;
+interface Props {
+  onBack?: () => void;
+}
+
+export default function PrivacyScreen({ onBack }: Props) {
+  return <InfoScreen title="GİZLİLİK POLİTİKASI" sections={SECTIONS} onBack={onBack} />;
 }

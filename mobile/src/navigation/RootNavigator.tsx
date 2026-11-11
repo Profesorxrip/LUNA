@@ -221,7 +221,8 @@ function PremiumRoute() {
 }
 
 function PrivacyRoute() {
-  return <PrivacyScreen />;
+  const navigation = useNavigation<Nav>();
+  return <PrivacyScreen onBack={() => navigation.goBack()} />;
 }
 
 function BackgroundInfoRoute() {
