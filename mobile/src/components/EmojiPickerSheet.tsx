@@ -2,9 +2,11 @@ import React, { useMemo, useRef, useState } from "react";
 import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
+import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { getEmojiCategories } from "../data/emojiCategories";
 import { searchEmojis } from "../data/emojiSearch";
 import Icon from "./Icon";
+import AppBackground from "./AppBackground";
 
 const COLS = 7;
 const HEADER_HEIGHT = 38;
@@ -32,6 +34,7 @@ interface Props {
  * kategori sekmelerine basinca ilgili bolume aninda ziplanabiliyor. */
 export default function EmojiPickerSheet({ visible, selected, onSelect, onClose }: Props) {
   const { t, i18n } = useTranslation();
+  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
   const listRef = useRef<FlatList<ListItem>>(null);
   const [query, setQuery] = useState("");
   const searching = query.trim().length > 0;
@@ -69,33 +72,36 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
       <View style={styles.screen}>
+        <AppBackground />
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleClose} hitSlop={10}>
-            <Icon name="close" size={24} color="#FFFFFF" />
+          <TouchableOpacity onPress={handleClose} hitSlop={10} style={styles.backTouch}>
+            <Icon name="chevronLeft" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.title}>{t("emoji.quickReactionTitle")}</Text>
+          <Text style={[styles.title, fontsLoaded && styles.titleFontLoaded]}>{t("emoji.quickReactionTitle")}</Text>
           <Text style={styles.currentEmoji}>{selected}</Text>
         </View>
 
-        <LinearGradient
-          colors={["#2a2a35", "#1c1c24", "#101014"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.searchBar}
-        >
-          <Icon name="search" size={18} color="rgba(255,255,255,0.85)" />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t("emoji.searchPlaceholder")}
-            placeholderTextColor="rgba(255,255,255,0.5)"
-            style={styles.searchInput}
-          />
-          {searching && (
-            <TouchableOpacity onPress={() => setQuery("")} hitSlop={10}>
-              <Icon name="close" size={16} color="rgba(255,255,255,0.5)" />
-            </TouchableOpacity>
-          )}
+        <LinearGradient colors={["#FFFFFF", "#38BDF8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.searchBarBorder}>
+          <LinearGradient
+            colors={["#0c1a28", "#13293f", "#1b3752"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.searchBar}
+          >
+            <Icon name="search" size={18} color="#FFFFFF" />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t("emoji.searchPlaceholder")}
+              placeholderTextColor="rgba(186,214,235,0.45)"
+              style={styles.searchInput}
+            />
+            {searching && (
+              <TouchableOpacity onPress={() => setQuery("")} hitSlop={10}>
+                <Icon name="close" size={16} color="rgba(255,255,255,0.5)" />
+              </TouchableOpacity>
+            )}
+          </LinearGradient>
         </LinearGradient>
 
         {!searching && (
@@ -165,7 +171,7 @@ export default function EmojiPickerSheet({ visible, selected, onSelect, onClose 
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#000000" },
+  screen: { flex: 1, backgroundColor: "transparent" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -174,20 +180,24 @@ const styles = StyleSheet.create({
     paddingTop: 54,
     paddingBottom: 14,
   },
+  backTouch: { outlineWidth: 0, outlineStyle: "none" } as any,
   title: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", letterSpacing: 0.3 },
+  titleFontLoaded: { fontFamily: "BebasNeue_400Regular", fontWeight: "400", fontSize: 22, letterSpacing: 1.4 },
   currentEmoji: { fontSize: 24, width: 24, textAlign: "right" },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 26,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    gap: 10,
+  searchBarBorder: {
+    borderRadius: 27,
+    padding: 2,
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 48,
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
@@ -213,9 +223,9 @@ const styles = StyleSheet.create({
   },
   tabIcon: { fontSize: 22 },
   listContent: { paddingHorizontal: 12, paddingBottom: 40 },
-  sectionHeader: { justifyContent: "center", height: HEADER_HEIGHT, backgroundColor: "#000000" },
+  sectionHeader: { justifyContent: "center", height: HEADER_HEIGHT },
   sectionHeaderText: {
-    color: "rgba(255,255,255,0.65)",
+    color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1.2,
