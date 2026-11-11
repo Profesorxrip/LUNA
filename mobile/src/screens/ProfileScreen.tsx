@@ -83,6 +83,8 @@ export default function ProfileScreen({
     { key: "none", label: t("profile.inviteNone") },
   ];
   const [languageSheetVisible, setLanguageSheetVisible] = useState(false);
+  const [languageAnchor, setLanguageAnchor] = useState<{ top: number; right: number } | null>(null);
+  const languageRowRef = useRef<View>(null);
 
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState("Kullanici");
@@ -385,7 +387,19 @@ export default function ProfileScreen({
           value={hideLocation}
           onValueChange={applyHideLocation}
         />
-        <ChevronRow icon={<Globe size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.languageTitle")} onPress={() => setLanguageSheetVisible(true)} />
+        <View ref={languageRowRef} collapsable={false}>
+          <ChevronRow
+            icon={<Globe size={30} color={ROW_ICON_COLOR} strokeWidth={2} />}
+            title={t("profile.languageTitle")}
+            onPress={() => {
+              languageRowRef.current?.measureInWindow((x, y, width, height) => {
+                const screenWidth = Dimensions.get("window").width;
+                setLanguageAnchor({ top: y + height + 6, right: screenWidth - (x + width) });
+                setLanguageSheetVisible(true);
+              });
+            }}
+          />
+        </View>
         <ChevronRow icon={<LockClosedIcon size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.privacyTitle")} onPress={onOpenPrivacy} />
         <ChevronRow icon={<Bell size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.notificationsTitle")} onPress={() => placeholder(t("profile.notificationsTitle"))} />
         <ChevronRow icon={<Ban size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.blockedTitle")} onPress={() => placeholder(t("profile.blockedTitle"))} />
@@ -429,7 +443,7 @@ export default function ProfileScreen({
             activeOpacity={1}
             style={[
               styles.optionSheet,
-              styles.inviteSheet,
+              styles.popoverSheet,
               styles.anchoredSheet,
               inviteAnchor && { top: inviteAnchor.top, right: inviteAnchor.right },
             ]}
@@ -437,7 +451,7 @@ export default function ProfileScreen({
             {INVITE_OPTIONS.map((opt) => (
               <TouchableOpacity
                 key={opt.key}
-                style={[styles.optionRow, styles.inviteOptionRow, opt.key === inviteRestriction && styles.inviteOptionRowActive]}
+                style={[styles.optionRow, styles.popoverOptionRow, opt.key === inviteRestriction && styles.popoverOptionRowActive]}
                 onPress={() => {
                   triggerHaptic();
                   applyInviteRestriction(opt.key);
@@ -458,13 +472,24 @@ export default function ProfileScreen({
         onRequestClose={() => setLanguageSheetVisible(false)}
         statusBarTranslucent
       >
-        <TouchableOpacity style={styles.optionOverlay} activeOpacity={1} onPress={() => setLanguageSheetVisible(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.optionSheet}>
+        <TouchableOpacity style={styles.anchoredOverlay} activeOpacity={1} onPress={() => setLanguageSheetVisible(false)}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[
+              styles.optionSheet,
+              styles.popoverSheet,
+              styles.anchoredSheet,
+              languageAnchor && { top: languageAnchor.top, right: languageAnchor.right },
+            ]}
+          >
             <ScrollView style={styles.languageSheetScroll}>
               {LANGUAGES.map((lang) => (
-                <TouchableOpacity key={lang.code} style={styles.optionRow} onPress={() => handleSelectLanguage(lang.code)}>
+                <TouchableOpacity
+                  key={lang.code}
+                  style={[styles.optionRow, styles.popoverOptionRow, lang.code === i18n.language && styles.popoverOptionRowActive]}
+                  onPress={() => handleSelectLanguage(lang.code)}
+                >
                   <Text style={[styles.optionRowText, lang.code === i18n.language && styles.optionRowTextActive]}>{lang.label}</Text>
-                  {lang.code === i18n.language && <Icon name="check" size={16} color="#0EA5E9" />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -658,9 +683,9 @@ const styles = StyleSheet.create({
   optionOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" },
   anchoredOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)" },
   anchoredSheet: { position: "absolute" },
-  inviteSheet: { backgroundColor: "#15202B", borderRadius: 18, borderWidth: 0 },
-  inviteOptionRow: { marginHorizontal: 10, borderRadius: 14 },
-  inviteOptionRowActive: { backgroundColor: "rgba(14,165,233,0.18)" },
+  popoverSheet: { backgroundColor: "#15202B", borderRadius: 18, borderWidth: 0 },
+  popoverOptionRow: { marginHorizontal: 10, borderRadius: 14 },
+  popoverOptionRowActive: { backgroundColor: "rgba(14,165,233,0.18)" },
   optionSheet: {
     backgroundColor: "#0A0A0A",
     borderRadius: 16,
