@@ -12,6 +12,7 @@ import ProfileScreen from "../screens/ProfileScreen";
 import PremiumScreen from "../screens/PremiumScreen";
 import PrivacyScreen from "../screens/PrivacyScreen";
 import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
+import BlockedUsersScreen from "../screens/BlockedUsersScreen";
 import BackgroundInfoScreen from "../screens/BackgroundInfoScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import DMScreen, { DMPeer, DmInfoOpenParams } from "../screens/DMScreen";
@@ -55,6 +56,7 @@ export type RootStackParamList = {
   Premium: undefined;
   Privacy: undefined;
   Notifications: undefined;
+  Blocked: undefined;
   BackgroundInfo: undefined;
   // Baska birinin profilini goruntülemek icin (own:false + peer) - kendi
   // profilimiz artik MainTabs icindeki "Profile" sekmesi (bkz. MyProfileRoute).
@@ -194,6 +196,7 @@ function AppSettingsRoute() {
       onOpenPremium={() => navigation.navigate("Premium")}
       onOpenPrivacy={() => navigation.navigate("Privacy")}
       onOpenNotifications={() => navigation.navigate("Notifications")}
+      onOpenBlocked={() => navigation.navigate("Blocked")}
       onOpenBackgroundInfo={() => navigation.navigate("BackgroundInfo")}
     />
   );
@@ -231,6 +234,11 @@ function PrivacyRoute() {
 function NotificationsRoute() {
   const navigation = useNavigation<Nav>();
   return <NotificationSettingsScreen onBack={() => navigation.goBack()} />;
+}
+
+function BlockedRoute() {
+  const navigation = useNavigation<Nav>();
+  return <BlockedUsersScreen onBack={() => navigation.goBack()} />;
 }
 
 function BackgroundInfoRoute() {
@@ -350,6 +358,7 @@ export default function RootNavigator() {
         <Stack.Screen name="Premium" component={PremiumRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="Privacy" component={PrivacyRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="Notifications" component={NotificationsRoute} options={{ animation: "slide_from_bottom" }} />
+        <Stack.Screen name="Blocked" component={BlockedRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="BackgroundInfo" component={BackgroundInfoRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="UserProfile" component={UserProfileRoute} />
         <Stack.Screen name="DM" component={DMRoute} />
