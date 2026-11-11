@@ -26,6 +26,14 @@ const BADGES: Partial<Record<PlatformKey, { source: any; ratio: number }>> = {
   spotify: { source: require("../../assets/badges/spotify.png"), ratio: 1.0 },
 };
 
+/** Bir rozetin GERCEK en/boy orani (bkz. asagidaki olcekleme) - rozeti bir
+ * alana ONCEDEN sigdirmak isteyen cagiranlar icin (orn. StatsScreen'deki
+ * halka grafigin her dilime kendi yay genisligine gore rozet sigdirmasi). */
+export function badgeAspectRatio(platform?: PlatformKey | null): number {
+  const badge = platform ? BADGES[platform] : undefined;
+  return badge?.ratio ?? 1;
+}
+
 interface Props {
   // Bilinen/markali bir platform yoksa (genel bir site) null/undefined -
   // bu durumda faviconUrl kullanilir (bkz. utils/media.ts badgeInfoForSource).

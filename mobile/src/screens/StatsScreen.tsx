@@ -9,6 +9,8 @@ import { supabase } from "../services/supabase";
 import { getSocket } from "../services/socket";
 import Icon from "../components/Icon";
 import LoadingView from "../components/LoadingView";
+import PlatformBadge, { badgeAspectRatio } from "../components/PlatformBadge";
+import type { PlatformKey } from "../components/PlatformLogo";
 import { triggerHaptic } from "../utils/haptics";
 
 interface Props {
@@ -344,19 +346,34 @@ const PLATFORM_LABELS: Record<string, string> = {
   spotify: "Spotify",
 };
 
-// dataviz skill'indeki dogrulanmis kategorik paletten SABIT bir
-// platform->renk eslemesi - renk veriye (saate/siraya) gore DEGIL, platform
-// KIMLIGINE gore atanir, boylece ayni platform her ac/satista hep ayni
-// renkte kalir ("color follows identity, never rank").
+// Renkle degil, platformun KENDI rozetiyle (logosuyla) ayirt ediyoruz -
+// halkadaki her dilim ayni notr gri, kimlik rengi degil rozet tasiyor
+// (bkz. SEGMENT_GRAY ve asagidaki rozet bindirmesi).
+const SEGMENT_GRAY = "rgba(255,255,255,0.32)";
 const PLATFORM_COLORS: Record<string, string> = {
-  youtube: "#3987e5",
-  netflix: "#d95926",
-  spotify: "#199e70",
-  prime: "#c98500",
-  disney: "#d55181",
-  hbomax: "#008300",
-  twitch: "#9085e9",
+  youtube: SEGMENT_GRAY,
+  netflix: SEGMENT_GRAY,
+  spotify: SEGMENT_GRAY,
+  prime: SEGMENT_GRAY,
+  disney: SEGMENT_GRAY,
+  hbomax: SEGMENT_GRAY,
+  twitch: SEGMENT_GRAY,
 };
+
+// StatsScreen'deki platform anahtarlari (supabase/migrations/0025_user_
+// platform_stats.sql) ile PlatformBadge/PlatformLogo'nun bekledigi
+// PlatformKey'ler FARKLI yazilmis ("prime" <-> "primevideo", "disney" <->
+// "disneyplus") - rozet secerken bu eslemeyi kullaniyoruz.
+const PLATFORM_BADGE_KEYS: Partial<Record<string, PlatformKey>> = {
+  youtube: "youtube",
+  netflix: "netflix",
+  prime: "primevideo",
+  disney: "disneyplus",
+  hbomax: "hbomax",
+  twitch: "twitch",
+  spotify: "spotify",
+};
+
 const OTHER_COLOR = "rgba(255,255,255,0.28)";
 
 const DONUT_SIZE = 168;
@@ -379,6 +396,7 @@ function BreakdownDonutChart({
   data,
   labels,
   colors,
+  badgeKeys,
   otherLabelKey,
   t,
 }: {
@@ -386,6 +404,7 @@ function BreakdownDonutChart({
   data: BreakdownDatum[];
   labels: Record<string, string>;
   colors: Record<string, string>;
+  badgeKeys?: Partial<Record<string, PlatformKey>>;
   otherLabelKey: string;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
@@ -439,6 +458,57 @@ function BreakdownDonutChart({
               })}
             </G>
           </Svg>
+          {badgeKeys && (
+            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+              {segments.map((s) => {
+                const badgeKey = badgeKeys[s.key];
+                if (!badgeKey) return null;
+                // Rozeti HER dilime sigdiriyoruz (atlamak yerine) - boyutu
+                // o dilimin kendi yay uzunluguna, halka kalinligina VE
+                // rozetin GERCEK en/boy oranina (cogu kare degil, bazilari
+                // enlemesine bir "wordmark") gore hesapliyoruz - sadece
+                // "size" degerine degil, PlatformBadge'in o "size"tan
+                // ürettigi GERCEK genislik/yukseklige gore sigdirmazsak
+                // enine rozetler komsu dilime tasiyordu.
+                const ratio = badgeAspectRatio(badgeKey);
+                const scale = Math.sqrt(ratio);
+                const arcLength = s.fraction * DONUT_CIRCUMFERENCE;
+                const widthBudget = arcLength - 6;
+                const heightBudget = DONUT_STROKE - 6;
+                const fitSize = Math.min(widthBudget / scale, heightBudget * scale);
+                const badgeSize = Math.max(6, Math.min(fitSize, 17));
+                const badgeWidth = badgeSize * scale;
+                const badgeHeight = badgeSize / scale;
+                const boxWidth = badgeWidth + 4;
+                const boxHeight = badgeHeight + 4;
+                // Dilimin TAM ORTASINDAKI acidan rozetin ekran konumunu
+                // hesapliyoruz - G'nin -90 donusunu burada KENDIMIZ
+                // uyguluyoruz (rozet SVG'nin disinda, duz bir View/Image).
+                const midFraction = s.startFraction + s.fraction / 2;
+                const angle = midFraction * 2 * Math.PI - Math.PI / 2;
+                const x = DONUT_CENTER + DONUT_RADIUS * Math.cos(angle);
+                const y = DONUT_CENTER + DONUT_RADIUS * Math.sin(angle);
+                const isDimmed = activeKey !== null && activeKey !== s.key;
+                return (
+                  <View
+                    key={s.key}
+                    style={[
+                      donutStyles.ringBadge,
+                      {
+                        width: boxWidth,
+                        height: boxHeight,
+                        left: x - boxWidth / 2,
+                        top: y - boxHeight / 2,
+                        opacity: isDimmed ? 0.3 : 1,
+                      },
+                    ]}
+                  >
+                    <PlatformBadge platform={badgeKey} size={badgeSize} />
+                  </View>
+                );
+              })}
+            </View>
+          )}
           <View style={donutStyles.centerLabel} pointerEvents="none">
             <Text style={donutStyles.centerValue}>
               {t("userProfile.hoursShort", { count: formatHours(active ? active.hours : total) })}
@@ -461,7 +531,13 @@ function BreakdownDonutChart({
                 activeOpacity={0.7}
                 onPress={() => setActiveKey((prev) => (prev === s.key ? null : s.key))}
               >
-                <View style={[donutStyles.legendDot, { backgroundColor: colors[s.key] ?? OTHER_COLOR }]} />
+                {badgeKeys?.[s.key] ? (
+                  <View style={donutStyles.legendBadge}>
+                    <PlatformBadge platform={badgeKeys[s.key]} size={13} />
+                  </View>
+                ) : (
+                  <View style={[donutStyles.legendDot, { backgroundColor: colors[s.key] ?? OTHER_COLOR }]} />
+                )}
                 <Text style={[donutStyles.legendLabel, isActive && donutStyles.legendLabelActive]} numberOfLines={1}>
                   {label}
                 </Text>
@@ -489,9 +565,11 @@ const donutStyles = StyleSheet.create({
   legend: { flex: 1, gap: 10 },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendBadge: { width: 18, height: 18, alignItems: "center", justifyContent: "center" },
   legendLabel: { flex: 1, color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: "700" },
   legendLabelActive: { color: "#FFFFFF" },
   legendPct: { color: "rgba(255,255,255,0.45)", fontSize: 12.5, fontWeight: "700" },
+  ringBadge: { position: "absolute", alignItems: "center", justifyContent: "center" },
 });
 
 const chartStyles = StyleSheet.create({
@@ -650,6 +728,7 @@ export default function StatsScreen({ onBack }: Props) {
                 data={platformStats.map((p) => ({ key: p.platform, hours: p.hours }))}
                 labels={PLATFORM_LABELS}
                 colors={PLATFORM_COLORS}
+                badgeKeys={PLATFORM_BADGE_KEYS}
                 otherLabelKey="userProfile.platformOther"
                 t={t}
               />
