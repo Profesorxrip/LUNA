@@ -302,6 +302,19 @@
     "paymentComingSoonTitle": "الدفع قريبًا",
     "paymentComingSoonBody": "لم يتم ربط تدفق الشراء (الشراء داخل التطبيق من Apple/Google) بعد - هذه الشاشة جاهزة وستُفعّل عند إضافة مزود دفع."
   },
+  "notifications": {
+    "title": "الإشعارات",
+    "friendRequests": "طلبات الصداقة",
+    "friendRequestsNote": "عندما يرسل إليك أحدهم طلب صداقة",
+    "messages": "الرسائل",
+    "messagesNote": "عندما تتلقى رسالة خاصة جديدة",
+    "roomInvites": "دعوات الغرف",
+    "roomInvitesNote": "عندما يدعوك صديق إلى غرفة",
+    "postActivity": "تفاعل المنشورات",
+    "postActivityNote": "عندما يعجب أحدهم بمنشورك أو يعلق عليه",
+    "announcements": "الإعلانات",
+    "announcementsNote": "أخبار وإعلانات من LUNA"
+  },
   "roomPreview": {
     "privacyOpen": "عام",
     "privacyNearby": "الدائرة القريبة",

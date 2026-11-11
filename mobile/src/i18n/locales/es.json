@@ -302,6 +302,19 @@
     "paymentComingSoonTitle": "Pago próximamente",
     "paymentComingSoonBody": "El flujo de compra (compra dentro de la aplicación de Apple/Google) aún no está conectado - esta pantalla está lista y se activará cuando se añada un proveedor de pagos."
   },
+  "notifications": {
+    "title": "Notificaciones",
+    "friendRequests": "Solicitudes de amistad",
+    "friendRequestsNote": "Cuando alguien te envía una solicitud de amistad",
+    "messages": "Mensajes",
+    "messagesNote": "Cuando recibes un nuevo mensaje directo",
+    "roomInvites": "Invitaciones a salas",
+    "roomInvitesNote": "Cuando un amigo te invita a una sala",
+    "postActivity": "Actividad de publicaciones",
+    "postActivityNote": "Cuando alguien le da me gusta o comenta tu publicación",
+    "announcements": "Anuncios",
+    "announcementsNote": "Novedades y anuncios de LUNA"
+  },
   "roomPreview": {
     "privacyOpen": "Público",
     "privacyNearby": "Círculo cercano",

@@ -302,6 +302,19 @@
     "paymentComingSoonTitle": "Η πληρωμή έρχεται σύντομα",
     "paymentComingSoonBody": "Η διαδικασία αγοράς (εντός εφαρμογής Apple/Google) δεν έχει συνδεθεί ακόμα - αυτή η οθόνη είναι έτοιμη και θα ενεργοποιηθεί μόλις προστεθεί πάροχος πληρωμών."
   },
+  "notifications": {
+    "title": "Ειδοποιήσεις",
+    "friendRequests": "Αιτήματα Φιλίας",
+    "friendRequestsNote": "Όταν κάποιος σου στέλνει αίτημα φιλίας",
+    "messages": "Μηνύματα",
+    "messagesNote": "Όταν λαμβάνεις ένα νέο προσωπικό μήνυμα",
+    "roomInvites": "Προσκλήσεις Δωματίου",
+    "roomInvitesNote": "Όταν ένας φίλος σε προσκαλεί σε δωμάτιο",
+    "postActivity": "Δραστηριότητα Δημοσιεύσεων",
+    "postActivityNote": "Όταν κάποιος κάνει like ή σχολιάζει τη δημοσίευσή σου",
+    "announcements": "Ανακοινώσεις",
+    "announcementsNote": "Νέα και ανακοινώσεις από το LUNA"
+  },
   "roomPreview": {
     "privacyOpen": "Δημόσιο",
     "privacyNearby": "Κοντινός Κύκλος",

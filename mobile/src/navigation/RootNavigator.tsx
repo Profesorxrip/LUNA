@@ -11,6 +11,7 @@ import CreateRoomScreen from "../screens/CreateRoomScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import PremiumScreen from "../screens/PremiumScreen";
 import PrivacyScreen from "../screens/PrivacyScreen";
+import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
 import BackgroundInfoScreen from "../screens/BackgroundInfoScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import DMScreen, { DMPeer, DmInfoOpenParams } from "../screens/DMScreen";
@@ -53,6 +54,7 @@ export type RootStackParamList = {
   AppSettings: undefined;
   Premium: undefined;
   Privacy: undefined;
+  Notifications: undefined;
   BackgroundInfo: undefined;
   // Baska birinin profilini goruntülemek icin (own:false + peer) - kendi
   // profilimiz artik MainTabs icindeki "Profile" sekmesi (bkz. MyProfileRoute).
@@ -191,6 +193,7 @@ function AppSettingsRoute() {
       onOpenUserProfile={() => navigation.navigate("MainTabs", { screen: "Profile" })}
       onOpenPremium={() => navigation.navigate("Premium")}
       onOpenPrivacy={() => navigation.navigate("Privacy")}
+      onOpenNotifications={() => navigation.navigate("Notifications")}
       onOpenBackgroundInfo={() => navigation.navigate("BackgroundInfo")}
     />
   );
@@ -223,6 +226,11 @@ function PremiumRoute() {
 function PrivacyRoute() {
   const navigation = useNavigation<Nav>();
   return <PrivacyScreen onBack={() => navigation.goBack()} />;
+}
+
+function NotificationsRoute() {
+  const navigation = useNavigation<Nav>();
+  return <NotificationSettingsScreen onBack={() => navigation.goBack()} />;
 }
 
 function BackgroundInfoRoute() {
@@ -341,6 +349,7 @@ export default function RootNavigator() {
         <Stack.Screen name="AppSettings" component={AppSettingsRoute} />
         <Stack.Screen name="Premium" component={PremiumRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="Privacy" component={PrivacyRoute} options={{ animation: "slide_from_bottom" }} />
+        <Stack.Screen name="Notifications" component={NotificationsRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="BackgroundInfo" component={BackgroundInfoRoute} options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="UserProfile" component={UserProfileRoute} />
         <Stack.Screen name="DM" component={DMRoute} />

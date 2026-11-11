@@ -302,6 +302,19 @@
     "paymentComingSoonTitle": "Zahlung bald verfügbar",
     "paymentComingSoonBody": "Der Kaufvorgang (Apple/Google In-App-Kauf) ist noch nicht angebunden - dieser Bildschirm ist bereit und wird aktiv, sobald ein Zahlungsanbieter hinzugefügt wird."
   },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "friendRequests": "Freundschaftsanfragen",
+    "friendRequestsNote": "Wenn dir jemand eine Freundschaftsanfrage sendet",
+    "messages": "Nachrichten",
+    "messagesNote": "Wenn du eine neue Direktnachricht erhältst",
+    "roomInvites": "Raumeinladungen",
+    "roomInvitesNote": "Wenn dich ein Freund in einen Raum einlädt",
+    "postActivity": "Beitragsaktivität",
+    "postActivityNote": "Wenn jemand deinen Beitrag mag oder kommentiert",
+    "announcements": "Ankündigungen",
+    "announcementsNote": "Neuigkeiten und Ankündigungen von LUNA"
+  },
   "roomPreview": {
     "privacyOpen": "Öffentlich",
     "privacyNearby": "In der Nähe",

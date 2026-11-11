@@ -327,6 +327,19 @@
     "paymentComingSoonTitle": "Payment coming soon",
     "paymentComingSoonBody": "The purchase flow (Apple/Google in-app purchase) isn't connected yet - this screen is ready and will go live once a payment provider is added."
   },
+  "notifications": {
+    "title": "Notifications",
+    "friendRequests": "Friend Requests",
+    "friendRequestsNote": "When someone sends you a friend request",
+    "messages": "Messages",
+    "messagesNote": "When you get a new direct message",
+    "roomInvites": "Room Invites",
+    "roomInvitesNote": "When a friend invites you to a room",
+    "postActivity": "Post Activity",
+    "postActivityNote": "When someone likes or comments on your post",
+    "announcements": "Announcements",
+    "announcementsNote": "News and announcements from LUNA"
+  },
   "roomPreview": {
     "privacyOpen": "Public",
     "privacyNearby": "Nearby Circle",

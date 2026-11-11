@@ -302,6 +302,19 @@
     "paymentComingSoonTitle": "Paiement bientôt disponible",
     "paymentComingSoonBody": "Le parcours d'achat (achat intégré Apple/Google) n'est pas encore connecté - cet écran est prêt et s'activera une fois un prestataire de paiement ajouté."
   },
+  "notifications": {
+    "title": "Notifications",
+    "friendRequests": "Demandes d'amis",
+    "friendRequestsNote": "Quand quelqu'un t'envoie une demande d'ami",
+    "messages": "Messages",
+    "messagesNote": "Quand tu reçois un nouveau message privé",
+    "roomInvites": "Invitations aux salons",
+    "roomInvitesNote": "Quand un ami t'invite dans un salon",
+    "postActivity": "Activité des publications",
+    "postActivityNote": "Quand quelqu'un aime ou commente ta publication",
+    "announcements": "Annonces",
+    "announcementsNote": "Actualités et annonces de LUNA"
+  },
   "roomPreview": {
     "privacyOpen": "Public",
     "privacyNearby": "Cercle proche",

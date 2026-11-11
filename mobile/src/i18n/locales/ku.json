@@ -302,6 +302,19 @@
     "paymentComingSoonTitle": "Dayîna drav zûtirîn tê",
     "paymentComingSoonBody": "Rêça kirînê (kirîna hundir a Apple/Google) hêj ne girêdayî ye - ev ekran amade ye û dema peydakerekî dravdanê were zêdekirin dê çalak bibe."
   },
+  "notifications": {
+    "title": "Agahdarî",
+    "friendRequests": "Daxwazên Hevaltiyê",
+    "friendRequestsNote": "Dema kesek daxwaza hevaltiyê ji te re dişîne",
+    "messages": "Peyam",
+    "messagesNote": "Dema peyamek taybet a nû distînî",
+    "roomInvites": "Vexwendinên Odê",
+    "roomInvitesNote": "Dema hevalek te vexwîne odê",
+    "postActivity": "Çalakiya Şandiyan",
+    "postActivityNote": "Dema kesek ji şandiya te hez dike an şîroveyê dike",
+    "announcements": "Ragihandin",
+    "announcementsNote": "Nûçe û ragihandinên ji LUNA"
+  },
   "roomPreview": {
     "privacyOpen": "Vekirî ji Hemûyan re",
     "privacyNearby": "Dora Nêzîk",

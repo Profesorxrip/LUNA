@@ -302,6 +302,19 @@
     "paymentComingSoonTitle": "Оплата скоро будет доступна",
     "paymentComingSoonBody": "Процесс покупки (встроенная покупка Apple/Google) пока не подключён - этот экран готов и заработает после подключения платёжного провайдера."
   },
+  "notifications": {
+    "title": "Уведомления",
+    "friendRequests": "Запросы в друзья",
+    "friendRequestsNote": "Когда кто-то отправляет тебе запрос в друзья",
+    "messages": "Сообщения",
+    "messagesNote": "Когда ты получаешь новое личное сообщение",
+    "roomInvites": "Приглашения в комнаты",
+    "roomInvitesNote": "Когда друг приглашает тебя в комнату",
+    "postActivity": "Активность публикаций",
+    "postActivityNote": "Когда кто-то лайкает или комментирует твою публикацию",
+    "announcements": "Объявления",
+    "announcementsNote": "Новости и объявления от LUNA"
+  },
   "roomPreview": {
     "privacyOpen": "Публичная",
     "privacyNearby": "Ближний круг",

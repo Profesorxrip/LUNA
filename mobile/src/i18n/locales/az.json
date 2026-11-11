@@ -302,6 +302,19 @@
     "paymentComingSoonTitle": "Ödəniş tezliklə",
     "paymentComingSoonBody": "Satın alma axını (Apple/Google tətbiq daxili satın alma) hələ qoşulmayıb - bu ekran hazırdır, ödəniş provayderi əlavə ediləndə aktiv olacaq."
   },
+  "notifications": {
+    "title": "Bildirişlər",
+    "friendRequests": "Dostluq İstəkləri",
+    "friendRequestsNote": "Kimsə sənə dostluq istəyi göndərdikdə",
+    "messages": "Mesajlar",
+    "messagesNote": "Yeni bir şəxsi mesaj aldıqda",
+    "roomInvites": "Otaq Dəvətləri",
+    "roomInvitesNote": "Bir dost səni otağa dəvət etdikdə",
+    "postActivity": "Paylaşım Fəaliyyəti",
+    "postActivityNote": "Kimsə paylaşımını bəyəndikdə və ya şərh yazdıqda",
+    "announcements": "Elanlar",
+    "announcementsNote": "LUNA-dan yeniliklər və elanlar"
+  },
   "roomPreview": {
     "privacyOpen": "Hamıya Açıq",
     "privacyNearby": "Yaxın Dairə",

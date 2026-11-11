@@ -47,6 +47,7 @@ interface Props {
   onOpenUserProfile: () => void;
   onOpenPremium: () => void;
   onOpenPrivacy: () => void;
+  onOpenNotifications: () => void;
   onOpenBackgroundInfo: () => void;
 }
 
@@ -67,6 +68,7 @@ export default function ProfileScreen({
   onOpenUserProfile,
   onOpenPremium,
   onOpenPrivacy,
+  onOpenNotifications,
   onOpenBackgroundInfo,
 }: Props) {
   const { t, i18n } = useTranslation();
@@ -401,7 +403,7 @@ export default function ProfileScreen({
           />
         </View>
         <ChevronRow icon={<LockClosedIcon size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.privacyTitle")} onPress={onOpenPrivacy} />
-        <ChevronRow icon={<Bell size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.notificationsTitle")} onPress={() => placeholder(t("profile.notificationsTitle"))} />
+        <ChevronRow icon={<Bell size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.notificationsTitle")} onPress={onOpenNotifications} />
         <ChevronRow icon={<Ban size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.blockedTitle")} onPress={() => placeholder(t("profile.blockedTitle"))} />
         <ChevronRow icon={<ChartBar size={30} color={ROW_ICON_COLOR} strokeWidth={2} />} title={t("profile.statsTitle")} onPress={() => placeholder(t("profile.statsTitle"))} />
         <GradientDivider />
