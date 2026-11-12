@@ -14,7 +14,7 @@ import {
   Dimensions,
   PanResponder,
 } from "react-native";
-import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Settings, Camera, Users, CircleArrowDown } from "lucide-react-native";
+import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Camera, Users, CircleArrowDown } from "lucide-react-native";
 import { LockClosedIcon } from "react-native-heroicons/outline";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { LinearGradient } from "expo-linear-gradient";
@@ -842,10 +842,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                   onPress={() => (onOpenSettings ? onOpenSettings() : placeholder(t("tabs.settings")))}
                   hitSlop={6}
                 >
-                  <View>
-                    <Settings size={18} color={TEXT} fill={TEXT} strokeWidth={2} />
-                    <View style={styles.settingsGearHole} />
-                  </View>
+                  <Icon name="settings" size={18} color={TEXT} />
                 </TouchableOpacity>
               </View>
             )}
@@ -1730,18 +1727,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(20,20,20,0.75)",
     alignItems: "center",
     justifyContent: "center",
-  },
-  // Dolu cark ikonunun (fill=TEXT) ortasindaki deligi geri getirmek icin -
-  // butonun arkaplan rengiyle AYNI renkte kucuk bir daire ustune bindirilip
-  // "delinmis" gibi gosteriliyor.
-  settingsGearHole: {
-    position: "absolute",
-    top: 6,
-    left: 6,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(20,20,20,0.75)",
   },
   avatarSquareWrap: { width: 88, height: 88, marginTop: 18, marginBottom: 10, marginLeft: -LEFT_SHIFT },
   // SABIT bir deger (AVATAR_OVERLAP) - avatar boyutu degisse bile bu
