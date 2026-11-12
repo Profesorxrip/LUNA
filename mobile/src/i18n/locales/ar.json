@@ -230,7 +230,19 @@
     "noLikedVideos": "لا توجد فيديوهات مفضلة بعد.",
     "noJoinedRooms": "لم تنضم إلى أي غرفة بعد.",
     "avatarPhotos": "الصور",
-    "avatarRemove": "إزالة الصورة"
+    "takePhoto": "التقاط صورة",
+    "avatarRemove": "إزالة الصورة",
+    "editProfileDisplayName": "الاسم المعروض",
+    "editProfileUsername": "اسم المستخدم",
+    "editProfileBio": "المعلومات الشخصية",
+    "editProfileLocation": "الموقع",
+    "editProfileBirthday": "تاريخ الميلاد",
+    "visibilityPublic": "عام",
+    "visibilityPrivate": "خاص",
+    "visibilityFriends": "الأصدقاء",
+    "bannerPhotoPick": "اختيار صورة",
+    "bannerPhotoRemove": "إزالة الصورة",
+    "bannerTextEdit": "تعديل النص"
   },
   "room": {
     "kickedTitle": "تمت إزالتك",

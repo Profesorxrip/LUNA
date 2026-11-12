@@ -12,8 +12,11 @@ import {
   Animated,
   Easing,
   Dimensions,
+  PanResponder,
 } from "react-native";
-import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Settings } from "lucide-react-native";
+import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Settings, Camera, Users, CircleArrowDown } from "lucide-react-native";
+import { LockClosedIcon } from "react-native-heroicons/outline";
+import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
@@ -39,6 +42,50 @@ interface Props {
   onOpenSettings?: () => void;
 }
 
+// Alttan acilan kutularin (avatar/banner secim sheet'leri) tutamaciyla
+// AŞAĞI SÜRÜKLEYEREK kapatilabilmesi icin - PanResponder (ek bir kutuphane
+// gerekmiyor, react-native'in kendi API'si) ile dy>80 aninda onClose
+// cagiriyor, aksi halde yayla eski yerine (0) geri donuyor.
+function DragToCloseSheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  const translateY = useRef(new Animated.Value(0)).current;
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, gesture) => Math.abs(gesture.dy) > 6 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+      onPanResponderMove: (_evt, gesture) => {
+        if (gesture.dy > 0) translateY.setValue(gesture.dy);
+      },
+      onPanResponderRelease: (_evt, gesture) => {
+        if (gesture.dy > 80) {
+          onClose();
+        } else {
+          Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
+        }
+      },
+    })
+  ).current;
+
+  return (
+    <Animated.View style={{ transform: [{ translateY }] }} {...panResponder.panHandlers}>
+      {children}
+    </Animated.View>
+  );
+}
+
+// Gizlilik secicisindeki "Genel" secenegi icin gercek kitalarin gorundugu
+// dolu (Heroicons solid) kure ikonu - lucide'in cizgisel Globe'undan FARKLI
+// olarak Lock/Users ile AYNI "size + color" imzasina sahip, boylece
+// VisIcon map'inde (asagida) dogrudan yerine koyulabiliyor.
+function WorldIcon({ size, color }: { size?: number; color?: string }) {
+  return <Icon name="worldOpen" size={size} color={color} />;
+}
+
+// "Gizlilik" satirinda (ProfileScreen.tsx) kullanilan AYNI kilit ikonu -
+// lucide'in Lock'u DEGIL, boylece "Ozel" secenegi uygulamadaki gercek
+// gizlilik ikonuyla birebir ayni gorunuyor.
+function PrivacyLockIcon({ size, color }: { size?: number; color?: string }) {
+  return <LockClosedIcon size={size} color={color} strokeWidth={2} />;
+}
+
 const ACCENT = "#0EA5E9";
 const BG = "#000000";
 const TEXT = "#F5F0E6";
@@ -49,7 +96,6 @@ const OFFLINE_GRAY = "#C2C2C2";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
-const BANNER_STRIPE_W = 26;
 // Avatar'in EKRANDAKI (scroll=0 haliyle) sabit konumu - topBlock'un sol
 // dolgusu (24) ve banner yuksekligi (150) eksi tasma miktari (23) - bu
 // sabitler asagidaki stiller ile AYNI (bannerWrap/avatarSquareOverlap).
@@ -148,6 +194,9 @@ function timeAgo(ms: number, t: (key: string, opts?: any) => string, lang: strin
  * ortak bir govde uzerinde farkli baslik/aksiyon satiri gosterir. */
 export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, onOpenRoomPreview, onOpenRoom, onOpenSettings }: Props) {
   const { t, i18n } = useTranslation();
+  // Engellenenler/Gizlilik ekranlarindaki BASLIKLA AYNI (Bebas Neue) -
+  // sadece "Profili Duzenle" tam ekraninin basligi icin.
+  const [editHeaderFontLoaded] = useFonts({ BebasNeue_400Regular });
   const peerUserId = peer?.userId || DEMO_PEER_USER_ID;
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [name, setName] = useState(peer?.name || t("userProfile.defaultName"));
@@ -158,12 +207,13 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [isOnline, setIsOnline] = useState(own); // kendi profilin her zaman cevrimici
   const [joinDateMs, setJoinDateMs] = useState<number | null>(null);
   const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
+  const [bannerSheetVisible, setBannerSheetVisible] = useState(false);
   // Galeride bir fotografa ya da avatara basinca PhotoViewerModal ile tam
   // ekran buyuk haliyle acilir.
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editingField, setEditingField] = useState<
-    "name" | "handle" | "bio" | "banner_text" | "profile_location" | "birthday" | null
+    "name" | "handle" | "bio" | "profile_location" | "birthday" | null
   >(null);
   const [statVisibility, setStatVisibility] = useState(DEFAULT_STAT_VISIBILITY);
   const [videosVisible, setVideosVisible] = useState(true);
@@ -192,11 +242,22 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   // durur, ScrollView icerigi onun ONUNDE kayar.
   const [scrollY, setScrollY] = useState(0);
   const [postingBusy, setPostingBusy] = useState(false);
-  const [bannerText, setBannerText] = useState("");
+  const [bannerUrl, setBannerUrl] = useState("");
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [profileLocation, setProfileLocation] = useState("");
   const [birthday, setBirthday] = useState("");
   const [topTab, setTopTab] = useState<"posts" | "tagged" | "history" | "liked">("posts");
   const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
+  // Tam ekran "Profili Duzenle" sayfasi - PROFILI DUZENLE butonuyla acilir,
+  // mevcut alan-bazli duzenleme (editingField/persistField) mantigini AYNEN
+  // kullanir, sadece hepsini TEK bir ekranda bir arada gosterir.
+  const [editProfileVisible, setEditProfileVisible] = useState(false);
+  // Konum gizlilik secimi (Genel/Ozel/Arkadaslar) - henuz backend'de bir
+  // sutunu YOK, su an sadece gorsel/yerel bir tercih (bkz. konusma ozeti).
+  const [locationVisibility, setLocationVisibility] = useState<"public" | "private" | "friends">("public");
+  const [locationVisibilityMenuOpen, setLocationVisibilityMenuOpen] = useState(false);
+  const [birthdayVisibility, setBirthdayVisibility] = useState<"public" | "private" | "friends">("public");
+  const [birthdayVisibilityMenuOpen, setBirthdayVisibilityMenuOpen] = useState(false);
 
   const effectiveUserId = own ? myUserId : peerUserId;
   // Kendi profilinde HER ZAMAN cevrimicisindir (uygulamayi kullaniyorsun) -
@@ -241,7 +302,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       supabase
         .from("profiles")
         .select(
-          "name,handle,bio,avatar_url,country,created_at,stat_visibility,videos_visible,bio_visible,posts_visible,banner_text,profile_location,birthday,is_premium"
+          "name,handle,bio,avatar_url,country,created_at,stat_visibility,videos_visible,bio_visible,posts_visible,banner_url,profile_location,birthday,is_premium"
         )
         .eq("id", userId)
         .maybeSingle()
@@ -257,7 +318,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           if (profile.videos_visible !== undefined) setVideosVisible(profile.videos_visible !== false);
           if (profile.bio_visible !== undefined) setBioVisible(profile.bio_visible !== false);
           if (profile.posts_visible !== undefined) setPostsVisible(profile.posts_visible !== false);
-          setBannerText(profile.banner_text || "");
+          setBannerUrl(profile.banner_url || "");
           setProfileLocation(profile.profile_location || "");
           setBirthday(profile.birthday || "");
           setIsPremium(profile.is_premium === true);
@@ -284,7 +345,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         setVideosVisible(res.profile.videosVisible !== false);
         setBioVisible(res.profile.bioVisible !== false);
         setPostsVisible(res.profile.postsVisible !== false);
-        setBannerText(res.profile.bannerText || "");
+        setBannerUrl(res.profile.bannerUrl || "");
         setProfileLocation(res.profile.profileLocation || "");
         setBirthday(res.profile.birthday || "");
         setIsPremium(Boolean(res.profile.isPremium));
@@ -424,7 +485,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 
   // Isim/kullanici adi/biyografi duzenlemeleri eskiden SADECE yerel state'ti -
   // yazip kapatinca hicbir yere kaydedilmiyordu, sayfa yenilenince kayboluyordu.
-  type EditableField = "name" | "handle" | "bio" | "banner_text" | "profile_location" | "birthday";
+  type EditableField = "name" | "handle" | "bio" | "profile_location" | "birthday";
 
   async function persistField(field: EditableField, value: string) {
     if (!own || !myUserId) return;
@@ -467,6 +528,21 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     await uploadAvatar(result.assets[0].uri);
   }
 
+  // DMScreen.tsx'teki openCamera ile AYNI akis (OS'in kendi kamera
+  // uygulamasini acan ImagePicker.launchCameraAsync) - sadece kare [1,1]
+  // kirpma avatar'a ozel.
+  async function takeAvatarPhoto() {
+    setAvatarSheetVisible(false);
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.cameraPermissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+    if (result.canceled || !result.assets?.[0]) return;
+    await uploadAvatar(result.assets[0].uri);
+  }
+
   // avatars storage bucket (supabase/migrations/0001_init.sql) zaten hazirdi -
   // sadece client tarafindaki yukleme hic yazilmamisti. "avatars/<userId>/..."
   // yoluna sadece kendi klasorune yazma izni var (avatar_owner_write policy).
@@ -495,6 +571,75 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       showAlert(t("userProfile.uploadFailedTitle"), err?.message || t("userProfile.uploadFailedBody"));
     } finally {
       setUploadingAvatar(false);
+    }
+  }
+
+  async function removeBannerPhoto() {
+    setBannerUrl("");
+    const { data } = await supabase.auth.getUser();
+    const userId = data.user?.id;
+    if (!userId) return;
+    await supabase.from("profiles").update({ banner_url: null }).eq("id", userId);
+  }
+
+  async function pickBannerPhoto() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    // Banner SCREEN_WIDTH x BANNER_HEIGHT oraniyla kirpiliyor - avatarin
+    // kare [1,1] oraninin aksine, banner'in GERCEK gorunur en-boy orani.
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [SCREEN_WIDTH, BANNER_HEIGHT],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    await uploadBannerPhoto(result.assets[0].uri);
+  }
+
+  async function takeBannerPhoto() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.cameraPermissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [SCREEN_WIDTH, BANNER_HEIGHT],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    await uploadBannerPhoto(result.assets[0].uri);
+  }
+
+  // avatars bucket'iyla AYNI desen (0026_profile_banner_photo.sql) -
+  // "banners/<userId>/..." yoluna sadece kendi klasorune yazma izni var.
+  async function uploadBannerPhoto(uri: string) {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) return;
+    setUploadingBanner(true);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const ext = uri.split(".").pop()?.toLowerCase() || "jpg";
+      const contentType = ext === "png" ? "image/png" : "image/jpeg";
+      const path = `${userId}/banner.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("banners")
+        .upload(path, arrayBuffer, { contentType, upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: publicUrlData } = supabase.storage.from("banners").getPublicUrl(path);
+      const bustedUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+      const { error: updateError } = await supabase.from("profiles").update({ banner_url: bustedUrl }).eq("id", userId);
+      if (updateError) throw updateError;
+      setBannerUrl(bustedUrl);
+    } catch (err: any) {
+      showAlert(t("userProfile.uploadFailedTitle"), err?.message || t("userProfile.uploadFailedBody"));
+    } finally {
+      setUploadingBanner(false);
     }
   }
 
@@ -645,15 +790,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     }
   }
 
-  // Profil ustundeki "bayrak" bandi - capraz cizgili bir desen istendigi
-  // icin (bkz. kullanicinin referans gorseli), gercek bir repeating-
-  // gradient yerine (React Native'de yok) dondurulmus ince seritlerle
-  // elde ediliyor - ekran genisligini asip her iki tarafa da tasacak
-  // kadar genis bir aralikta tekrarlaniyor.
-  const bannerStripes = Array.from(
-    { length: Math.ceil((SCREEN_WIDTH + 300) / BANNER_STRIPE_W) },
-    (_, i) => -150 + i * BANNER_STRIPE_W
-  );
 
   const initial = name.charAt(0).toUpperCase();
   const historyList =
@@ -667,7 +803,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
-        <View style={[styles.topBlock, !(own || bannerText) && styles.topBlockNoBanner]}>
+        <View style={[styles.topBlock, !(own || bannerUrl) && styles.topBlockNoBanner]}>
         {/* Kapak fotografi ekranin en ustunden (ScrollView'in dolgusu olmadan)
             baslasin diye bu satir artik akisin icinde yer kaplamiyor - geri/
             diger butonu banner'in UZERINE mutlak konumlu olarak biniyor.
@@ -693,41 +829,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           </View>
         )}
 
-        {(own || bannerText) && (
-          <View style={[styles.bannerWrap, !bannerText && styles.bannerWrapEmpty]}>
-            {bannerText && (
-              <View style={StyleSheet.absoluteFill} pointerEvents="none">
-                {bannerStripes.map((left, i) => (
-                  <View
-                    key={i}
-                    style={[styles.bannerStripe, { left, backgroundColor: i % 2 === 0 ? "#F1F1EE" : "#E1E1DC" }]}
-                  />
-                ))}
-              </View>
-            )}
-            {editingField === "banner_text" ? (
-              <TextInput
-                style={styles.bannerInput}
-                value={bannerText}
-                onChangeText={setBannerText}
-                autoFocus
-                autoCapitalize="characters"
-                onSubmitEditing={() => closeFieldEdit("banner_text", bannerText)}
-                onBlur={() => closeFieldEdit("banner_text", bannerText)}
-                placeholder={t("userProfile.bannerPlaceholder")}
-                placeholderTextColor="rgba(0,0,0,0.35)"
-              />
-            ) : bannerText ? (
-              <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("banner_text")} style={styles.bannerTextTouch}>
-                <Text style={styles.bannerText} numberOfLines={1}>
-                  {bannerText.toUpperCase()}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              own && (
-                <TouchableOpacity onPress={() => toggleFieldEdit("banner_text")} style={StyleSheet.absoluteFill} />
-              )
-            )}
+        {(own || bannerUrl) && (
+          <View style={[styles.bannerWrap, !bannerUrl && styles.bannerWrapEmpty]}>
+            {bannerUrl && <Image source={{ uri: bannerUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
             {own && (
               <View style={styles.bannerActionsRow}>
                 <TouchableOpacity style={styles.bannerActionButton} onPress={openComposer} hitSlop={6}>
@@ -752,7 +856,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             pp'nin tam ortasinda. Üst yarisi banner'in icini oyuyor gibi
             gorunur, alt yarisi zaten govdeyle AYNI arkaplani gosterdigi
             icin govdeye kesintisiz karisir. */}
-        {(own || bannerText) && (
+        {(own || bannerUrl) && (
           <View
             pointerEvents="none"
             style={[styles.bannerNotch, { left: NOTCH_X, top: NOTCH_Y }]}
@@ -771,7 +875,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             daire, ucdan uca Discover ile AYNI paylasilan arkaplana
             (App.tsx'teki AppBackground degradesi) tabi. */}
         <TouchableOpacity
-          style={[styles.avatarSquareWrap, (own || bannerText) && styles.avatarSquareOverlap]}
+          style={[styles.avatarSquareWrap, (own || bannerUrl) && styles.avatarSquareOverlap]}
           activeOpacity={avatarUrl || own ? 0.8 : 1}
           onPress={() => (avatarUrl ? setViewingPhotoUrl(avatarUrl) : own && setAvatarSheetVisible(true))}
           onLongPress={() => own && setAvatarSheetVisible(true)}
@@ -940,7 +1044,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                 </View>
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.pillOutlineButton} onPress={() => toggleFieldEdit("bio")}>
+            <TouchableOpacity style={styles.pillOutlineButton} onPress={() => setEditProfileVisible(true)}>
               <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.pillGradientBorder}>
                 <View style={styles.pillInner}>
                   <Text style={styles.pillOutlineButtonText}>{t("userProfile.editProfile").toUpperCase()}</Text>
@@ -1248,6 +1352,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           onPress={() => setComposerTagPickerVisible(false)}
         >
           <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+            <View style={styles.sheetHandle} />
             {composerFriends.length === 0 ? (
               <Text style={[styles.emptyHistoryText, { padding: 16 }]}>{t("userProfile.noFriendsToTag")}</Text>
             ) : (
@@ -1268,11 +1373,231 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             <TouchableOpacity style={styles.sheetRow} onPress={() => setComposerTagPickerVisible(false)}>
               <Text style={[styles.sheetRowText, styles.sheetCancelText]}>{t("userProfile.tagPeopleDone")}</Text>
             </TouchableOpacity>
-            <View style={styles.sheetHandle} />
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
+      {/* Tam ekran "Profili Duzenle" sayfasi - banner/pp/alanlar hepsi TEK
+          sayfada, PROFILI DUZENLE butonuyla acilir. Alan duzenleme AYNI
+          editingField/persistField akisini kullanir - isim/kullanici adi/
+          biyografi/konum/dogum tarihi burada HER ZAMAN dogrudan yazilabilir
+          input olarak gosterilir (ayrica tiklama gerekmez), onBlur'da
+          kaydedilir. */}
+      <Modal
+        visible={editProfileVisible}
+        animationType="slide"
+        onRequestClose={() => setEditProfileVisible(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.editScreen}>
+          <AppBackground />
+          <ScrollView contentContainerStyle={styles.editScrollContent} keyboardShouldPersistTaps="handled">
+            <View style={styles.editHeader}>
+              <TouchableOpacity onPress={() => setEditProfileVisible(false)} hitSlop={10} style={styles.editHeaderSideButton}>
+                <View style={{ transform: [{ rotate: "90deg" }] }}>
+                  <CircleArrowDown size={22} color="#FFFFFF" />
+                </View>
+              </TouchableOpacity>
+              <Text style={[styles.editHeaderTitle, editHeaderFontLoaded && styles.editHeaderTitleFontLoaded]}>
+                {t("userProfile.editProfile")}
+              </Text>
+              <TouchableOpacity
+                onPress={() => placeholder(t("userProfile.editProfile"))}
+                hitSlop={10}
+                style={styles.editHeaderSideButton}
+              >
+                <CircleArrowDown size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.editBannerWrap, !bannerUrl && styles.bannerWrapEmpty]}>
+              {bannerUrl && <Image source={{ uri: bannerUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
+              {uploadingBanner && (
+                <View style={[StyleSheet.absoluteFill, styles.bannerUploadingOverlay]}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              )}
+              <TouchableOpacity style={styles.editBannerCameraButton} onPress={() => setBannerSheetVisible(true)}>
+                <Camera size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.editAvatarWrap}>
+              <View style={styles.editAvatarCore}>
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.editAvatarImage} />
+                ) : (
+                  <View style={[styles.avatarFallback, { backgroundColor: colorForName(name) }]}>
+                    <Text style={styles.avatarInitial}>{initial}</Text>
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity style={styles.editAvatarCameraButton} onPress={() => setAvatarSheetVisible(true)}>
+                <Camera size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.editFieldsWrap}>
+              <View style={styles.editField}>
+                <Text style={styles.editFieldLabel}>{t("userProfile.editProfileDisplayName").toUpperCase()}</Text>
+                <TextInput
+                  style={styles.editFieldInput}
+                  value={name}
+                  onChangeText={setName}
+                  onBlur={() => persistField("name", name)}
+                />
+                <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.editFieldDivider} />
+              </View>
+
+              <View style={styles.editField}>
+                <Text style={styles.editFieldLabel}>{t("userProfile.editProfileUsername").toUpperCase()}</Text>
+                <View style={styles.editHandleRow}>
+                  <Text style={styles.editHandleAt}>@</Text>
+                  <TextInput
+                    style={[styles.editFieldInput, { flex: 1 }]}
+                    value={handle}
+                    onChangeText={(v) => setHandle(v.toLowerCase())}
+                    autoCapitalize="none"
+                    onBlur={() => persistField("handle", handle)}
+                  />
+                </View>
+                <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.editFieldDivider} />
+              </View>
+
+              <View style={styles.editField}>
+                <Text style={styles.editFieldLabel}>{t("userProfile.editProfileBio").toUpperCase()}</Text>
+                <TextInput
+                  style={[styles.editFieldInput, styles.editFieldInputBio]}
+                  value={bio}
+                  onChangeText={setBio}
+                  multiline
+                  numberOfLines={1}
+                  onBlur={() => persistField("bio", bio)}
+                  placeholder={t("userProfile.bioPlaceholder")}
+                  placeholderTextColor={MUTED}
+                />
+                <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.editFieldDivider} />
+              </View>
+
+              <View style={[styles.editField, { position: "relative", zIndex: locationVisibilityMenuOpen ? 20 : 1 }]}>
+                <Text style={styles.editFieldLabel}>{t("userProfile.editProfileLocation").toUpperCase()}</Text>
+                <View style={styles.editHandleRow}>
+                  <TextInput
+                    style={[styles.editFieldInput, { flex: 1 }]}
+                    value={profileLocation}
+                    onChangeText={setProfileLocation}
+                    onBlur={() => persistField("profile_location", profileLocation)}
+                    placeholder={t("userProfile.locationFieldPlaceholder")}
+                    placeholderTextColor={MUTED}
+                  />
+                  <TouchableOpacity onPress={() => setLocationVisibilityMenuOpen((v) => !v)} hitSlop={8}>
+                    {locationVisibility === "public" ? (
+                      <WorldIcon size={22} color="#fff" />
+                    ) : locationVisibility === "private" ? (
+                      <PrivacyLockIcon size={22} color="#fff" />
+                    ) : (
+                      <Users size={22} color="#fff" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {locationVisibilityMenuOpen && (
+                  <View style={styles.visibilityMenu}>
+                    {(
+                      [
+                        { key: "public" as const, label: t("userProfile.visibilityPublic"), VisIcon: WorldIcon },
+                        { key: "private" as const, label: t("userProfile.visibilityPrivate"), VisIcon: PrivacyLockIcon },
+                        { key: "friends" as const, label: t("userProfile.visibilityFriends"), VisIcon: Users },
+                      ]
+                    ).map((opt) => (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[styles.visibilityMenuRow, locationVisibility === opt.key && styles.visibilityMenuRowActive]}
+                        onPress={() => {
+                          setLocationVisibility(opt.key);
+                          setLocationVisibilityMenuOpen(false);
+                        }}
+                      >
+                        <opt.VisIcon size={16} color={locationVisibility === opt.key ? "#fff" : MUTED} />
+                        <Text
+                          style={[
+                            styles.visibilityMenuRowText,
+                            locationVisibility === opt.key && styles.visibilityMenuRowTextActive,
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+                <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.editFieldDivider} />
+              </View>
+
+              <View style={[styles.editField, styles.editFieldLast, { position: "relative", zIndex: birthdayVisibilityMenuOpen ? 20 : 1 }]}>
+                <Text style={styles.editFieldLabel}>{t("userProfile.editProfileBirthday").toUpperCase()}</Text>
+                <View style={styles.editHandleRow}>
+                  <TextInput
+                    style={[styles.editFieldInput, { flex: 1 }]}
+                    value={birthday}
+                    onChangeText={setBirthday}
+                    onBlur={() => persistField("birthday", birthday)}
+                    placeholder={t("userProfile.birthdayPlaceholder")}
+                    placeholderTextColor={MUTED}
+                  />
+                  <TouchableOpacity onPress={() => setBirthdayVisibilityMenuOpen((v) => !v)} hitSlop={8}>
+                    {birthdayVisibility === "public" ? (
+                      <WorldIcon size={22} color="#fff" />
+                    ) : birthdayVisibility === "private" ? (
+                      <PrivacyLockIcon size={22} color="#fff" />
+                    ) : (
+                      <Users size={22} color="#fff" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {birthdayVisibilityMenuOpen && (
+                  <View style={styles.visibilityMenu}>
+                    {(
+                      [
+                        { key: "public" as const, label: t("userProfile.visibilityPublic"), VisIcon: WorldIcon },
+                        { key: "private" as const, label: t("userProfile.visibilityPrivate"), VisIcon: PrivacyLockIcon },
+                        { key: "friends" as const, label: t("userProfile.visibilityFriends"), VisIcon: Users },
+                      ]
+                    ).map((opt) => (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[styles.visibilityMenuRow, birthdayVisibility === opt.key && styles.visibilityMenuRowActive]}
+                        onPress={() => {
+                          setBirthdayVisibility(opt.key);
+                          setBirthdayVisibilityMenuOpen(false);
+                        }}
+                      >
+                        <opt.VisIcon size={16} color={birthdayVisibility === opt.key ? "#fff" : MUTED} />
+                        <Text
+                          style={[
+                            styles.visibilityMenuRowText,
+                            birthdayVisibility === opt.key && styles.visibilityMenuRowTextActive,
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+                <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.editFieldDivider} />
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* avatarSheet/bannerSheet Modal'lari BILEREK burada, "Profili Duzenle"
+          tam ekraninin Modal'indan SONRA - react-native-web'de her Modal
+          document.body'ye kendi portal'ini ekliyor, ve body'de SONRAKI
+          kardes her zaman ONCEKINI gorsel olarak ORTUYOR. Bu iki sheet
+          "Profili Duzenle" ekraninin ICINDEN acildigi icin, ondan once
+          tanimlanirlarsa (DOM'da ondan once mount olup) o tam ekranin
+          ALTINDA kalip gorunmuyorlardi. */}
       <Modal
         visible={avatarSheetVisible}
         transparent
@@ -1285,18 +1610,73 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           activeOpacity={1}
           onPress={() => setAvatarSheetVisible(false)}
         >
-          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
-            <TouchableOpacity style={styles.sheetRow} onPress={pickFromGallery}>
-              <Text style={styles.sheetRowText}>{t("userProfile.avatarPhotos")}</Text>
+          <DragToCloseSheet onClose={() => setAvatarSheetVisible(false)}>
+            <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+              <View style={styles.sheetHandle} />
+              <TouchableOpacity style={styles.sheetRow} onPress={takeAvatarPhoto}>
+                <Text style={styles.sheetRowText}>{t("userProfile.takePhoto")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sheetRow} onPress={pickFromGallery}>
+                <Text style={styles.sheetRowText}>{t("userProfile.avatarPhotos")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sheetRow} onPress={removeAvatar}>
+                <Text style={styles.sheetRowText}>{t("userProfile.avatarRemove")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast]} onPress={() => setAvatarSheetVisible(false)}>
+                <Text style={[styles.sheetRowText, styles.sheetCancelText]}>{t("common.close")}</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.sheetRow} onPress={removeAvatar}>
-              <Text style={styles.sheetRowText}>{t("userProfile.avatarRemove")}</Text>
+          </DragToCloseSheet>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={bannerSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setBannerSheetVisible(false)}
+        statusBarTranslucent
+      >
+        <TouchableOpacity
+          style={styles.sheetOverlay}
+          activeOpacity={1}
+          onPress={() => setBannerSheetVisible(false)}
+        >
+          <DragToCloseSheet onClose={() => setBannerSheetVisible(false)}>
+            <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+              <View style={styles.sheetHandle} />
+              <TouchableOpacity
+                style={styles.sheetRow}
+                onPress={() => {
+                  setBannerSheetVisible(false);
+                  takeBannerPhoto();
+                }}
+              >
+                <Text style={styles.sheetRowText}>{t("userProfile.takePhoto")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sheetRow}
+                onPress={() => {
+                  setBannerSheetVisible(false);
+                  pickBannerPhoto();
+                }}
+              >
+                <Text style={styles.sheetRowText}>{t("userProfile.bannerPhotoPick")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sheetRow}
+                onPress={() => {
+                  setBannerSheetVisible(false);
+                  removeBannerPhoto();
+                }}
+              >
+                <Text style={styles.sheetRowText}>{t("userProfile.bannerPhotoRemove")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast]} onPress={() => setBannerSheetVisible(false)}>
+                <Text style={[styles.sheetRowText, styles.sheetCancelText]}>{t("common.close")}</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.sheetRow} onPress={() => setAvatarSheetVisible(false)}>
-              <Text style={[styles.sheetRowText, styles.sheetCancelText]}>{t("common.close")}</Text>
-            </TouchableOpacity>
-            <View style={styles.sheetHandle} />
-          </TouchableOpacity>
+          </DragToCloseSheet>
         </TouchableOpacity>
       </Modal>
 
@@ -1340,22 +1720,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#ECECE8",
   },
-  // Kapak fotografi/metni HENUZ eklenmediyse (bannerText bos) - cizgili
-  // desen yerine duz, mat gri bir yer tutucu.
+  // Kapak fotografi HENUZ eklenmediyse - duz, mat gri bir yer tutucu.
   bannerWrapEmpty: { backgroundColor: "#55554F" },
-  bannerStripe: { position: "absolute", top: -90, width: 22, height: 400, transform: [{ rotate: "-20deg" }] },
-  bannerTextTouch: { paddingLeft: 24, paddingRight: 90, maxWidth: "100%" },
-  bannerText: { color: "#0A0A0A", fontSize: 34, fontWeight: "900", letterSpacing: 0.5 },
-  bannerInput: {
-    color: "#0A0A0A",
-    fontSize: 34,
-    fontWeight: "900",
-    letterSpacing: 0.5,
-    paddingLeft: 24,
-    paddingRight: 90,
-    outlineWidth: 0,
-    outlineStyle: "none",
-  } as any,
   bannerActionsRow: { position: "absolute", top: 34, right: 14, flexDirection: "row", gap: 8 },
   bannerActionButton: {
     width: 36,
@@ -1620,17 +1986,18 @@ const styles = StyleSheet.create({
   videoMeta: { color: MUTED, fontSize: 10, fontWeight: "700", marginTop: 2 },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   sheetCard: {
-    backgroundColor: "#121212",
+    backgroundColor: "#15202B",
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     paddingTop: 8,
     paddingBottom: 30,
     alignItems: "center",
   },
-  sheetRow: { width: "100%", paddingVertical: 18, alignItems: "center", borderBottomWidth: 1, borderColor: "#1C1C1C" },
+  sheetRow: { width: "100%", paddingVertical: 18, alignItems: "center" },
+  sheetRowLast: { borderBottomWidth: 0 },
   sheetRowText: { color: TEXT, fontSize: 16, fontWeight: "700" },
   sheetCancelText: { color: MUTED },
-  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#262626", marginTop: 14 },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#FFFFFF", marginBottom: 14 },
   tagPickerRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20 },
 
   postDivider: { height: 1, backgroundColor: "#141414", marginVertical: 4 },
@@ -1686,4 +2053,116 @@ const styles = StyleSheet.create({
   composerActionsRow: { flexDirection: "row", gap: 20, borderTopWidth: 1, borderColor: "#1C1C1C", paddingTop: 14 },
   composerActionButton: { flexDirection: "row", alignItems: "center", gap: 6 },
   composerActionText: { color: TEXT, fontSize: 13, fontWeight: "600" },
+
+  // Tam ekran "Profili Duzenle" sayfasi
+  editScreen: { flex: 1, backgroundColor: "transparent" },
+  editScrollContent: { paddingBottom: 60 },
+  editHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 54,
+    paddingBottom: 14,
+  },
+  editHeaderSideButton: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  editHeaderTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", letterSpacing: 0.3, marginTop: 1 },
+  editHeaderTitleFontLoaded: { fontFamily: "BebasNeue_400Regular", fontWeight: "400", fontSize: 22, letterSpacing: 1.4 },
+  editBannerWrap: {
+    height: BANNER_HEIGHT,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ECECE8",
+  },
+  editBannerText: { color: "#0A0A0A", fontSize: 32, fontWeight: "900", letterSpacing: 0.5, paddingHorizontal: 60 },
+  editBannerInput: {
+    color: "#0A0A0A",
+    fontSize: 32,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    textAlign: "center",
+    paddingHorizontal: 60,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
+  editBannerCameraButton: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(20,20,20,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bannerUploadingOverlay: { backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" },
+  editAvatarWrap: { width: 88, height: 88, marginTop: -44, marginLeft: 24 },
+  editAvatarCore: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    overflow: "hidden",
+    borderWidth: 3,
+    borderColor: BG,
+  },
+  editAvatarImage: { width: "100%", height: "100%" },
+  editAvatarCameraButton: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "rgba(20,20,20,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: BG,
+  },
+  editFieldsWrap: { paddingHorizontal: 24, paddingTop: 24 },
+  editField: { marginBottom: 12 },
+  editFieldDivider: { height: 1, width: "100%", marginTop: 10 },
+  editFieldLast: { marginBottom: 0 },
+  editFieldLabel: { color: MUTED, fontSize: 11, fontWeight: "700", letterSpacing: 1, marginBottom: 6, lineHeight: 14 },
+  editFieldInput: {
+    color: TEXT,
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 20,
+    padding: 0,
+    margin: 0,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
+  editFieldInputBio: { minHeight: 0, paddingVertical: 0 } as any,
+  editHandleRow: { flexDirection: "row", alignItems: "baseline", gap: 2 },
+  editHandleAt: { color: TEXT, fontSize: 16, fontWeight: "700", lineHeight: 20 },
+  visibilityMenu: {
+    position: "absolute",
+    top: "100%",
+    right: 0,
+    marginTop: 8,
+    backgroundColor: "#15202B",
+    borderRadius: 14,
+    paddingVertical: 4,
+    minWidth: 160,
+    zIndex: 10,
+    overflow: "hidden",
+  },
+  // Dil secim kutusundaki (ProfileScreen.tsx popoverOptionRow) AYNI desen -
+  // secili satirin vurgusu karta tam yapismiyor, kenarlardan icerlek
+  // (marginHorizontal) yuvarlak kose bir "hap" gibi duruyor.
+  visibilityMenuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginHorizontal: 6,
+    borderRadius: 12,
+  },
+  visibilityMenuRowActive: { backgroundColor: "rgba(14,165,233,0.18)" },
+  visibilityMenuRowText: { color: MUTED, fontSize: 14, fontWeight: "600" },
+  visibilityMenuRowTextActive: { color: TEXT },
 });

@@ -230,7 +230,19 @@
     "noLikedVideos": "Hələ bəyənilən video yoxdur.",
     "noJoinedRooms": "Hələ heç bir otağa qoşulmamısan.",
     "avatarPhotos": "Şəkillər",
-    "avatarRemove": "Şəkli Sil"
+    "takePhoto": "Şəkil çək",
+    "avatarRemove": "Şəkli Sil",
+    "editProfileDisplayName": "Görünən ad",
+    "editProfileUsername": "İstifadəçi adı",
+    "editProfileBio": "Şəxsi məlumat",
+    "editProfileLocation": "Yer",
+    "editProfileBirthday": "Doğum tarixi",
+    "visibilityPublic": "Hamı",
+    "visibilityPrivate": "Şəxsi",
+    "visibilityFriends": "Dostlar",
+    "bannerPhotoPick": "Şəkil seç",
+    "bannerPhotoRemove": "Şəkli sil",
+    "bannerTextEdit": "Mətni redaktə et"
   },
   "room": {
     "kickedTitle": "Otaqdan çıxarıldın",

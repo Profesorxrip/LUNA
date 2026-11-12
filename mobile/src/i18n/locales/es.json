@@ -230,7 +230,19 @@
     "noLikedVideos": "Aún no hay videos que te hayan gustado.",
     "noJoinedRooms": "Todavía no te has unido a ninguna sala.",
     "avatarPhotos": "Fotos",
-    "avatarRemove": "Quitar Foto"
+    "takePhoto": "Tomar foto",
+    "avatarRemove": "Quitar Foto",
+    "editProfileDisplayName": "Nombre visible",
+    "editProfileUsername": "Nombre de usuario",
+    "editProfileBio": "Información personal",
+    "editProfileLocation": "Ubicación",
+    "editProfileBirthday": "Cumpleaños",
+    "visibilityPublic": "Público",
+    "visibilityPrivate": "Privado",
+    "visibilityFriends": "Amigos",
+    "bannerPhotoPick": "Elegir foto",
+    "bannerPhotoRemove": "Quitar foto",
+    "bannerTextEdit": "Editar texto"
   },
   "room": {
     "kickedTitle": "Fuiste expulsado/a",

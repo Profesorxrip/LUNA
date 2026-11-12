@@ -230,7 +230,19 @@
     "noLikedVideos": "Δεν υπάρχουν αγαπημένα βίντεο ακόμα.",
     "noJoinedRooms": "Δεν έχεις μπει ακόμα σε κανένα δωμάτιο.",
     "avatarPhotos": "Φωτογραφίες",
-    "avatarRemove": "Αφαίρεση Φωτογραφίας"
+    "takePhoto": "Λήψη φωτογραφίας",
+    "avatarRemove": "Αφαίρεση Φωτογραφίας",
+    "editProfileDisplayName": "Εμφανιζόμενο όνομα",
+    "editProfileUsername": "Όνομα χρήστη",
+    "editProfileBio": "Προσωπικές πληροφορίες",
+    "editProfileLocation": "Τοποθεσία",
+    "editProfileBirthday": "Γενέθλια",
+    "visibilityPublic": "Δημόσιο",
+    "visibilityPrivate": "Ιδιωτικό",
+    "visibilityFriends": "Φίλοι",
+    "bannerPhotoPick": "Επιλογή φωτογραφίας",
+    "bannerPhotoRemove": "Αφαίρεση φωτογραφίας",
+    "bannerTextEdit": "Επεξεργασία κειμένου"
   },
   "room": {
     "kickedTitle": "Αφαιρέθηκες",

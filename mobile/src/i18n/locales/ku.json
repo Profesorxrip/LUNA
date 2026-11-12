@@ -230,7 +230,19 @@
     "noLikedVideos": "Hêj vîdyoyên hezkirî tune ne.",
     "noJoinedRooms": "Hêj tu tevlî odeyekê nebûye.",
     "avatarPhotos": "Wêne",
-    "avatarRemove": "Wêne Rake"
+    "takePhoto": "Wêne bikişîne",
+    "avatarRemove": "Wêne Rake",
+    "editProfileDisplayName": "Navê xuyayî",
+    "editProfileUsername": "Navê bikarhêner",
+    "editProfileBio": "Agahiyên kesane",
+    "editProfileLocation": "Cih",
+    "editProfileBirthday": "Roja jidayikbûnê",
+    "visibilityPublic": "Giştî",
+    "visibilityPrivate": "Taybet",
+    "visibilityFriends": "Heval",
+    "bannerPhotoPick": "Wêneyê hilbijêre",
+    "bannerPhotoRemove": "Wêneyê rake",
+    "bannerTextEdit": "Nivîsê biguherîne"
   },
   "room": {
     "kickedTitle": "Tu hatî derxistin",

@@ -230,7 +230,19 @@
     "noLikedVideos": "Пока нет понравившихся видео.",
     "noJoinedRooms": "Ты ещё не присоединялся(ась) к комнате.",
     "avatarPhotos": "Фото",
-    "avatarRemove": "Удалить фото"
+    "takePhoto": "Сделать фото",
+    "avatarRemove": "Удалить фото",
+    "editProfileDisplayName": "Отображаемое имя",
+    "editProfileUsername": "Имя пользователя",
+    "editProfileBio": "О себе",
+    "editProfileLocation": "Местоположение",
+    "editProfileBirthday": "Дата рождения",
+    "visibilityPublic": "Все",
+    "visibilityPrivate": "Личное",
+    "visibilityFriends": "Друзья",
+    "bannerPhotoPick": "Выбрать фото",
+    "bannerPhotoRemove": "Удалить фото",
+    "bannerTextEdit": "Изменить текст"
   },
   "room": {
     "kickedTitle": "Тебя удалили",

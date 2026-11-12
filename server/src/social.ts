@@ -125,6 +125,7 @@ export interface PublicProfile {
   statsVisible: boolean;
   postsVisible: boolean;
   bannerText: string | null;
+  bannerUrl: string | null;
   profileLocation: string | null;
   birthday: string | null;
   defaultAutoTranslate: boolean;
@@ -134,7 +135,7 @@ export interface PublicProfile {
 }
 
 const PUBLIC_PROFILE_COLUMNS =
-  "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,posts_visible,banner_text,profile_location,birthday,default_auto_translate,is_premium";
+  "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,posts_visible,banner_text,banner_url,profile_location,birthday,default_auto_translate,is_premium";
 
 function rowToPublicProfile(row: any): PublicProfile {
   return {
@@ -152,6 +153,7 @@ function rowToPublicProfile(row: any): PublicProfile {
     statsVisible: row.stats_visible !== false,
     postsVisible: row.posts_visible !== false,
     bannerText: row.banner_text || null,
+    bannerUrl: row.banner_url || null,
     profileLocation: row.profile_location || null,
     birthday: row.birthday || null,
     defaultAutoTranslate: row.default_auto_translate === true,
