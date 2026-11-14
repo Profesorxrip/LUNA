@@ -36,7 +36,7 @@ export default function Avatar({ name, size = 28, avatarUrl, isFriend = false }:
   const initial = name.trim().charAt(0).toUpperCase() || "?";
   return (
     <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2, backgroundColor: colorForName(name) }, ring]}>
-      <Text style={[styles.text, fontsLoaded && styles.textFontLoaded, { fontSize: size * 0.45 }]}>{initial}</Text>
+      <Text style={[styles.text, fontsLoaded && styles.textFontLoaded, { fontSize: size * 0.45, marginTop: -1 }]}>{initial}</Text>
     </View>
   );
 }

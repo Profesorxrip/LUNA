@@ -14,11 +14,12 @@ import {
   Dimensions,
   PanResponder,
 } from "react-native";
-import { ChevronLeft, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Camera, Users, CircleArrowDown } from "lucide-react-native";
+import { ChevronLeft, ChevronDown, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Camera, Users, CircleArrowDown, ChartBar, MapPin, Pencil, Image as ImageIcon } from "lucide-react-native";
 import { LockClosedIcon } from "react-native-heroicons/outline";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../services/supabase";
 import { getSocket, PublicRoomSummary, HistoryItem, MediaSource, SourceType, RoomState } from "../services/socket";
@@ -29,7 +30,7 @@ import PhotoViewerModal from "../components/PhotoViewerModal";
 import PostCard from "../components/PostCard";
 import AppBackground from "../components/AppBackground";
 import PremiumBadge from "../components/PremiumBadge";
-import { colorForName } from "../components/Avatar";
+import Avatar, { colorForName } from "../components/Avatar";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 
 interface Props {
@@ -156,6 +157,9 @@ interface Post {
   imageUrls: string[];
   locationName: string | null;
   taggedUserIds: string[];
+  pollQuestion: string | null;
+  pollOptions: string[] | null;
+  pollOptionImages: (string | null)[] | null;
   createdAt: number;
 }
 
@@ -236,7 +240,16 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [composerLocation, setComposerLocation] = useState("");
   const [composerTaggedIds, setComposerTaggedIds] = useState<string[]>([]);
   const [composerTagPickerVisible, setComposerTagPickerVisible] = useState(false);
-  const [composerFriends, setComposerFriends] = useState<{ userId: string; name: string }[]>([]);
+  const [composerFriends, setComposerFriends] = useState<{ userId: string; name: string; avatarUrl: string; handle: string }[]>([]);
+  const [composerVisibility, setComposerVisibility] = useState<"public" | "private" | "friends">("public");
+  const [composerVisibilityMenuOpen, setComposerVisibilityMenuOpen] = useState(false);
+  const [composerLocationFieldVisible, setComposerLocationFieldVisible] = useState(false);
+  const [composerLocationLoading, setComposerLocationLoading] = useState(false);
+  const [composerPollBuilderVisible, setComposerPollBuilderVisible] = useState(false);
+  const [composerPollQuestion, setComposerPollQuestion] = useState("");
+  const [composerPollOptions, setComposerPollOptions] = useState<string[]>(["", ""]);
+  const [composerPollOptionImages, setComposerPollOptionImages] = useState<(string | null)[]>([null, null]);
+  const [composerPollImageSheetTarget, setComposerPollImageSheetTarget] = useState<number | null>(null);
   // Avatarin icindeki "arkaplan penceresinin" kaydirmayla (scroll) birlikte
   // dogru hizada kalmasi icin - AppBackground sayfanin SABIT arkasinda
   // durur, ScrollView icerigi onun ONUNDE kayar.
@@ -419,6 +432,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       imageUrls: row.image_urls || [],
       locationName: row.location_name,
       taggedUserIds: row.tagged_user_ids || [],
+      pollQuestion: row.poll_question || null,
+      pollOptions: row.poll_options || null,
+      pollOptionImages: row.poll_option_images || null,
       createdAt: new Date(row.created_at).getTime(),
     };
   }
@@ -431,7 +447,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     if (!effectiveUserId) return;
     supabase
       .from("posts")
-      .select("id,user_id,text,image_urls,location_name,tagged_user_ids,created_at")
+      .select("id,user_id,text,image_urls,location_name,tagged_user_ids,poll_question,poll_options,poll_option_images,created_at")
       .eq("user_id", effectiveUserId)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -450,7 +466,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     if (!effectiveUserId) return;
     supabase
       .from("posts")
-      .select("id,user_id,text,image_urls,location_name,tagged_user_ids,created_at")
+      .select("id,user_id,text,image_urls,location_name,tagged_user_ids,poll_question,poll_options,poll_option_images,created_at")
       .contains("tagged_user_ids", [effectiveUserId])
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -465,7 +481,15 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   useEffect(() => {
     if (!own) return;
     getSocket().emit("friends:list", {}, (res: any) => {
-      if (res?.ok) setComposerFriends(res.friends.map((f: { userId: string; name: string }) => ({ userId: f.userId, name: f.name })));
+      if (res?.ok)
+        setComposerFriends(
+          res.friends.map((f: { userId: string; name: string; avatarUrl?: string | null; handle?: string | null }) => ({
+            userId: f.userId,
+            name: f.name,
+            avatarUrl: f.avatarUrl || "",
+            handle: f.handle || "",
+          }))
+        );
     });
   }, [own]);
 
@@ -693,7 +717,121 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     setComposerImages([]);
     setComposerLocation("");
     setComposerTaggedIds([]);
+    setComposerVisibility("public");
+    setComposerVisibilityMenuOpen(false);
+    setComposerLocationFieldVisible(false);
+    setComposerPollBuilderVisible(false);
+    setComposerPollQuestion("");
+    setComposerPollOptions(["", ""]);
+    setComposerPollOptionImages([null, null]);
+    setComposerPollImageSheetTarget(null);
     setComposerVisible(true);
+  }
+
+  function toggleComposerPollOption(index: number, value: string) {
+    setComposerPollOptions((prev) => prev.map((o, i) => (i === index ? value : o)));
+  }
+
+  function addComposerPollOption() {
+    setComposerPollOptions((prev) => (prev.length >= 4 ? prev : [...prev, ""]));
+    setComposerPollOptionImages((prev) => (prev.length >= 4 ? prev : [...prev, null]));
+  }
+
+  function removeComposerPollOption(index: number) {
+    setComposerPollOptions((prev) => (prev.length <= 2 ? prev : prev.filter((_, i) => i !== index)));
+    setComposerPollOptionImages((prev) => (prev.length <= 2 ? prev : prev.filter((_, i) => i !== index)));
+  }
+
+  function pickComposerPollOptionImage(index: number) {
+    setComposerPollImageSheetTarget(index);
+  }
+
+  function removeComposerPollOptionImage(index: number) {
+    setComposerPollOptionImages((prev) => prev.map((uri, i) => (i === index ? null : uri)));
+  }
+
+  async function takeComposerPollOptionPhoto() {
+    const index = composerPollImageSheetTarget;
+    setComposerPollImageSheetTarget(null);
+    if (index === null) return;
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.cameraPermissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+    if (result.canceled || !result.assets?.[0]) return;
+    setComposerPollOptionImages((prev) => prev.map((uri, i) => (i === index ? result.assets[0].uri : uri)));
+  }
+
+  async function pickComposerPollOptionPhotoFromGallery() {
+    const index = composerPollImageSheetTarget;
+    setComposerPollImageSheetTarget(null);
+    if (index === null) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    setComposerPollOptionImages((prev) => prev.map((uri, i) => (i === index ? result.assets[0].uri : uri)));
+  }
+
+  function confirmComposerPoll() {
+    if (!composerHasValidPoll()) {
+      showAlert(t("userProfile.pollMinOptionsTitle"), t("userProfile.pollMinOptionsBody"));
+      return;
+    }
+    setComposerPollBuilderVisible(false);
+  }
+
+  function removeComposerPoll() {
+    setComposerPollQuestion("");
+    setComposerPollOptions(["", ""]);
+    setComposerPollOptionImages([null, null]);
+  }
+
+  // Konum kutusu acildiginda cihazin GERCEK konumunu alip (RoomScreen.tsx
+  // showMap'teki AYNI izin akisi) expo-location'in cihaz-ici (agsiz)
+  // reverseGeocodeAsync'iyle okunabilir bir yer adina ceviriyoruz - ayri
+  // bir harita servisi/API anahtari gerekmiyor.
+  async function fetchComposerLocationLabel() {
+    setComposerLocationLoading(true);
+    setComposerLocation("");
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) return;
+      const pos = await Location.getCurrentPositionAsync({});
+      const results = await Location.reverseGeocodeAsync({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+      const place = results[0];
+      if (place) {
+        const label = [place.district || place.subregion, place.city || place.region]
+          .filter(Boolean)
+          .join(", ");
+        setComposerLocation(label || place.country || "");
+      }
+    } catch {
+      // Konum alinamadi (izin reddedildi, GPS kapali vb.) - kutu bos kalir.
+    } finally {
+      setComposerLocationLoading(false);
+    }
+  }
+
+  function toggleComposerLocationBox() {
+    setComposerLocationFieldVisible((v) => {
+      const next = !v;
+      if (next) fetchComposerLocationLabel();
+      return next;
+    });
   }
 
   async function pickComposerImages() {
@@ -717,6 +855,18 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     setComposerImages((prev) => prev.filter((u) => u !== uri));
   }
 
+  async function takeComposerPhoto() {
+    if (composerImages.length >= 2) return;
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.cameraPermissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    if (result.canceled || !result.assets?.[0]) return;
+    setComposerImages((prev) => [...prev, result.assets[0].uri].slice(0, 2));
+  }
+
   function toggleComposerTag(userId: string) {
     setComposerTaggedIds((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]));
   }
@@ -725,22 +875,52 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   // Supabase Storage yukleme deseni, sadece hedef bucket "post-images" ve
   // sonunda tek bir "posts" satiri ekleniyor (metin + en fazla 2 foto +
   // konum adi + etiketlenen kisi id'leri).
+  function composerValidPollEntries() {
+    return composerPollOptions
+      .map((o, i) => ({ text: o.trim(), image: composerPollOptionImages[i] || null }))
+      .filter((e) => e.text);
+  }
+
+  function composerValidPollOptions() {
+    return composerValidPollEntries().map((e) => e.text);
+  }
+
+  function composerHasValidPoll() {
+    return Boolean(composerPollQuestion.trim()) && composerValidPollOptions().length >= 2;
+  }
+
+  function composerHasContent() {
+    return Boolean(composerText.trim()) || composerImages.length > 0 || composerHasValidPoll();
+  }
+
+  async function uploadComposerImage(uri: string): Promise<string> {
+    const arrayBuffer = await uriToArrayBuffer(uri);
+    const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
+    const contentType = ext === "png" ? "image/png" : "image/jpeg";
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const path = `${myUserId}/${fileName}`;
+    const { error: uploadError } = await supabase.storage.from("post-images").upload(path, arrayBuffer, { contentType });
+    if (uploadError) throw uploadError;
+    const { data: publicUrlData } = supabase.storage.from("post-images").getPublicUrl(path);
+    return publicUrlData.publicUrl;
+  }
+
   async function submitPost() {
     if (!myUserId) return;
-    if (!composerText.trim() && composerImages.length === 0) return;
+    const pollEntries = composerValidPollEntries();
+    const hasValidPoll = composerHasValidPoll();
+    if (!composerHasContent()) return;
     setPostingBusy(true);
     try {
       const imageUrls: string[] = [];
       for (const uri of composerImages) {
-        const arrayBuffer = await uriToArrayBuffer(uri);
-        const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
-        const contentType = ext === "png" ? "image/png" : "image/jpeg";
-        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const path = `${myUserId}/${fileName}`;
-        const { error: uploadError } = await supabase.storage.from("post-images").upload(path, arrayBuffer, { contentType });
-        if (uploadError) throw uploadError;
-        const { data: publicUrlData } = supabase.storage.from("post-images").getPublicUrl(path);
-        imageUrls.push(publicUrlData.publicUrl);
+        imageUrls.push(await uploadComposerImage(uri));
+      }
+      const pollOptionImageUrls: (string | null)[] = [];
+      if (hasValidPoll) {
+        for (const entry of pollEntries) {
+          pollOptionImageUrls.push(entry.image ? await uploadComposerImage(entry.image) : null);
+        }
       }
       const { data: row, error: insertError } = await supabase
         .from("posts")
@@ -750,8 +930,11 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           image_urls: imageUrls,
           location_name: composerLocation.trim() || null,
           tagged_user_ids: composerTaggedIds,
+          poll_question: hasValidPoll ? composerPollQuestion.trim() : null,
+          poll_options: hasValidPoll ? pollEntries.map((e) => e.text) : null,
+          poll_option_images: hasValidPoll ? pollOptionImageUrls : null,
         })
-        .select("id,user_id,text,image_urls,location_name,tagged_user_ids,created_at")
+        .select("id,user_id,text,image_urls,location_name,tagged_user_ids,poll_question,poll_options,poll_option_images,created_at")
         .single();
       if (insertError) throw insertError;
       setPosts((prev) => [rowToPost(row), ...prev]);
@@ -1106,6 +1289,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                     <React.Fragment key={post.id}>
                       {i > 0 && <View style={styles.postDivider} />}
                       <PostCard
+                        postId={post.id}
                         avatarUrl={profileCache[post.userId]?.avatarUrl || avatarUrl}
                         initial={(profileCache[post.userId]?.name || name).charAt(0).toUpperCase()}
                         name={profileCache[post.userId]?.name || name}
@@ -1115,6 +1299,10 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                         imageUrls={post.imageUrls}
                         locationName={post.locationName}
                         taggedNames={post.taggedUserIds.map((id) => profileCache[id]?.name).filter(Boolean) as string[]}
+                        pollQuestion={post.pollQuestion}
+                        pollOptions={post.pollOptions}
+                        pollOptionImages={post.pollOptionImages}
+                        currentUserId={myUserId}
                         onPressImage={setViewingPhotoUrl}
                         onLongPress={own ? () => confirmDeletePost(post) : undefined}
                       />
@@ -1137,6 +1325,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                 <React.Fragment key={post.id}>
                   {i > 0 && <View style={styles.postDivider} />}
                   <PostCard
+                    postId={post.id}
                     avatarUrl={profileCache[post.userId]?.avatarUrl || ""}
                     initial={(profileCache[post.userId]?.name || "?").charAt(0).toUpperCase()}
                     name={profileCache[post.userId]?.name || "—"}
@@ -1146,6 +1335,10 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                     imageUrls={post.imageUrls}
                     locationName={post.locationName}
                     taggedNames={post.taggedUserIds.map((id) => profileCache[id]?.name).filter(Boolean) as string[]}
+                    pollQuestion={post.pollQuestion}
+                    pollOptions={post.pollOptions}
+                    pollOptionImages={post.pollOptionImages}
+                    currentUserId={myUserId}
                     onPressImage={setViewingPhotoUrl}
                   />
                 </React.Fragment>
@@ -1246,39 +1439,111 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 
       <Modal
         visible={composerVisible}
-        transparent
         animationType="slide"
         onRequestClose={() => setComposerVisible(false)}
         statusBarTranslucent
       >
-        <View style={styles.composerOverlay}>
-          <View style={styles.composerCard}>
-            <View style={styles.composerHeaderRow}>
-              <TouchableOpacity onPress={() => setComposerVisible(false)}>
-                <Text style={styles.composerCancel}>{t("common.cancel")}</Text>
-              </TouchableOpacity>
-              <Text style={styles.composerTitle}>{t("userProfile.newPost")}</Text>
-              <TouchableOpacity
-                onPress={submitPost}
-                disabled={postingBusy || (!composerText.trim() && composerImages.length === 0)}
-              >
-                {postingBusy ? (
-                  <ActivityIndicator color={ACCENT} size="small" />
-                ) : (
-                  <Text
-                    style={[
-                      styles.composerShare,
-                      !composerText.trim() && composerImages.length === 0 && styles.composerShareDisabled,
-                    ]}
-                  >
-                    {t("userProfile.share")}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
+        <View style={styles.composerScreen}>
+          <AppBackground />
+          <View style={styles.composerHeaderRow}>
+            <TouchableOpacity onPress={() => setComposerVisible(false)} hitSlop={10} style={styles.editHeaderSideButton}>
+              <View style={{ transform: [{ rotate: "90deg" }] }}>
+                <CircleArrowDown size={22} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <Text style={[styles.editHeaderTitle, editHeaderFontLoaded && styles.editHeaderTitleFontLoaded]}>
+              {t("userProfile.newPost")}
+            </Text>
+            <TouchableOpacity
+              onPress={submitPost}
+              disabled={postingBusy || !composerHasContent()}
+              hitSlop={10}
+              style={styles.editHeaderSideButton}
+            >
+              {postingBusy ? (
+                <ActivityIndicator color={ACCENT} size="small" />
+              ) : (
+                <View style={{ transform: [{ rotate: "180deg" }] }}>
+                  <CircleArrowDown size={22} color={composerHasContent() ? "#FFFFFF" : MUTED} />
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
 
+          <View
+            style={[
+              styles.composerVisibilityWrap,
+              { position: "relative", zIndex: composerVisibilityMenuOpen ? 20 : 1 },
+            ]}
+          >
+            <LinearGradient
+              colors={[ACCENT, "#FFFFFF"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.composerVisibilityGradientBorder}
+            >
+              <TouchableOpacity
+                style={styles.composerVisibilityPill}
+                onPress={() => setComposerVisibilityMenuOpen((v) => !v)}
+              >
+                {composerVisibility === "public" ? (
+                  <WorldIcon size={16} color="#FFFFFF" />
+                ) : composerVisibility === "private" ? (
+                  <PrivacyLockIcon size={16} color="#FFFFFF" />
+                ) : (
+                  <Users size={16} color="#FFFFFF" />
+                )}
+                <Text style={styles.composerVisibilityPillText}>
+                  {(composerVisibility === "public"
+                    ? t("userProfile.visibilityPublic")
+                    : composerVisibility === "private"
+                    ? t("userProfile.visibilityPrivate")
+                    : t("userProfile.visibilityFriends")
+                  ).toUpperCase()}
+                </Text>
+                <View style={{ marginTop: 1 }}>
+                  <ChevronDown size={14} color="#FFFFFF" />
+                </View>
+              </TouchableOpacity>
+            </LinearGradient>
+            {composerVisibilityMenuOpen && (
+              <View style={[styles.visibilityMenu, styles.composerVisibilityMenuPos]}>
+                {(
+                  [
+                    { key: "public" as const, label: t("userProfile.visibilityPublic"), VisIcon: WorldIcon, iconOffset: -2 },
+                    { key: "private" as const, label: t("userProfile.visibilityPrivate"), VisIcon: PrivacyLockIcon, iconOffset: -2, textOffset: 2 },
+                    { key: "friends" as const, label: t("userProfile.visibilityFriends"), VisIcon: Users, iconOffset: -4 },
+                  ]
+                ).map((opt) => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[styles.visibilityMenuRow, composerVisibility === opt.key && styles.visibilityMenuRowActive]}
+                    onPress={() => {
+                      setComposerVisibility(opt.key);
+                      setComposerVisibilityMenuOpen(false);
+                    }}
+                  >
+                    <View style={{ marginTop: opt.iconOffset }}>
+                      <opt.VisIcon size={16} color={composerVisibility === opt.key ? "#fff" : MUTED} />
+                    </View>
+                    <Text
+                      style={[
+                        styles.visibilityMenuRowText,
+                        { marginTop: opt.textOffset },
+                        composerVisibility === opt.key && styles.visibilityMenuRowTextActive,
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <ScrollView style={styles.composerBody} keyboardShouldPersistTaps="handled">
             <TextInput
-              style={styles.composerInput}
+              style={styles.composerFullInput}
               value={composerText}
               onChangeText={setComposerText}
               multiline
@@ -1300,39 +1565,113 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               </View>
             )}
 
-            <TextInput
-              style={styles.composerLocationInput}
-              value={composerLocation}
-              onChangeText={setComposerLocation}
-              placeholder={t("userProfile.locationPlaceholder")}
-              placeholderTextColor={MUTED}
-            />
-
-            {composerTaggedIds.length > 0 && (
-              <Text style={styles.composerTaggedPreview}>
-                {t("userProfile.withPeople", {
-                  names: composerTaggedIds
-                    .map((id) => composerFriends.find((f) => f.userId === id)?.name)
-                    .filter(Boolean)
-                    .join(", "),
-                })}
-              </Text>
+            {composerLocationFieldVisible && (
+              <View style={styles.composerLocationBox}>
+                <View style={styles.composerLocationMapTile}>
+                  <Image
+                    source={require("../../assets/images/location-map-tile.png")}
+                    style={{ width: 60, height: 60, position: "absolute" }}
+                    resizeMode="contain"
+                  />
+                  <View style={{ zIndex: 1 }}>
+                    <MapPin size={28} color="#FFFFFF" />
+                  </View>
+                </View>
+                <View style={styles.composerLocationTextWrap}>
+                  {composerLocationLoading ? (
+                    <ActivityIndicator color={ACCENT} size="small" />
+                  ) : (
+                    <Text style={styles.composerLocationText} numberOfLines={2}>
+                      {composerLocation || t("userProfile.locationUnavailable")}
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={styles.composerLocationCloseButton}
+                  onPress={() => setComposerLocationFieldVisible(false)}
+                  hitSlop={8}
+                >
+                  <Text style={styles.composerImageRemoveText}>×</Text>
+                </TouchableOpacity>
+              </View>
             )}
 
-            <View style={styles.composerActionsRow}>
-              <TouchableOpacity
-                style={styles.composerActionButton}
-                onPress={pickComposerImages}
-                disabled={composerImages.length >= 2}
-              >
-                <Icon name="image" size={18} color={composerImages.length >= 2 ? MUTED : ACCENT} />
-                <Text style={styles.composerActionText}>{t("userProfile.addPhoto")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.composerActionButton} onPress={() => setComposerTagPickerVisible(true)}>
-                <Icon name="people" size={18} color={ACCENT} />
-                <Text style={styles.composerActionText}>{t("userProfile.tagPeople")}</Text>
-              </TouchableOpacity>
-            </View>
+            {composerHasValidPoll() && !composerPollBuilderVisible && (
+              <View style={styles.composerPollPreviewBox}>
+                <View style={styles.composerPollPreviewIconWrap}>
+                  <ChartBar size={20} color="#FFFFFF" />
+                </View>
+                <View style={styles.composerLocationTextWrap}>
+                  <Text style={styles.composerLocationText} numberOfLines={1}>
+                    {composerPollQuestion}
+                  </Text>
+                  <Text style={styles.composerPollPreviewSubtext}>
+                    {composerValidPollOptions().length} seçenek
+                  </Text>
+                </View>
+                <View style={styles.composerPollPreviewActions}>
+                  <TouchableOpacity
+                    style={styles.composerPollPreviewActionButton}
+                    onPress={() => setComposerPollBuilderVisible(true)}
+                    hitSlop={8}
+                  >
+                    <Pencil size={14} color={MUTED} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.composerPollPreviewActionButton} onPress={removeComposerPoll} hitSlop={8}>
+                    <Text style={[styles.composerImageRemoveText, { color: MUTED }]}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {composerTaggedIds.length > 0 && (
+              <View style={styles.composerTaggedPreviewRow}>
+                {composerTaggedIds.map((id) => {
+                  const friend = composerFriends.find((f) => f.userId === id);
+                  if (!friend) return null;
+                  return (
+                    <LinearGradient
+                      key={id}
+                      colors={[ACCENT, "#FFFFFF"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.composerTaggedPillGradientBorder}
+                    >
+                      <View style={styles.composerTaggedPill}>
+                        <Avatar name={friend.name} avatarUrl={friend.avatarUrl} size={20} />
+                        <Text style={styles.composerTaggedPillText}>{friend.name}</Text>
+                        <TouchableOpacity onPress={() => toggleComposerTag(id)} hitSlop={8}>
+                          <Text style={styles.composerTaggedPillRemoveText}>×</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </LinearGradient>
+                  );
+                })}
+              </View>
+            )}
+          </ScrollView>
+
+          <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.composerBottomBarDivider} />
+          <View style={styles.composerBottomBar}>
+            <TouchableOpacity onPress={pickComposerImages} disabled={composerImages.length >= 2} hitSlop={8}>
+              <ImageIcon size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={takeComposerPhoto} disabled={composerImages.length >= 2} hitSlop={8}>
+              <Image
+                source={require("../../assets/icons/video-camera-bold.png")}
+                style={{ width: 22, height: 22, tintColor: "#FFFFFF" }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setComposerPollBuilderVisible(true)} hitSlop={8}>
+              <ChartBar size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={toggleComposerLocationBox} hitSlop={8}>
+              <MapPin size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setComposerTagPickerVisible(true)} hitSlop={8}>
+              <Tag size={24} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1348,7 +1687,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           activeOpacity={1}
           onPress={() => setComposerTagPickerVisible(false)}
         >
-          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+          <TouchableOpacity activeOpacity={1} style={[styles.sheetCard, styles.tagPickerSheetCard]}>
             <View style={styles.sheetHandle} />
             {composerFriends.length === 0 ? (
               <Text style={[styles.emptyHistoryText, { padding: 16 }]}>{t("userProfile.noFriendsToTag")}</Text>
@@ -1358,19 +1697,146 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                 return (
                   <TouchableOpacity
                     key={friend.userId}
-                    style={[styles.sheetRow, styles.tagPickerRow]}
+                    style={[styles.sheetRow, styles.tagPickerRow, checked && styles.tagPickerRowChecked]}
                     onPress={() => toggleComposerTag(friend.userId)}
                   >
-                    <Text style={styles.sheetRowText}>{friend.name}</Text>
-                    {checked && <Icon name="check" size={16} color={ACCENT} />}
+                    <View style={styles.tagPickerNameWrap}>
+                      <Avatar name={friend.name} avatarUrl={friend.avatarUrl} size={46} />
+                      <View>
+                        <Text style={styles.sheetRowText}>{friend.name}</Text>
+                        {!!friend.handle && (
+                          <View style={styles.tagPickerHandleRow}>
+                            <Text style={styles.tagPickerHandle}>@</Text>
+                            <Text style={[styles.tagPickerHandle, styles.tagPickerHandleLetters]}>{friend.handle}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
                   </TouchableOpacity>
                 );
               })
             )}
             <TouchableOpacity style={styles.sheetRow} onPress={() => setComposerTagPickerVisible(false)}>
-              <Text style={[styles.sheetRowText, styles.sheetCancelText]}>{t("userProfile.tagPeopleDone")}</Text>
+              <Text style={[styles.sheetRowText, styles.tagPickerDoneText]}>{t("userProfile.tagPeopleDone").toLocaleUpperCase("tr")}</Text>
             </TouchableOpacity>
           </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={composerPollBuilderVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setComposerPollBuilderVisible(false)}
+      >
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setComposerPollBuilderVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={[styles.sheetCard, styles.pollBuilderCard]}>
+            <View style={[styles.sheetHandle, { alignSelf: "center" }]} />
+            <Text style={[styles.pollBuilderTitleText, editHeaderFontLoaded && styles.pollBuilderTitleTextFontLoaded]}>
+              {t("userProfile.pollBuilderTitle")}
+            </Text>
+            <TextInput
+              style={styles.pollQuestionInput}
+              placeholder={t("userProfile.pollQuestionPlaceholder")}
+              placeholderTextColor={MUTED}
+              value={composerPollQuestion}
+              onChangeText={setComposerPollQuestion}
+              maxLength={140}
+            />
+            {composerPollOptions.map((opt, index) => (
+              <View key={index} style={styles.pollOptionRow}>
+                <TouchableOpacity onPress={() => pickComposerPollOptionImage(index)} style={styles.pollOptionImageButton}>
+                  {composerPollOptionImages[index] ? (
+                    <>
+                      <Image source={{ uri: composerPollOptionImages[index]! }} style={styles.pollOptionImage} />
+                      <TouchableOpacity
+                        style={styles.pollOptionImageRemove}
+                        onPress={() => removeComposerPollOptionImage(index)}
+                        hitSlop={8}
+                      >
+                        <Text style={[styles.composerImageRemoveText, { fontSize: 10, lineHeight: 11 }]}>×</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <Camera size={16} color={MUTED} />
+                  )}
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.pollOptionInput}
+                  placeholder={t("userProfile.pollOptionPlaceholder", { index: index + 1 })}
+                  placeholderTextColor={MUTED}
+                  value={opt}
+                  onChangeText={(v) => toggleComposerPollOption(index, v)}
+                  maxLength={60}
+                />
+                {composerPollOptions.length > 2 && (
+                  <TouchableOpacity onPress={() => removeComposerPollOption(index)} hitSlop={8}>
+                    <Text style={styles.composerImageRemoveText}>×</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+            {composerPollOptions.length < 4 && (
+              <TouchableOpacity style={styles.pollAddOptionButton} onPress={addComposerPollOption}>
+                <Icon name="plus" size={16} color="#FFFFFF" />
+                <Text style={styles.pollAddOptionText}>{t("userProfile.pollAddOption")}</Text>
+              </TouchableOpacity>
+            )}
+            <View style={styles.pollBuilderFooterRow}>
+              <LinearGradient
+                colors={[ACCENT, "#6B7280"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.pollBuilderAddGradientBorder}
+              >
+                <TouchableOpacity style={styles.pollBuilderAddButton} onPress={() => setComposerPollBuilderVisible(false)}>
+                  <Text style={[styles.pollBuilderAddText, styles.pollBuilderCancelTextColor]}>{t("common.cancel")}</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+              <LinearGradient
+                colors={[ACCENT, "#FFFFFF"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.pollBuilderAddGradientBorder}
+              >
+                <TouchableOpacity style={styles.pollBuilderAddButton} onPress={confirmComposerPoll}>
+                  <Text style={styles.pollBuilderAddText}>{t("userProfile.pollAddButton")}</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={composerPollImageSheetTarget !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setComposerPollImageSheetTarget(null)}
+        statusBarTranslucent
+      >
+        <TouchableOpacity
+          style={styles.sheetOverlay}
+          activeOpacity={1}
+          onPress={() => setComposerPollImageSheetTarget(null)}
+        >
+          <DragToCloseSheet onClose={() => setComposerPollImageSheetTarget(null)}>
+            <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+              <View style={styles.sheetHandle} />
+              <TouchableOpacity style={styles.sheetRow} onPress={takeComposerPollOptionPhoto}>
+                <Text style={styles.sheetRowText}>{t("userProfile.takePhoto")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sheetRow} onPress={pickComposerPollOptionPhotoFromGallery}>
+                <Text style={styles.sheetRowText}>{t("userProfile.bannerPhotoPick")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sheetRow, styles.sheetRowLast]}
+                onPress={() => setComposerPollImageSheetTarget(null)}
+              >
+                <Text style={[styles.sheetRowText, styles.sheetCancelText]}>{t("common.close")}</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </DragToCloseSheet>
         </TouchableOpacity>
       </Modal>
 
@@ -1501,9 +1967,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                   <View style={styles.visibilityMenu}>
                     {(
                       [
-                        { key: "public" as const, label: t("userProfile.visibilityPublic"), VisIcon: WorldIcon },
-                        { key: "private" as const, label: t("userProfile.visibilityPrivate"), VisIcon: PrivacyLockIcon },
-                        { key: "friends" as const, label: t("userProfile.visibilityFriends"), VisIcon: Users },
+                        { key: "public" as const, label: t("userProfile.visibilityPublic"), VisIcon: WorldIcon, iconOffset: -2 },
+                        { key: "private" as const, label: t("userProfile.visibilityPrivate"), VisIcon: PrivacyLockIcon, iconOffset: -2 },
+                        { key: "friends" as const, label: t("userProfile.visibilityFriends"), VisIcon: Users, iconOffset: -4 },
                       ]
                     ).map((opt) => (
                       <TouchableOpacity
@@ -1514,7 +1980,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                           setLocationVisibilityMenuOpen(false);
                         }}
                       >
-                        <opt.VisIcon size={16} color={locationVisibility === opt.key ? "#fff" : MUTED} />
+                        <View style={{ marginTop: opt.iconOffset }}>
+                          <opt.VisIcon size={16} color={locationVisibility === opt.key ? "#fff" : MUTED} />
+                        </View>
                         <Text
                           style={[
                             styles.visibilityMenuRowText,
@@ -1555,9 +2023,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                   <View style={styles.visibilityMenu}>
                     {(
                       [
-                        { key: "public" as const, label: t("userProfile.visibilityPublic"), VisIcon: WorldIcon },
-                        { key: "private" as const, label: t("userProfile.visibilityPrivate"), VisIcon: PrivacyLockIcon },
-                        { key: "friends" as const, label: t("userProfile.visibilityFriends"), VisIcon: Users },
+                        { key: "public" as const, label: t("userProfile.visibilityPublic"), VisIcon: WorldIcon, iconOffset: -2 },
+                        { key: "private" as const, label: t("userProfile.visibilityPrivate"), VisIcon: PrivacyLockIcon, iconOffset: -2 },
+                        { key: "friends" as const, label: t("userProfile.visibilityFriends"), VisIcon: Users, iconOffset: -4 },
                       ]
                     ).map((opt) => (
                       <TouchableOpacity
@@ -1568,7 +2036,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                           setBirthdayVisibilityMenuOpen(false);
                         }}
                       >
-                        <opt.VisIcon size={16} color={birthdayVisibility === opt.key ? "#fff" : MUTED} />
+                        <View style={{ marginTop: opt.iconOffset }}>
+                          <opt.VisIcon size={16} color={birthdayVisibility === opt.key ? "#fff" : MUTED} />
+                        </View>
                         <Text
                           style={[
                             styles.visibilityMenuRowText,
@@ -1982,34 +2452,53 @@ const styles = StyleSheet.create({
   sheetRowLast: { borderBottomWidth: 0 },
   sheetRowText: { color: TEXT, fontSize: 16, fontWeight: "700" },
   sheetCancelText: { color: MUTED },
+  tagPickerDoneText: { color: "#FFFFFF", marginTop: 23 },
+  tagPickerSheetCard: { paddingBottom: 10 },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#FFFFFF", marginBottom: 14 },
   tagPickerRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20 },
+  tagPickerRowChecked: { backgroundColor: "rgba(14,165,233,0.16)" },
+  tagPickerNameWrap: { flexDirection: "row", alignItems: "center", gap: 10 },
+  tagPickerHandleRow: { flexDirection: "row", alignItems: "flex-start", gap: 0, marginTop: 2 },
+  tagPickerHandle: { color: MUTED, fontSize: 12, fontWeight: "600", letterSpacing: 0.2 },
+  tagPickerHandleLetters: { marginTop: 1 },
 
   postDivider: { height: 1, backgroundColor: "#141414", marginVertical: 4 },
 
-  composerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  composerCard: {
-    backgroundColor: "#0B0B0B",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
-    paddingBottom: 32,
-    gap: 14,
+  composerScreen: { flex: 1, backgroundColor: "transparent" },
+  composerHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 54,
+    paddingBottom: 14,
   },
-  composerHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  composerCancel: { color: MUTED, fontSize: 15 },
-  composerTitle: { color: TEXT, fontSize: 15, fontWeight: "700" },
-  composerShare: { color: ACCENT, fontSize: 15, fontWeight: "800" },
-  composerShareDisabled: { color: MUTED },
-  composerInput: {
+  composerVisibilityWrap: { paddingHorizontal: 20, marginBottom: 14, marginTop: 5 },
+  composerVisibilityGradientBorder: { alignSelf: "flex-start", borderRadius: 20, padding: 1 },
+  composerVisibilityPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#000000",
+    borderRadius: 19,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  composerVisibilityPillText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800", letterSpacing: 0.5 },
+  composerVisibilityMenuPos: { left: 10, right: "auto" },
+  composerBody: { flex: 1, paddingHorizontal: 20 },
+  composerFullInput: {
     color: TEXT,
-    fontSize: 15,
-    lineHeight: 21,
-    minHeight: 70,
+    fontSize: 17,
+    fontWeight: "600",
+    lineHeight: 24,
+    minHeight: 120,
+    padding: 0,
+    marginTop: 5,
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  composerImageRow: { flexDirection: "row", gap: 8 },
+  composerImageRow: { flexDirection: "row", gap: 8, marginTop: 16 },
   composerImageWrap: { width: 90, height: 90, borderRadius: 12, overflow: "hidden" },
   composerImage: { width: "100%", height: "100%" },
   composerImageRemove: {
@@ -2024,20 +2513,158 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   composerImageRemoveText: { color: TEXT, fontSize: 13, lineHeight: 14, fontWeight: "700" },
-  composerLocationInput: {
-    color: "#C9BFAE",
-    fontSize: 13,
+  composerLocationBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#000000",
     borderWidth: 1,
     borderColor: "#262626",
     borderRadius: 8,
-    padding: 10,
-    outlineWidth: 0,
-    outlineStyle: "none",
-  } as any,
-  composerTaggedPreview: { color: ACCENT, fontSize: 13 },
-  composerActionsRow: { flexDirection: "row", gap: 20, borderTopWidth: 1, borderColor: "#1C1C1C", paddingTop: 14 },
-  composerActionButton: { flexDirection: "row", alignItems: "center", gap: 6 },
-  composerActionText: { color: TEXT, fontSize: 13, fontWeight: "600" },
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    position: "relative",
+  },
+  composerLocationTextWrap: { flex: 1 },
+  composerLocationText: { color: TEXT, fontSize: 14, fontWeight: "600" },
+  composerLocationCloseButton: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  composerLocationMapTile: {
+    width: 60,
+    height: 60,
+    borderWidth: 1,
+    borderColor: "#262626",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  composerPollPreviewBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#000000",
+    borderWidth: 1,
+    borderColor: "#262626",
+    borderRadius: 8,
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    position: "relative",
+  },
+  composerPollPreviewIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  composerPollPreviewSubtext: { color: MUTED, fontSize: 12, marginTop: 2 },
+  composerPollPreviewActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  composerPollPreviewActionButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#262626",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pollBuilderCard: { width: "100%", alignItems: "stretch", paddingHorizontal: 20 },
+  pollBuilderTitleText: { color: TEXT, fontSize: 17, fontWeight: "800", textAlign: "center", marginBottom: 16 },
+  pollBuilderTitleTextFontLoaded: { fontFamily: "BebasNeue_400Regular", fontWeight: "400", fontSize: 22, letterSpacing: 1.4 },
+  pollQuestionInput: {
+    color: TEXT,
+    fontSize: 15,
+    fontWeight: "600",
+    backgroundColor: "#0A0F14",
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
+  },
+  pollOptionRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
+  pollOptionImageButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#262626",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "visible",
+  },
+  pollOptionImage: { width: 52, height: 52, borderRadius: 10 },
+  pollOptionImageRemove: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#000000",
+    borderWidth: 1,
+    borderColor: "#262626",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pollOptionInput: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: "600",
+    backgroundColor: "#0A0F14",
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  pollAddOptionButton: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginTop: 2, marginBottom: 18 },
+  pollAddOptionText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  pollBuilderFooterRow: { flexDirection: "row", gap: 10, marginBottom: 6 },
+  pollBuilderAddGradientBorder: { flex: 1, borderRadius: 10, padding: 1 },
+  pollBuilderAddButton: { alignItems: "center", justifyContent: "center", paddingVertical: 11, borderRadius: 9, backgroundColor: "#000000" },
+  pollBuilderAddText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700", textAlign: "center" },
+  pollBuilderCancelTextColor: { color: MUTED },
+  composerTaggedPreview: { color: ACCENT, fontSize: 13, marginTop: 12 },
+  composerTaggedPreviewRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12, marginLeft: -8 },
+  composerTaggedPillGradientBorder: { borderRadius: 20, padding: 1 },
+  composerTaggedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#000000",
+    borderRadius: 19,
+    paddingVertical: 4,
+    paddingLeft: 5,
+    paddingRight: 5,
+  },
+  composerTaggedPillText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  composerTaggedPillRemoveText: { color: MUTED, fontSize: 16, fontWeight: "700", marginLeft: 2, marginTop: -2 },
+  composerBottomBarDivider: { height: 1, width: "100%" },
+  composerBottomBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 24,
+  },
 
   // Tam ekran "Profili Duzenle" sayfasi
   editScreen: { flex: 1, backgroundColor: "transparent" },
