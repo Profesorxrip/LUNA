@@ -32,6 +32,9 @@ interface Props {
   onTogglePin?: () => void;
   onChangeVisibility?: (value: "public" | "private" | "friends") => void;
   onRemove?: () => void;
+  isBlocked?: boolean;
+  onToggleBlock?: () => void;
+  onReport?: () => void;
   onPressImage: (url: string) => void;
   onLongPress?: () => void;
 }
@@ -60,6 +63,9 @@ export default function PostCard({
   onTogglePin,
   onChangeVisibility,
   onRemove,
+  isBlocked = false,
+  onToggleBlock,
+  onReport,
   onPressImage,
   onLongPress,
 }: Props) {
@@ -69,7 +75,7 @@ export default function PostCard({
   const [pollVoting, setPollVoting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuShowVisibility, setMenuShowVisibility] = useState(false);
-  const menuInteractive = !!(onTogglePin || onChangeVisibility || onRemove);
+  const menuInteractive = !!(onTogglePin || onChangeVisibility || onRemove || onToggleBlock || onReport);
 
   useEffect(() => {
     if (!pollOptions || !postId) return;
@@ -193,6 +199,34 @@ export default function PostCard({
                       >
                         <Trash2 size={16} color="#FFFFFF" />
                         <Text style={styles.actionMenuRowText}>{t("userProfile.remove")}</Text>
+                      </TouchableOpacity>
+                    )}
+                    {!!onToggleBlock && (
+                      <TouchableOpacity
+                        style={styles.actionMenuRow}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setMenuOpen(false);
+                          onToggleBlock();
+                        }}
+                      >
+                        <Icon name="block" size={16} color="#FFFFFF" />
+                        <Text style={styles.actionMenuRowText}>
+                          {t(isBlocked ? "profileOptions.unblock" : "profileOptions.block")}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    {!!onReport && (
+                      <TouchableOpacity
+                        style={styles.actionMenuRow}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setMenuOpen(false);
+                          onReport();
+                        }}
+                      >
+                        <Icon name="warning" size={16} color="#FF6B6B" />
+                        <Text style={[styles.actionMenuRowText, { color: "#FF6B6B" }]}>{t("profileOptions.report")}</Text>
                       </TouchableOpacity>
                     )}
                   </>

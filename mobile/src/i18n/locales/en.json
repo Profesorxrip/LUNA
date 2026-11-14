@@ -207,6 +207,8 @@
     "save": "Save",
     "noBio": "You haven't added a bio yet.",
     "message": "Message",
+    "followUser": "Follow",
+    "alreadyFriends": "Friends",
     "cancelRequest": "Cancel Request",
     "sendRequest": "Send Request",
     "noGalleryPhotos": "You haven't added any photos to your gallery yet.",

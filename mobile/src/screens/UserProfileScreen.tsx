@@ -14,7 +14,7 @@ import {
   Dimensions,
   PanResponder,
 } from "react-native";
-import { ChevronLeft, ChevronDown, Gift, Tag, History as HistoryIcon, Heart, Plus, Camera, Users, CircleArrowDown, ChartBar, MapPin, Pencil, Image as ImageIcon, PlayCircle, ListPlus, Eye, Pin, Trash2, Music, Clapperboard, ListVideo } from "lucide-react-native";
+import { ChevronDown, Gift, Tag, History as HistoryIcon, Heart, Plus, Camera, Users, CircleArrowDown, ChartBar, MapPin, Pencil, Image as ImageIcon, PlayCircle, ListPlus, Eye, Pin, Trash2, Music, Clapperboard, ListVideo, EllipsisVertical } from "lucide-react-native";
 import PostFrameIcon from "../components/PostFrameIcon";
 import PlatformBadge from "../components/PlatformBadge";
 import { badgeInfoForSource } from "../utils/media";
@@ -284,7 +284,8 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   >(null);
   const [statVisibility, setStatVisibility] = useState(DEFAULT_STAT_VISIBILITY);
   const [bioVisible, setBioVisible] = useState(true);
-  const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "friends">("none");
+  const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "friends" | "blocked">("none");
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   // supabase/migrations/0018_is_premium.sql - su an herkeste false (henuz
   // gercek bir satin alma akisi yok, bkz. PremiumScreen.tsx) - dolu gelince
   // isim yaninda parıltı rozeti gosteriliyor.
@@ -452,7 +453,10 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       }
     });
     socket.emit("friend:status", { withUserId: peerUserId }, (res: any) => {
-      if (res?.ok) setFriendStatus(res.status === "outgoing" ? "pending" : res.status === "friends" ? "friends" : "none");
+      if (res?.ok)
+        setFriendStatus(
+          res.status === "outgoing" ? "pending" : res.status === "friends" ? "friends" : res.status === "blocked" ? "blocked" : "none"
+        );
     });
     function handleAccepted({ byUserId }: { byUserId: string }) {
       if (byUserId === peerUserId) setFriendStatus("friends");
@@ -610,6 +614,25 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
 
   function cancelFriendRequest() {
     getSocket().emit("friend:cancel", { toUserId: peerUserId }, () => setFriendStatus("none"));
+  }
+
+  function blockPeer() {
+    getSocket().emit("friend:block", { userId: peerUserId }, (res: any) => {
+      if (res?.ok) {
+        showAlert(t("discover.blockedTitle"), t("discover.blockedBody", { name }));
+        setFriendStatus("blocked");
+      }
+    });
+  }
+
+  function unblockPeer() {
+    getSocket().emit("friend:unblock", { userId: peerUserId }, () => setFriendStatus("none"));
+  }
+
+  function reportPeer() {
+    getSocket().emit("report:submit", { targetUserId: peerUserId, reason: "Profilden bildirildi" }, (res: any) => {
+      if (res?.ok) showAlert(t("discover.reportedTitle"), t("discover.reportedBody"));
+    });
   }
 
   // Isim/kullanici adi/biyografi duzenlemeleri eskiden SADECE yerel state'ti -
@@ -1180,40 +1203,71 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                   <ListPlus size={16} color="#FFFFFF" />
                   <Text style={styles.videoMenuRowText}>{t("userProfile.addToPlaylist")}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.visibilityMenuRow}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    setVideoMenuShowVisibility(true);
-                  }}
-                >
-                  <Eye size={16} color="#FFFFFF" />
-                  <Text style={styles.videoMenuRowText}>{t("userProfile.changeVisibility")}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.visibilityMenuRow}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    closeMenu();
-                    togglePinHistoryItem(item.eventId);
-                  }}
-                >
-                  <Pin size={16} color="#FFFFFF" fill={isPinned ? "#FFFFFF" : "none"} />
-                  <Text style={styles.videoMenuRowText}>{isPinned ? t("userProfile.unpinRoom") : t("userProfile.pinRoom")}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.visibilityMenuRow}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    closeMenu();
-                    confirmRemoveFromHistory(target);
-                  }}
-                >
-                  <Trash2 size={16} color="#FFFFFF" />
-                  <Text style={styles.videoMenuRowText}>
-                    {t(list === "liked" ? "userProfile.removeFromLiked" : "userProfile.removeFromHistory")}
-                  </Text>
-                </TouchableOpacity>
+                {own ? (
+                  <>
+                    <TouchableOpacity
+                      style={styles.visibilityMenuRow}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setVideoMenuShowVisibility(true);
+                      }}
+                    >
+                      <Eye size={16} color="#FFFFFF" />
+                      <Text style={styles.videoMenuRowText}>{t("userProfile.changeVisibility")}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.visibilityMenuRow}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        closeMenu();
+                        togglePinHistoryItem(item.eventId);
+                      }}
+                    >
+                      <Pin size={16} color="#FFFFFF" fill={isPinned ? "#FFFFFF" : "none"} />
+                      <Text style={styles.videoMenuRowText}>{isPinned ? t("userProfile.unpinRoom") : t("userProfile.pinRoom")}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.visibilityMenuRow}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        closeMenu();
+                        confirmRemoveFromHistory(target);
+                      }}
+                    >
+                      <Trash2 size={16} color="#FFFFFF" />
+                      <Text style={styles.videoMenuRowText}>
+                        {t(list === "liked" ? "userProfile.removeFromLiked" : "userProfile.removeFromHistory")}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={styles.visibilityMenuRow}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        closeMenu();
+                        friendStatus === "blocked" ? unblockPeer() : blockPeer();
+                      }}
+                    >
+                      <Icon name="block" size={16} color="#FFFFFF" />
+                      <Text style={styles.videoMenuRowText}>
+                        {t(friendStatus === "blocked" ? "profileOptions.unblock" : "profileOptions.block")}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.visibilityMenuRow}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        closeMenu();
+                        reportPeer();
+                      }}
+                    >
+                      <Icon name="warning" size={16} color="#FF6B6B" />
+                      <Text style={[styles.videoMenuRowText, { color: "#FF6B6B" }]}>{t("profileOptions.report")}</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               </>
             )}
             {menuView === "visibility" &&
@@ -1286,13 +1340,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
-        <View
-          style={[
-            styles.topBlock,
-            !(own || bannerUrl) && styles.topBlockNoBanner,
-            sectionVisibilityMenuOpen && { zIndex: 20 },
-          ]}
-        >
+        <View style={[styles.topBlock, sectionVisibilityMenuOpen && { zIndex: 20 }]}>
         {/* Kapak fotografi ekranin en ustunden (ScrollView'in dolgusu olmadan)
             baslasin diye bu satir artik akisin icinde yer kaplamiyor - geri/
             diger butonu banner'in UZERINE mutlak konumlu olarak biniyor.
@@ -1301,59 +1349,43 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             bir sekme) ok hic gosterilmiyor (bkz. RootNavigator.tsx
             MyProfileRoute). Baska birinin profili (own=false, disaridaki
             Stack) ya da eski kullanim yerlerinde onBack hep verilir. */}
-        {(onBack || !own) && (
-          <View style={styles.header}>
-            {onBack ? (
-              <TouchableOpacity style={styles.bannerActionButton} onPress={onBack} hitSlop={10}>
-                <ChevronLeft size={22} color={TEXT} strokeWidth={3} />
+        <View style={[styles.bannerWrap, !bannerUrl && styles.bannerWrapEmpty]}>
+          {bannerUrl && <Image source={{ uri: bannerUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
+          {own ? (
+            <View style={styles.bannerActionsRow}>
+              <TouchableOpacity style={styles.bannerActionButton} onPress={openComposer} hitSlop={6}>
+                <Plus size={18} color={TEXT} strokeWidth={3} />
               </TouchableOpacity>
-            ) : (
-              <View />
-            )}
-            {!own && (
-              <TouchableOpacity style={styles.bannerActionButton} onPress={() => placeholder(t("userProfile.more"))} hitSlop={10}>
-                <Icon name="moreHoriz" size={22} color={TEXT} />
+              <TouchableOpacity
+                style={styles.bannerActionButton}
+                onPress={() => (onOpenSettings ? onOpenSettings() : placeholder(t("tabs.settings")))}
+                hitSlop={6}
+              >
+                <Icon name="settings" size={18} color={TEXT} />
               </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        {(own || bannerUrl) && (
-          <View style={[styles.bannerWrap, !bannerUrl && styles.bannerWrapEmpty]}>
-            {bannerUrl && <Image source={{ uri: bannerUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
-            {own && (
+            </View>
+          ) : (
+            onBack && (
               <View style={styles.bannerActionsRow}>
-                <TouchableOpacity style={styles.bannerActionButton} onPress={openComposer} hitSlop={6}>
-                  <Plus size={18} color={TEXT} strokeWidth={3} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.bannerActionButton}
-                  onPress={() => (onOpenSettings ? onOpenSettings() : placeholder(t("tabs.settings")))}
-                  hitSlop={6}
-                >
-                  <Icon name="settings" size={18} color={TEXT} />
+                <TouchableOpacity style={styles.bannerActionButton} onPress={onBack} hitSlop={10}>
+                  <View style={{ transform: [{ rotate: "-90deg" }] }}>
+                    <CircleArrowDown size={20} color={TEXT} strokeWidth={2} />
+                  </View>
                 </TouchableOpacity>
               </View>
-            )}
-          </View>
-        )}
+            )
+          )}
+        </View>
 
         {/* Banner'in alt kenarindaki yuvarlak "kabarti" - pp'den BUYUK,
             pp'nin tam ortasinda. Üst yarisi banner'in icini oyuyor gibi
             gorunur, alt yarisi zaten govdeyle AYNI arkaplani gosterdigi
             icin govdeye kesintisiz karisir. */}
-        {(own || bannerUrl) && (
-          <View
-            pointerEvents="none"
-            style={[styles.bannerNotch, { left: NOTCH_X, top: NOTCH_Y }]}
-          >
-            <View
-              style={[styles.avatarBgWindow, { left: -NOTCH_X, top: -NOTCH_Y + scrollY }]}
-            >
-              <AppBackground />
-            </View>
+        <View pointerEvents="none" style={[styles.bannerNotch, { left: NOTCH_X, top: NOTCH_Y }]}>
+          <View style={[styles.avatarBgWindow, { left: -NOTCH_X, top: -NOTCH_Y + scrollY }]}>
+            <AppBackground />
           </View>
-        )}
+        </View>
 
         {/* PP (fotograf/bas harf icerigi) gecici olarak kaldirildi, ama
             CERCEVE kullanicinin istegiyle banner uzerinde KALMALI. Cerceve
@@ -1361,7 +1393,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             daire, ucdan uca Discover ile AYNI paylasilan arkaplana
             (App.tsx'teki AppBackground degradesi) tabi. */}
         <TouchableOpacity
-          style={[styles.avatarSquareWrap, (own || bannerUrl) && styles.avatarSquareOverlap]}
+          style={[styles.avatarSquareWrap, styles.avatarSquareOverlap]}
           activeOpacity={avatarUrl || own ? 0.8 : 1}
           onPress={() => (avatarUrl ? setViewingPhotoUrl(avatarUrl) : own && setAvatarSheetVisible(true))}
           onLongPress={() => own && setAvatarSheetVisible(true)}
@@ -1394,7 +1426,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           </View>
         </TouchableOpacity>
 
-        <View style={styles.nameBlockLeft}>
+        <View style={[styles.nameBlockLeft, moreMenuOpen && { zIndex: 20 }]}>
           {editingField === "name" ? (
             <TextInput
               style={styles.nameInputLeft}
@@ -1405,12 +1437,57 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
               onBlur={() => closeFieldEdit("name", name)}
             />
           ) : (
-            <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")}>
-              <View style={styles.nameRow}>
+            <View style={[styles.nameRow, moreMenuOpen && { zIndex: 20 }]}>
+              <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("name")} style={styles.nameRowLeft}>
                 <Text style={styles.name}>{name.toUpperCase()}</Text>
                 {isPremium && <PremiumBadge size={19} />}
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+              {!own && (
+                <View style={styles.moreMenuAnchor}>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setMoreMenuOpen((v) => !v);
+                    }}
+                    hitSlop={10}
+                  >
+                    <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.moreCircleGradientBorder}>
+                      <View style={styles.moreCircleInner}>
+                        <EllipsisVertical size={16} color={TEXT} strokeWidth={2} />
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  {moreMenuOpen && (
+                    <View style={[styles.visibilityMenu, styles.moreMenuPos]}>
+                      <TouchableOpacity
+                        style={styles.visibilityMenuRow}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setMoreMenuOpen(false);
+                          friendStatus === "blocked" ? unblockPeer() : blockPeer();
+                        }}
+                      >
+                        <Icon name="block" size={16} color="#FFFFFF" />
+                        <Text style={styles.videoMenuRowText}>
+                          {t(friendStatus === "blocked" ? "profileOptions.unblock" : "profileOptions.block")}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.visibilityMenuRow}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setMoreMenuOpen(false);
+                          reportPeer();
+                        }}
+                      >
+                        <Icon name="warning" size={16} color="#FF6B6B" />
+                        <Text style={[styles.videoMenuRowText, { color: "#FF6B6B" }]}>{t("profileOptions.report")}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
           )}
           {editingField === "handle" ? (
             <View style={styles.handleEditRow}>
@@ -1537,27 +1614,38 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.actionRow}>
-            {friendStatus === "friends" ? (
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={() =>
-                  onOpenDM
-                    ? onOpenDM({ userId: peerUserId, name, handle })
-                    : placeholder(t("userProfile.message"))
-                }
-              >
-                <Text style={styles.primaryButtonText}>{t("userProfile.message")}</Text>
-              </TouchableOpacity>
-            ) : friendStatus === "pending" ? (
-              <TouchableOpacity style={styles.secondaryButton} onPress={cancelFriendRequest}>
-                <Text style={styles.secondaryButtonText}>{t("userProfile.cancelRequest")}</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.requestButton} onPress={sendFriendRequest}>
-                <Text style={styles.requestButtonText}>{t("userProfile.sendRequest")}</Text>
-              </TouchableOpacity>
-            )}
+          <View style={styles.ownActionRow}>
+            <TouchableOpacity
+              style={styles.pillOutlineButton}
+              onPress={() =>
+                friendStatus === "friends" && onOpenDM
+                  ? onOpenDM({ userId: peerUserId, name, handle })
+                  : placeholder(t("userProfile.message"))
+              }
+            >
+              <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.pillGradientBorder}>
+                <View style={styles.pillInner}>
+                  <Text style={styles.pillOutlineButtonText}>{t("userProfile.message").toUpperCase()}</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.pillOutlineButton}
+              onPress={friendStatus === "pending" ? cancelFriendRequest : friendStatus === "friends" ? undefined : sendFriendRequest}
+            >
+              <LinearGradient colors={[ACCENT, "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.pillGradientBorder}>
+                <View style={styles.pillInner}>
+                  <Text style={styles.pillOutlineButtonText}>
+                    {(friendStatus === "friends"
+                      ? t("userProfile.alreadyFriends")
+                      : friendStatus === "pending"
+                      ? t("userProfile.cancelRequest")
+                      : t("userProfile.followUser")
+                    ).toUpperCase()}
+                  </Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -1658,6 +1746,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                         onTogglePin={own ? () => togglePinPost(post.id) : undefined}
                         onChangeVisibility={own ? (value) => setPostVisibility(post.id, value) : undefined}
                         onRemove={own ? () => confirmDeletePost(post) : undefined}
+                        isBlocked={friendStatus === "blocked"}
+                        onToggleBlock={!own ? (friendStatus === "blocked" ? unblockPeer : blockPeer) : undefined}
+                        onReport={!own ? reportPeer : undefined}
                         onPressImage={setViewingPhotoUrl}
                         onLongPress={own ? () => confirmDeletePost(post) : undefined}
                       />
@@ -1699,6 +1790,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                     onTogglePin={own ? () => togglePinPost(post.id) : undefined}
                     onChangeVisibility={own ? (value) => setTagVisibility(post.id, value) : undefined}
                     onRemove={own ? () => confirmRemoveTag(post) : undefined}
+                    isBlocked={friendStatus === "blocked"}
+                    onToggleBlock={!own ? (friendStatus === "blocked" ? unblockPeer : blockPeer) : undefined}
+                    onReport={!own ? reportPeer : undefined}
                     onPressImage={setViewingPhotoUrl}
                   />
                 </React.Fragment>
@@ -2559,22 +2653,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "transparent" },
   scrollContent: { paddingBottom: 40 },
   topBlock: { paddingHorizontal: 24, position: "relative" },
-  // Kapak fotografi olmayan (baskasinin profili + banner'i kapali) nadir
-  // durumda - banner YOKKEN geri/diger butonu mutlak konumlu HALA en ustte
-  // biniyor olacagindan, altindaki avatarla CARPISMASIN diye bu durumda
-  // topBlock'a eskisi gibi bir ust bosluk veriyoruz.
-  topBlockNoBanner: { paddingTop: 50 },
   bodyContent: { paddingHorizontal: 16 },
-  header: {
-    position: "absolute",
-    top: 14,
-    left: 0,
-    right: 0,
-    zIndex: 5,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   bannerWrap: {
     height: BANNER_HEIGHT,
     overflow: "hidden",
@@ -2648,7 +2727,8 @@ const styles = StyleSheet.create({
   nameBlockLeft: { marginBottom: 14, gap: 4, marginLeft: -LEFT_SHIFT },
   // supabase/migrations/0018_is_premium.sql - isim/parıltı rozetini yan
   // yana gostermek icin (bkz. isPremium).
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  nameRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  nameRowLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
   name: { color: TEXT, fontSize: 22, fontWeight: "800", letterSpacing: 0.3 },
   nameInputLeft: {
     color: TEXT,
@@ -2749,6 +2829,12 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   pillOutlineButtonText: { color: TEXT, fontSize: 13, fontWeight: "800", letterSpacing: 0.4 },
+  // "Takip Et" pill'iyle AYNI mavi-beyaz gradyan cerceve deseni
+  // (pillGradientBorder/pillInner), sadece yuvarlak (dairesel) hali.
+  moreCircleGradientBorder: { width: 32, height: 32, borderRadius: 16, padding: 2 },
+  moreCircleInner: { flex: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: BG },
+  moreMenuAnchor: { position: "relative", zIndex: 20 },
+  moreMenuPos: { minWidth: 170 },
   topTabsRow: { flexDirection: "row", justifyContent: "space-around", marginHorizontal: -24, paddingTop: 7 },
   topTabTouch: { flex: 1, alignItems: "center", paddingTop: 0, paddingBottom: 12, position: "relative" },
   // Bu menu diger visibilityMenu kullanimlarindan farkli olarak solid siyah
@@ -2768,7 +2854,6 @@ const styles = StyleSheet.create({
   sectionVisibilityMenuPosStart: { left: 0, right: "auto" },
   sectionVisibilityMenuPosCenter: { left: "50%", right: "auto", marginLeft: -80 },
   topTabsBottomBar: { height: 1, marginHorizontal: -24 },
-  actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   activeRoomCard: { margin: 0, marginTop: 14, marginBottom: 24 },
   sectionHeaderActions: { flexDirection: "row", alignItems: "center", gap: 14 },
   // "height" SABIT verilmezse bu yatay ScrollView, DIKEY ScrollView'in
@@ -2794,31 +2879,6 @@ const styles = StyleSheet.create({
   chartBarTouch: { flex: 1, alignItems: "center", justifyContent: "flex-end", height: "100%" },
   chartBar: { width: "100%", borderRadius: 2 },
   chartSelected: { color: MUTED, fontSize: 11, textAlign: "center" },
-  primaryButton: { flex: 1, backgroundColor: ACCENT, borderRadius: 8, paddingVertical: 14, alignItems: "center" },
-  primaryButtonText: { color: "#04140D", fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
-  // "Çıkış Yap" (ProfileScreen.tsx signOutButton) ile AYNI hap/kapsul sekli
-  // (borderRadius:30, borderWidth:1 cerceve) - sadece renk tonlari kirmizi
-  // yerine mavi (ACCENT bazli).
-  requestButton: {
-    flex: 1,
-    backgroundColor: "rgba(14,165,233,0.15)",
-    borderRadius: 30,
-    paddingVertical: 14,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(14,165,233,0.4)",
-  },
-  requestButtonText: { color: ACCENT, fontSize: 15, fontWeight: "800", letterSpacing: 0.2, textTransform: "uppercase" },
-  secondaryButton: {
-    flex: 1,
-    backgroundColor: "transparent",
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#262626",
-  },
-  secondaryButtonText: { color: TEXT, fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
   sectionHeader: { color: MUTED, fontSize: 11, fontWeight: "700", letterSpacing: 1.2, paddingVertical: 12 },
   sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12 },
   videoGrid: { marginTop: 14 },
