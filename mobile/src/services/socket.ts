@@ -231,6 +231,7 @@ export interface HistoryItem {
   mediaUrl: string | null;
   participantCount: number;
   createdAt: number;
+  visibility?: "public" | "private" | "friends";
 }
 
 export interface RoomParticipantDetail {

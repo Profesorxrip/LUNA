@@ -124,6 +124,10 @@ export interface PublicProfile {
   bioVisible: boolean;
   statsVisible: boolean;
   postsVisible: boolean;
+  postsVisibility: "public" | "private" | "friends";
+  taggedVisibility: "public" | "private" | "friends";
+  historyVisibility: "public" | "private" | "friends";
+  likedVisibility: "public" | "private" | "friends";
   bannerText: string | null;
   bannerUrl: string | null;
   profileLocation: string | null;
@@ -135,7 +139,7 @@ export interface PublicProfile {
 }
 
 const PUBLIC_PROFILE_COLUMNS =
-  "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,posts_visible,banner_text,banner_url,profile_location,birthday,default_auto_translate,is_premium";
+  "id,name,handle,avatar_url,bio,country,created_at,stat_visibility,gallery_visible,videos_visible,bio_visible,stats_visible,posts_visible,posts_visibility,tagged_visibility,history_visibility,liked_visibility,banner_text,banner_url,profile_location,birthday,default_auto_translate,is_premium";
 
 function rowToPublicProfile(row: any): PublicProfile {
   return {
@@ -152,6 +156,10 @@ function rowToPublicProfile(row: any): PublicProfile {
     bioVisible: row.bio_visible !== false,
     statsVisible: row.stats_visible !== false,
     postsVisible: row.posts_visible !== false,
+    postsVisibility: row.posts_visibility || "public",
+    taggedVisibility: row.tagged_visibility || "public",
+    historyVisibility: row.history_visibility || "public",
+    likedVisibility: row.liked_visibility || "public",
     bannerText: row.banner_text || null,
     bannerUrl: row.banner_url || null,
     profileLocation: row.profile_location || null,

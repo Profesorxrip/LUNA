@@ -14,7 +14,12 @@ import {
   Dimensions,
   PanResponder,
 } from "react-native";
-import { ChevronLeft, ChevronDown, Gift, Tag, Newspaper, History as HistoryIcon, Heart, Plus, Camera, Users, CircleArrowDown, ChartBar, MapPin, Pencil, Image as ImageIcon } from "lucide-react-native";
+import { ChevronLeft, ChevronDown, Gift, Tag, History as HistoryIcon, Heart, Plus, Camera, Users, CircleArrowDown, ChartBar, MapPin, Pencil, Image as ImageIcon, PlayCircle, ListPlus, Eye, Pin, Trash2, Music, Clapperboard, ListVideo } from "lucide-react-native";
+import PostFrameIcon from "../components/PostFrameIcon";
+import PlatformBadge from "../components/PlatformBadge";
+import { badgeInfoForSource } from "../utils/media";
+import { getPinnedEventIds, togglePinnedEvent } from "../utils/pinnedHistory";
+import { getPinnedPostIds, togglePinnedPost } from "../utils/pinnedPosts";
 import { LockClosedIcon } from "react-native-heroicons/outline";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { LinearGradient } from "expo-linear-gradient";
@@ -160,7 +165,9 @@ interface Post {
   pollQuestion: string | null;
   pollOptions: string[] | null;
   pollOptionImages: (string | null)[] | null;
+  visibility: "public" | "private" | "friends";
   createdAt: number;
+  tagVisibility?: "public" | "private" | "friends";
 }
 
 // Tarih formatlama icin dil basina kisaltilmis ay adlari - bir takvim
@@ -183,6 +190,15 @@ function formatDate(ms: number, lang: string): string {
   const d = new Date(ms);
   const months = MONTHS[lang] ?? MONTHS.en;
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// Gonderi karti altindaki (PostCard.tsx) mutlak tarih+saat - formatDate'in
+// SADECE tarih veren halinin aksine, saat:dakika de ekler.
+function formatDateTime(ms: number, lang: string): string {
+  const d = new Date(ms);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${formatDate(ms, lang)} · ${hh}:${mm}`;
 }
 
 function timeAgo(ms: number, t: (key: string, opts?: any) => string, lang: string): string {
@@ -212,6 +228,53 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [joinDateMs, setJoinDateMs] = useState<number | null>(null);
   const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
   const [bannerSheetVisible, setBannerSheetVisible] = useState(false);
+  const [videoMenuTarget, setVideoMenuTarget] = useState<{ item: HistoryItem; list: "history" | "liked" } | null>(null);
+  const [videoMenuShowVisibility, setVideoMenuShowVisibility] = useState(false);
+  const [videoMenuShowPlaylist, setVideoMenuShowPlaylist] = useState(false);
+  const [pinnedEventIds, setPinnedEventIds] = useState<Set<string>>(new Set());
+  const [pinnedPostIds, setPinnedPostIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    getPinnedEventIds().then(setPinnedEventIds);
+    getPinnedPostIds().then(setPinnedPostIds);
+  }, []);
+
+  async function togglePinHistoryItem(eventId: string) {
+    const ids = await togglePinnedEvent(eventId);
+    setPinnedEventIds(new Set(ids));
+  }
+
+  async function togglePinPost(postId: string) {
+    const ids = await togglePinnedPost(postId);
+    setPinnedPostIds(new Set(ids));
+  }
+
+  function setPostVisibility(postId: string, value: "public" | "private" | "friends") {
+    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, visibility: value } : p)));
+    supabase.from("posts").update({ visibility: value }).eq("id", postId);
+  }
+
+  function confirmRemoveTag(post: Post) {
+    showAlert(t("userProfile.removeTagTitle"), t("userProfile.removeTagBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("userProfile.remove"), style: "destructive", onPress: () => removeMyTag(post) },
+    ]);
+  }
+
+  async function removeMyTag(post: Post) {
+    setTaggedPosts((prev) => prev.filter((p) => p.id !== post.id));
+    await supabase.rpc("remove_my_tag", { target_post_id: post.id });
+  }
+
+  // Etiketlenme - gonderinin kendisi degil (bkz. removeMyTag) - kimlere
+  // gorunecegi. "private" secilirse bu gonderi artik SADECE kendi
+  // Etiketler sekmende gorunur (yukaridaki fetch effect'i canViewSection
+  // ile filtreler), baskalari onu senin profilinde goremez.
+  async function setTagVisibility(postId: string, value: "public" | "private" | "friends") {
+    if (!myUserId) return;
+    setTaggedPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, tagVisibility: value } : p)));
+    await supabase.from("post_tag_visibility").upsert({ post_id: postId, user_id: myUserId, visibility: value });
+  }
   // Galeride bir fotografa ya da avatara basinca PhotoViewerModal ile tam
   // ekran buyuk haliyle acilir.
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
@@ -220,7 +283,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     "name" | "handle" | "bio" | "profile_location" | "birthday" | null
   >(null);
   const [statVisibility, setStatVisibility] = useState(DEFAULT_STAT_VISIBILITY);
-  const [videosVisible, setVideosVisible] = useState(true);
   const [bioVisible, setBioVisible] = useState(true);
   const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "friends">("none");
   // supabase/migrations/0018_is_premium.sql - su an herkeste false (henuz
@@ -232,7 +294,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [historyTab, setHistoryTab] = useState<"best" | "history" | "liked">("history");
   const [activeRoom, setActiveRoom] = useState<PublicRoomSummary | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [postsVisible, setPostsVisible] = useState(true);
   const [profileCache, setProfileCache] = useState<Record<string, { name: string; handle: string; avatarUrl: string }>>({});
   const [composerVisible, setComposerVisible] = useState(false);
   const [composerText, setComposerText] = useState("");
@@ -271,8 +332,30 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
   const [locationVisibilityMenuOpen, setLocationVisibilityMenuOpen] = useState(false);
   const [birthdayVisibility, setBirthdayVisibility] = useState<"public" | "private" | "friends">("public");
   const [birthdayVisibilityMenuOpen, setBirthdayVisibilityMenuOpen] = useState(false);
+  // Sekme cubugundaki 4 bolumun (Gonderiler/Etiketlenenler/Gecmis/
+  // Begenilenler) Genel/Ozel/Arkadaslar gorunurlugu - eskiden posts_visible
+  // ve PAYLASILAN gallery_visible/videos_visible cifti tarafindan idare
+  // edilen basit acik/kapali tercihlerin yerine gecti (bkz. 0028_section_
+  // visibility.sql). Zaten SECILI olan bir sekmenin ikonuna tekrar basinca
+  // bu menu acilir (own ise).
+  const [postsVisibility, setPostsVisibility] = useState<"public" | "private" | "friends">("public");
+  const [taggedVisibility, setTaggedVisibility] = useState<"public" | "private" | "friends">("public");
+  const [historyVisibility, setHistoryVisibility] = useState<"public" | "private" | "friends">("public");
+  const [likedVisibility, setLikedVisibility] = useState<"public" | "private" | "friends">("public");
+  const [sectionVisibilityMenuOpen, setSectionVisibilityMenuOpen] = useState<
+    "posts" | "tagged" | "history" | "liked" | null
+  >(null);
 
   const effectiveUserId = own ? myUserId : peerUserId;
+  // DB tarafindaki can_view_section() ile AYNI kural - "friends" rutbesi
+  // icin friendStatus zaten sokekt uzerinden yuklenmis oluyor, ekstra bir
+  // sorguya gerek yok.
+  function canViewSection(visibility: "public" | "private" | "friends") {
+    if (own) return true;
+    if (visibility === "public") return true;
+    if (visibility === "friends") return friendStatus === "friends";
+    return false;
+  }
   // Kendi profilinde HER ZAMAN cevrimicisindir (uygulamayi kullaniyorsun) -
   // baskasinin profilinde ise sahibinin gizleme tercihine (statVisibility.
   // onlineStatus) bagli.
@@ -315,7 +398,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       supabase
         .from("profiles")
         .select(
-          "name,handle,bio,avatar_url,country,created_at,stat_visibility,videos_visible,bio_visible,posts_visible,banner_url,profile_location,birthday,is_premium"
+          "name,handle,bio,avatar_url,country,created_at,stat_visibility,bio_visible,posts_visibility,tagged_visibility,history_visibility,liked_visibility,banner_url,profile_location,birthday,is_premium"
         )
         .eq("id", userId)
         .maybeSingle()
@@ -328,9 +411,11 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           setCountry(profile.country || null);
           if (profile.created_at) setJoinDateMs(new Date(profile.created_at).getTime());
           if (profile.stat_visibility) setStatVisibility(profile.stat_visibility);
-          if (profile.videos_visible !== undefined) setVideosVisible(profile.videos_visible !== false);
           if (profile.bio_visible !== undefined) setBioVisible(profile.bio_visible !== false);
-          if (profile.posts_visible !== undefined) setPostsVisible(profile.posts_visible !== false);
+          if (profile.posts_visibility) setPostsVisibility(profile.posts_visibility);
+          if (profile.tagged_visibility) setTaggedVisibility(profile.tagged_visibility);
+          if (profile.history_visibility) setHistoryVisibility(profile.history_visibility);
+          if (profile.liked_visibility) setLikedVisibility(profile.liked_visibility);
           setBannerUrl(profile.banner_url || "");
           setProfileLocation(profile.profile_location || "");
           setBirthday(profile.birthday || "");
@@ -355,9 +440,11 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         setIsOnline(Boolean(res.profile.isOnline));
         if (res.profile.createdAt) setJoinDateMs(res.profile.createdAt);
         if (res.profile.statVisibility) setStatVisibility(res.profile.statVisibility);
-        setVideosVisible(res.profile.videosVisible !== false);
         setBioVisible(res.profile.bioVisible !== false);
-        setPostsVisible(res.profile.postsVisible !== false);
+        if (res.profile.postsVisibility) setPostsVisibility(res.profile.postsVisibility);
+        if (res.profile.taggedVisibility) setTaggedVisibility(res.profile.taggedVisibility);
+        if (res.profile.historyVisibility) setHistoryVisibility(res.profile.historyVisibility);
+        if (res.profile.likedVisibility) setLikedVisibility(res.profile.likedVisibility);
         setBannerUrl(res.profile.bannerUrl || "");
         setProfileLocation(res.profile.profileLocation || "");
         setBirthday(res.profile.birthday || "");
@@ -435,6 +522,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       pollQuestion: row.poll_question || null,
       pollOptions: row.poll_options || null,
       pollOptionImages: row.poll_option_images || null,
+      visibility: row.visibility || "public",
       createdAt: new Date(row.created_at).getTime(),
     };
   }
@@ -447,7 +535,7 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     if (!effectiveUserId) return;
     supabase
       .from("posts")
-      .select("id,user_id,text,image_urls,location_name,tagged_user_ids,poll_question,poll_options,poll_option_images,created_at")
+      .select("id,user_id,text,image_urls,location_name,tagged_user_ids,poll_question,poll_options,poll_option_images,visibility,created_at")
       .eq("user_id", effectiveUserId)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -466,13 +554,30 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     if (!effectiveUserId) return;
     supabase
       .from("posts")
-      .select("id,user_id,text,image_urls,location_name,tagged_user_ids,poll_question,poll_options,poll_option_images,created_at")
+      .select("id,user_id,text,image_urls,location_name,tagged_user_ids,poll_question,poll_options,poll_option_images,visibility,created_at")
       .contains("tagged_user_ids", [effectiveUserId])
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         const rows = data || [];
-        setTaggedPosts(rows.map(rowToPost));
+        const posts = rows.map(rowToPost);
         resolveProfiles(rows.flatMap((row: any) => [row.user_id, ...(row.tagged_user_ids || [])]));
+        if (posts.length === 0) {
+          setTaggedPosts([]);
+          return;
+        }
+        // Her etiketlenen kullanici KENDI etiketinin, gonderinin yazarindan
+        // BAGIMSIZ, kendi profilinde kimlere gorunecegini secebiliyor
+        // (0031_tag_visibility.sql) - satir yoksa varsayilan "public".
+        const { data: tagVisRows } = await supabase
+          .from("post_tag_visibility")
+          .select("post_id,visibility")
+          .in("post_id", posts.map((p) => p.id))
+          .eq("user_id", effectiveUserId);
+        const tagVisByPost = new Map((tagVisRows || []).map((r: any) => [r.post_id, r.visibility]));
+        const visible = posts
+          .map((p) => ({ ...p, tagVisibility: (tagVisByPost.get(p.id) as Post["tagVisibility"]) || "public" }))
+          .filter((p) => canViewSection(p.tagVisibility || "public"));
+        setTaggedPosts(visible);
       });
   }, [effectiveUserId]);
 
@@ -694,15 +799,6 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       });
   }
 
-  function toggleVideosVisible() {
-    if (!own || !myUserId) return;
-    setVideosVisible((v) => {
-      const next = !v;
-      supabase.from("profiles").update({ videos_visible: next }).eq("id", myUserId);
-      return next;
-    });
-  }
-
   function toggleBioVisible() {
     if (!own || !myUserId) return;
     setBioVisible((v) => {
@@ -710,6 +806,32 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
       supabase.from("profiles").update({ bio_visible: next }).eq("id", myUserId);
       return next;
     });
+  }
+
+  const SECTION_VISIBILITY_SETTERS = {
+    posts: setPostsVisibility,
+    tagged: setTaggedVisibility,
+    history: setHistoryVisibility,
+    liked: setLikedVisibility,
+  } as const;
+  const SECTION_VISIBILITY_COLUMN = {
+    posts: "posts_visibility",
+    tagged: "tagged_visibility",
+    history: "history_visibility",
+    liked: "liked_visibility",
+  } as const;
+
+  function setSectionVisibility(
+    section: "posts" | "tagged" | "history" | "liked",
+    value: "public" | "private" | "friends"
+  ) {
+    if (!own || !myUserId) return;
+    SECTION_VISIBILITY_SETTERS[section](value);
+    setSectionVisibilityMenuOpen(null);
+    supabase
+      .from("profiles")
+      .update({ [SECTION_VISIBILITY_COLUMN[section]]: value })
+      .eq("id", myUserId);
   }
 
   function openComposer() {
@@ -933,8 +1055,9 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           poll_question: hasValidPoll ? composerPollQuestion.trim() : null,
           poll_options: hasValidPoll ? pollEntries.map((e) => e.text) : null,
           poll_option_images: hasValidPoll ? pollOptionImageUrls : null,
+          visibility: composerVisibility,
         })
-        .select("id,user_id,text,image_urls,location_name,tagged_user_ids,poll_question,poll_options,poll_option_images,created_at")
+        .select("id,user_id,text,image_urls,location_name,tagged_user_ids,poll_question,poll_options,poll_option_images,visibility,created_at")
         .single();
       if (insertError) throw insertError;
       setPosts((prev) => [rowToPost(row), ...prev]);
@@ -973,10 +1096,187 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
     }
   }
 
+  function confirmRemoveFromHistory(target: { item: HistoryItem; list: "history" | "liked" }) {
+    const isLiked = target.list === "liked";
+    showAlert(
+      t(isLiked ? "userProfile.removeFromLikedTitle" : "userProfile.removeFromHistoryTitle"),
+      t(isLiked ? "userProfile.removeFromLikedBody" : "userProfile.removeFromHistoryBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t(isLiked ? "userProfile.removeFromLiked" : "userProfile.removeFromHistory"),
+          style: "destructive",
+          onPress: () => removeFromHistory(target),
+        },
+      ]
+    );
+  }
+
+  function removeFromHistory(target: { item: HistoryItem; list: "history" | "liked" }) {
+    if (target.list === "history") setHistory((prev) => prev.filter((h) => h.eventId !== target.item.eventId));
+    else setLikedHistory((prev) => prev.filter((h) => h.eventId !== target.item.eventId));
+  }
+
+  function setVideoItemVisibility(target: { item: HistoryItem; list: "history" | "liked" }, value: "public" | "private" | "friends") {
+    const updater = (prev: HistoryItem[]) => prev.map((h) => (h.eventId === target.item.eventId ? { ...h, visibility: value } : h));
+    if (target.list === "history") setHistory(updater);
+    else setLikedHistory(updater);
+  }
+
+  // Ucgen (uc nokta) ikonuna basinca ciplak kendi konumunda acilan rozet -
+  // History/Liked kartlarindaki uc nokta menusu, kullanicinin gonderdigi
+  // referans goruntudeki gibi tam ekran alt sheet DEGIL, tetikleyici
+  // ikonun hemen altina/sagina sabitlenmis kucuk bir acilir kutu (ayni
+  // tab.visibility menulerinin (styles.visibilityMenu) kullandigi desen).
+  function renderVideoMenu(item: HistoryItem, list: "history" | "liked") {
+    const target = { item, list };
+    const open = videoMenuTarget?.item.eventId === item.eventId;
+    const menuView = videoMenuShowVisibility ? "visibility" : videoMenuShowPlaylist ? "playlist" : "main";
+    const isPinned = pinnedEventIds.has(item.eventId);
+    function closeMenu() {
+      setVideoMenuTarget(null);
+      setVideoMenuShowVisibility(false);
+      setVideoMenuShowPlaylist(false);
+    }
+    return (
+      <View style={styles.videoMenuAnchor}>
+        <TouchableOpacity
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          onPress={(e) => {
+            e.stopPropagation();
+            if (open) {
+              closeMenu();
+            } else {
+              setVideoMenuTarget(target);
+              setVideoMenuShowVisibility(false);
+              setVideoMenuShowPlaylist(false);
+            }
+          }}
+        >
+          <Icon name="moreHoriz" size={18} color={MUTED} />
+        </TouchableOpacity>
+        {open && (
+          <View style={[styles.visibilityMenu, styles.videoActionMenuPos]}>
+            {menuView === "main" && (
+              <>
+                <TouchableOpacity
+                  style={styles.visibilityMenuRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    closeMenu();
+                    openHistoryVideo(item);
+                  }}
+                >
+                  <PlayCircle size={16} color="#FFFFFF" />
+                  <Text style={styles.videoMenuRowText}>{t("userProfile.openRoom")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.visibilityMenuRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setVideoMenuShowPlaylist(true);
+                  }}
+                >
+                  <ListPlus size={16} color="#FFFFFF" />
+                  <Text style={styles.videoMenuRowText}>{t("userProfile.addToPlaylist")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.visibilityMenuRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setVideoMenuShowVisibility(true);
+                  }}
+                >
+                  <Eye size={16} color="#FFFFFF" />
+                  <Text style={styles.videoMenuRowText}>{t("userProfile.changeVisibility")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.visibilityMenuRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    closeMenu();
+                    togglePinHistoryItem(item.eventId);
+                  }}
+                >
+                  <Pin size={16} color="#FFFFFF" fill={isPinned ? "#FFFFFF" : "none"} />
+                  <Text style={styles.videoMenuRowText}>{isPinned ? t("userProfile.unpinRoom") : t("userProfile.pinRoom")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.visibilityMenuRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    closeMenu();
+                    confirmRemoveFromHistory(target);
+                  }}
+                >
+                  <Trash2 size={16} color="#FFFFFF" />
+                  <Text style={styles.videoMenuRowText}>
+                    {t(list === "liked" ? "userProfile.removeFromLiked" : "userProfile.removeFromHistory")}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {menuView === "visibility" &&
+              (
+                [
+                  { key: "public" as const, label: t("userProfile.visibilityPublic"), VisIcon: WorldIcon },
+                  { key: "private" as const, label: t("userProfile.visibilityPrivate"), VisIcon: PrivacyLockIcon },
+                  { key: "friends" as const, label: t("userProfile.visibilityFriends"), VisIcon: Users },
+                ] as const
+              ).map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[styles.visibilityMenuRow, (item.visibility || "public") === opt.key && styles.visibilityMenuRowActive]}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    closeMenu();
+                    setVideoItemVisibility(target, opt.key);
+                  }}
+                >
+                  <opt.VisIcon size={16} color="#FFFFFF" />
+                  <Text style={styles.videoMenuRowText}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            {menuView === "playlist" &&
+              (
+                [
+                  { key: "music" as const, label: t("userProfile.playlistMusic"), PlaylistIcon: Music },
+                  { key: "video" as const, label: t("userProfile.playlistShows"), PlaylistIcon: Clapperboard },
+                  { key: "blank" as const, label: t("userProfile.playlistBlank"), PlaylistIcon: ListVideo },
+                ] as const
+              ).map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={styles.visibilityMenuRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    closeMenu();
+                    placeholder(opt.label);
+                  }}
+                >
+                  <opt.PlaylistIcon size={16} color="#FFFFFF" />
+                  <Text style={styles.videoMenuRowText}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+          </View>
+        )}
+      </View>
+    );
+  }
 
   const initial = name.charAt(0).toUpperCase();
-  const historyList =
+  const historyListBase =
     historyTab === "liked" ? likedHistory : historyTab === "best" ? [...history].sort((a, b) => b.participantCount - a.participantCount) : history;
+  // "Sabitle" ile sabitlenen kayitlar - digerlerinin aralarindaki sirayi
+  // BOZMADAN (stable sort) - her zaman listenin basina gelir.
+  const historyList = [...historyListBase].sort(
+    (a, b) => Number(pinnedEventIds.has(b.eventId)) - Number(pinnedEventIds.has(a.eventId))
+  );
+  const likedHistorySorted = [...likedHistory].sort(
+    (a, b) => Number(pinnedEventIds.has(b.eventId)) - Number(pinnedEventIds.has(a.eventId))
+  );
+  const postsSorted = [...posts].sort((a, b) => Number(pinnedPostIds.has(b.id)) - Number(pinnedPostIds.has(a.id)));
+  const taggedPostsSorted = [...taggedPosts].sort((a, b) => Number(pinnedPostIds.has(b.id)) - Number(pinnedPostIds.has(a.id)));
 
   return (
     <View style={styles.screen}>
@@ -986,7 +1286,13 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
-        <View style={[styles.topBlock, !(own || bannerUrl) && styles.topBlockNoBanner]}>
+        <View
+          style={[
+            styles.topBlock,
+            !(own || bannerUrl) && styles.topBlockNoBanner,
+            sectionVisibilityMenuOpen && { zIndex: 20 },
+          ]}
+        >
         {/* Kapak fotografi ekranin en ustunden (ScrollView'in dolgusu olmadan)
             baslasin diye bu satir artik akisin icinde yer kaplamiyor - geri/
             diger butonu banner'in UZERINE mutlak konumlu olarak biniyor.
@@ -1128,91 +1434,89 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
             </TouchableOpacity>
           )}
 
-          {(own || (bioVisible && bio.trim().length > 0)) &&
-            (editingField === "bio" ? (
-              <View>
-                <TextInput
-                  style={styles.bioInputLeft}
-                  value={bio}
-                  onChangeText={setBio}
-                  multiline
-                  autoFocus
-                  placeholder={t("userProfile.bioPlaceholder")}
-                  placeholderTextColor={MUTED}
-                />
-                <TouchableOpacity style={styles.bioSaveButton} onPress={() => closeFieldEdit("bio", bio)}>
-                  <Text style={styles.bioSaveButtonText}>{t("userProfile.save")}</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("bio")}>
-                <Text style={bio ? styles.bioLeft : own ? styles.emptyHistoryText : undefined}>
-                  {bio || (own ? t("userProfile.noBio") : "")}
-                </Text>
+          {editingField === "bio" ? (
+            <View>
+              <TextInput
+                style={styles.bioInputLeft}
+                value={bio}
+                onChangeText={setBio}
+                multiline
+                autoFocus
+                placeholder={t("userProfile.bioPlaceholder")}
+                placeholderTextColor={MUTED}
+              />
+              <TouchableOpacity style={styles.bioSaveButton} onPress={() => closeFieldEdit("bio", bio)}>
+                <Text style={styles.bioSaveButtonText}>{t("userProfile.save")}</Text>
               </TouchableOpacity>
-            ))}
+            </View>
+          ) : (
+            bio.trim().length > 0 &&
+            (own || bioVisible) && (
+              <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("bio")}>
+                <Text style={styles.bioLeft}>{bio}</Text>
+              </TouchableOpacity>
+            )
+          )}
 
-          {(own || profileLocation) &&
-            (editingField === "profile_location" ? (
-              <View style={styles.metaRow}>
-                <View style={styles.metaIconNudge}>
-                  <Icon name="pin" size={12} color={MUTED} />
-                </View>
-                <TextInput
-                  style={styles.metaInput}
-                  value={profileLocation}
-                  onChangeText={setProfileLocation}
-                  autoFocus
-                  autoCapitalize="characters"
-                  onSubmitEditing={() => closeFieldEdit("profile_location", profileLocation)}
-                  onBlur={() => closeFieldEdit("profile_location", profileLocation)}
-                  placeholder={t("userProfile.locationFieldPlaceholder")}
-                  placeholderTextColor={MUTED}
-                />
+          {editingField === "profile_location" ? (
+            <View style={styles.metaRow}>
+              <View style={styles.metaIconNudge}>
+                <Icon name="pin" size={12} color={MUTED} />
               </View>
-            ) : (
+              <TextInput
+                style={styles.metaInput}
+                value={profileLocation}
+                onChangeText={setProfileLocation}
+                autoFocus
+                autoCapitalize="characters"
+                onSubmitEditing={() => closeFieldEdit("profile_location", profileLocation)}
+                onBlur={() => closeFieldEdit("profile_location", profileLocation)}
+                placeholder={t("userProfile.locationFieldPlaceholder")}
+                placeholderTextColor={MUTED}
+              />
+            </View>
+          ) : (
+            profileLocation && (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("profile_location")} style={styles.metaRow}>
                 <View style={styles.metaIconNudge}>
-                  <Icon name="pin" size={12} color={MUTED} />
+                  <Icon name="pin" size={14} color={MUTED} />
                 </View>
-                <Text style={styles.metaText}>
-                  {(profileLocation || (own ? t("userProfile.locationFieldPlaceholder") : "")).toUpperCase()}
-                </Text>
+                <Text style={styles.metaText}>{profileLocation.toUpperCase()}</Text>
               </TouchableOpacity>
-            ))}
+            )
+          )}
 
           {joinDateMs != null && (own || statVisibility.joinDate !== false) && (
             <View style={styles.metaRow}>
               <View style={styles.metaIconNudge}>
-                <Icon name="calendar" size={12} color={MUTED} />
+                <Icon name="calendar" size={14} color={MUTED} />
               </View>
               <Text style={styles.metaText}>{t("userProfile.joinedOn", { date: formatDate(joinDateMs, i18n.language) })}</Text>
             </View>
           )}
 
-          {(own || birthday) &&
-            (editingField === "birthday" ? (
-              <View style={styles.metaRow}>
-                <Gift size={12} color={MUTED} />
-                <TextInput
-                  style={styles.metaInput}
-                  value={birthday}
-                  onChangeText={setBirthday}
-                  autoFocus
-                  onSubmitEditing={() => closeFieldEdit("birthday", birthday)}
-                  onBlur={() => closeFieldEdit("birthday", birthday)}
-                  placeholder={t("userProfile.birthdayPlaceholder")}
-                  placeholderTextColor={MUTED}
-                />
-              </View>
-            ) : (
+          {editingField === "birthday" ? (
+            <View style={styles.metaRow}>
+              <Gift size={14} color={MUTED} />
+              <TextInput
+                style={styles.metaInput}
+                value={birthday}
+                onChangeText={setBirthday}
+                autoFocus
+                onSubmitEditing={() => closeFieldEdit("birthday", birthday)}
+                onBlur={() => closeFieldEdit("birthday", birthday)}
+                placeholder={t("userProfile.birthdayPlaceholder")}
+                placeholderTextColor={MUTED}
+              />
+            </View>
+          ) : (
+            birthday && (
               <TouchableOpacity disabled={!own} onPress={() => toggleFieldEdit("birthday")} style={styles.metaRow}>
-                <Gift size={12} color={MUTED} />
-                <Text style={[styles.metaText, { marginTop: 3 }]}>
-                  {birthday ? t("userProfile.birthdayOn", { date: birthday }) : own ? t("userProfile.birthdayPlaceholder") : ""}
-                </Text>
+                <Gift size={14} color={MUTED} />
+                <Text style={[styles.metaText, { marginTop: 3 }]}>{t("userProfile.birthdayOn", { date: birthday })}</Text>
               </TouchableOpacity>
-            ))}
+            )
+          )}
         </View>
 
         {own ? (
@@ -1257,21 +1561,67 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           </View>
         )}
 
-        <View style={styles.topTabsRow}>
+        <View style={[styles.topTabsRow, sectionVisibilityMenuOpen && { zIndex: 20 }]}>
           {(
             [
-              { key: "posts", icon: Newspaper },
-              { key: "tagged", icon: Tag },
-              { key: "history", icon: HistoryIcon },
-              { key: "liked", icon: Heart },
+              { key: "posts", icon: PostFrameIcon, size: 20, visibility: postsVisibility, menuAlign: "start" },
+              { key: "tagged", icon: Tag, size: 18, visibility: taggedVisibility, menuAlign: "center" },
+              { key: "history", icon: HistoryIcon, size: 20, visibility: historyVisibility, menuAlign: "center" },
+              { key: "liked", icon: Heart, size: 21, visibility: likedVisibility, menuAlign: "end" },
             ] as const
           ).map((tab) => (
             <TouchableOpacity
               key={tab.key}
               style={styles.topTabTouch}
-              onPress={() => setTopTab(tab.key)}
+              onPress={() => {
+                if (own && topTab === tab.key) {
+                  setSectionVisibilityMenuOpen((v) => (v === tab.key ? null : tab.key));
+                } else {
+                  setTopTab(tab.key);
+                  setSectionVisibilityMenuOpen(null);
+                }
+              }}
             >
-              <tab.icon size={20} color={topTab === tab.key ? TEXT : MUTED} />
+              <tab.icon size={tab.size} color={topTab === tab.key ? TEXT : MUTED} />
+              {sectionVisibilityMenuOpen === tab.key && (
+                <View
+                  style={[
+                    styles.visibilityMenu,
+                    styles.sectionVisibilityMenuAppearance,
+                    tab.menuAlign === "start"
+                      ? styles.sectionVisibilityMenuPosStart
+                      : tab.menuAlign === "center"
+                      ? styles.sectionVisibilityMenuPosCenter
+                      : null,
+                  ]}
+                >
+                  {(
+                    [
+                      { key: "public" as const, label: t("userProfile.visibilityPublic"), VisIcon: WorldIcon, iconOffset: -2 },
+                      { key: "private" as const, label: t("userProfile.visibilityPrivate"), VisIcon: PrivacyLockIcon, iconOffset: -2 },
+                      { key: "friends" as const, label: t("userProfile.visibilityFriends"), VisIcon: Users, iconOffset: -4 },
+                    ]
+                  ).map((opt) => (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[styles.visibilityMenuRow, tab.visibility === opt.key && styles.visibilityMenuRowActive]}
+                      onPress={() => setSectionVisibility(tab.key, opt.key)}
+                    >
+                      <View style={{ marginTop: opt.iconOffset }}>
+                        <opt.VisIcon size={16} color={tab.visibility === opt.key ? "#fff" : MUTED} />
+                      </View>
+                      <Text
+                        style={[
+                          styles.visibilityMenuRowText,
+                          tab.visibility === opt.key && styles.visibilityMenuRowTextActive,
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -1280,12 +1630,12 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
         <View style={styles.bodyContent}>
         {topTab === "posts" && (
           <>
-            {(own || postsVisible) ? (
+            {canViewSection(postsVisibility) ? (
               posts.length === 0 ? (
                 <Text style={[styles.emptyHistoryText, { marginTop: 14, textAlign: "center" }]}>{t("userProfile.noPosts")}</Text>
               ) : (
                 <View>
-                  {posts.map((post, i) => (
+                  {postsSorted.map((post, i) => (
                     <React.Fragment key={post.id}>
                       {i > 0 && <View style={styles.postDivider} />}
                       <PostCard
@@ -1294,15 +1644,20 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                         initial={(profileCache[post.userId]?.name || name).charAt(0).toUpperCase()}
                         name={profileCache[post.userId]?.name || name}
                         handle={profileCache[post.userId]?.handle || handle}
-                        timeLabel={timeAgo(post.createdAt, t, i18n.language)}
+                        dateTimeLabel={formatDateTime(post.createdAt, i18n.language)}
                         text={post.text}
                         imageUrls={post.imageUrls}
                         locationName={post.locationName}
-                        taggedNames={post.taggedUserIds.map((id) => profileCache[id]?.name).filter(Boolean) as string[]}
+                        taggedPeople={post.taggedUserIds.map((id) => ({ id, name: profileCache[id]?.name, avatarUrl: profileCache[id]?.avatarUrl })).filter((p) => p.name) as { id: string; name: string; avatarUrl: string }[]}
                         pollQuestion={post.pollQuestion}
                         pollOptions={post.pollOptions}
                         pollOptionImages={post.pollOptionImages}
+                        visibility={post.visibility}
                         currentUserId={myUserId}
+                        isPinned={pinnedPostIds.has(post.id)}
+                        onTogglePin={own ? () => togglePinPost(post.id) : undefined}
+                        onChangeVisibility={own ? (value) => setPostVisibility(post.id, value) : undefined}
+                        onRemove={own ? () => confirmDeletePost(post) : undefined}
                         onPressImage={setViewingPhotoUrl}
                         onLongPress={own ? () => confirmDeletePost(post) : undefined}
                       />
@@ -1316,12 +1671,12 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           </>
         )}
 
-        {topTab === "tagged" && (
+        {topTab === "tagged" && canViewSection(taggedVisibility) && (
           taggedPosts.length === 0 ? (
-            <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noTaggedPosts")}</Text>
+            <Text style={[styles.emptyHistoryText, { marginTop: 14, textAlign: "center" }]}>{t("userProfile.noTaggedPosts")}</Text>
           ) : (
             <View>
-              {taggedPosts.map((post, i) => (
+              {taggedPostsSorted.map((post, i) => (
                 <React.Fragment key={post.id}>
                   {i > 0 && <View style={styles.postDivider} />}
                   <PostCard
@@ -1330,15 +1685,20 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
                     initial={(profileCache[post.userId]?.name || "?").charAt(0).toUpperCase()}
                     name={profileCache[post.userId]?.name || "—"}
                     handle={profileCache[post.userId]?.handle || ""}
-                    timeLabel={timeAgo(post.createdAt, t, i18n.language)}
+                    dateTimeLabel={formatDateTime(post.createdAt, i18n.language)}
                     text={post.text}
                     imageUrls={post.imageUrls}
                     locationName={post.locationName}
-                    taggedNames={post.taggedUserIds.map((id) => profileCache[id]?.name).filter(Boolean) as string[]}
+                    taggedPeople={post.taggedUserIds.map((id) => ({ id, name: profileCache[id]?.name, avatarUrl: profileCache[id]?.avatarUrl })).filter((p) => p.name) as { id: string; name: string; avatarUrl: string }[]}
                     pollQuestion={post.pollQuestion}
                     pollOptions={post.pollOptions}
                     pollOptionImages={post.pollOptionImages}
+                    visibility={post.visibility}
                     currentUserId={myUserId}
+                    isPinned={pinnedPostIds.has(post.id)}
+                    onTogglePin={own ? () => togglePinPost(post.id) : undefined}
+                    onChangeVisibility={own ? (value) => setTagVisibility(post.id, value) : undefined}
+                    onRemove={own ? () => confirmRemoveTag(post) : undefined}
                     onPressImage={setViewingPhotoUrl}
                   />
                 </React.Fragment>
@@ -1347,76 +1707,112 @@ export default function UserProfileScreen({ own = true, peer, onBack, onOpenDM, 
           )
         )}
 
-        {topTab === "history" && (own || videosVisible) && (
+        {topTab === "history" && canViewSection(historyVisibility) && (
           <>
-            <View style={styles.historyTabsRow}>
-              {(
-                [
-                  { key: "history", label: t("userProfile.tabHistory") },
-                  { key: "best", label: t("userProfile.tabBest") },
-                ] as const
-              ).map((tab) => (
-                <TouchableOpacity
-                  key={tab.key}
-                  onPress={() => setHistoryTab(tab.key)}
-                  style={[styles.historyTabTouch, historyTab === tab.key && styles.historyTabTouchActive]}
-                >
-                  <Text style={[styles.historyTabText, historyTab === tab.key && styles.historyTabTextActive]}>
-                    {tab.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
             {historyList.length === 0 ? (
-              <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noJoinedRooms")}</Text>
+              <Text style={[styles.emptyHistoryText, { marginTop: 14, textAlign: "center" }]}>{t("userProfile.noJoinedRooms")}</Text>
             ) : (
               <View style={styles.videoGrid}>
-                {historyList.map((item) => (
-                  <TouchableOpacity key={`v-${item.eventId}`} style={styles.videoCard} onPress={() => openHistoryVideo(item)}>
-                    <View style={styles.videoThumb}>
-                      {item.mediaCoverUrl ? (
-                        <Image source={{ uri: item.mediaCoverUrl }} style={styles.videoThumbImage} />
-                      ) : (
-                        <View style={styles.videoPlayBadge}>
-                          <Icon name="play" size={11} color={TEXT} />
+                {historyList.map((item, i) => {
+                  const badge =
+                    item.mediaType && item.mediaUrl
+                      ? badgeInfoForSource({ type: item.mediaType as SourceType, url: item.mediaUrl, coverUrl: item.mediaCoverUrl || undefined })
+                      : null;
+                  return (
+                    <React.Fragment key={`v-${item.eventId}`}>
+                      {i > 0 && <View style={styles.postDivider} />}
+                      <TouchableOpacity
+                        style={[styles.videoCard, videoMenuTarget?.item.eventId === item.eventId && { zIndex: 20 }]}
+                        onPress={() => openHistoryVideo(item)}
+                      >
+                        <View style={styles.videoThumb}>
+                          {!!item.mediaCoverUrl && <Image source={{ uri: item.mediaCoverUrl }} style={styles.videoThumbImage} />}
                         </View>
-                      )}
-                    </View>
-                    <Text style={styles.videoTitle} numberOfLines={2}>
-                      {item.mediaLabel}
-                    </Text>
-                    <Text style={styles.videoMeta}>
-                      {historyTab === "best" ? t("userProfile.peopleCount", { count: item.participantCount }) : timeAgo(item.createdAt, t, i18n.language)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                        <View style={styles.videoInfo}>
+                          <View style={styles.videoTitleRow}>
+                            <Text style={styles.videoTitle} numberOfLines={2}>
+                              {item.mediaLabel}
+                            </Text>
+                            {pinnedEventIds.has(item.eventId) && <Pin size={12} color={MUTED} fill={MUTED} />}
+                          </View>
+                          {!!badge && (
+                            <View style={styles.videoPlatformRow}>
+                              <PlatformBadge platform={badge.key} faviconUrl={badge.faviconUrl} size={14} />
+                              <Text style={styles.videoPlatformText}>{badge.label}</Text>
+                            </View>
+                          )}
+                          <View style={styles.videoMetaRow}>
+                            <Text style={styles.videoMeta}>
+                              {historyTab === "best" ? t("userProfile.peopleCount", { count: item.participantCount }) : timeAgo(item.createdAt, t, i18n.language)}
+                            </Text>
+                            {(item.visibility || "public") === "public" ? (
+                              <WorldIcon size={12} color={MUTED} />
+                            ) : item.visibility === "private" ? (
+                              <PrivacyLockIcon size={12} color={MUTED} />
+                            ) : (
+                              <Users size={12} color={MUTED} />
+                            )}
+                          </View>
+                        </View>
+                        {renderVideoMenu(item, "history")}
+                      </TouchableOpacity>
+                    </React.Fragment>
+                  );
+                })}
               </View>
             )}
           </>
         )}
 
-        {topTab === "liked" && (own || videosVisible) && (
+        {topTab === "liked" && canViewSection(likedVisibility) && (
           likedHistory.length === 0 ? (
-            <Text style={[styles.emptyHistoryText, { marginTop: 14 }]}>{t("userProfile.noLikedVideos")}</Text>
+            <Text style={[styles.emptyHistoryText, { marginTop: 14, textAlign: "center" }]}>{t("userProfile.noLikedVideos")}</Text>
           ) : (
             <View style={styles.videoGrid}>
-              {likedHistory.map((item) => (
-                <TouchableOpacity key={`v-${item.eventId}`} style={styles.videoCard} onPress={() => openHistoryVideo(item)}>
-                  <View style={styles.videoThumb}>
-                    {item.mediaCoverUrl ? (
-                      <Image source={{ uri: item.mediaCoverUrl }} style={styles.videoThumbImage} />
-                    ) : (
-                      <View style={styles.videoPlayBadge}>
-                        <Icon name="play" size={11} color={TEXT} />
+              {likedHistorySorted.map((item, i) => {
+                const badge =
+                  item.mediaType && item.mediaUrl
+                    ? badgeInfoForSource({ type: item.mediaType as SourceType, url: item.mediaUrl, coverUrl: item.mediaCoverUrl || undefined })
+                    : null;
+                return (
+                <React.Fragment key={`v-${item.eventId}`}>
+                  {i > 0 && <View style={styles.postDivider} />}
+                  <TouchableOpacity
+                    style={[styles.videoCard, videoMenuTarget?.item.eventId === item.eventId && { zIndex: 20 }]}
+                    onPress={() => openHistoryVideo(item)}
+                  >
+                    <View style={styles.videoThumb}>
+                      {!!item.mediaCoverUrl && <Image source={{ uri: item.mediaCoverUrl }} style={styles.videoThumbImage} />}
+                    </View>
+                    <View style={styles.videoInfo}>
+                      <View style={styles.videoTitleRow}>
+                        <Text style={styles.videoTitle} numberOfLines={2}>
+                          {item.mediaLabel}
+                        </Text>
+                        {pinnedEventIds.has(item.eventId) && <Pin size={12} color={MUTED} fill={MUTED} />}
                       </View>
-                    )}
-                  </View>
-                  <Text style={styles.videoTitle} numberOfLines={2}>
-                    {item.mediaLabel}
-                  </Text>
-                  <Text style={styles.videoMeta}>{timeAgo(item.createdAt, t, i18n.language)}</Text>
-                </TouchableOpacity>
-              ))}
+                      {!!badge && (
+                        <View style={styles.videoPlatformRow}>
+                          <PlatformBadge platform={badge.key} faviconUrl={badge.faviconUrl} size={14} />
+                          <Text style={styles.videoPlatformText}>{badge.label}</Text>
+                        </View>
+                      )}
+                      <View style={styles.videoMetaRow}>
+                        <Text style={styles.videoMeta}>{timeAgo(item.createdAt, t, i18n.language)}</Text>
+                        {(item.visibility || "public") === "public" ? (
+                          <WorldIcon size={12} color={MUTED} />
+                        ) : item.visibility === "private" ? (
+                          <PrivacyLockIcon size={12} color={MUTED} />
+                        ) : (
+                          <Users size={12} color={MUTED} />
+                        )}
+                      </View>
+                    </View>
+                    {renderVideoMenu(item, "liked")}
+                  </TouchableOpacity>
+                </React.Fragment>
+                );
+              })}
             </View>
           )
         )}
@@ -2315,19 +2711,19 @@ const styles = StyleSheet.create({
   metaIconNudge: { marginTop: -2 },
   metaText: {
     color: MUTED,
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "700",
     letterSpacing: 0.3,
     // Ikon (14px) ile dikey hizayi tutturmak icin - yazi tipi/platform
     // varsayilan satir yuksekligindeki fazladan bosluk (Android'de
     // includeFontPadding) ikona gore ortalamayi kaydiriyordu.
-    lineHeight: 13,
+    lineHeight: 15,
     includeFontPadding: false,
     marginTop: 2,
   } as any,
   metaInput: {
     color: TEXT,
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "700",
     borderBottomWidth: 1,
     borderBottomColor: MUTED,
@@ -2353,8 +2749,24 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   pillOutlineButtonText: { color: TEXT, fontSize: 13, fontWeight: "800", letterSpacing: 0.4 },
-  topTabsRow: { flexDirection: "row", justifyContent: "space-around", marginHorizontal: -24, paddingTop: 4 },
-  topTabTouch: { flex: 1, alignItems: "center", paddingTop: 0, paddingBottom: 12 },
+  topTabsRow: { flexDirection: "row", justifyContent: "space-around", marginHorizontal: -24, paddingTop: 7 },
+  topTabTouch: { flex: 1, alignItems: "center", paddingTop: 0, paddingBottom: 12, position: "relative" },
+  // Bu menu diger visibilityMenu kullanimlarindan farkli olarak solid siyah
+  // bir modalin degil, dogrudan profil sayfasinin koyu lacivert arka
+  // planinin UZERINDE yuzuyor - renk AYNI (#15202B, visibilityMenu'den
+  // geliyor) ama kenarlik + golge ekleyerek arka plandan ayrismasi
+  // (opakligi belirginlesmesi) saglaniyor.
+  sectionVisibilityMenuAppearance: {
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+    shadowColor: "#000",
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+  },
+  sectionVisibilityMenuPosStart: { left: 0, right: "auto" },
+  sectionVisibilityMenuPosCenter: { left: "50%", right: "auto", marginLeft: -80 },
   topTabsBottomBar: { height: 1, marginHorizontal: -24 },
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   activeRoomCard: { margin: 0, marginTop: 14, marginBottom: 24 },
@@ -2409,36 +2821,31 @@ const styles = StyleSheet.create({
   secondaryButtonText: { color: TEXT, fontSize: 15, fontWeight: "800", letterSpacing: 0.2 },
   sectionHeader: { color: MUTED, fontSize: 11, fontWeight: "700", letterSpacing: 1.2, paddingVertical: 12 },
   sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12 },
-  historyTabsRow: { flexDirection: "row", gap: 8, marginTop: 14, marginBottom: 4 },
-  historyTabTouch: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 16 },
-  historyTabTouchActive: { backgroundColor: "rgba(14,165,233,0.18)" },
-  historyTabText: { color: MUTED, fontSize: 12.5, fontWeight: "700" },
-  historyTabTextActive: { color: ACCENT },
-  videoGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 14 },
-  videoCard: { width: "31%", marginBottom: 18 },
+  videoGrid: { marginTop: 14 },
+  videoCard: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 10 },
   videoThumb: {
-    width: "100%",
+    width: 150,
     aspectRatio: 16 / 9,
     borderRadius: 8,
     backgroundColor: "#0D0D0D",
     borderWidth: 1,
     borderColor: "#1C1C1C",
-    marginBottom: 6,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   videoThumbImage: { width: "100%", height: "100%" },
-  videoPlayBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  videoTitle: { color: TEXT, fontSize: 11, fontWeight: "600" },
-  videoMeta: { color: MUTED, fontSize: 10, fontWeight: "700", marginTop: 2 },
+  videoInfo: { flex: 1, minWidth: 0, marginTop: 10 },
+  videoTitleRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  videoTitle: { color: TEXT, fontSize: 13, fontWeight: "600", flexShrink: 1 },
+  videoPlatformRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  videoPlatformText: { color: MUTED, fontSize: 11, fontWeight: "700" },
+  videoMetaRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  videoMeta: { color: MUTED, fontSize: 11, fontWeight: "700" },
+  videoMenuAnchor: { position: "relative" },
+  videoActionMenuPos: { minWidth: 190 },
+  videoMenuRowText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   sheetCard: {
     backgroundColor: "#15202B",
