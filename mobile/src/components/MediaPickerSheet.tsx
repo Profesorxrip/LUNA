@@ -1,19 +1,41 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Music, Clapperboard, ListVideo, PlayCircle, ListPlus, Pin, Trash2, Play, RotateCcw } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { getSocket, HistoryItem, SourceType } from "../services/socket";
 import type { MediaSource } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
-import { EXTERNAL_PLATFORMS, fetchWebPageTitle, openPlatformApp } from "../utils/media";
+import { badgeInfoForSource, EXTERNAL_PLATFORMS, fetchWebPageTitle, openPlatformApp } from "../utils/media";
+import PlatformBadge from "./PlatformBadge";
 import { extractYouTubeId, fetchYouTubeMeta } from "../utils/youtube";
-import PlatformLogo from "./PlatformLogo";
 import Icon from "./Icon";
 import { showAlert } from "./CustomAlert";
+import { getPinnedEventIds, togglePinnedEvent } from "../utils/pinnedHistory";
+import { addToBlankPlaylist, clearBlankPlaylist, getBlankPlaylistUrls } from "../utils/blankPlaylist";
+import { clearWatchedMedia, getWatchedMediaUrls } from "../utils/watchedMedia";
+import { getLastPlayedMusicUrl, getNextMusicTrackUrl, resetLastPlayedMusicUrl, setLastPlayedMusicUrl } from "../utils/musicPlaylistPosition";
+import { timeAgo } from "../utils/timeAgo";
+
+// Platform secme grid'indeki BEYAZ kartlarda kullanilan gercek renkli marka
+// logolari - PlatformLogo.tsx'teki SEFFAF/beyaz-siluet setinden (Discover/
+// Stats gibi BASKA yerlerde de kullanildigi icin) BILEREK AYRI tutuluyor, bu
+// sayede o setin kullanildigi diger ekranlar ETKILENMIYOR.
+const GRID_LOGO_SOURCES: Record<string, any> = {
+  youtube: require("../../assets/logos-grid/youtube.png"),
+  netflix: require("../../assets/logos-grid/netflix.png"),
+  hbomax: require("../../assets/logos-grid/hbomax.png"),
+  twitch: require("../../assets/logos-grid/twitch.png"),
+  icloud: require("../../assets/logos-grid/icloud.png"),
+  disneyplus: require("../../assets/logos-grid/disney-plus.png"),
+  primevideo: require("../../assets/logos-grid/prime-video.png"),
+  drive: require("../../assets/logos-grid/drive.png"),
+  web: require("../../assets/logos-grid/web.png"),
+  webText: require("../../assets/logos-grid/web-text.png"),
+};
 
 interface Props {
   visible: boolean;
@@ -193,14 +215,11 @@ function getAllItems(t: (key: string) => string): GridItem[] {
     ext("netflix"),
     ext("hbomax"),
     ext("twitch"),
-    ext("drive"),
-    ext("icloud"),
-    ext("spotify"),
-    { key: "web", label: "Web", logo: "web" },
     ext("prime"),
     ext("disney"),
-    { key: "history", label: t("userProfile.tabHistory"), logo: "gecmis" },
-    { key: "liked", label: t("userProfile.tabLiked"), logo: "begenilenler" },
+    { key: "web", label: "Web", logo: "web" },
+    ext("drive"),
+    ext("icloud"),
     // X icin ayri bir kart YOK - zaten "Web" ile x.com linki yapistirilinca
     // ayni sekilde acilabiliyor (EXTERNAL_PLATFORMS'ta "x" hala duruyor, o
     // sayede Web'den girilen bir X linki de dogru rozet/logo ile eslesiyor,
@@ -225,7 +244,7 @@ function getAllItems(t: (key: string) => string): GridItem[] {
  * icin (bkz. MediaPlayer.tsx aciklamasi) oda/kart ismi platformun kendi adi
  * olarak kalir. */
 export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVideosFor, embedded }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>("grid");
   const [search, setSearch] = useState("");
@@ -245,10 +264,137 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [likedItems, setLikedItems] = useState<HistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  // Grid ekraninin altindaki playlist sekme cubugu (Muzik/Dizi-Film/Bos) -
+  // Muzik/Dizi-Film ayni gercek izleme gecmisi verisini (get_user_room_history)
+  // media linkine gore sinifllandirarak kullanir - get_user_platform_stats
+  // RPC'sindeki ayni domain sezgisiyle (spotify.com = muzik, geri kalani
+  // dizi/film). "Bos playlist" ise CIHAZ BAZLI ayri bir url listesi
+  // (blankPlaylist.ts) - bir oda acilirken/secilirken SECILEN videonun url'si
+  // buraya eklenir, o video dogal olarak bitince (bkz. RoomScreen.tsx
+  // room.poll gecisi) kaldirilir, yani "su an kuyrukta/izlenmekte olan"
+  // videolari gosterir.
+  const [playlistTab, setPlaylistTab] = useState<"music" | "seriesFilm" | "empty">("empty");
+  const [playlistHistory, setPlaylistHistory] = useState<HistoryItem[]>([]);
+  const [loadingPlaylist, setLoadingPlaylist] = useState(false);
+  const [blankPlaylistUrls, setBlankPlaylistUrls] = useState<Set<string>>(new Set());
+  // Dizi/Film playlist'inde izlenip BITIRILEN bir video artik "izlenecekler"
+  // listesinde gorunmemeli - bkz. RoomScreen.tsx markMediaWatched (ayni
+  // room.poll gecis ani, blankPlaylist'ten kaldirmayla AYNI yerde).
+  const [watchedMediaUrls, setWatchedMediaUrls] = useState<Set<string>>(new Set());
+  // Profildeki Gecmis/Begenilenler kartlarindaki uc nokta menusuyle AYNI
+  // davranis (bkz. UserProfileScreen.tsx renderVideoMenu) - "Gorunurluk
+  // Degistir" satiri BILEREK YOK (bu ekranda host'un KENDI gecmisi disinda
+  // bir sey yok, gorunurluk kavrami gecerli degil). Sabitleme AYNI cihaz
+  // bazli depoyu (pinnedHistory.ts) paylasir, boylece profilde sabitlenen
+  // bir video burada da sabit gorunur.
+  const [pinnedPlaylistEventIds, setPinnedPlaylistEventIds] = useState<Set<string>>(new Set());
+  const [playlistMenuTarget, setPlaylistMenuTarget] = useState<string | null>(null);
+  const [playlistMenuShowAddTo, setPlaylistMenuShowAddTo] = useState(false);
+  // Bir sekmenin ikonuna o sekme ZATEN ACIKKEN tekrar basilinca acilan kucuk
+  // kutu - "Playlist'i Oynat" ve "Sifirla" secenekleri. Muzik'te "Oynat" en
+  // son kaldigimiz yerden/basa donerek devam eder (bkz.
+  // musicPlaylistPosition.ts), "Sifirla" kaldigimiz yeri unutur. Dizi/Film ve
+  // Bos'ta "Oynat" listenin ILK ogesini acar, "Sifirla" ise Dizi/Film'de
+  // izlenip dusen videolari geri getirir, Bos'ta kuyrugu komple bosaltir.
+  const [musicQuickMenuOpen, setMusicQuickMenuOpen] = useState(false);
+  const [seriesFilmQuickMenuOpen, setSeriesFilmQuickMenuOpen] = useState(false);
+  const [blankQuickMenuOpen, setBlankQuickMenuOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
+    getPinnedEventIds().then(setPinnedPlaylistEventIds);
+    getBlankPlaylistUrls().then(setBlankPlaylistUrls);
+    getWatchedMediaUrls().then(setWatchedMediaUrls);
   }, []);
+
+  useEffect(() => {
+    if (!myUserId) return;
+    setLoadingPlaylist(true);
+    getSocket().emit("user:roomHistory", { userId: myUserId }, (res: any) => {
+      setLoadingPlaylist(false);
+      if (res?.ok) setPlaylistHistory(res.history);
+    });
+  }, [myUserId]);
+
+  async function togglePinPlaylistItem(eventId: string) {
+    const ids = await togglePinnedEvent(eventId);
+    setPinnedPlaylistEventIds(new Set(ids));
+  }
+
+  function confirmRemovePlaylistItem(item: HistoryItem) {
+    showAlert(t("userProfile.removeFromHistoryTitle"), t("userProfile.removeFromHistoryBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("userProfile.removeFromHistory"),
+        style: "destructive",
+        onPress: () => setPlaylistHistory((prev) => prev.filter((h) => h.eventId !== item.eventId)),
+      },
+    ]);
+  }
+
+  function playlistAddToPlaceholder(label: string) {
+    showAlert(label, t("profile.comingSoon"));
+  }
+
+  const musicPlaylist = useMemo(
+    () => playlistHistory.filter((item) => (item.mediaUrl || "").toLowerCase().includes("spotify.com")),
+    [playlistHistory]
+  );
+  const seriesFilmPlaylist = useMemo(
+    () =>
+      playlistHistory.filter(
+        (item) => !(item.mediaUrl || "").toLowerCase().includes("spotify.com") && !(item.mediaUrl && watchedMediaUrls.has(item.mediaUrl))
+      ),
+    [playlistHistory, watchedMediaUrls]
+  );
+  const blankPlaylist = useMemo(
+    () => playlistHistory.filter((item) => !!item.mediaUrl && blankPlaylistUrls.has(item.mediaUrl)),
+    [playlistHistory, blankPlaylistUrls]
+  );
+  const activePlaylistItemsRaw =
+    playlistTab === "music" ? musicPlaylist : playlistTab === "seriesFilm" ? seriesFilmPlaylist : blankPlaylist;
+  // Sabitlenenler (diger siralamayi BOZMADAN) listenin basina gelir - profildeki
+  // historyList/likedHistorySorted ile AYNI desen.
+  const activePlaylistItems = [...activePlaylistItemsRaw].sort(
+    (a, b) => Number(pinnedPlaylistEventIds.has(b.eventId)) - Number(pinnedPlaylistEventIds.has(a.eventId))
+  );
+
+  // "Playlist'i Oynat" - en son kaldigimiz parcadan (bkz.
+  // musicPlaylistPosition.ts) bir SONRAKI parcayi, playlist bittiyse (ya da
+  // hic calinmamissa) BASTAN baslatir - musicPlaylist'in KENDI sirasi (pin
+  // sirasi DEGIL) kullanilir, "playlist sirasi" pinlemeden etkilenmesin diye.
+  async function playMusicPlaylist() {
+    const orderedUrls = musicPlaylist.map((item) => item.mediaUrl).filter((url): url is string => !!url);
+    const lastPlayedUrl = await getLastPlayedMusicUrl();
+    const nextUrl = getNextMusicTrackUrl(orderedUrls, lastPlayedUrl);
+    if (!nextUrl) return;
+    const nextItem = musicPlaylist.find((item) => item.mediaUrl === nextUrl);
+    if (nextItem) selectHistoryItem(nextItem);
+  }
+
+  async function resetMusicPlaylist() {
+    await resetLastPlayedMusicUrl();
+  }
+
+  function playSeriesFilmPlaylist() {
+    if (seriesFilmPlaylist.length === 0) return;
+    selectHistoryItem(seriesFilmPlaylist[0]);
+  }
+
+  async function resetSeriesFilmPlaylist() {
+    await clearWatchedMedia();
+    setWatchedMediaUrls(new Set());
+  }
+
+  function playBlankPlaylist() {
+    if (blankPlaylist.length === 0) return;
+    selectHistoryItem(blankPlaylist[0]);
+  }
+
+  async function resetBlankPlaylist() {
+    await clearBlankPlaylist();
+    setBlankPlaylistUrls(new Set());
+  }
 
   useEffect(() => {
     if (visible && relatedVideosFor !== undefined) {
@@ -373,6 +519,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
       showAlert(t("userProfile.videoUnavailableTitle"), t("mediaPicker.videoUnavailableBody"));
       return;
     }
+    if (playlistTab === "music") setLastPlayedMusicUrl(item.mediaUrl);
     onSelect({
       type: item.mediaType as SourceType,
       url: item.mediaUrl,
@@ -380,6 +527,115 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
       coverUrl: item.mediaCoverUrl || undefined,
     });
     handleClose();
+  }
+
+  // Playlist kartlarindaki uc nokta menusu - UserProfileScreen.tsx
+  // renderVideoMenu ile AYNI gorunum/konumlandirma (bkz. styles.visibilityMenu/
+  // visibilityMenuRow), sadece "Gorunurluk Degistir" satiri YOK (kullanicinin
+  // acik istegi - bu ekranda gorunurluk kavrami gecerli degil).
+  function renderPlaylistItemMenu(item: HistoryItem) {
+    const open = playlistMenuTarget === item.eventId;
+    const isPinned = pinnedPlaylistEventIds.has(item.eventId);
+    function closeMenu() {
+      setPlaylistMenuTarget(null);
+      setPlaylistMenuShowAddTo(false);
+    }
+    return (
+      <View style={styles.playlistMenuAnchor}>
+        <TouchableOpacity
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          onPress={(e) => {
+            e.stopPropagation();
+            if (open) {
+              closeMenu();
+            } else {
+              setPlaylistMenuTarget(item.eventId);
+              setPlaylistMenuShowAddTo(false);
+            }
+          }}
+        >
+          <Icon name="moreHoriz" size={18} color={theme.textMuted} />
+        </TouchableOpacity>
+        {open && (
+          <View style={styles.playlistMenuPopup}>
+            {!playlistMenuShowAddTo ? (
+              <>
+                <TouchableOpacity
+                  style={styles.playlistMenuRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    closeMenu();
+                    selectHistoryItem(item);
+                  }}
+                >
+                  <PlayCircle size={16} color="#FFFFFF" />
+                  <Text style={styles.playlistMenuRowText}>{t("userProfile.openRoom")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.playlistMenuRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setPlaylistMenuShowAddTo(true);
+                  }}
+                >
+                  <ListPlus size={16} color="#FFFFFF" />
+                  <Text style={styles.playlistMenuRowText}>{t("userProfile.addToPlaylist")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.playlistMenuRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    closeMenu();
+                    togglePinPlaylistItem(item.eventId);
+                  }}
+                >
+                  <Pin size={16} color="#FFFFFF" fill={isPinned ? "#FFFFFF" : "none"} />
+                  <Text style={styles.playlistMenuRowText}>{isPinned ? t("userProfile.unpinRoom") : t("userProfile.pinRoom")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.playlistMenuRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    closeMenu();
+                    confirmRemovePlaylistItem(item);
+                  }}
+                >
+                  <Trash2 size={16} color="#FFFFFF" />
+                  <Text style={styles.playlistMenuRowText}>{t("userProfile.removeFromHistory")}</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              (
+                [
+                  { key: "music" as const, label: t("userProfile.playlistMusic"), PlaylistIcon: Music },
+                  { key: "video" as const, label: t("userProfile.playlistShows"), PlaylistIcon: Clapperboard },
+                  { key: "blank" as const, label: t("userProfile.playlistBlank"), PlaylistIcon: ListVideo },
+                ] as const
+              ).map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={styles.playlistMenuRow}
+                  onPress={async (e) => {
+                    e.stopPropagation();
+                    closeMenu();
+                    if (opt.key === "blank") {
+                      if (!item.mediaUrl) return;
+                      const urls = await addToBlankPlaylist(item.mediaUrl);
+                      setBlankPlaylistUrls(new Set(urls));
+                    } else {
+                      playlistAddToPlaceholder(opt.label);
+                    }
+                  }}
+                >
+                  <opt.PlaylistIcon size={16} color="#FFFFFF" />
+                  <Text style={styles.playlistMenuRowText}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        )}
+      </View>
+    );
   }
 
   async function handleWebUrlSubmit() {
@@ -422,7 +678,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   const showBackButton = !(embedded && mode === "grid");
 
   const content = (
-      <View style={[styles.screen, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.screen, { paddingTop: insets.top + 16 }, embedded && { backgroundColor: "transparent" }]}>
         {/* Grid (ana platform listesi) ekraninda da ayni ustbar - geri
             okuna basinca grid'den bir ALT ekrandaysak (youtube/weburl/
             history/liked) grid'e, grid'in KENDISINDEYSEK sheet'i kapatiyor
@@ -436,39 +692,266 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
           ) : (
             <View style={styles.backButton} />
           )}
-          <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.topBarLogo} resizeMode="contain" />
-          {/* Geri butonuyla AYNI genislikte gorunmez bir bosluk - logo
-              gercekten ORTALANSIN diye (bkz. RoomMapSheet.tsx ayni kalip). */}
-          <View style={styles.backButton} />
         </View>
 
         {mode === "grid" ? (
-          <>
+          <ScrollView style={styles.gridScreen} showsVerticalScrollIndicator={false}>
+            <View
+              style={[
+                styles.gridInset,
+                (musicQuickMenuOpen || seriesFilmQuickMenuOpen || blankQuickMenuOpen) && { zIndex: 20 },
+              ]}
+            >
             <LinearGradient
-              colors={["#2a2a35", "#1c1c24", "#101014"]}
+              colors={["#FFFFFF", "#38BDF8"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.searchBar}
+              style={styles.searchBarBorder}
             >
-              <Icon name="search" size={18} color="rgba(255,255,255,0.85)" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={t("friends.searchPlaceholder")}
-                placeholderTextColor="rgba(255,255,255,0.5)"
-                value={search}
-                onChangeText={setSearch}
-              />
+              <LinearGradient
+                colors={["#0c1a28", "#13293f", "#1b3752"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.searchBar}
+              >
+                <Icon name="search" size={18} color="#FFFFFF" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder={t("friends.searchPlaceholder")}
+                  placeholderTextColor="rgba(186,214,235,0.45)"
+                  value={search}
+                  onChangeText={setSearch}
+                />
+              </LinearGradient>
             </LinearGradient>
             <View style={styles.list}>
-              {visibleItems.map((item) => (
-                <TouchableOpacity key={item.key} style={styles.listItem} onPress={() => selectItem(item.key)}>
-                  <View style={styles.listItemLogo}>
-                    <PlatformLogo platform={item.logo} size={64} />
-                  </View>
-                </TouchableOpacity>
-              ))}
+              {visibleItems.map((item, index) => {
+                const row = Math.floor(index / 3);
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={[
+                      styles.listItem,
+                      { paddingTop: row === 0 ? 1 : 4.5, paddingBottom: row === 2 ? 6 : 4.5 },
+                    ]}
+                    onPress={() => selectItem(item.key)}
+                  >
+                    <View style={styles.listItemLogo}>
+                      {item.key === "web" ? (
+                        <View style={styles.webLogoRow}>
+                          <Image
+                            source={GRID_LOGO_SOURCES.web}
+                            style={styles.webLogoIcon}
+                            resizeMode="contain"
+                          />
+                          <Image
+                            source={GRID_LOGO_SOURCES.webText}
+                            style={styles.webLogoTextImage}
+                            resizeMode="contain"
+                          />
+                        </View>
+                      ) : (
+                        !!GRID_LOGO_SOURCES[item.logo] && (
+                          <Image
+                            source={GRID_LOGO_SOURCES[item.logo]}
+                            style={[
+                              styles.listItemLogoImage,
+                              item.key === "prime" && { width: "97%", height: "97%", transform: [{ translateY: 3 }] },
+                              item.key === "disney" && { transform: [{ translateY: -3 }] },
+                            ]}
+                            resizeMode="contain"
+                          />
+                        )
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-          </>
+
+            <View
+              style={[
+                styles.playlistTabBar,
+                (musicQuickMenuOpen || seriesFilmQuickMenuOpen || blankQuickMenuOpen) && { zIndex: 20 },
+              ]}
+            >
+              <TouchableOpacity
+                style={[styles.playlistTabBtn, { transform: [{ translateX: 3 }] }]}
+                onPress={() => {
+                  if (playlistTab === "music") {
+                    setMusicQuickMenuOpen((open) => !open);
+                  } else {
+                    setPlaylistTab("music");
+                    setMusicQuickMenuOpen(false);
+                  }
+                }}
+                hitSlop={8}
+              >
+                <View style={{ opacity: playlistTab === "music" ? 1 : 0.35 }}>
+                  <Music size={22} color="#FFFFFF" strokeWidth={2.2} />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.playlistTabBtn}
+                onPress={() => {
+                  if (playlistTab === "seriesFilm") {
+                    setSeriesFilmQuickMenuOpen((open) => !open);
+                  } else {
+                    setPlaylistTab("seriesFilm");
+                    setSeriesFilmQuickMenuOpen(false);
+                  }
+                }}
+                hitSlop={8}
+              >
+                <View style={{ opacity: playlistTab === "seriesFilm" ? 1 : 0.35 }}>
+                  <Clapperboard size={22} color="#FFFFFF" strokeWidth={2.2} />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.playlistTabBtn, { transform: [{ translateX: -3 }] }]}
+                onPress={() => {
+                  if (playlistTab === "empty") {
+                    setBlankQuickMenuOpen((open) => !open);
+                  } else {
+                    setPlaylistTab("empty");
+                    setBlankQuickMenuOpen(false);
+                  }
+                }}
+                hitSlop={8}
+              >
+                <View style={{ opacity: playlistTab === "empty" ? 1 : 0.35 }}>
+                  <ListVideo size={22} color="#FFFFFF" strokeWidth={2.2} />
+                </View>
+              </TouchableOpacity>
+
+              {musicQuickMenuOpen && (
+                <View style={styles.playlistMenuPopupLeft}>
+                  <TouchableOpacity
+                    style={styles.playlistMenuRow}
+                    onPress={() => {
+                      setMusicQuickMenuOpen(false);
+                      playMusicPlaylist();
+                    }}
+                  >
+                    <Play size={16} color="#FFFFFF" />
+                    <Text style={styles.playlistMenuRowText}>{t("mediaPicker.playPlaylist")}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.playlistMenuRow}
+                    onPress={() => {
+                      setMusicQuickMenuOpen(false);
+                      resetMusicPlaylist();
+                    }}
+                  >
+                    <RotateCcw size={16} color="#FFFFFF" />
+                    <Text style={styles.playlistMenuRowText}>{t("mediaPicker.resetPlaylist")}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {seriesFilmQuickMenuOpen && (
+                <View style={styles.playlistMenuPopupCenter}>
+                  <TouchableOpacity
+                    style={styles.playlistMenuRow}
+                    onPress={() => {
+                      setSeriesFilmQuickMenuOpen(false);
+                      playSeriesFilmPlaylist();
+                    }}
+                  >
+                    <Play size={16} color="#FFFFFF" />
+                    <Text style={styles.playlistMenuRowText}>{t("mediaPicker.playPlaylist")}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.playlistMenuRow}
+                    onPress={() => {
+                      setSeriesFilmQuickMenuOpen(false);
+                      resetSeriesFilmPlaylist();
+                    }}
+                  >
+                    <RotateCcw size={16} color="#FFFFFF" />
+                    <Text style={styles.playlistMenuRowText}>{t("mediaPicker.resetPlaylist")}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {blankQuickMenuOpen && (
+                <View style={styles.playlistMenuPopup}>
+                  <TouchableOpacity
+                    style={styles.playlistMenuRow}
+                    onPress={() => {
+                      setBlankQuickMenuOpen(false);
+                      playBlankPlaylist();
+                    }}
+                  >
+                    <Play size={16} color="#FFFFFF" />
+                    <Text style={styles.playlistMenuRowText}>{t("mediaPicker.playPlaylist")}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.playlistMenuRow}
+                    onPress={() => {
+                      setBlankQuickMenuOpen(false);
+                      resetBlankPlaylist();
+                    }}
+                  >
+                      <RotateCcw size={16} color="#FFFFFF" />
+                      <Text style={styles.playlistMenuRowText}>{t("mediaPicker.resetPlaylist")}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+            </View>
+            </View>
+            <LinearGradient
+              colors={["#FFFFFF", "#38BDF8"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.playlistTabDivider}
+            />
+            <View style={[styles.gridInset, styles.playlistContent]}>
+              {loadingPlaylist ? (
+                <ActivityIndicator color="#FFFFFF" size="small" style={styles.historyLoading} />
+              ) : activePlaylistItems.length === 0 ? (
+                <Text style={styles.historyEmptyText}>{t("mediaPicker.noPlaylistVideos")}</Text>
+              ) : (
+                <View>
+                  {activePlaylistItems.map((item, index) => (
+                    <Fragment key={item.eventId}>
+                      {index > 0 && <View style={styles.playlistVideoDivider} />}
+                      <TouchableOpacity
+                        style={[styles.playlistVideoCard, playlistMenuTarget === item.eventId && { zIndex: 20 }]}
+                        onPress={() => selectHistoryItem(item)}
+                      >
+                        <View style={styles.playlistVideoThumb}>
+                          {!!item.mediaCoverUrl && <Image source={{ uri: item.mediaCoverUrl }} style={styles.playlistVideoThumbImage} />}
+                        </View>
+                        <View style={styles.playlistVideoInfo}>
+                          <View style={styles.playlistVideoTitleRow}>
+                            <Text style={styles.playlistVideoTitle} numberOfLines={2}>
+                              {item.mediaLabel}
+                            </Text>
+                            {pinnedPlaylistEventIds.has(item.eventId) && <Pin size={12} color={theme.textMuted} fill={theme.textMuted} />}
+                          </View>
+                          {(() => {
+                            const badge =
+                              item.mediaType && item.mediaUrl
+                                ? badgeInfoForSource({ type: item.mediaType as SourceType, url: item.mediaUrl, coverUrl: item.mediaCoverUrl || undefined })
+                                : null;
+                            return (
+                              !!badge && (
+                                <View style={styles.playlistVideoPlatformRow}>
+                                  <PlatformBadge platform={badge.key} faviconUrl={badge.faviconUrl} size={14} />
+                                  <Text style={styles.playlistVideoPlatformText}>{badge.label}</Text>
+                                </View>
+                              )
+                            );
+                          })()}
+                          <Text style={styles.playlistVideoMeta}>{timeAgo(item.createdAt, t, i18n.language)}</Text>
+                        </View>
+                        {renderPlaylistItemMenu(item)}
+                      </TouchableOpacity>
+                    </Fragment>
+                  ))}
+                </View>
+              )}
+            </View>
+          </ScrollView>
         ) : mode === "history" || mode === "liked" ? (
           <ScrollView style={styles.historyScreen} showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>{mode === "liked" ? t("userProfile.tabLiked") : t("userProfile.tabHistory")}</Text>
@@ -615,30 +1098,129 @@ const styles = StyleSheet.create({
   // kutusunun neredeyse tabanina kadar uzaniyor - kutular alttan hizlansa
   // bile yazi daha asagida GORUNUYORDU (piksel olculdu). marginBottom bunu
   // yukari kaydirip gercek GORSEL tabanlari esitliyor.
-  topBarLogo: { width: 68, height: 30, marginBottom: 10, tintColor: "#FFFFFF" },
+  searchBarBorder: {
+    borderRadius: 27,
+    padding: 2,
+    marginBottom: 24,
+  },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
+    height: 48,
     borderRadius: 26,
     paddingHorizontal: 18,
-    paddingVertical: 13,
     gap: 10,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
   },
   searchInput: {
     flex: 1,
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 15,
     paddingVertical: 0,
     includeFontPadding: false,
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
+  gridScreen: { flex: 1, marginTop: -20, marginHorizontal: -20 },
+  gridInset: { paddingHorizontal: 20 },
   list: { flexDirection: "row", flexWrap: "wrap" },
-  listItem: { width: "50%", paddingVertical: 14, alignItems: "center" },
-  listItemLogo: { height: 76, justifyContent: "center", paddingHorizontal: 12 },
+  playlistTabBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 6,
+    paddingBottom: 6,
+  },
+  playlistTabDivider: { height: 1 },
+  playlistTabBtn: { padding: 6 },
+  playlistContent: { paddingTop: 4, paddingBottom: 24 },
+  playlistVideoCard: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 10 },
+  playlistVideoThumb: {
+    width: 150,
+    aspectRatio: 16 / 9,
+    borderRadius: 8,
+    backgroundColor: "#0D0D0D",
+    borderWidth: 1,
+    borderColor: "#1C1C1C",
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  playlistVideoThumbImage: { width: "100%", height: "100%" },
+  playlistVideoInfo: { flex: 1, minWidth: 0, marginTop: 10 },
+  playlistVideoTitleRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  playlistVideoTitle: { color: "#F5F0E6", fontSize: 13, fontWeight: "600", flexShrink: 1 },
+  playlistVideoPlatformRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  playlistVideoPlatformText: { color: "#9A8F80", fontSize: 11, fontWeight: "700" },
+  playlistVideoMeta: { color: "#9A8F80", fontSize: 11, fontWeight: "700", marginTop: 2 },
+  playlistVideoDivider: { height: 1, backgroundColor: "#141414", marginVertical: 4, marginHorizontal: -20 },
+  playlistMenuAnchor: { position: "relative" },
+  playlistMenuPopup: {
+    position: "absolute",
+    top: "100%",
+    right: 0,
+    marginTop: 8,
+    backgroundColor: "#15202B",
+    borderRadius: 14,
+    paddingVertical: 4,
+    minWidth: 190,
+    zIndex: 10,
+    overflow: "hidden",
+  },
+  // Muzik sekmesi ikonu EKRANIN SOLUNA yakin dursun diye - sag kenara
+  // yaslanan playlistMenuPopup burada EKRAN DISINA taserdi, bu yuzden
+  // soldan hizalanan ayri bir varyant.
+  playlistMenuPopupLeft: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    marginTop: 8,
+    backgroundColor: "#15202B",
+    borderRadius: 14,
+    paddingVertical: 4,
+    minWidth: 190,
+    zIndex: 10,
+    overflow: "hidden",
+  },
+  // Dizi/Film sekmesi tam ORTADA - kutusu da ekranin tam ortasina gelsin diye
+  // (Muzik solda/Bos sagda duran kutularla GORSEL OLARAK dengeli dursun).
+  playlistMenuPopupCenter: {
+    position: "absolute",
+    top: "100%",
+    left: "50%",
+    marginLeft: -95,
+    marginTop: 8,
+    backgroundColor: "#15202B",
+    borderRadius: 14,
+    paddingVertical: 4,
+    minWidth: 190,
+    zIndex: 10,
+    overflow: "hidden",
+  },
+  playlistMenuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginHorizontal: 6,
+    borderRadius: 12,
+  },
+  playlistMenuRowText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+  listItem: { width: "33.333%", paddingHorizontal: 1 },
+  listItemLogo: {
+    aspectRatio: 2,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    padding: 10,
+  },
+  listItemLogoImage: { width: "100%", height: "100%" },
+  webLogoRow: { flexDirection: "row", alignItems: "center", gap: 9 },
+  webLogoIcon: { width: 32, height: 32 },
+  webLogoTextImage: { width: 55, height: 17 },
   title: { color: theme.text, fontSize: 22, fontWeight: "700" },
   historyScreen: { flex: 1 },
   historyLoading: { marginTop: 60 },

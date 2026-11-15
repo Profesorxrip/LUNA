@@ -51,6 +51,8 @@ import { showAlert } from "../components/CustomAlert";
 import { isHideLocationEnabled } from "../utils/locationSettings";
 import { isMuteOnOtherAudioEnabled, setMuteOnOtherAudioEnabled } from "../utils/audioSettings";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
+import { addToBlankPlaylist, removeFromBlankPlaylist } from "../utils/blankPlaylist";
+import { markMediaWatched } from "../utils/watchedMedia";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
 import { useVoiceChat } from "../hooks/useVoiceChat";
 import { theme } from "../theme";
@@ -807,6 +809,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       // server/src/rooms.ts enqueueSource). Sunucudan room:state ile donen
       // yeni/degismeyen kaynagi yukardaki useEffect (satir ~344) zaten
       // yukleyip oynatacak - burada AYRICA loadVideo cagirmiyoruz.
+      if (source.url) addToBlankPlaylist(source.url);
       socket.emit("room:enqueueSource", { source }, () => {});
       return;
     }
@@ -815,6 +818,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     // oynatmaya basladiktan (bir <video> etiketi belirdikten) SONRA secmis
     // oluyor (bkz. MediaPickerSheet.tsx handleExternalVideoDetected), yani
     // oda acildiginda zaten oynatimin ortasindayiz.
+    if (source.url) addToBlankPlaylist(source.url);
     socket.emit("playback:update", { source, isPlaying: true, positionSeconds: 0 });
     console.log("[LUNA-DEBUG] selectSource: DOGRUDAN loadVideo cagriliyor", { url: source.url });
     playerRef.current?.loadVideo(source.url, 0);
@@ -848,6 +852,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     const hasPoll = Boolean(room.poll);
     if (hasPoll && !hadPollRef.current) {
       const endedSource = room.playback.source;
+      if (endedSource?.url) {
+        removeFromBlankPlaylist(endedSource.url);
+        markMediaWatched(endedSource.url);
+      }
       setPollRelatedVideoId(endedSource?.type === "youtube" ? endedSource.url : null);
       setPickerVisible(true);
     } else if (!hasPoll && hadPollRef.current) {

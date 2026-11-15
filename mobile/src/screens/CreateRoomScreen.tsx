@@ -4,6 +4,7 @@ import { getSocket, MediaSource, RoomState } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
 import MediaPickerSheet from "../components/MediaPickerSheet";
+import { addToBlankPlaylist } from "../utils/blankPlaylist";
 
 interface Props {
   onRoomCreated: (room: RoomState) => void;
@@ -29,8 +30,10 @@ export default function CreateRoomScreen({ onRoomCreated }: Props) {
       .timeout(8000)
       .emit("room:create", { name: hostName, isPublic: true, source }, (err: any, res: any) => {
         if (err) return showAlert(t("discover.createFailedTitle"), t("common.connectionIssueBody"));
-        if (res?.ok) onRoomCreated(res.room);
-        else showAlert(t("discover.createFailedTitle"), res?.error || t("common.unknownError"));
+        if (res?.ok) {
+          if (source.url) addToBlankPlaylist(source.url);
+          onRoomCreated(res.room);
+        } else showAlert(t("discover.createFailedTitle"), res?.error || t("common.unknownError"));
       });
   }
 
