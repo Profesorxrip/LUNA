@@ -134,6 +134,12 @@
     "requestsTitle": "الطلبات",
     "requestFailedTitle": "تعذر الإرسال",
     "requestFailedBody": "تعذر إرسال طلب الصداقة، حاول مرة أخرى.",
+    "cancelRequestShort": "إلغاء",
+    "acceptRequest": "قبول",
+    "declineRequest": "رفض",
+    "undo": "تراجع",
+    "removedFriendUndoMessage": "تمت إزالة {{name}} من الأصدقاء.",
+    "declinedUndoMessage": "تم رفض طلب {{name}}.",
     "unblockConfirmTitle": "إلغاء الحظر",
     "unblockConfirmBody": "هل أنت متأكد أنك تريد إلغاء حظر هذا الشخص؟"
   },

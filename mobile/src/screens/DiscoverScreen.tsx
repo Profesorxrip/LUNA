@@ -45,7 +45,9 @@ const EMPTY_SECTIONS: DiscoverSections = { invited: [], friends: [], nearby: [],
 // degisiminde guncellensin diye bir fonksiyonla (sabit degil) uretiliyor.
 function getSectionTitles(t: (key: string) => string): { key: keyof DiscoverSections; title: string; icon: IconName }[] {
   return [
-    { key: "invited", title: t("discover.sectionInvited"), icon: "invite" },
+    // Davetliler bolumu SIMDILIK gizli (kullanicinin acik istegi) - geri
+    // getirmek icin asagidaki satiri tekrar ekle:
+    // { key: "invited", title: t("discover.sectionInvited"), icon: "inviteKey" },
     { key: "friends", title: t("discover.sectionFriends"), icon: "people" },
     { key: "nearby", title: t("discover.sectionNearby"), icon: "radar" },
     { key: "open", title: t("discover.sectionOpen"), icon: "worldOpen" },

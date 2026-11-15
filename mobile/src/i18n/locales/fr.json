@@ -134,6 +134,12 @@
     "requestsTitle": "DEMANDES",
     "requestFailedTitle": "Échec de l'envoi",
     "requestFailedBody": "La demande d'ami n'a pas pu être envoyée, réessaie.",
+    "cancelRequestShort": "Annuler",
+    "acceptRequest": "Accepter",
+    "declineRequest": "Refuser",
+    "undo": "Annuler",
+    "removedFriendUndoMessage": "{{name}} a été retiré(e) des amis.",
+    "declinedUndoMessage": "La demande de {{name}} a été refusée.",
     "unblockConfirmTitle": "Débloquer",
     "unblockConfirmBody": "Veux-tu vraiment débloquer cette personne ?"
   },

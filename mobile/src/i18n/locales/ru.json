@@ -134,6 +134,12 @@
     "requestsTitle": "ЗАПРОСЫ",
     "requestFailedTitle": "Не удалось отправить",
     "requestFailedBody": "Не удалось отправить запрос в друзья, попробуй снова.",
+    "cancelRequestShort": "Отменить",
+    "acceptRequest": "Принять",
+    "declineRequest": "Отклонить",
+    "undo": "Отменить",
+    "removedFriendUndoMessage": "{{name}} удалён(а) из друзей.",
+    "declinedUndoMessage": "Запрос от {{name}} отклонён.",
     "unblockConfirmTitle": "Разблокировать",
     "unblockConfirmBody": "Ты уверен(а), что хочешь разблокировать этого человека?"
   },

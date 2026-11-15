@@ -134,6 +134,12 @@
     "requestsTitle": "SOLICITUDES",
     "requestFailedTitle": "No se pudo enviar",
     "requestFailedBody": "No se pudo enviar la solicitud de amistad, inténtalo de nuevo.",
+    "cancelRequestShort": "Cancelar",
+    "acceptRequest": "Aceptar",
+    "declineRequest": "Rechazar",
+    "undo": "Deshacer",
+    "removedFriendUndoMessage": "{{name}} eliminado de tus amigos.",
+    "declinedUndoMessage": "Se rechazó la solicitud de {{name}}.",
     "unblockConfirmTitle": "Desbloquear",
     "unblockConfirmBody": "¿Seguro que quieres desbloquear a esta persona?"
   },

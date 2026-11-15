@@ -134,6 +134,12 @@
     "requestsTitle": "DAXWAZ",
     "requestFailedTitle": "Nehat şandin",
     "requestFailedBody": "Daxwaza hevaltiyê nehat şandin, dîsa biceribîne.",
+    "cancelRequestShort": "Betal bike",
+    "acceptRequest": "Qebûl bike",
+    "declineRequest": "Red bike",
+    "undo": "Vegerîne",
+    "removedFriendUndoMessage": "{{name}} ji hevaltiyê hat derxistin.",
+    "declinedUndoMessage": "Daxwaza {{name}} hat red kirin.",
     "unblockConfirmTitle": "Astengê Rake",
     "unblockConfirmBody": "Tu bawer î ku dixwazî astengê vî kesî rakî?"
   },

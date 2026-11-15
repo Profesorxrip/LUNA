@@ -134,6 +134,12 @@
     "requestsTitle": "REQUESTS",
     "requestFailedTitle": "Couldn't send",
     "requestFailedBody": "Couldn't send the friend request, try again.",
+    "cancelRequestShort": "Cancel",
+    "acceptRequest": "Accept",
+    "declineRequest": "Decline",
+    "undo": "Undo",
+    "removedFriendUndoMessage": "{{name}} removed from friends.",
+    "declinedUndoMessage": "{{name}}'s request was declined.",
     "unblockConfirmTitle": "Unblock",
     "unblockConfirmBody": "Are you sure you want to unblock this person?"
   },

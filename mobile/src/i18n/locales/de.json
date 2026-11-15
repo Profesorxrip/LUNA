@@ -134,6 +134,12 @@
     "requestsTitle": "ANFRAGEN",
     "requestFailedTitle": "Senden fehlgeschlagen",
     "requestFailedBody": "Freundschaftsanfrage konnte nicht gesendet werden, versuch es erneut.",
+    "cancelRequestShort": "Abbrechen",
+    "acceptRequest": "Annehmen",
+    "declineRequest": "Ablehnen",
+    "undo": "Rückgängig",
+    "removedFriendUndoMessage": "{{name}} wurde aus den Freunden entfernt.",
+    "declinedUndoMessage": "Die Anfrage von {{name}} wurde abgelehnt.",
     "unblockConfirmTitle": "Blockierung aufheben",
     "unblockConfirmBody": "Möchtest du die Blockierung dieser Person wirklich aufheben?"
   },

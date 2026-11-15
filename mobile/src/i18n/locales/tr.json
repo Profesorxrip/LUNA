@@ -134,6 +134,12 @@
     "requestsTitle": "İSTEKLER",
     "requestFailedTitle": "Gönderilemedi",
     "requestFailedBody": "Arkadaşlık isteği gönderilemedi, tekrar dene.",
+    "cancelRequestShort": "İptal et",
+    "acceptRequest": "Onayla",
+    "declineRequest": "Reddet",
+    "undo": "Geri Al",
+    "removedFriendUndoMessage": "{{name}} arkadaşlıktan çıkarıldı.",
+    "declinedUndoMessage": "{{name}} kullanıcısının isteği reddedildi.",
     "unblockConfirmTitle": "Engeli Kaldır",
     "unblockConfirmBody": "Bu kişinin engelini kaldırmak istediğinize emin misiniz?"
   },

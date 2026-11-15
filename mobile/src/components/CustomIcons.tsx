@@ -368,3 +368,17 @@ export function VolumeOffIcon({ size = 24, color = "#F5F5F7" }: Props) {
     />
   );
 }
+
+// "Geri Al" ikonu - kullanicinin gonderdigi referans gorselden cikarilmis
+// GERCEK siluet (assets/icons/undo-arrow.png, siyah zemin alpha'ya
+// cevrilerek silindi) - FriendsScreen.tsx'teki "Geri Al" kutusunda mesajin
+// solunda kullaniliyor.
+export function UndoArrowIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Image
+      source={require("../../assets/icons/undo-arrow.png")}
+      style={{ width: size, height: size, tintColor: color }}
+      resizeMode="contain"
+    />
+  );
+}

@@ -134,6 +134,12 @@
     "requestsTitle": "SORĞULAR",
     "requestFailedTitle": "Göndərilmədi",
     "requestFailedBody": "Dostluq sorğusu göndərilmədi, yenidən cəhd et.",
+    "cancelRequestShort": "Ləğv et",
+    "acceptRequest": "Qəbul et",
+    "declineRequest": "Rədd et",
+    "undo": "Geri al",
+    "removedFriendUndoMessage": "{{name}} dostluqdan çıxarıldı.",
+    "declinedUndoMessage": "{{name}} istifadəçisinin sorğusu rədd edildi.",
     "unblockConfirmTitle": "Blokdan Çıxar",
     "unblockConfirmBody": "Bu şəxsin blokunu götürmək istədiyinə əminsən?"
   },

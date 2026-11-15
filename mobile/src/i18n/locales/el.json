@@ -134,6 +134,12 @@
     "requestsTitle": "ΑΙΤΗΜΑΤΑ",
     "requestFailedTitle": "Αποτυχία αποστολής",
     "requestFailedBody": "Το αίτημα φιλίας δεν στάλθηκε, δοκίμασε ξανά.",
+    "cancelRequestShort": "Ακύρωση",
+    "acceptRequest": "Αποδοχή",
+    "declineRequest": "Απόρριψη",
+    "undo": "Αναίρεση",
+    "removedFriendUndoMessage": "Ο/Η {{name}} αφαιρέθηκε από τους φίλους.",
+    "declinedUndoMessage": "Το αίτημα του/της {{name}} απορρίφθηκε.",
     "unblockConfirmTitle": "Άρση αποκλεισμού",
     "unblockConfirmBody": "Είσαι σίγουρος/η ότι θέλεις να άρεις τον αποκλεισμό αυτού του ατόμου;"
   },
