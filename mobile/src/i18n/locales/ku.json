@@ -145,9 +145,23 @@
   },
   "dmList": {
     "title": "Peyam",
-    "emptyText": "Hêj peyamek tune ye."
+    "searchPlaceholder": "LÊGERÎN",
+    "newMessage": "Peyama Nû",
+    "emptyText": "Hêj peyamek tune ye.",
+    "pinChat": "Pîn bike",
+    "unpinChat": "Rake",
+    "muteChat": "Bêdeng bike",
+    "unmuteChat": "Veke",
+    "markRead": "Xwendî",
+    "markUnread": "Nexwendî",
+    "archiveChat": "Arşîv",
+    "unarchiveChat": "Derxe",
+    "deleteChat": "Jê bibe",
+    "deletedUndoMessage": "Sohbeta bi {{name}} re hat jêbirin.",
+    "archiveEntryLabel": "Arşîv"
   },
   "dm": {
+    "encryptionNotice": "Peyam û gerîn bi dawî-bi-dawî têne şîfrekirin. Tenê kesên di vê axaftinê de dikarin wan bixwînin, guhdarî bikin an parve bikin.",
     "expiryOff": "Girtî",
     "expiry1Hour": "1 Saet",
     "expiry1Day": "1 Roj",

@@ -145,9 +145,23 @@
   },
   "dmList": {
     "title": "Messages",
-    "emptyText": "No messages yet."
+    "searchPlaceholder": "SEARCH",
+    "newMessage": "New Message",
+    "emptyText": "No messages yet.",
+    "pinChat": "Pin",
+    "unpinChat": "Unpin",
+    "muteChat": "Mute",
+    "unmuteChat": "Unmute",
+    "markRead": "Read",
+    "markUnread": "Unread",
+    "archiveChat": "Archive",
+    "unarchiveChat": "Restore",
+    "deleteChat": "Delete",
+    "deletedUndoMessage": "Chat with {{name}} deleted.",
+    "archiveEntryLabel": "Archive"
   },
   "dm": {
+    "encryptionNotice": "Messages and calls are end-to-end encrypted. Only people in this chat can read, listen to, or share them.",
     "expiryOff": "Off",
     "expiry1Hour": "1 Hour",
     "expiry1Day": "1 Day",

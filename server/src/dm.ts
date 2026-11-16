@@ -136,11 +136,18 @@ export interface DMConversationSummary {
   peerAvatarUrl: string | null;
   lastMessage: DMMessage | null;
   unread: boolean;
+  unreadCount: number;
+  isFriend: boolean;
+  pinned: boolean;
+  muted: boolean;
+  archived: boolean;
 }
 
 /** Alt bardaki DM listesi icin - kullanicinin tum konusmalarini, her
  * birinin karsi tarafi (profil), son mesaji ve "okunmadi" durumuyla
- * birlikte dondurur. Son mesaja gore (en yeniden eskiye) siralanir. */
+ * birlikte dondurur. Son mesaja gore (en yeniden eskiye) siralanir.
+ * "Sohbeti sil" ile gizlenmis (hidden_at) konusmalar - SADECE o tarihten
+ * SONRA yeni bir mesaj gelmediyse - listeden tamamen cikarilir. */
 export async function listConversations(db: SupabaseClient, myUserId: string): Promise<DMConversationSummary[]> {
   const { data: convos } = await db
     .from("dm_conversations")
@@ -151,19 +158,34 @@ export async function listConversations(db: SupabaseClient, myUserId: string): P
   const convoIds = convos.map((c: any) => c.id);
   const peerIds = convos.map((c: any) => (c.user_a === myUserId ? c.user_b : c.user_a));
 
-  const [{ data: profiles }, { data: messages }, { data: readStates }] = await Promise.all([
+  const [{ data: profiles }, { data: messages }, { data: readStates }, { data: friendRows }] = await Promise.all([
     db.from("profiles").select("id,name,handle,avatar_url").in("id", peerIds),
     db.from("dm_messages").select("*").in("conversation_id", convoIds).order("created_at", { ascending: false }),
-    db.from("dm_read_state").select("conversation_id,last_seen_at").in("conversation_id", convoIds).eq("user_id", myUserId),
+    db
+      .from("dm_read_state")
+      .select("conversation_id,last_seen_at,pinned,muted,archived,manual_unread,hidden_at")
+      .in("conversation_id", convoIds)
+      .eq("user_id", myUserId),
+    db.from("friendships").select("user_a,user_b").or(`user_a.eq.${myUserId},user_b.eq.${myUserId}`),
   ]);
 
+  const friendIds = new Set(
+    (friendRows || []).map((r: any) => (r.user_a === myUserId ? r.user_b : r.user_a))
+  );
   const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
-  const lastSeenByConvo = new Map((readStates || []).map((r: any) => [r.conversation_id, r.last_seen_at]));
+  const readStateByConvo = new Map((readStates || []).map((r: any) => [r.conversation_id, r]));
   // mesajlar yeniden eskiye geldigi icin her conversation_id'nin ILK
   // gordugumuz satiri zaten o konusmanin en son mesajidir.
   const lastRowByConvo = new Map<string, any>();
+  const unreadCountByConvo = new Map<string, number>();
   for (const row of messages || []) {
     if (!lastRowByConvo.has(row.conversation_id)) lastRowByConvo.set(row.conversation_id, row);
+    if (row.from_user === myUserId) continue;
+    const lastSeenAt = readStateByConvo.get(row.conversation_id)?.last_seen_at;
+    const rowTime = new Date(row.created_at).getTime();
+    if (!lastSeenAt || new Date(lastSeenAt).getTime() < rowTime) {
+      unreadCountByConvo.set(row.conversation_id, (unreadCountByConvo.get(row.conversation_id) ?? 0) + 1);
+    }
   }
 
   return convos
@@ -172,11 +194,10 @@ export async function listConversations(db: SupabaseClient, myUserId: string): P
       const profile = profileById.get(peerId);
       const lastRow = lastRowByConvo.get(c.id);
       const lastMessage = lastRow ? mapRow(lastRow) : null;
-      const lastSeenAt = lastSeenByConvo.get(c.id);
-      const unread =
-        !!lastMessage &&
-        lastRow.from_user !== myUserId &&
-        (!lastSeenAt || new Date(lastSeenAt).getTime() < lastMessage.createdAt);
+      const unreadCount = unreadCountByConvo.get(c.id) ?? 0;
+      const readState = readStateByConvo.get(c.id);
+      const hiddenAt = readState?.hidden_at ? new Date(readState.hidden_at).getTime() : null;
+      const hidden = hiddenAt !== null && (!lastMessage || lastMessage.createdAt <= hiddenAt);
       return {
         conversationId: c.id,
         peerId,
@@ -184,10 +205,38 @@ export async function listConversations(db: SupabaseClient, myUserId: string): P
         peerHandle: profile?.handle ?? null,
         peerAvatarUrl: profile?.avatar_url ?? null,
         lastMessage,
-        unread,
+        unread: unreadCount > 0 || !!readState?.manual_unread,
+        unreadCount,
+        isFriend: friendIds.has(peerId),
+        pinned: !!readState?.pinned,
+        muted: !!readState?.muted,
+        archived: !!readState?.archived,
+        hidden,
       };
     })
+    .filter((c: any) => !c.hidden)
+    .map(({ hidden, ...rest }: any) => rest)
     .sort((a, b) => (b.lastMessage?.createdAt ?? 0) - (a.lastMessage?.createdAt ?? 0));
+}
+
+export async function setDmPinned(db: SupabaseClient, otherUserId: string, pinned: boolean): Promise<void> {
+  await db.rpc("set_dm_pinned", { other_user: otherUserId, p_pinned: pinned });
+}
+
+export async function setDmMuted(db: SupabaseClient, otherUserId: string, muted: boolean): Promise<void> {
+  await db.rpc("set_dm_muted", { other_user: otherUserId, p_muted: muted });
+}
+
+export async function setDmArchived(db: SupabaseClient, otherUserId: string, archived: boolean): Promise<void> {
+  await db.rpc("set_dm_archived", { other_user: otherUserId, p_archived: archived });
+}
+
+export async function setDmManualUnread(db: SupabaseClient, otherUserId: string, unread: boolean): Promise<void> {
+  await db.rpc("set_dm_manual_unread", { other_user: otherUserId, p_unread: unread });
+}
+
+export async function hideDmConversation(db: SupabaseClient, otherUserId: string): Promise<void> {
+  await db.rpc("hide_dm_conversation", { other_user: otherUserId });
 }
 
 export async function setExpiryMs(db: SupabaseClient, otherUserId: string, ms: number | null): Promise<void> {

@@ -145,9 +145,23 @@
   },
   "dmList": {
     "title": "Mensajes",
-    "emptyText": "Aún no tienes mensajes."
+    "searchPlaceholder": "BUSCAR",
+    "newMessage": "Nuevo Mensaje",
+    "emptyText": "Aún no tienes mensajes.",
+    "pinChat": "Fijar",
+    "unpinChat": "Desfijar",
+    "muteChat": "Mudo",
+    "unmuteChat": "Sonido",
+    "markRead": "Leído",
+    "markUnread": "No leído",
+    "archiveChat": "Archivar",
+    "unarchiveChat": "Quitar",
+    "deleteChat": "Eliminar",
+    "deletedUndoMessage": "Chat con {{name}} eliminado.",
+    "archiveEntryLabel": "Archivo"
   },
   "dm": {
+    "encryptionNotice": "Los mensajes y las llamadas están cifrados de extremo a extremo. Solo las personas de este chat pueden leerlos, escucharlos o compartirlos.",
     "expiryOff": "Desactivado",
     "expiry1Hour": "1 Hora",
     "expiry1Day": "1 Día",

@@ -145,9 +145,23 @@
   },
   "dmList": {
     "title": "Μηνύματα",
-    "emptyText": "Δεν υπάρχουν ακόμα μηνύματα."
+    "searchPlaceholder": "ΑΝΑΖΗΤΗΣΗ",
+    "newMessage": "Νέο Μήνυμα",
+    "emptyText": "Δεν υπάρχουν ακόμα μηνύματα.",
+    "pinChat": "Καρφί",
+    "unpinChat": "Ξεκάρφωμα",
+    "muteChat": "Σίγαση",
+    "unmuteChat": "Ήχος",
+    "markRead": "Ανάγνωση",
+    "markUnread": "Άδιαβαστο",
+    "archiveChat": "Αρχείο",
+    "unarchiveChat": "Επαναφορά",
+    "deleteChat": "Διαγραφή",
+    "deletedUndoMessage": "Η συνομιλία με {{name}} διαγράφηκε.",
+    "archiveEntryLabel": "Αρχείο"
   },
   "dm": {
+    "encryptionNotice": "Τα μηνύματα και οι κλήσεις είναι κρυπτογραφημένα από άκρο σε άκρο. Μόνο τα άτομα σε αυτή τη συνομιλία μπορούν να τα διαβάσουν, να τα ακούσουν ή να τα μοιραστούν.",
     "expiryOff": "Ανενεργό",
     "expiry1Hour": "1 Ώρα",
     "expiry1Day": "1 Ημέρα",

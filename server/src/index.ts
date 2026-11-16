@@ -61,6 +61,11 @@ import {
   sendImageMessage,
   setExpiryMs,
   markSeen,
+  setDmPinned,
+  setDmMuted,
+  setDmArchived,
+  setDmManualUnread,
+  hideDmConversation,
   setOnline,
   removeOnlineBySocket,
   getSocketIdForUser,
@@ -848,6 +853,40 @@ io.on("connection", (socket: Socket) => {
     if (!requireAuth(ack)) return;
     const conversations = await listConversations(myDb!, myUserId!);
     ack?.({ ok: true, conversations });
+  });
+
+  // DM listesinde bir kisiye basili tutunca cikan menu - hepsi SADECE
+  // benim listemi etkiler, karsi tarafa hicbir bildirim gitmez.
+  socket.on("dm:setPinned", async ({ userId, pinned }: { userId: string; pinned: boolean }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(userId, 200) || !isBoolean(pinned)) return ack?.({ ok: false });
+    await setDmPinned(myDb!, userId, pinned);
+    ack?.({ ok: true });
+  });
+
+  socket.on("dm:setMuted", async ({ userId, muted }: { userId: string; muted: boolean }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(userId, 200) || !isBoolean(muted)) return ack?.({ ok: false });
+    await setDmMuted(myDb!, userId, muted);
+    ack?.({ ok: true });
+  });
+
+  socket.on("dm:setArchived", async ({ userId, archived }: { userId: string; archived: boolean }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(userId, 200) || !isBoolean(archived)) return ack?.({ ok: false });
+    await setDmArchived(myDb!, userId, archived);
+    ack?.({ ok: true });
+  });
+
+  socket.on("dm:setManualUnread", async ({ userId, unread }: { userId: string; unread: boolean }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(userId, 200) || !isBoolean(unread)) return ack?.({ ok: false });
+    await setDmManualUnread(myDb!, userId, unread);
+    ack?.({ ok: true });
+  });
+
+  // "Sohbeti sil" - sadece benim listemden gizler (bkz. dm.ts
+  // listConversations - hidden_at'tan SONRA yeni mesaj gelirse geri doner).
+  socket.on("dm:delete", async ({ userId }: { userId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(userId, 200)) return ack?.({ ok: false });
+    await hideDmConversation(myDb!, userId);
+    ack?.({ ok: true });
   });
 
   socket.on("dm:open", async ({ withUserId }: { withUserId: string }, ack) => {

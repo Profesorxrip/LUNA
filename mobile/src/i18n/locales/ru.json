@@ -145,9 +145,23 @@
   },
   "dmList": {
     "title": "Сообщения",
-    "emptyText": "Пока нет сообщений."
+    "searchPlaceholder": "ПОИСК",
+    "newMessage": "Новое сообщение",
+    "emptyText": "Пока нет сообщений.",
+    "pinChat": "Закрепить",
+    "unpinChat": "Открепить",
+    "muteChat": "Без звука",
+    "unmuteChat": "Со звуком",
+    "markRead": "Прочитано",
+    "markUnread": "Непрочитано",
+    "archiveChat": "Архив",
+    "unarchiveChat": "Из архива",
+    "deleteChat": "Удалить",
+    "deletedUndoMessage": "Чат с {{name}} удалён.",
+    "archiveEntryLabel": "Архив"
   },
   "dm": {
+    "encryptionNotice": "Сообщения и звонки защищены сквозным шифрованием. Только участники этого чата могут читать, слушать или делиться ими.",
     "expiryOff": "Выкл.",
     "expiry1Hour": "1 час",
     "expiry1Day": "1 день",

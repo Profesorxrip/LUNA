@@ -145,9 +145,23 @@
   },
   "dmList": {
     "title": "Messages",
-    "emptyText": "Pas encore de messages."
+    "searchPlaceholder": "RECHERCHER",
+    "newMessage": "Nouveau Message",
+    "emptyText": "Pas encore de messages.",
+    "pinChat": "Épingler",
+    "unpinChat": "Détacher",
+    "muteChat": "Muet",
+    "unmuteChat": "Activer",
+    "markRead": "Lu",
+    "markUnread": "Non lu",
+    "archiveChat": "Archiver",
+    "unarchiveChat": "Sortir",
+    "deleteChat": "Effacer",
+    "deletedUndoMessage": "Discussion avec {{name}} supprimée.",
+    "archiveEntryLabel": "Archive"
   },
   "dm": {
+    "encryptionNotice": "Les messages et les appels sont chiffrés de bout en bout. Seules les personnes de cette discussion peuvent les lire, les écouter ou les partager.",
     "expiryOff": "Désactivé",
     "expiry1Hour": "1 Heure",
     "expiry1Day": "1 Jour",

@@ -145,9 +145,23 @@
   },
   "dmList": {
     "title": "Mesajlar",
-    "emptyText": "Hələ mesajınız yoxdur."
+    "searchPlaceholder": "AXTAR",
+    "newMessage": "Yeni Mesaj",
+    "emptyText": "Hələ mesajınız yoxdur.",
+    "pinChat": "Sabitlə",
+    "unpinChat": "Ləğv et",
+    "muteChat": "Səssiz",
+    "unmuteChat": "Səsli",
+    "markRead": "Oxunmuş",
+    "markUnread": "Oxunmamış",
+    "archiveChat": "Arxivlə",
+    "unarchiveChat": "Çıxar",
+    "deleteChat": "Sil",
+    "deletedUndoMessage": "{{name}} ilə söhbət silindi.",
+    "archiveEntryLabel": "Arxiv"
   },
   "dm": {
+    "encryptionNotice": "Mesajlar və zənglər uçdan-uca şifrələnib. Yalnız bu söhbətdəki insanlar onları oxuya, dinləyə və ya paylaşa bilər.",
     "expiryOff": "Bağlı",
     "expiry1Hour": "1 Saat",
     "expiry1Day": "1 Gün",

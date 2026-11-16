@@ -145,9 +145,23 @@
   },
   "dmList": {
     "title": "Nachrichten",
-    "emptyText": "Noch keine Nachrichten."
+    "searchPlaceholder": "SUCHEN",
+    "newMessage": "Neue Nachricht",
+    "emptyText": "Noch keine Nachrichten.",
+    "pinChat": "Anheften",
+    "unpinChat": "Lösen",
+    "muteChat": "Stumm",
+    "unmuteChat": "Laut",
+    "markRead": "Gelesen",
+    "markUnread": "Ungelesen",
+    "archiveChat": "Archiv",
+    "unarchiveChat": "Zurück",
+    "deleteChat": "Löschen",
+    "deletedUndoMessage": "Chat mit {{name}} gelöscht.",
+    "archiveEntryLabel": "Archiv"
   },
   "dm": {
+    "encryptionNotice": "Nachrichten und Anrufe sind Ende-zu-Ende-verschlüsselt. Nur Personen in diesem Chat können sie lesen, anhören oder teilen.",
     "expiryOff": "Aus",
     "expiry1Hour": "1 Stunde",
     "expiry1Day": "1 Tag",

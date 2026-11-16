@@ -145,9 +145,23 @@
   },
   "dmList": {
     "title": "الرسائل",
-    "emptyText": "لا توجد رسائل بعد."
+    "searchPlaceholder": "بحث",
+    "newMessage": "رسالة جديدة",
+    "emptyText": "لا توجد رسائل بعد.",
+    "pinChat": "تثبيت",
+    "unpinChat": "إلغاء",
+    "muteChat": "كتم",
+    "unmuteChat": "رفع الكتم",
+    "markRead": "مقروء",
+    "markUnread": "لم يُقرأ",
+    "archiveChat": "أرشفة",
+    "unarchiveChat": "استعادة",
+    "deleteChat": "حذف",
+    "deletedUndoMessage": "تم حذف المحادثة مع {{name}}.",
+    "archiveEntryLabel": "الأرشيف"
   },
   "dm": {
+    "encryptionNotice": "الرسائل والمكالمات مشفرة من طرف إلى طرف. يمكن للأشخاص في هذه المحادثة فقط قراءتها أو الاستماع إليها أو مشاركتها.",
     "expiryOff": "متوقف",
     "expiry1Hour": "ساعة واحدة",
     "expiry1Day": "يوم واحد",
