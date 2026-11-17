@@ -19,6 +19,7 @@ import UserProfileScreen from "../screens/UserProfileScreen";
 import DMScreen, { DMPeer, DmInfoOpenParams } from "../screens/DMScreen";
 import DMListScreen from "../screens/DMListScreen";
 import DmInfoScreen from "../screens/DmInfoScreen";
+import VoiceCallScreen from "../screens/VoiceCallScreen";
 import { DMMessage } from "../services/socket";
 import RoomPreviewScreen from "../screens/RoomPreviewScreen";
 import RoomScreen from "../screens/RoomScreen";
@@ -65,6 +66,7 @@ export type RootStackParamList = {
   UserProfile: { own: boolean; peer?: PeerParam };
   DM: { peer: DMPeer };
   DmInfo: { peer: DMPeer } & DmInfoOpenParams;
+  VoiceCall: { peer: DMPeer; peerAvatarUrl: string | null };
   RoomPreview: { room: PublicRoomSummary };
   Room: { room: RoomState };
 };
@@ -292,8 +294,16 @@ function DmInfoRoute() {
       onToggleMute={params.onToggleMute}
       onBack={() => navigation.goBack()}
       onBlocked={() => navigation.popToTop()}
+      onOpenParticipant={(peer) => navigation.navigate("UserProfile", { own: false, peer })}
+      onStartVoiceCall={(peer) => navigation.navigate("VoiceCall", { peer, peerAvatarUrl: params.peerAvatarUrl })}
     />
   );
+}
+
+function VoiceCallRoute() {
+  const navigation = useNavigation<Nav>();
+  const { params } = useRoute<RouteProp<RootStackParamList, "VoiceCall">>();
+  return <VoiceCallScreen peer={params.peer} peerAvatarUrl={params.peerAvatarUrl} onEnd={() => navigation.goBack()} />;
 }
 
 function RoomPreviewRoute() {
@@ -372,6 +382,7 @@ export default function RootNavigator() {
         <Stack.Screen name="UserProfile" component={UserProfileRoute} />
         <Stack.Screen name="DM" component={DMRoute} />
         <Stack.Screen name="DmInfo" component={DmInfoRoute} />
+        <Stack.Screen name="VoiceCall" component={VoiceCallRoute} options={{ animation: "fade", gestureEnabled: false }} />
         <Stack.Screen name="RoomPreview" component={RoomPreviewRoute} />
         <Stack.Screen name="Room" component={RoomRoute} options={{ animation: "fade", gestureEnabled: false }} />
       </Stack.Navigator>

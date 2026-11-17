@@ -19,11 +19,15 @@ interface Props {
   // yerde (katilimcilar paneli, oda onizlemesi, sohbet avatarlari) aynen
   // gorunsun diye RoomCard.tsx'teki yerine artik BURADAN tek kaynaktan gelir.
   isFriend?: boolean;
+  // Varsayilan true - disinda ince gri (ya da arkadassa mavi degrade) bir
+  // cerceve cizilir. VoiceCallScreen gibi avatarin zaten buyuk ve tek basina
+  // durdugu yerlerde false verilip cerceve tamamen kaldirilabilir.
+  ring?: boolean;
 }
 
 /** Gercek bir profil fotografi (avatarUrl) varsa onu gosterir - yoksa isme
  * gore sabit bir renk + bas harf iceren eski yedek goruntuye duser. */
-export default function Avatar({ name, size = 28, avatarUrl, isFriend = false }: Props) {
+export default function Avatar({ name, size = 28, avatarUrl, isFriend = false, ring = true }: Props) {
   // Sistem fontunun sentetik kalin hali (fontWeight 700) harf harf esit
   // olmayan cizgi kalinligi veriyordu (bkz. kullanicinin "PP'lerin icindeki
   // harflerin cizgi kalinliklari esit degil" geri bildirimi) - gercekten
@@ -43,6 +47,7 @@ export default function Avatar({ name, size = 28, avatarUrl, isFriend = false }:
   // halka kalinligi kadar KUCULTUYORDU (kullanicinin "pp'ler kucuk, cerceveler
   // buyuk" geri bildirimi). Artik halka, pp'yi AYNI boyutta tutup disina
   // eklenen ayri bir cember.
+  if (!ring) return core;
   if (isFriend) {
     const ringWidth = 2;
     const outerSize = size + ringWidth * 2;

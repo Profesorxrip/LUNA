@@ -9,6 +9,7 @@ interface Props {
   uri: string;
   isAdult?: boolean;
   size?: number;
+  borderRadius?: number;
 }
 
 /** Chat/DM'de gonderilen fotograf - "+18 icerik" isaretliyse varsayilan
@@ -17,7 +18,7 @@ interface Props {
  * yok, her acilista yeniden karar verilir). Bulanik degilken (ya da bir kez
  * acildiktan sonra) dokununca PhotoViewerModal ile tam ekran acilir - profil
  * galerisi/avatar ile AYNI bilesen. */
-export default function ChatImageBubble({ uri, isAdult, size = 200 }: Props) {
+export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius = 12 }: Props) {
   const [revealed, setRevealed] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const blurred = isAdult && !revealed;
@@ -28,7 +29,7 @@ export default function ChatImageBubble({ uri, isAdult, size = 200 }: Props) {
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={() => (blurred ? setRevealed(true) : setViewerOpen(true))}
-        style={[styles.wrap, { width: size, height: size }]}
+        style={[styles.wrap, { width: size, height: size, borderRadius }]}
       >
         <Image source={{ uri }} style={styles.image} resizeMode="cover" />
         {blurred && (
@@ -46,7 +47,7 @@ export default function ChatImageBubble({ uri, isAdult, size = 200 }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { borderRadius: 12, overflow: "hidden", backgroundColor: theme.surfaceAlt },
+  wrap: { overflow: "hidden", backgroundColor: theme.surfaceAlt },
   image: { width: "100%", height: "100%" },
   revealHint: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6 },
   revealText: { color: "#FFFFFF", fontSize: 11, fontWeight: "700", textAlign: "center" },

@@ -585,7 +585,6 @@ export default function DMScreen({ peer, onBack, onOpenInfo }: Props) {
           <View style={styles.headerTextBlock}>
             <View style={styles.headerNameRow}>
               <Text style={styles.headerName}>{peer.name}</Text>
-              {muted && <Icon name="bellOff" size={13} color={MUTED} />}
             </View>
             {!!peer.handle && <Text style={styles.headerHandle}>@{peer.handle}</Text>}
           </View>
