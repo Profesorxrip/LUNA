@@ -15,9 +15,28 @@ interface Props {
   peer: DMPeer;
   peerAvatarUrl: string | null;
   onEnd: () => void;
+  // Verilmezse sol ustteki kucultme butonu "yakinda" uyarisi gosterir -
+  // verilince (bkz. __DevHarness.tsx) ekran kucultulup ustte banner olarak
+  // devam ediyor, arama gercekte bitmiyor.
+  onMinimize?: () => void;
+  // Minimize edilen banner'in isim/sure gosterebilmesi icin - sayac burada
+  // (VoiceCallScreen) tutuluyor, ekran gizliyken bile mount kalip calismaya
+  // devam ediyor, parent sadece bu callback'le durumu aynaliyor.
+  onStateChange?: (connected: boolean, elapsedSeconds: number) => void;
+  // Sessiz/hoparlor durumu da MinimizedCallBanner'dan kontrol edilebilsin
+  // diye disaridan kontrollu YAPILABILIR hale getirildi - verilmezse
+  // (RootNavigator.tsx gibi kullanimlarda) ekran kendi ic state'ini kullanir.
+  muted?: boolean;
+  onToggleMute?: () => void;
+  speakerOn?: boolean;
+  onToggleSpeaker?: () => void;
+  // Verilmezse "Arama Ekle" butonu "yakinda" uyarisi gosterir - verilince
+  // (bkz. __DevHarness.tsx) aramaya kisi eklemek icin FriendsScreen'in
+  // davet modu acilir.
+  onAddCall?: () => void;
 }
 
-function formatElapsed(totalSeconds: number): string {
+export function formatElapsed(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
@@ -28,13 +47,28 @@ function formatElapsed(totalSeconds: number): string {
  * sohbeti icin, 1'e 1 DM aramasi icin ayri bir sunucu akisi gerekir). 2.5sn
  * sonra "baglandi" durumuna gecip yerel bir sayac baslatarak gercek bir
  * aramanin GORUNUMUNU taklit ediyor. */
-export default function VoiceCallScreen({ peer, peerAvatarUrl, onEnd }: Props) {
+export default function VoiceCallScreen({
+  peer,
+  peerAvatarUrl,
+  onEnd,
+  onMinimize,
+  onStateChange,
+  muted: mutedProp,
+  onToggleMute,
+  speakerOn: speakerOnProp,
+  onToggleSpeaker,
+  onAddCall,
+}: Props) {
   const { t } = useTranslation();
   const [connected, setConnected] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [muted, setMuted] = useState(false);
+  const [mutedInternal, setMutedInternal] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
-  const [speakerOn, setSpeakerOn] = useState(false);
+  const [speakerOnInternal, setSpeakerOnInternal] = useState(false);
+  const muted = mutedProp ?? mutedInternal;
+  const toggleMute = onToggleMute ?? (() => setMutedInternal((m) => !m));
+  const speakerOn = speakerOnProp ?? speakerOnInternal;
+  const toggleSpeaker = onToggleSpeaker ?? (() => setSpeakerOnInternal((s) => !s));
   const endedRef = useRef(false);
 
   function placeholder() {
@@ -54,6 +88,10 @@ export default function VoiceCallScreen({ peer, peerAvatarUrl, onEnd }: Props) {
     return () => clearInterval(interval);
   }, [connected]);
 
+  useEffect(() => {
+    onStateChange?.(connected, elapsed);
+  }, [connected, elapsed, onStateChange]);
+
   function handleEnd() {
     endedRef.current = true;
     onEnd();
@@ -63,7 +101,7 @@ export default function VoiceCallScreen({ peer, peerAvatarUrl, onEnd }: Props) {
     <View style={styles.screen}>
       <AppBackground />
 
-      <TouchableOpacity style={styles.minimizeButton} onPress={placeholder} hitSlop={10}>
+      <TouchableOpacity style={styles.minimizeButton} onPress={onMinimize ?? placeholder} hitSlop={10}>
         <Minimize2 size={30} color="#FFFFFF" />
       </TouchableOpacity>
 
@@ -81,7 +119,7 @@ export default function VoiceCallScreen({ peer, peerAvatarUrl, onEnd }: Props) {
       <View style={styles.controlsGrid}>
         <View style={[styles.controlRow, styles.controlRowTop]}>
           <View style={styles.controlItem}>
-            <TouchableOpacity style={styles.controlButton} onPress={placeholder}>
+            <TouchableOpacity style={styles.controlButton} onPress={onAddCall ?? placeholder}>
               <Plus size={30} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={styles.controlLabel}>{t("dm.callAddLabel")}</Text>
@@ -89,9 +127,13 @@ export default function VoiceCallScreen({ peer, peerAvatarUrl, onEnd }: Props) {
           <View style={styles.controlItem}>
             <TouchableOpacity
               style={[styles.controlButton, muted && styles.controlButtonActive]}
-              onPress={() => setMuted((m) => !m)}
+              onPress={toggleMute}
             >
-              {muted ? <MicOff size={30} color={theme.bg} /> : <MicrophoneOutline size={30} color="#FFFFFF" />}
+              {muted ? (
+                <MicOff size={30} color={theme.bg} />
+              ) : (
+                <MicrophoneOutline size={30} color="#FFFFFF" strokeWidth={1.8} />
+              )}
             </TouchableOpacity>
             <Text style={styles.controlLabel}>{t("dm.callMute")}</Text>
           </View>
@@ -111,7 +153,7 @@ export default function VoiceCallScreen({ peer, peerAvatarUrl, onEnd }: Props) {
           <View style={styles.controlItem}>
             <TouchableOpacity
               style={[styles.controlButton, speakerOn && styles.controlButtonActive]}
-              onPress={() => setSpeakerOn((s) => !s)}
+              onPress={toggleSpeaker}
             >
               <Icon name={speakerOn ? "sesAcik1" : "sesKapali1"} size={30} color={speakerOn ? theme.bg : "#FFFFFF"} />
             </TouchableOpacity>

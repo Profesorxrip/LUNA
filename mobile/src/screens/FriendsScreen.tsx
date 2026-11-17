@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft, Users, Clock, Bell } from "lucide-react-native";
+import { ChevronLeft, CircleArrowDown, Users, Clock, Bell } from "lucide-react-native";
+import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { useTranslation } from "react-i18next";
 import { getSocket, FriendUser, RecentRoommate, DMMessage } from "../services/socket";
 import { theme } from "../theme";
@@ -27,6 +28,10 @@ interface Props {
   inviteMode?: boolean;
   excludeUserIds?: string[];
   onSendInvites?: (userIds: string[]) => void;
+  // VoiceCallScreen'in "Arama Ekle" akisinda (bkz. __DevHarness.tsx) sadece
+  // duz bir arkadas listesi gerekiyor - oda davetine ozel "Son Zamanlarda"/
+  // "Paylas" sekmeleri VE "Tumu" (hepsini sec) butonu bu modda gizlenir.
+  hideInviteExtras?: boolean;
   // inviteMode'da "Engellendi" sekmesinin YERINI ALAN "Paylas" sekmesinin
   // icerigi (ShareRoomContent) icin gerekli - AYRI bir ekran ACMAZ, digerleri
   // gibi ayni sekme cubugunun altinda gosterilir (bkz. RoomScreen.tsx).
@@ -68,12 +73,17 @@ export default function FriendsScreen({
   inviteMode = false,
   excludeUserIds = [],
   onSendInvites,
+  hideInviteExtras = false,
   roomCode,
   roomTitle,
   embedded = false,
 }: Props) {
   const { t } = useTranslation();
   const socket = getSocket();
+  // hideInviteExtras modunda (VoiceCallScreen "Arama Ekle") basliga - diger
+  // basliklarin (UserProfileScreen.tsx "Gönderi Oluştur" vb.) kullandigi
+  // AYNI ozel font.
+  const [headerFontLoaded] = useFonts({ BebasNeue_400Regular });
   const [tab, setTab] = useState<Tab>("friends");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
@@ -377,12 +387,26 @@ export default function FriendsScreen({
           basligini tekrarlamiyor - ekranin en ustunu dogrudan arama cubugu
           kapliyor. Davet modunda (RoomScreen.tsx Modal icinde) hala odaya
           donus icin bir geri oku gerekiyor. */}
-      {!embedded && (
+      {!embedded && hideInviteExtras ? (
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
-            <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
+            <View style={{ transform: [{ rotate: "90deg" }] }}>
+              <CircleArrowDown size={22} color="#FFFFFF" />
+            </View>
           </TouchableOpacity>
+          <Text style={[styles.editHeaderTitle, headerFontLoaded && styles.editHeaderTitleFontLoaded]}>
+            {t("friends.addToCallTitle")}
+          </Text>
+          <View style={styles.iconTouch} />
         </View>
+      ) : (
+        !embedded && (
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
+              <ChevronLeft size={26} color={TEXT} strokeWidth={3} />
+            </TouchableOpacity>
+          </View>
+        )
       )}
 
       {/* Arama cubugu artik Discover ekranindaki beyazdan maviye gecen
@@ -401,7 +425,7 @@ export default function FriendsScreen({
             />
           </LinearGradient>
         </LinearGradient>
-        {inviteMode && tab !== "share" && (
+        {inviteMode && !hideInviteExtras && tab !== "share" && (
           <TouchableOpacity
             style={[styles.selectAllButton, allCurrentTabSelected && styles.selectAllButtonActive]}
             onPress={toggleSelectAllCurrentTab}
@@ -418,7 +442,10 @@ export default function FriendsScreen({
           beyazdan maviye gecen ince bir degrade cizgiyle ayriliyor. Davet
           modunda (RoomScreen.tsx) bu cubuk yerine asagidaki yuzen hap kalmaya
           devam ediyor (Arkadaslar/Son Zamanlarda/Paylas + "Tumunu sec"). */}
-      {!inviteMode && (
+      {/* hideInviteExtras modunda (VoiceCallScreen "Arama Ekle") altta yuzen
+          hap yerine - normal Arkadaslar ekraniyla (asagidaki) BIREBIR AYNI
+          cubuk tekrar kullaniliyor. */}
+      {(!inviteMode || hideInviteExtras) && (
         <>
           <View style={styles.tabIconBar}>
             <TouchableOpacity
@@ -506,8 +533,8 @@ export default function FriendsScreen({
                 </View>
                 {!inviteMode && renderActionPill(t("profileOptions.removeFriend"), () => removeFriendFromCard(item))}
                 {inviteMode && (
-                  <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                    {isSelected && <Icon name="check" size={20} color="#04140D" />}
+                  <View style={[styles.checkbox, isSelected && (hideInviteExtras ? styles.checkboxCheckedWhite : styles.checkboxChecked)]}>
+                    {isSelected && !hideInviteExtras && <Icon name="check" size={20} color="#04140D" />}
                   </View>
                 )}
               </TouchableOpacity>
@@ -560,8 +587,8 @@ export default function FriendsScreen({
                     : renderActionPill(t("profileOptions.addFriend"), () => sendFriendRequest(item.userId))}
                   {inviteMode && (
                     <TouchableOpacity onPress={() => toggleSelect(item.userId)} hitSlop={8}>
-                      <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                        {isSelected && <Icon name="check" size={20} color="#04140D" />}
+                      <View style={[styles.checkbox, isSelected && (hideInviteExtras ? styles.checkboxCheckedWhite : styles.checkboxChecked)]}>
+                        {isSelected && !hideInviteExtras && <Icon name="check" size={20} color="#04140D" />}
                       </View>
                     </TouchableOpacity>
                   )}
@@ -627,8 +654,8 @@ export default function FriendsScreen({
                 </View>
                 {inviteMode ? (
                   <TouchableOpacity onPress={() => toggleSelect(item.userId)} hitSlop={8}>
-                    <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                      {isSelected && <Icon name="check" size={20} color="#04140D" />}
+                    <View style={[styles.checkbox, isSelected && (hideInviteExtras ? styles.checkboxCheckedWhite : styles.checkboxChecked)]}>
+                      {isSelected && !hideInviteExtras && <Icon name="check" size={20} color="#04140D" />}
                     </View>
                   </TouchableOpacity>
                 ) : sentRequests.has(item.userId) ? (
@@ -653,10 +680,29 @@ export default function FriendsScreen({
       {tab === "share" && !!roomCode && !!roomTitle && <ShareRoomContent roomCode={roomCode} roomTitle={roomTitle} />}
 
       {inviteMode && selected.size > 0 && (
-        <View style={styles.inviteBar}>
-          <TouchableOpacity style={styles.inviteButton} onPress={() => onSendInvites?.(Array.from(selected))}>
-            <Text style={styles.inviteButtonText}>{t("friends.sendInvites", { count: selected.size })}</Text>
-          </TouchableOpacity>
+        <View style={[styles.inviteBar, hideInviteExtras && styles.inviteBarLower]}>
+          {hideInviteExtras ? (
+            // ProfileScreen.tsx'teki "Çıkış Yap" butonuyla AYNI: disarida
+            // beyazdan maviye gecen degrade kenarlik, icinde siyah dolgulu
+            // buton (kullanicinin istegi).
+            <LinearGradient
+              colors={["#FFFFFF", "#38BDF8"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.inviteGradientBorder}
+            >
+              <TouchableOpacity
+                style={styles.inviteButtonDark}
+                onPress={() => onSendInvites?.(Array.from(selected))}
+              >
+                <Text style={styles.inviteButtonDarkText}>{t("friends.sendInvites", { count: selected.size })}</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          ) : (
+            <TouchableOpacity style={styles.inviteButton} onPress={() => onSendInvites?.(Array.from(selected))}>
+              <Text style={styles.inviteButtonText}>{t("friends.sendInvites", { count: selected.size })}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -666,7 +712,7 @@ export default function FriendsScreen({
           gosterir. Davet modunda (RoomScreen.tsx katilimci davet akisi)
           Son Zamanlarda/Paylas sekmeleri hala gerekli oldugu icin orada
           aynen duruyor. */}
-      {inviteMode && (
+      {inviteMode && !hideInviteExtras && (
         <View style={styles.tabBarWrap}>
           <View style={styles.tabBar}>
             <TouchableOpacity style={styles.tabItem} onPress={() => selectTab("friends")}>
@@ -734,6 +780,8 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
+  editHeaderTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", letterSpacing: 0.3, marginTop: 1 },
+  editHeaderTitleFontLoaded: { fontFamily: "BebasNeue_400Regular", fontWeight: "400", fontSize: 22, letterSpacing: 1.4 },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -865,6 +913,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkboxChecked: { backgroundColor: ACCENT, borderColor: ACCENT },
+  checkboxCheckedWhite: { backgroundColor: "#FFFFFF", borderColor: "#FFFFFF" },
   // Alt sekme cubugunun (tabBarWrap, bottom:34) HEMEN USTUNDE yuzer -
   // sekmeler her zaman gorunur kalsin diye (bkz. kullanicinin "son
   // zamanlarda/engellenenler kismi yok" duzeltmesi).
@@ -875,6 +924,9 @@ const styles = StyleSheet.create({
     bottom: 104,
     alignItems: "center",
   },
+  // hideInviteExtras modunda altta yuzen hap (tabBarWrap) olmadigi icin
+  // bottom:104'un biraktigi bosluk gereksiz - buton ekranin altina yaklasir.
+  inviteBarLower: { bottom: 24 },
   // tabBar'daki (asagidaki) yuzen hap/pill sekliyle AYNI, sadece daha kucuk.
   inviteButton: {
     backgroundColor: ACCENT,
@@ -884,6 +936,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   inviteButtonText: { color: "#04140D", fontSize: 14, fontWeight: "700" },
+  inviteGradientBorder: { alignSelf: "stretch", marginHorizontal: 18, borderRadius: 10, padding: 2 },
+  inviteButtonDark: {
+    backgroundColor: "#000000",
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  inviteButtonDarkText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800", letterSpacing: 0.2, textTransform: "uppercase" },
   // UserProfileScreen.tsx'teki visibilityMenu (profildeki "..." menusu) ile
   // AYNI renk (#15202B) - kullanicinin "profildeki 3 noktaya basinca acilan
   // kutunun renginde olsun" istegi.
