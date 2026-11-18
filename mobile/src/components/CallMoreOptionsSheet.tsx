@@ -178,5 +178,5 @@ const styles = StyleSheet.create({
   codeName: { color: "#FFFFFF", fontSize: 14, fontWeight: "600", flexShrink: 1 },
   codeValue: { color: "#22C55E", fontSize: 15, fontWeight: "700", letterSpacing: 0.5 },
   codeCloseBtn: { alignItems: "center", paddingVertical: 14, marginTop: 10 },
-  codeCloseLabel: { color: "#38BDF8", fontSize: 15, fontWeight: "600" },
+  codeCloseLabel: { color: "rgba(255,255,255,0.65)", fontSize: 15, fontWeight: "600" },
 });
