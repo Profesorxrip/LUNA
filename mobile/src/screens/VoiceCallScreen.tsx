@@ -9,7 +9,7 @@ import Avatar from "../components/Avatar";
 import AppBackground from "../components/AppBackground";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
-import CallMoreOptionsSheet from "../components/CallMoreOptionsSheet";
+import CallMoreOptionsSheet, { type SecurityCodeEntry } from "../components/CallMoreOptionsSheet";
 import { useConnectionQuality } from "../hooks/useConnectionQuality";
 import type { DMPeer } from "./DMScreen";
 import type { CallEngineApi } from "../hooks/useCallEngine";
@@ -29,6 +29,21 @@ function buildRealOutputOptions(audioOutputs: MediaDeviceInfo[]) {
 }
 
 const OUTPUT_MUTED = "rgba(255,255,255,0.55)";
+
+// VideoCallScreen.tsx'teki AYNI isimli yardimciyla BIREBIR ayni mantik -
+// CallMoreOptionsSheet'in "Dogrula" ekranina GERCEK guvenlik kodlarini
+// hazirlar (bkz. useCallEngine.ts securityCodes).
+function buildE2eeProp(realCall: CallEngineApi | undefined): { supported: boolean; entries: SecurityCodeEntry[] } | undefined {
+  if (!realCall) return undefined;
+  return {
+    supported: realCall.e2eeSupported,
+    entries: realCall.participants.map((p) => ({
+      userId: p.userId,
+      name: p.name,
+      code: realCall.securityCodes[p.userId] ?? null,
+    })),
+  };
+}
 
 /** Karsi taraftan gelen GERCEK ses akisini calar - CameraView'in web
  * karsiligi olan video.tsx'teki ScreenShareVideo ile AYNI mantik (duz DOM
@@ -334,6 +349,7 @@ export default function VoiceCallScreen({
           });
         }}
         quality={connectionQuality}
+        e2ee={buildE2eeProp(realCall)}
       />
 
       {outputMenuVisible && (

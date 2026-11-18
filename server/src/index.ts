@@ -1138,7 +1138,10 @@ io.on("connection", (socket: Socket) => {
   // (her katilimci cifti) oldugu icin hedef HER ZAMAN toUserId ile belirtilir.
   socket.on(
     "call:webrtc-offer",
-    ({ callId, toUserId, sdp }: { callId: string; toUserId: string; sdp: unknown }, ack) => {
+    (
+      { callId, toUserId, sdp, pubKey }: { callId: string; toUserId: string; sdp: unknown; pubKey?: string },
+      ack
+    ) => {
       if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isNonEmptyString(toUserId, 200)) {
         return ack?.({ ok: false });
       }
@@ -1146,13 +1149,20 @@ io.on("connection", (socket: Socket) => {
       const targetSocketId = call?.members.get(toUserId);
       if (!call || !call.members.has(myUserId!) || !targetSocketId) return ack?.({ ok: false });
       ack?.({ ok: true });
-      io.to(targetSocketId).emit("call:webrtc-offer", { callId, fromUserId: myUserId, sdp });
+      // pubKey: UCTAN UCA sifreleme icin gonderenin GECICI ECDH acik
+      // anahtari (bkz. mobile/src/utils/callEncryption.ts) - bu sunucu
+      // sadece opak bir metin olarak TASIR, hic cozumlemez/saklamaz; ortak
+      // simetrik anahtar SADECE iki istemcinin kendi taraflarinda turetilir.
+      io.to(targetSocketId).emit("call:webrtc-offer", { callId, fromUserId: myUserId, sdp, pubKey });
     }
   );
 
   socket.on(
     "call:webrtc-answer",
-    ({ callId, toUserId, sdp }: { callId: string; toUserId: string; sdp: unknown }, ack) => {
+    (
+      { callId, toUserId, sdp, pubKey }: { callId: string; toUserId: string; sdp: unknown; pubKey?: string },
+      ack
+    ) => {
       if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isNonEmptyString(toUserId, 200)) {
         return ack?.({ ok: false });
       }
@@ -1160,7 +1170,7 @@ io.on("connection", (socket: Socket) => {
       const targetSocketId = call?.members.get(toUserId);
       if (!call || !call.members.has(myUserId!) || !targetSocketId) return ack?.({ ok: false });
       ack?.({ ok: true });
-      io.to(targetSocketId).emit("call:webrtc-answer", { callId, fromUserId: myUserId, sdp });
+      io.to(targetSocketId).emit("call:webrtc-answer", { callId, fromUserId: myUserId, sdp, pubKey });
     }
   );
 

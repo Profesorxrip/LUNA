@@ -2,6 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { getSocket } from "../services/socket";
 import { GOOD_MS, MEDIUM_MS, type ConnectionQuality } from "./useConnectionQuality";
+import {
+  generateCallKeyPair,
+  deriveSharedKey,
+  computeSecurityCode,
+  attachSenderEncryption,
+  attachReceiverDecryption,
+  e2eeFrameLayerSupported,
+  type CallKeyPair,
+} from "../utils/callEncryption";
 
 export type CallPhase = "idle" | "ringing-out" | "ringing-in" | "connecting" | "connected" | "ended";
 
@@ -93,6 +102,12 @@ export function useCallEngine() {
   // aday-cifti RTT'si ve ses paket kaybi (bkz. asagidaki
   // measureConnectionQuality/polling efekti).
   const [connectionQuality, setConnectionQuality] = useState<ConnectionQuality>("good");
+  // GERCEK uygulama-katmani uctan uca sifreleme (bkz. utils/callEncryption.ts
+  // basindaki aciklama) - e2eeSupported bu CIHAZDA/tarayicida Insertable
+  // Streams olup olmadigini (SADECE web/Chromium) bir kere kontrol eder;
+  // securityCodes, her peer icin DOGRULANABILIR guvenlik kodunu tutar.
+  const [e2eeSupported] = useState(() => e2eeFrameLayerSupported());
+  const [securityCodes, setSecurityCodes] = useState<Record<string, string>>({});
 
   const callIdRef = useRef<string | null>(null);
   const isVideoRef = useRef(false);
@@ -109,6 +124,11 @@ export function useCallEngine() {
   // kaydettigi GERCEK <video>/<audio> DOM elementleri - ses cikisi
   // degistirilince (bkz. setAudioOutputId) HEPSINE setSinkId uygulanir.
   const mediaElementsRef = useRef<Set<any>>(new Set());
+  // Bu arama icin TEK SEFERLIK (gecici) ECDH anahtar cifti - bkz.
+  // utils/callEncryption.ts. peerKeysRef, her peer ile ECDH sonucu turetilen
+  // PAYLASILAN simetrik anahtari tutar (agdan hic GECMEZ).
+  const myKeyPairRef = useRef<CallKeyPair | null>(null);
+  const peerKeysRef = useRef<Map<string, CryptoKey>>(new Map());
 
   const resetAll = useCallback(() => {
     peersRef.current.forEach((pc) => {
@@ -137,6 +157,9 @@ export function useCallEngine() {
     setCameraEnabledState(true);
     setMicEnabledState(true);
     setConnectionQuality("good");
+    myKeyPairRef.current = null;
+    peerKeysRef.current.clear();
+    setSecurityCodes({});
   }, []);
 
   // GERCEK baglanti kalitesi olcumu: ping tabanli sahte bir RTT DEGIL,
@@ -222,11 +245,50 @@ export function useCallEngine() {
     }
   }
 
+  // Bu aramada DAHA ONCE olusturulmadiysa, TEK SEFERLIK ECDH anahtar ciftini
+  // olusturur (bkz. utils/callEncryption.ts - forward secrecy icin her arama
+  // KENDI anahtarini kullanir). e2eeSupported false ise (native/eski
+  // tarayici) null doner - bu durumda ek kare sifrelemesi hic denenmez,
+  // SADECE WebRTC'nin zaten var olan tasima sifrelemesi (DTLS-SRTP) gecerli
+  // olur.
+  async function ensureMyKeyPair(): Promise<CallKeyPair | null> {
+    if (!e2eeSupported) return null;
+    if (myKeyPairRef.current) return myKeyPairRef.current;
+    const kp = await generateCallKeyPair();
+    myKeyPairRef.current = kp;
+    return kp;
+  }
+
+  // Karsi tarafin ACIK anahtarini alinca (offer VEYA answer icinde) PAYLASILAN
+  // simetrik anahtari turetir VE iki tarafin da karsilastirabilecegi
+  // GUVENLIK KODUNU hesaplar (bkz. CallMoreOptionsSheet.tsx'teki "Dogrula").
+  async function deriveAndStoreKey(peerId: string, remotePubKeyBase64: string, myKeyPair: CallKeyPair) {
+    if (peerKeysRef.current.has(peerId)) return;
+    try {
+      const key = await deriveSharedKey(myKeyPair.keyPair.privateKey, remotePubKeyBase64);
+      peerKeysRef.current.set(peerId, key);
+      const code = await computeSecurityCode(myKeyPair.publicKeyBase64, remotePubKeyBase64);
+      setSecurityCodes((prev) => ({ ...prev, [peerId]: code }));
+    } catch {
+      // Anahtar turetme basarisiz olursa bu peer icin ek kare sifrelemesi
+      // devre disi kalir (getKey() hep null doner) - arama yine de GERCEK
+      // WebRTC tasima sifrelemesiyle (DTLS-SRTP) devam eder.
+    }
+  }
+
   function createPeerForUser(userId: string, stream: MediaStream) {
     const webrtc = getWebRTCGlobals();
     if (!webrtc) throw new Error("Bu cihazda gercek zamanli arama (WebRTC) su an desteklenmiyor.");
-    const pc = new webrtc.RTCPeerConnection({ iceServers: ICE_SERVERS });
-    stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+    // encodedInsertableStreams: SADECE web'de (Chromium) anlamli olan eski
+    // Insertable Streams bayragi - native'de bu alani hic GONDERMEYIZ (bkz.
+    // utils/callEncryption.ts - react-native-webrtc'nin boyle bir API'si yok).
+    const pc = new webrtc.RTCPeerConnection(
+      e2eeSupported ? { iceServers: ICE_SERVERS, encodedInsertableStreams: true } : { iceServers: ICE_SERVERS }
+    );
+    stream.getTracks().forEach((track) => {
+      const sender = pc.addTrack(track, stream);
+      attachSenderEncryption(sender, () => peerKeysRef.current.get(userId) ?? null);
+    });
     pc.onicecandidate = (ev: any) => {
       if (ev.candidate) {
         const candidate = ev.candidate.toJSON ? ev.candidate.toJSON() : ev.candidate;
@@ -236,6 +298,7 @@ export function useCallEngine() {
     pc.ontrack = (ev: any) => {
       const remote = ev.streams?.[0];
       if (remote) setRemoteStreams((prev) => ({ ...prev, [userId]: remote }));
+      if (ev.receiver) attachReceiverDecryption(ev.receiver, () => peerKeysRef.current.get(userId) ?? null);
     };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "connected") setPhase("connected");
@@ -254,6 +317,13 @@ export function useCallEngine() {
     peersRef.current.delete(userId);
     remoteDescSetRef.current.delete(userId);
     pendingIceRef.current.delete(userId);
+    peerKeysRef.current.delete(userId);
+    setSecurityCodes((prev) => {
+      if (!(userId in prev)) return prev;
+      const next = { ...prev };
+      delete next[userId];
+      return next;
+    });
     setRemoteStreams((prev) => {
       if (!(userId in prev)) return prev;
       const next = { ...prev };
@@ -343,7 +413,12 @@ export function useCallEngine() {
       setCameraEnabledState(true);
       const socket = getSocket();
       for (const [userId, pc] of peersRef.current) {
-        pc.addTrack(videoTrack, localStreamRef.current);
+        const sender = pc.addTrack(videoTrack, localStreamRef.current);
+        // Bu peer ile anahtar degisimi zaten ses baglantisi kurulurken
+        // (onPeerJoined/onOffer) tamamlanmisti - burada sadece YENI video
+        // sender'ina AYNI (zaten var olan) anahtari uygulayan sifrelemeyi
+        // bagliyoruz, yeniden anahtar degisimine gerek yok.
+        attachSenderEncryption(sender, () => peerKeysRef.current.get(userId) ?? null);
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         socket.emit("call:webrtc-offer", { callId: callIdRef.current, toUserId: userId, sdp: offer });
@@ -572,10 +647,16 @@ export function useCallEngine() {
       try {
         const stream = await ensureLocalMedia(isVideoRef.current);
         setPhase((p) => (p === "ringing-out" ? "connecting" : p));
+        const myKeyPair = await ensureMyKeyPair();
         const pc = createPeerForUser(userId, stream);
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        socket.emit("call:webrtc-offer", { callId: callIdRef.current, toUserId: userId, sdp: offer });
+        socket.emit("call:webrtc-offer", {
+          callId: callIdRef.current,
+          toUserId: userId,
+          sdp: offer,
+          pubKey: myKeyPair?.publicKeyBase64,
+        });
       } catch (err: any) {
         setError(err?.message || "Kameraya/mikrofona erisilemedi.");
       }
@@ -618,10 +699,22 @@ export function useCallEngine() {
       resetAll();
     }
 
-    async function onOffer({ callId, fromUserId, sdp }: { callId: string; fromUserId: string; sdp: any }) {
+    async function onOffer({
+      callId,
+      fromUserId,
+      sdp,
+      pubKey,
+    }: {
+      callId: string;
+      fromUserId: string;
+      sdp: any;
+      pubKey?: string;
+    }) {
       if (callIdRef.current !== callId) return;
       try {
         const stream = await ensureLocalMedia(isVideoRef.current);
+        const myKeyPair = await ensureMyKeyPair();
+        if (pubKey && myKeyPair) await deriveAndStoreKey(fromUserId, pubKey, myKeyPair);
         let pc = peersRef.current.get(fromUserId);
         if (!pc) pc = createPeerForUser(fromUserId, stream);
         await pc.setRemoteDescription(sdp);
@@ -629,17 +722,33 @@ export function useCallEngine() {
         await flushPendingIce(fromUserId, pc);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        socket.emit("call:webrtc-answer", { callId, toUserId: fromUserId, sdp: answer });
+        socket.emit("call:webrtc-answer", {
+          callId,
+          toUserId: fromUserId,
+          sdp: answer,
+          pubKey: myKeyPair?.publicKeyBase64,
+        });
         setPhase((p) => (p === "connecting" || p === "ringing-in" ? "connecting" : p));
       } catch (err: any) {
         setError(err?.message || "Kameraya/mikrofona erisilemedi.");
       }
     }
 
-    async function onAnswer({ callId, fromUserId, sdp }: { callId: string; fromUserId: string; sdp: any }) {
+    async function onAnswer({
+      callId,
+      fromUserId,
+      sdp,
+      pubKey,
+    }: {
+      callId: string;
+      fromUserId: string;
+      sdp: any;
+      pubKey?: string;
+    }) {
       if (callIdRef.current !== callId) return;
       const pc = peersRef.current.get(fromUserId);
       if (!pc) return;
+      if (pubKey && myKeyPairRef.current) await deriveAndStoreKey(fromUserId, pubKey, myKeyPairRef.current);
       await pc.setRemoteDescription(sdp);
       remoteDescSetRef.current.add(fromUserId);
       await flushPendingIce(fromUserId, pc);
@@ -700,6 +809,9 @@ export function useCallEngine() {
     endCall,
     upgradeToVideo,
     connectionQuality,
+    // GERCEK uctan uca sifreleme (bkz. utils/callEncryption.ts):
+    e2eeSupported,
+    securityCodes,
     // Gercek yerel kontroller:
     micEnabled,
     setMicEnabled,

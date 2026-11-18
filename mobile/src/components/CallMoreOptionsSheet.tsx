@@ -1,9 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Plus } from "lucide-react-native";
+import { Plus, Lock, ChevronRight } from "lucide-react-native";
 import Toggle from "./Toggle";
 import type { ConnectionQuality } from "../hooks/useConnectionQuality";
+
+export interface SecurityCodeEntry {
+  userId: string;
+  name: string;
+  code: string | null;
+}
 
 interface Props {
   visible: boolean;
@@ -15,6 +21,10 @@ interface Props {
   // butonu olarak degil, bu panelin icinde bir satir olarak gosteriliyor
   // (bkz. VideoCallScreen.tsx). Verilmezse satir hic gosterilmez.
   onAddCall?: () => void;
+  // GERCEK aramada verilir (bkz. useCallEngine.ts) - uctan uca sifreleme
+  // satirini ve "Dogrula" ekranini gosterir. Verilmezse (DevHarness mockup
+  // testi) satir hic gosterilmez.
+  e2ee?: { supported: boolean; entries: SecurityCodeEntry[] };
 }
 
 const BAR_HEIGHTS = [6, 10, 14];
@@ -38,9 +48,11 @@ export default function CallMoreOptionsSheet({
   onToggleNoiseReduction,
   quality,
   onAddCall,
+  e2ee,
 }: Props) {
   const { t } = useTranslation();
   const config = QUALITY_CONFIG[quality];
+  const [codeModalVisible, setCodeModalVisible] = useState(false);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
@@ -78,8 +90,52 @@ export default function CallMoreOptionsSheet({
               ))}
             </View>
           </View>
+
+          {!!e2ee && (
+            <TouchableOpacity style={styles.row} onPress={() => setCodeModalVisible(true)}>
+              <View style={styles.e2eeLabelRow}>
+                <Lock size={16} color="#22C55E" />
+                <Text style={styles.rowLabel}>{t("dm.callE2eeLabel")}</Text>
+              </View>
+              <View style={styles.e2eeLabelRow}>
+                <Text style={styles.e2eeVerifyText}>{t("dm.callE2eeVerify")}</Text>
+                <ChevronRight size={18} color="rgba(255,255,255,0.4)" />
+              </View>
+            </TouchableOpacity>
+          )}
         </TouchableOpacity>
       </TouchableOpacity>
+
+      {!!e2ee && (
+        <Modal
+          visible={codeModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setCodeModalVisible(false)}
+          statusBarTranslucent
+        >
+          <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setCodeModalVisible(false)}>
+            <TouchableOpacity activeOpacity={1} style={styles.codeSheet} onPress={() => {}}>
+              <View style={styles.handle} />
+              <Text style={styles.codeTitle}>{t("dm.callE2eeTitle")}</Text>
+              <Text style={styles.codeExplain}>
+                {e2ee.supported ? t("dm.callE2eeExplain") : t("dm.callE2eeExplainFallback")}
+              </Text>
+              {e2ee.entries.map((entry) => (
+                <View key={entry.userId} style={styles.codeRow}>
+                  <Text style={styles.codeName} numberOfLines={1}>
+                    {entry.name}
+                  </Text>
+                  <Text style={styles.codeValue}>{entry.code ?? t("dm.callE2eePending")}</Text>
+                </View>
+              ))}
+              <TouchableOpacity style={styles.codeCloseBtn} onPress={() => setCodeModalVisible(false)}>
+                <Text style={styles.codeCloseLabel}>{t("dm.callClose")}</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </Modal>
   );
 }
@@ -98,4 +154,29 @@ const styles = StyleSheet.create({
   rowLabel: { color: "#FFFFFF", fontSize: 15, fontWeight: "600" },
   bars: { flexDirection: "row", alignItems: "flex-end", gap: 2, height: 14 },
   bar: { width: 4, borderRadius: 1 },
+  e2eeLabelRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  e2eeVerifyText: { color: "#38BDF8", fontSize: 13, fontWeight: "600" },
+  codeSheet: {
+    backgroundColor: "#1E293B",
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingBottom: 32,
+    paddingTop: 6,
+    paddingHorizontal: 20,
+  },
+  codeTitle: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", marginBottom: 8 },
+  codeExplain: { color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 18, marginBottom: 16 },
+  codeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    gap: 12,
+  },
+  codeName: { color: "#FFFFFF", fontSize: 14, fontWeight: "600", flexShrink: 1 },
+  codeValue: { color: "#22C55E", fontSize: 15, fontWeight: "700", letterSpacing: 0.5 },
+  codeCloseBtn: { alignItems: "center", paddingVertical: 14, marginTop: 10 },
+  codeCloseLabel: { color: "#38BDF8", fontSize: 15, fontWeight: "600" },
 });

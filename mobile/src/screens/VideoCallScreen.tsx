@@ -13,7 +13,7 @@ import Avatar from "../components/Avatar";
 import AppBackground from "../components/AppBackground";
 import Icon from "../components/Icon";
 import { showAlert } from "../components/CustomAlert";
-import CallMoreOptionsSheet from "../components/CallMoreOptionsSheet";
+import CallMoreOptionsSheet, { type SecurityCodeEntry } from "../components/CallMoreOptionsSheet";
 import { useConnectionQuality } from "../hooks/useConnectionQuality";
 import { formatElapsed } from "./VoiceCallScreen";
 import type { DMPeer } from "./DMScreen";
@@ -141,6 +141,23 @@ function cornerToXY(
 // cikisi cihazlariyla (enumerateDevices) doldurur - Bluetooth eslenmisse
 // (ve kullanici izin verdiyse, etiket bos gelmez) O DA listede gercekten
 // gorunur, ayri/simule bir "bluetoothAvailable" bayragina gerek kalmadan.
+// GERCEK aramada CallMoreOptionsSheet'in "Dogrula" ekranina verilecek veriyi
+// hazirlar - her katilimcinin GERCEK ECDH-turevli guvenlik kodunu
+// (bkz. useCallEngine.ts securityCodes) tasir. realCall yoksa (DevHarness
+// mockup testi) undefined doner, boylece sheet'teki E2EE satiri hic
+// gosterilmez.
+function buildE2eeProp(realCall: CallEngineApi | undefined): { supported: boolean; entries: SecurityCodeEntry[] } | undefined {
+  if (!realCall) return undefined;
+  return {
+    supported: realCall.e2eeSupported,
+    entries: realCall.participants.map((p) => ({
+      userId: p.userId,
+      name: p.name,
+      code: realCall.securityCodes[p.userId] ?? null,
+    })),
+  };
+}
+
 function buildRealOutputOptions(audioOutputs: MediaDeviceInfo[]) {
   return audioOutputs.map((d) => ({
     key: d.deviceId,
@@ -964,6 +981,7 @@ export default function VideoCallScreen({
         }}
         quality={connectionQuality}
         onAddCall={onAddCall ?? placeholder}
+        e2ee={buildE2eeProp(realCall)}
       />
     </View>
   );
@@ -1545,6 +1563,7 @@ function GroupCallGrid({
         }}
         quality={connectionQuality}
         onAddCall={onAddCall}
+        e2ee={buildE2eeProp(realCall)}
       />
     </View>
   );
