@@ -431,7 +431,15 @@ export default function DMListScreen({ onOpenDM }: Props) {
             scrollYRef.current = e.nativeEvent.contentOffset.y;
           }}
           scrollEventThrottle={16}
-          ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>{t("dmList.emptyText")}</Text>}
+          ListEmptyComponent={
+            loading ? (
+              <LoadingView />
+            ) : (
+              // Arama GERCEKTEN sonucu bulamadiysa ("Henuz mesajin yok"
+              // YANLIS olur - konusmalari VAR, sadece aramaya uyan yok).
+              <Text style={styles.emptyText}>{query ? t("dmList.noSearchResults") : t("dmList.emptyText")}</Text>
+            )
+          }
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.row}

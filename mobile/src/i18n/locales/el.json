@@ -149,6 +149,7 @@
     "searchPlaceholder": "ΑΝΑΖΗΤΗΣΗ",
     "newMessage": "Νέο Μήνυμα",
     "emptyText": "Δεν υπάρχουν ακόμα μηνύματα.",
+    "noSearchResults": "Δεν βρέθηκαν αποτελέσματα.",
     "pinChat": "Καρφί",
     "unpinChat": "Ξεκάρφωμα",
     "muteChat": "Σίγαση",

@@ -149,6 +149,7 @@
     "searchPlaceholder": "RECHERCHER",
     "newMessage": "Nouveau Message",
     "emptyText": "Pas encore de messages.",
+    "noSearchResults": "Aucun résultat trouvé.",
     "pinChat": "Épingler",
     "unpinChat": "Détacher",
     "muteChat": "Muet",

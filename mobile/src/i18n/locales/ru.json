@@ -149,6 +149,7 @@
     "searchPlaceholder": "ПОИСК",
     "newMessage": "Новое сообщение",
     "emptyText": "Пока нет сообщений.",
+    "noSearchResults": "Результаты не найдены.",
     "pinChat": "Закрепить",
     "unpinChat": "Открепить",
     "muteChat": "Без звука",

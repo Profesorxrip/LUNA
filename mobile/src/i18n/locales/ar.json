@@ -149,6 +149,7 @@
     "searchPlaceholder": "بحث",
     "newMessage": "رسالة جديدة",
     "emptyText": "لا توجد رسائل بعد.",
+    "noSearchResults": "لا توجد نتائج بحث.",
     "pinChat": "تثبيت",
     "unpinChat": "إلغاء",
     "muteChat": "كتم",

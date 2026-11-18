@@ -149,6 +149,7 @@
     "searchPlaceholder": "ARA",
     "newMessage": "Yeni Mesaj",
     "emptyText": "Henüz mesajın yok.",
+    "noSearchResults": "Arama sonucu bulunamadı.",
     "pinChat": "Sabitle",
     "unpinChat": "Kaldır",
     "muteChat": "Sessiz",

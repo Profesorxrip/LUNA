@@ -149,6 +149,7 @@
     "searchPlaceholder": "AXTAR",
     "newMessage": "Yeni Mesaj",
     "emptyText": "Hələ mesajınız yoxdur.",
+    "noSearchResults": "Axtarış nəticəsi tapılmadı.",
     "pinChat": "Sabitlə",
     "unpinChat": "Ləğv et",
     "muteChat": "Səssiz",
