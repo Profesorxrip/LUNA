@@ -5,7 +5,8 @@ import { GOOD_MS, MEDIUM_MS, type ConnectionQuality } from "./useConnectionQuali
 import {
   generateCallKeyPair,
   deriveSharedKey,
-  computeSecurityCode,
+  extractDtlsFingerprint,
+  computeSecurityCodeFromFingerprints,
   attachSenderEncryption,
   attachReceiverDecryption,
   e2eeFrameLayerSupported,
@@ -35,7 +36,32 @@ export interface IncomingCallInfo {
 // Google'in HERKESE ACIK, ucretsiz STUN sunuculari - sadece cihazlarin
 // birbirinin GERCEK (NAT arkasindaki) adresini bulmasina yardim eder, ses/
 // goruntu bu sunuculardan GECMEZ (bkz. dosya basindaki aciklama).
-const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
+//
+// STUN tek basina simetrik NAT/kisitlayici firewall arkasindaki bazi
+// kullanicilarda (kurumsal ag, bazi mobil operatorler) P2P baglanti
+// KURULAMAMASINA yol acabilir - bu durumda WebRTC otomatik olarak bir TURN
+// sunucusuna DUSER (relay). Asagidaki Open Relay Project (metered.ca)
+// HERKESE ACIK, ucretsiz TURN sunuculari bunun icin eklendi. ONEMLI: TURN
+// sadece ZATEN SIFRELI (DTLS-SRTP, + web'de bizim ek AES-GCM kare
+// katmanimiz) UDP/TCP paketlerini olduğu gibi ILETIR - iceriklerini ASLA
+// cozemez/okuyamaz, yani "medya hicbir sunucudan GECMEZ" iddiamiz sadece
+// "P2P basarisiz olup TURN'e dusuldugunde o paket akisi ARTIK bir ucuncu
+// taraftan GEÇER (ama hep SIFRELI olarak)" seklinde incelir - icerik
+// GIZLILIGI bozulmaz. Bu sandbox'in agi disariya kapali oldugu icin
+// (stun.l.google.com'u bile test edemedigimiz ayni kisitlama) bu TURN
+// sunucularina GERCEK bir baglanti BURADAN test edilemedi - kullanicilarin
+// gercek cihazlarinda calisacaktir.
+const ICE_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+  {
+    urls: "turn:openrelay.metered.ca:443?transport=tcp",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+];
 
 function getWebRTCGlobals(): { RTCPeerConnection: any; mediaDevices: any } | null {
   if (Platform.OS === "web") {
@@ -129,6 +155,10 @@ export function useCallEngine() {
   // PAYLASILAN simetrik anahtari tutar (agdan hic GECMEZ).
   const myKeyPairRef = useRef<CallKeyPair | null>(null);
   const peerKeysRef = useRef<Map<string, CryptoKey>>(new Map());
+  // Hangi peer'ler icin guvenlik kodu ZATEN hesaplandi - DTLS parmak izi
+  // baglanti boyunca degismedigi icin (yeniden muzakerede/upgradeToVideo'da
+  // bile) tek seferlik hesaplanmasi yeterli (bkz. maybeComputeSecurityCode).
+  const securityCodeComputedRef = useRef<Set<string>>(new Set());
 
   const resetAll = useCallback(() => {
     peersRef.current.forEach((pc) => {
@@ -159,6 +189,7 @@ export function useCallEngine() {
     setConnectionQuality("good");
     myKeyPairRef.current = null;
     peerKeysRef.current.clear();
+    securityCodeComputedRef.current.clear();
     setSecurityCodes({});
   }, []);
 
@@ -260,19 +291,43 @@ export function useCallEngine() {
   }
 
   // Karsi tarafin ACIK anahtarini alinca (offer VEYA answer icinde) PAYLASILAN
-  // simetrik anahtari turetir VE iki tarafin da karsilastirabilecegi
-  // GUVENLIK KODUNU hesaplar (bkz. CallMoreOptionsSheet.tsx'teki "Dogrula").
+  // simetrik anahtari turetir - SADECE web'deki ek kare sifrelemesi
+  // (Insertable Streams) icin kullanilir, bkz. dosya basindaki aciklama.
+  // GUVENLIK KODU artik buna bagli DEGIL (bkz. asagidaki
+  // maybeComputeSecurityCode) - o DTLS parmak izinden hesaplandigi icin
+  // platform farki gozetmeksizin calisir.
   async function deriveAndStoreKey(peerId: string, remotePubKeyBase64: string, myKeyPair: CallKeyPair) {
     if (peerKeysRef.current.has(peerId)) return;
     try {
       const key = await deriveSharedKey(myKeyPair.keyPair.privateKey, remotePubKeyBase64);
       peerKeysRef.current.set(peerId, key);
-      const code = await computeSecurityCode(myKeyPair.publicKeyBase64, remotePubKeyBase64);
-      setSecurityCodes((prev) => ({ ...prev, [peerId]: code }));
     } catch {
       // Anahtar turetme basarisiz olursa bu peer icin ek kare sifrelemesi
       // devre disi kalir (getKey() hep null doner) - arama yine de GERCEK
       // WebRTC tasima sifrelemesiyle (DTLS-SRTP) devam eder.
+    }
+  }
+
+  // Hem yerel hem uzak SDP mevcut olunca (ilk defa HEM localDescription HEM
+  // remoteDescription set edilmis olur) iki tarafin DTLS parmak izinden
+  // GERCEK bir guvenlik kodu hesaplar - bkz. utils/callEncryption.ts basindaki
+  // aciklama. Platform farki gozetmez (web VEYA native, e2eeSupported'dan
+  // BAGIMSIZ calisir) - DTLS parmak izi baglanti boyunca degismedigi icin
+  // (renegotiation/upgradeToVideo dahil) tek seferlik yeterlidir.
+  async function maybeComputeSecurityCode(peerId: string, pc: any) {
+    if (securityCodeComputedRef.current.has(peerId)) return;
+    const localSdp = pc.localDescription?.sdp;
+    const remoteSdp = pc.remoteDescription?.sdp;
+    if (!localSdp || !remoteSdp) return;
+    const localFp = extractDtlsFingerprint(localSdp);
+    const remoteFp = extractDtlsFingerprint(remoteSdp);
+    if (!localFp || !remoteFp) return;
+    securityCodeComputedRef.current.add(peerId);
+    try {
+      const code = await computeSecurityCodeFromFingerprints(localFp, remoteFp);
+      setSecurityCodes((prev) => ({ ...prev, [peerId]: code }));
+    } catch {
+      securityCodeComputedRef.current.delete(peerId);
     }
   }
 
@@ -318,6 +373,7 @@ export function useCallEngine() {
     remoteDescSetRef.current.delete(userId);
     pendingIceRef.current.delete(userId);
     peerKeysRef.current.delete(userId);
+    securityCodeComputedRef.current.delete(userId);
     setSecurityCodes((prev) => {
       if (!(userId in prev)) return prev;
       const next = { ...prev };
@@ -722,6 +778,7 @@ export function useCallEngine() {
         await flushPendingIce(fromUserId, pc);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        maybeComputeSecurityCode(fromUserId, pc);
         socket.emit("call:webrtc-answer", {
           callId,
           toUserId: fromUserId,
@@ -750,6 +807,7 @@ export function useCallEngine() {
       if (!pc) return;
       if (pubKey && myKeyPairRef.current) await deriveAndStoreKey(fromUserId, pubKey, myKeyPairRef.current);
       await pc.setRemoteDescription(sdp);
+      maybeComputeSecurityCode(fromUserId, pc);
       remoteDescSetRef.current.add(fromUserId);
       await flushPendingIce(fromUserId, pc);
     }

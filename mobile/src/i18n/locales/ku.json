@@ -232,7 +232,7 @@
     "callE2eeVerify": "Piştrast bike",
     "callE2eeTitle": "Koda ewlehiyê",
     "callE2eeExplain": "Vê kodê bi ya li ekrana kesê din re bide ber hev da ku tu piştrast bikî ev têkilî bi rastî bi wî/wê re hatiye danîn.",
-    "callE2eeExplainFallback": "Şîfrekirina kareyan a zêde li ser vê cîhazê nayê piştgirîkirin, lê dîsa jî ev gazî bi şîfrekirina standard a WebRTC (DTLS-SRTP) tê parastin û tu carî di nav rajekar re nabe.",
+    "callE2eeExplainFallback": "Şîfrekirina kareyan a zêde li ser vê cîhazê nayê piştgirîkirin, lê dîsa jî koda jêrîn piştrast dike ku şîfrekirina standard a WebRTC (DTLS-SRTP) ya vê gaziyê bi kesê rast re hatiye girêdan, û ev gazî tu carî di nav rajekar re nabe.",
     "callE2eePending": "Li benda guherîna mifteyê ye…",
     "callClose": "Bigire",
     "tabFiles": "Pel",

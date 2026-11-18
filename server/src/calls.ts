@@ -35,6 +35,12 @@ export interface ActiveCall {
   accepted: Set<string>;
 }
 
+// Mesh topolojisi N*(N-1)/2 baglanti gerektirdigi icin (bkz. yukaridaki
+// aciklama) kalabalik gruplarda her cihazin bant genisligi/CPU yuku hizla
+// artar - gercek bir SFU olmadan GUVENLI sayilan bir ust sinir (8 kisi =
+// cihaz basina en fazla 7 es zamanli baglanti).
+export const MAX_CALL_MEMBERS = 8;
+
 const activeCalls = new Map<string, ActiveCall>();
 // Bir kullanici ayni anda en fazla TEK bir aramada (cagrilmis ya da kabul
 // etmis olarak) olabilir - "mesgul" kontrolu ve disconnect temizligi icin.

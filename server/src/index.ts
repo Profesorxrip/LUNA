@@ -93,7 +93,16 @@ import { lookupCountry, lookupCity, clientIpFromHandshake } from "./geoip";
 import { submitReport } from "./moderation";
 import { logRoomEvent, logLikeEvent } from "./analytics";
 import { registerPushToken, unregisterPushToken, notifyIfOffline, PushPlatform } from "./notifications";
-import { startCall, getCall, acceptCall, addMember, removeMember, endCallForUser, isUserBusy } from "./calls";
+import {
+  startCall,
+  getCall,
+  acceptCall,
+  addMember,
+  removeMember,
+  endCallForUser,
+  isUserBusy,
+  MAX_CALL_MEMBERS,
+} from "./calls";
 import { isNonEmptyString, isOptionalString, isBoolean, isFiniteNumber, isOneOf } from "./validate";
 import { translateToLanguages } from "./translate";
 import { isImageAdult, warmUpNsfwModel } from "./nsfwDetector";
@@ -1035,6 +1044,9 @@ io.on("connection", (socket: Socket) => {
       if (!call || !call.accepted.has(myUserId!)) return ack?.({ ok: false, error: "Bu aramada degilsin." });
       if (call.members.has(toUserId)) return ack?.({ ok: false, error: "Bu kisi zaten aramada." });
       if (toUserId === myUserId) return ack?.({ ok: false });
+      if (call.members.size >= MAX_CALL_MEMBERS) {
+        return ack?.({ ok: false, error: `Bir aramada en fazla ${MAX_CALL_MEMBERS} kisi olabilir.` });
+      }
       const peerSocketId = getSocketIdForUser(toUserId);
       if (!peerSocketId) return ack?.({ ok: false, error: "Kullanici su an cevrimdisi." });
       if (isUserBusy(toUserId)) return ack?.({ ok: false, error: "Kullanici su an baska bir aramada." });
@@ -1060,6 +1072,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("call:accept", async ({ callId }: { callId: string }, ack) => {
     if (!requireAuth(ack) || !isNonEmptyString(callId, 100)) return ack?.({ ok: false });
+    if (!allow("call:lifecycle", 20, 60_000)) return ack?.({ ok: false, error: "Cok fazla deneme, biraz bekle." });
     const call = getCall(callId);
     if (!call || !call.members.has(myUserId!)) return ack?.({ ok: false, error: "Bu arama artik gecerli degil." });
     const existingAcceptedIds = Array.from(call.accepted);
@@ -1090,6 +1103,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("call:decline", ({ callId }: { callId: string }, ack) => {
     if (!requireAuth(ack) || !isNonEmptyString(callId, 100)) return ack?.({ ok: false });
+    if (!allow("call:lifecycle", 20, 60_000)) return ack?.({ ok: false });
     const call = getCall(callId);
     if (!call || !call.members.has(myUserId!) || call.accepted.has(myUserId!)) return ack?.({ ok: false });
     const inviterSocketIds = Array.from(call.members.entries())
@@ -1102,6 +1116,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("call:cancel", ({ callId }: { callId: string }, ack) => {
     if (!requireAuth(ack) || !isNonEmptyString(callId, 100)) return ack?.({ ok: false });
+    if (!allow("call:lifecycle", 20, 60_000)) return ack?.({ ok: false });
     const call = getCall(callId);
     if (!call || !call.accepted.has(myUserId!)) return ack?.({ ok: false });
     // Henuz cevap vermemis (accepted olmayan) herkesi aramadan cikar, geri
@@ -1118,6 +1133,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("call:end", ({ callId }: { callId: string }, ack) => {
     if (!requireAuth(ack) || !isNonEmptyString(callId, 100)) return ack?.({ ok: false });
+    if (!allow("call:lifecycle", 20, 60_000)) return ack?.({ ok: false });
     const call = getCall(callId);
     if (!call || !call.members.has(myUserId!)) return ack?.({ ok: false });
     const remainingBefore = Array.from(call.members.entries()).filter(([uid]) => uid !== myUserId);
@@ -1145,6 +1161,10 @@ io.on("connection", (socket: Socket) => {
       if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isNonEmptyString(toUserId, 200)) {
         return ack?.({ ok: false });
       }
+      // Grup aramada her yeni katilim N-1 teklif gonderebildigi icin (mesh
+      // fan-out) bu limit webrtc-ice'tan daha dusuk ama normal kullanimi asla
+      // engellemeyecek kadar comert (bkz. calls.ts basindaki mesh aciklamasi).
+      if (!allow("call:webrtc-sdp", 60, 10_000)) return ack?.({ ok: false });
       const call = getCall(callId);
       const targetSocketId = call?.members.get(toUserId);
       if (!call || !call.members.has(myUserId!) || !targetSocketId) return ack?.({ ok: false });
@@ -1166,6 +1186,7 @@ io.on("connection", (socket: Socket) => {
       if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isNonEmptyString(toUserId, 200)) {
         return ack?.({ ok: false });
       }
+      if (!allow("call:webrtc-sdp", 60, 10_000)) return ack?.({ ok: false });
       const call = getCall(callId);
       const targetSocketId = call?.members.get(toUserId);
       if (!call || !call.members.has(myUserId!) || !targetSocketId) return ack?.({ ok: false });
@@ -1180,6 +1201,10 @@ io.on("connection", (socket: Socket) => {
       if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isNonEmptyString(toUserId, 200)) {
         return ack?.({ ok: false });
       }
+      // ICE adaylari normal kullanimda bile peer basina onlarca olabilir
+      // (her network arayuzu/port icin ayri aday) - bu yuzden daha comert
+      // ama yine de SINIRLI bir limit (bkz. yukaridaki webrtc-sdp aciklamasi).
+      if (!allow("call:webrtc-ice", 300, 10_000)) return ack?.({ ok: false });
       const call = getCall(callId);
       const targetSocketId = call?.members.get(toUserId);
       if (!call || !call.members.has(myUserId!) || !targetSocketId) return ack?.({ ok: false });
@@ -1198,6 +1223,7 @@ io.on("connection", (socket: Socket) => {
     "call:state",
     ({ callId, sharingScreen }: { callId: string; sharingScreen: boolean }, ack) => {
       if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isBoolean(sharingScreen)) return ack?.({ ok: false });
+      if (!allow("call:state", 20, 10_000)) return ack?.({ ok: false });
       const call = getCall(callId);
       if (!call || !call.members.has(myUserId!)) return ack?.({ ok: false });
       ack?.({ ok: true });

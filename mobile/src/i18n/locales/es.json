@@ -232,7 +232,7 @@
     "callE2eeVerify": "Verificar",
     "callE2eeTitle": "Código de seguridad",
     "callE2eeExplain": "Compara este código con el que aparece en la pantalla de la otra persona para confirmar que esta llamada está realmente conectada con ella.",
-    "callE2eeExplainFallback": "El cifrado adicional de fotogramas no es compatible con este dispositivo, pero la llamada sigue protegida por el cifrado estándar de WebRTC (DTLS-SRTP) y nunca pasa por el servidor.",
+    "callE2eeExplainFallback": "El cifrado adicional de fotogramas no es compatible con este dispositivo, pero el código de abajo igualmente confirma que el cifrado estándar de WebRTC (DTLS-SRTP) de esta llamada está conectado con la persona correcta, y la llamada nunca pasa por el servidor.",
     "callE2eePending": "Esperando el intercambio de claves…",
     "callClose": "Cerrar",
     "tabFiles": "Archivos",

@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import * as Crypto from "expo-crypto";
 
 /** GERCEK uygulama-katmani uctan uca sifreleme (E2EE) icin yardimcilar.
  *
@@ -13,13 +14,21 @@ import { Platform } from "react-native";
  * gonderilmez, sadece ECDH ACIK anahtarlari - ki bunlardan ozel anahtar
  * turetilemez - sinyal uzerinden tasinir).
  *
- * MITM UYARISI: Bu ECDH degisimini DOGRULAYAN ayri bir kimlik sistemi
- * olmadan, kotu niyetli bir sinyal sunucusu TEORIK olarak ilk anahtar
- * degisimine araya girebilir (Signal/WhatsApp'in da DOGRULANMAMIS
- * durumundaki ayni risk). Bunu COZMEK icin her cagrida iki tarafin
- * karsilastirabilecegi bir GUVENLIK KODU (bkz. computeSecurityCode) uretilir -
- * kullanici bu kodu sesli/baska bir kanaldan dogrularsa MITM imkansiz hale
- * gelir (bkz. CallMoreOptionsSheet.tsx'teki "Dogrula" ekrani).
+ * MITM UYARISI + GUVENLIK KODU: Kotu niyetli bir sinyal sunucusu TEORIK
+ * olarak SDP icindeki DTLS parmak izini (fingerprint) degistirip kendini
+ * araya sokmaya calisabilir (Signal/WhatsApp'in da DOGRULANMAMIS
+ * durumundaki ayni risk). Bunu kullanicinin KENDI gozlemleyebilecegi hale
+ * getirmek icin, HER IKI tarafin kendi yerel+uzak SDP'sinden okudugu DTLS
+ * parmak izlerinden (bkz. extractDtlsFingerprint) BIREBIR AYNI 12 haneli bir
+ * "guvenlik kodu" hesaplanir (bkz. computeSecurityCodeFromFingerprints) -
+ * kullanici bu kodu sesli/baska bir kanaldan dogrularsa, sunucunun SDP'ye
+ * dokunmadigindan (dolayisiyla GERCEK WebRTC sifrelemesinin - DTLS-SRTP -
+ * dogru kisiyle kuruldugundan) emin olabilir. Bu kod DTLS parmak izine
+ * dayandigi icin PLATFORM FARKI GOZETMEZ (web VEYA native, ikisinde de
+ * hesaplanabilir) - ayrica ECDH anahtar ciftine (asagidaki
+ * generateCallKeyPair/deriveSharedKey) BAGLI DEGILDIR, o sadece ek kare
+ * sifrelemesinin (asagida) kendi anahtarini turetmek icindir (bkz.
+ * CallMoreOptionsSheet.tsx'teki "Dogrula" ekrani).
  *
  * Platform kapsami: Insertable Streams (RTCRtpSender/Receiver.
  * createEncodedStreams) SADECE web'de (Chromium) var - react-native-webrtc
@@ -101,20 +110,32 @@ export async function deriveSharedKey(
   );
 }
 
+/** Bir SDP metninden DTLS sertifika parmak izini okur (orn.
+ * "a=fingerprint:sha-256 AB:CD:...") - WebRTC spesifikasyonu geregi HER SDP'de
+ * (offer VEYA answer, web VEYA native) bulunur, bu yuzden platform farki
+ * gozetmeden GUVENLIK KODU hesaplamak icin ideal bir girdidir. */
+export function extractDtlsFingerprint(sdp: string): string | null {
+  const match = sdp.match(/a=fingerprint:\S+\s+([0-9A-Fa-f:]+)/);
+  return match ? match[1].toUpperCase() : null;
+}
+
 /** Iki tarafin da ayni sirada gorecegi, insan tarafindan sesli/yazili
  * dogrulanabilir 12 haneli "guvenlik kodu" - WhatsApp'in arama dogrulama
- * koduyla AYNI fikir. Iki acik anahtar SIRALANARAK (lexicographic) birlestirilip
- * hash'lendigi icin kimin "ben" kimin "karsi taraf" oldugu fark etmez, HER IKI
- * taraf da BIREBIR AYNI kodu hesaplar (MITM yoksa). */
-export async function computeSecurityCode(pubKeyA: string, pubKeyB: string): Promise<string> {
-  const [first, second] = [pubKeyA, pubKeyB].sort();
-  const data = new TextEncoder().encode(`${first}|${second}`);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  const bytes = new Uint8Array(digest);
-  // Ilk 6 bayttan (48 bit) 12 haneli bir sayisal kod uret - 3 grup x 4 hane.
-  let num = 0;
-  for (let i = 0; i < 6; i++) num = num * 256 + bytes[i];
-  const digits = String(num % 10 ** 12).padStart(12, "0");
+ * koduyla AYNI fikir, ama anahtar yerine GERCEK DTLS parmak izlerinden
+ * turetilir (bkz. dosya basindaki aciklama). Iki parmak izi SIRALANARAK
+ * (lexicographic) birlestirilip hash'lendigi icin kimin "ben" kimin "karsi
+ * taraf" oldugu fark etmez, HER IKI taraf da BIREBIR AYNI kodu hesaplar (MITM
+ * yoksa). expo-crypto kullanildigi icin web VE native'de AYNI SEKILDE calisir. */
+export async function computeSecurityCodeFromFingerprints(fpA: string, fpB: string): Promise<string> {
+  const [first, second] = [fpA, fpB].sort();
+  const hex = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `${first}|${second}`, {
+    encoding: Crypto.CryptoEncoding.HEX,
+  });
+  // Ilk 12 hex karakterden (48 bit) 12 haneli bir sayisal kod uret - 3 grup x
+  // 4 hane (BigInt kullaniliyor, Number 48 bitlik degerler icin guvenli
+  // olmakla birlikte acik/tutarli olmasi icin).
+  const num = BigInt(`0x${hex.slice(0, 12)}`);
+  const digits = (num % 10n ** 12n).toString().padStart(12, "0");
   return `${digits.slice(0, 4)} ${digits.slice(4, 8)} ${digits.slice(8, 12)}`;
 }
 
