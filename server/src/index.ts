@@ -93,16 +93,7 @@ import { lookupCountry, lookupCity, clientIpFromHandshake } from "./geoip";
 import { submitReport } from "./moderation";
 import { logRoomEvent, logLikeEvent } from "./analytics";
 import { registerPushToken, unregisterPushToken, notifyIfOffline, PushPlatform } from "./notifications";
-import {
-  startCall,
-  getCall,
-  acceptCall,
-  addMember,
-  removeMember,
-  endCallForUser,
-  isUserBusy,
-  MAX_CALL_MEMBERS,
-} from "./calls";
+import { startCall, getCall, acceptCall, addMember, removeMember, endCallForUser, isUserBusy } from "./calls";
 import { isNonEmptyString, isOptionalString, isBoolean, isFiniteNumber, isOneOf } from "./validate";
 import { translateToLanguages } from "./translate";
 import { isImageAdult, warmUpNsfwModel } from "./nsfwDetector";
@@ -1044,9 +1035,6 @@ io.on("connection", (socket: Socket) => {
       if (!call || !call.accepted.has(myUserId!)) return ack?.({ ok: false, error: "Bu aramada degilsin." });
       if (call.members.has(toUserId)) return ack?.({ ok: false, error: "Bu kisi zaten aramada." });
       if (toUserId === myUserId) return ack?.({ ok: false });
-      if (call.members.size >= MAX_CALL_MEMBERS) {
-        return ack?.({ ok: false, error: `Bir aramada en fazla ${MAX_CALL_MEMBERS} kisi olabilir.` });
-      }
       const peerSocketId = getSocketIdForUser(toUserId);
       if (!peerSocketId) return ack?.({ ok: false, error: "Kullanici su an cevrimdisi." });
       if (isUserBusy(toUserId)) return ack?.({ ok: false, error: "Kullanici su an baska bir aramada." });
