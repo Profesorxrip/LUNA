@@ -75,6 +75,11 @@ interface Props {
   peer: DMPeer;
   onBack: () => void;
   onOpenInfo?: (info: DmInfoOpenParams) => void;
+  // Ustteki telefon ikonuna basilinca - GERCEK sesli arama baslatmak icin
+  // (bkz. useCallEngine.ts) peer'in avatarini (asagida zaten fetch'lenmis
+  // olan peerAvatarUrl state'i) de iletiyoruz, cagiran taraf tekrar
+  // sorgulamak zorunda kalmasin diye.
+  onStartVoiceCall?: (peerAvatarUrl: string | null) => void;
 }
 
 const ACCENT = "#0EA5E9";
@@ -236,7 +241,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply }: DM
  * baslik/avatar/uc nokta menusu, sol/sag balonlar, alinti (reply) onizlemesi,
  * "gorundu" cift tik'i ve alt aksiyon cubugu (etiket/medya/sesli mesaj) -
  * LUNA'nin siyah/yesil temasiyla. */
-export default function DMScreen({ peer, onBack, onOpenInfo }: Props) {
+export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }: Props) {
   const { t, i18n } = useTranslation();
   const socket = getSocket();
   const [myUserId, setMyUserId] = useState<string | null>(null);
@@ -589,7 +594,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo }: Props) {
             {!!peer.handle && <Text style={styles.headerHandle}>@{peer.handle}</Text>}
           </View>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => placeholder(t("dm.callAction"))} hitSlop={10}>
+        <TouchableOpacity
+          onPress={() => (onStartVoiceCall ? onStartVoiceCall(peerAvatarUrl) : placeholder(t("dm.callAction")))}
+          hitSlop={10}
+        >
           <Phone size={25} color={TEXT} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setMenuVisible(true)} hitSlop={10}>

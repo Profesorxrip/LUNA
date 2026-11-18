@@ -93,6 +93,7 @@ import { lookupCountry, lookupCity, clientIpFromHandshake } from "./geoip";
 import { submitReport } from "./moderation";
 import { logRoomEvent, logLikeEvent } from "./analytics";
 import { registerPushToken, unregisterPushToken, notifyIfOffline, PushPlatform } from "./notifications";
+import { startCall, getCall, acceptCall, addMember, removeMember, endCallForUser, isUserBusy } from "./calls";
 import { isNonEmptyString, isOptionalString, isBoolean, isFiniteNumber, isOneOf } from "./validate";
 import { translateToLanguages } from "./translate";
 import { isImageAdult, warmUpNsfwModel } from "./nsfwDetector";
@@ -439,6 +440,13 @@ io.on("connection", (socket: Socket) => {
   // Giris yapmamis (anonim) bir istemci de Discover'da "acik" odalari
   // gorebilmeli - bu yuzden HERKES (identify olsun olmasin) buraya kaydedilir.
   connectionMeta.set(socket.id, { userId: null, country: null, city: null, db: null, hideAdultContent: true, language: myLanguage });
+
+  // Sesli arama ekranindaki "Baglanti kalitesi" gostergesi icin - istemci
+  // bunu periyodik gonderip donus suresini (RTT) olcer, sunucu sadece
+  // o anki zaman damgasini geri yollar.
+  socket.on("ping:rtt", (ack) => {
+    ack?.(Date.now());
+  });
 
   socket.on("rooms:list", async (_data, ack) => {
     const friendIds = myUserId && myDb ? new Set((await listFriends(myDb, myUserId)).map((f) => f.userId)) : new Set<string>();
@@ -983,6 +991,212 @@ io.on("connection", (socket: Socket) => {
     if (peerSocketId) io.to(peerSocketId).emit("dm:expiry", { byUserId: myUserId, ms });
   });
 
+  // ---- DM sesli/goruntulu arama sinyallesmesi (1'e 1 VE grup) ----
+  // Sunucu burada GERCEK ses/goruntu akisini HIC TASIMAZ - sadece
+  // istemcilerin birbirini "calma" asamasinda bulmasini ve ardindan
+  // WebRTC'nin kendi SDP teklif/cevap + ICE aday mesajlarini DOGRU kisiye
+  // ILETMEYI saglar (bkz. calls.ts basindaki "mesh" aciklamasi). Asil medya,
+  // kabul edildikten sonra CIHAZLAR ARASINDA DOGRUDAN (peer-to-peer) akar.
+  socket.on(
+    "call:invite",
+    async ({ toUserId, isVideo }: { toUserId: string; isVideo: boolean }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isBoolean(isVideo)) return ack?.({ ok: false });
+      if (toUserId === myUserId) return ack?.({ ok: false, error: "Kendini arayamazsin." });
+      if (isUserBusy(myUserId!)) return ack?.({ ok: false, error: "Zaten bir aramadasin." });
+      const peerSocketId = getSocketIdForUser(toUserId);
+      if (!peerSocketId) return ack?.({ ok: false, error: "Kullanici su an cevrimdisi." });
+      if (isUserBusy(toUserId)) return ack?.({ ok: false, error: "Kullanici su an baska bir aramada." });
+      if (!allow("call:invite", 10, 30_000)) return ack?.({ ok: false, error: "Cok fazla arama denemesi, biraz bekle." });
+      const callerProfile = await getPublicProfile(myDb!, myUserId!);
+      const call = startCall(myUserId!, socket.id, toUserId, peerSocketId, isVideo);
+      ack?.({ ok: true, callId: call.callId });
+      io.to(peerSocketId).emit("call:incoming", {
+        callId: call.callId,
+        fromUserId: myUserId,
+        fromName: callerProfile?.name || myName,
+        fromAvatarUrl: callerProfile?.avatarUrl ?? null,
+        isVideo,
+        existingMembers: [],
+      });
+    }
+  );
+
+  // "Arama Ekle" - zaten aramada (kabul etmis) biri yeni bir kisiyi ayni
+  // aramaya davet eder. Yeni kisiye, aramada ZATEN KABUL ETMIS olan herkesin
+  // profili (existingMembers) de gonderilir - kabul ederse mesh baglantisini
+  // bu listedeki HERKESLE kuracak (bkz. call:accept altindaki ack).
+  socket.on(
+    "call:group-add",
+    async ({ callId, toUserId }: { callId: string; toUserId: string }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isNonEmptyString(toUserId, 200)) {
+        return ack?.({ ok: false });
+      }
+      const call = getCall(callId);
+      if (!call || !call.accepted.has(myUserId!)) return ack?.({ ok: false, error: "Bu aramada degilsin." });
+      if (call.members.has(toUserId)) return ack?.({ ok: false, error: "Bu kisi zaten aramada." });
+      if (toUserId === myUserId) return ack?.({ ok: false });
+      const peerSocketId = getSocketIdForUser(toUserId);
+      if (!peerSocketId) return ack?.({ ok: false, error: "Kullanici su an cevrimdisi." });
+      if (isUserBusy(toUserId)) return ack?.({ ok: false, error: "Kullanici su an baska bir aramada." });
+      if (!allow("call:invite", 10, 30_000)) return ack?.({ ok: false, error: "Cok fazla arama denemesi, biraz bekle." });
+      const inviterProfile = await getPublicProfile(myDb!, myUserId!);
+      addMember(callId, toUserId, peerSocketId);
+      const existingProfiles = await profilesFor(myDb!, Array.from(call.accepted));
+      ack?.({ ok: true });
+      io.to(peerSocketId).emit("call:incoming", {
+        callId,
+        fromUserId: myUserId,
+        fromName: inviterProfile?.name || myName,
+        fromAvatarUrl: inviterProfile?.avatarUrl ?? null,
+        isVideo: call.isVideo,
+        existingMembers: Array.from(call.accepted).map((uid) => ({
+          userId: uid,
+          name: existingProfiles.get(uid)?.name || "Kullanici",
+          avatarUrl: existingProfiles.get(uid)?.avatarUrl ?? null,
+        })),
+      });
+    }
+  );
+
+  socket.on("call:accept", async ({ callId }: { callId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(callId, 100)) return ack?.({ ok: false });
+    const call = getCall(callId);
+    if (!call || !call.members.has(myUserId!)) return ack?.({ ok: false, error: "Bu arama artik gecerli degil." });
+    const existingAcceptedIds = Array.from(call.accepted);
+    acceptCall(callId, myUserId!);
+    const existingProfiles = await profilesFor(myDb!, existingAcceptedIds);
+    ack?.({
+      ok: true,
+      isVideo: call.isVideo,
+      existingMembers: existingAcceptedIds.map((uid) => ({
+        userId: uid,
+        name: existingProfiles.get(uid)?.name || "Kullanici",
+        avatarUrl: existingProfiles.get(uid)?.avatarUrl ?? null,
+      })),
+    });
+    const myProfile = await getPublicProfile(myDb!, myUserId!);
+    for (const uid of existingAcceptedIds) {
+      const sid = call.members.get(uid);
+      if (sid) {
+        io.to(sid).emit("call:peer-joined", {
+          callId,
+          userId: myUserId,
+          name: myProfile?.name || myName,
+          avatarUrl: myProfile?.avatarUrl ?? null,
+        });
+      }
+    }
+  });
+
+  socket.on("call:decline", ({ callId }: { callId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(callId, 100)) return ack?.({ ok: false });
+    const call = getCall(callId);
+    if (!call || !call.members.has(myUserId!) || call.accepted.has(myUserId!)) return ack?.({ ok: false });
+    const inviterSocketIds = Array.from(call.members.entries())
+      .filter(([uid]) => call.accepted.has(uid))
+      .map(([, sid]) => sid);
+    removeMember(callId, myUserId!);
+    ack?.({ ok: true });
+    for (const sid of inviterSocketIds) io.to(sid).emit("call:declined", { callId, userId: myUserId });
+  });
+
+  socket.on("call:cancel", ({ callId }: { callId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(callId, 100)) return ack?.({ ok: false });
+    const call = getCall(callId);
+    if (!call || !call.accepted.has(myUserId!)) return ack?.({ ok: false });
+    // Henuz cevap vermemis (accepted olmayan) herkesi aramadan cikar, geri
+    // kalan (zaten kabul etmis) kisilere dokunma - "cancel" SADECE kendi
+    // cevapsiz davetini geri cekmek icindir.
+    const pendingIds = Array.from(call.members.keys()).filter((uid) => !call.accepted.has(uid));
+    for (const uid of pendingIds) {
+      const sid = call.members.get(uid);
+      removeMember(callId, uid);
+      if (sid) io.to(sid).emit("call:cancelled", { callId });
+    }
+    ack?.({ ok: true });
+  });
+
+  socket.on("call:end", ({ callId }: { callId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(callId, 100)) return ack?.({ ok: false });
+    const call = getCall(callId);
+    if (!call || !call.members.has(myUserId!)) return ack?.({ ok: false });
+    const remainingBefore = Array.from(call.members.entries()).filter(([uid]) => uid !== myUserId);
+    const result = removeMember(callId, myUserId!);
+    ack?.({ ok: true });
+    for (const [uid, sid] of remainingBefore) {
+      io.to(sid).emit("call:peer-left", { callId, userId: myUserId });
+      // Cikisin ardindan SADECE 1 kisi kaldiysa, o kisiye de "call:ended"
+      // gonderip yalniz kalan bir arama ekraninda takili kalmasini onle.
+      if (result?.lastRemainingUserId === uid) io.to(sid).emit("call:ended", { callId });
+    }
+  });
+
+  // WebRTC'nin kendi SDP teklif/cevap + ICE aday mesajlari - sunucu bunlarin
+  // ICERIGINI hic ANLAMAZ/degistirmez, sadece callId + toUserId'nin
+  // GERCEKTEN bu aramaya ait oldugunu dogrulayip oldugu gibi DOGRU kisiye
+  // iletir (relay). Grup aramasinda ayni callId icinde birden fazla eslesme
+  // (her katilimci cifti) oldugu icin hedef HER ZAMAN toUserId ile belirtilir.
+  socket.on(
+    "call:webrtc-offer",
+    ({ callId, toUserId, sdp }: { callId: string; toUserId: string; sdp: unknown }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isNonEmptyString(toUserId, 200)) {
+        return ack?.({ ok: false });
+      }
+      const call = getCall(callId);
+      const targetSocketId = call?.members.get(toUserId);
+      if (!call || !call.members.has(myUserId!) || !targetSocketId) return ack?.({ ok: false });
+      ack?.({ ok: true });
+      io.to(targetSocketId).emit("call:webrtc-offer", { callId, fromUserId: myUserId, sdp });
+    }
+  );
+
+  socket.on(
+    "call:webrtc-answer",
+    ({ callId, toUserId, sdp }: { callId: string; toUserId: string; sdp: unknown }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isNonEmptyString(toUserId, 200)) {
+        return ack?.({ ok: false });
+      }
+      const call = getCall(callId);
+      const targetSocketId = call?.members.get(toUserId);
+      if (!call || !call.members.has(myUserId!) || !targetSocketId) return ack?.({ ok: false });
+      ack?.({ ok: true });
+      io.to(targetSocketId).emit("call:webrtc-answer", { callId, fromUserId: myUserId, sdp });
+    }
+  );
+
+  socket.on(
+    "call:webrtc-ice",
+    ({ callId, toUserId, candidate }: { callId: string; toUserId: string; candidate: unknown }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isNonEmptyString(toUserId, 200)) {
+        return ack?.({ ok: false });
+      }
+      const call = getCall(callId);
+      const targetSocketId = call?.members.get(toUserId);
+      if (!call || !call.members.has(myUserId!) || !targetSocketId) return ack?.({ ok: false });
+      ack?.({ ok: true });
+      io.to(targetSocketId).emit("call:webrtc-ice", { callId, fromUserId: myUserId, candidate });
+    }
+  );
+
+  // Ekran paylasimi/kamera acik-kapali gibi "durum" bilgisi (medyanin
+  // kendisi degil) - GERCEK video track'i zaten WebRTC ile dogrudan
+  // (peer-to-peer) akiyor, bu sadece "su an gordugun goruntu KAMERA mi yoksa
+  // EKRAN mi" gibi yardimci bir METADATA mesaji. Aramadaki HERKESE (sadece
+  // tek bir toUserId'ye degil) yayinlanir - bkz. call:webrtc-* 'in aksine
+  // burada hedef yok, cunku grup aramasinda herkesin bilmesi gerekir.
+  socket.on(
+    "call:state",
+    ({ callId, sharingScreen }: { callId: string; sharingScreen: boolean }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(callId, 100) || !isBoolean(sharingScreen)) return ack?.({ ok: false });
+      const call = getCall(callId);
+      if (!call || !call.members.has(myUserId!)) return ack?.({ ok: false });
+      ack?.({ ok: true });
+      for (const [uid, sid] of call.members) {
+        if (uid !== myUserId) io.to(sid).emit("call:state", { callId, userId: myUserId, sharingScreen });
+      }
+    }
+  );
+
   socket.on(
     "room:create",
     async (
@@ -1162,6 +1376,17 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("disconnect", () => {
     handleLeave();
+    if (myUserId) {
+      const result = endCallForUser(myUserId);
+      if (result) {
+        for (const [uid, sid] of result.call.members) {
+          io.to(sid).emit("call:peer-left", { callId: result.call.callId, userId: myUserId, reason: "disconnected" });
+          if (result.lastRemainingUserId === uid) {
+            io.to(sid).emit("call:ended", { callId: result.call.callId, reason: "disconnected" });
+          }
+        }
+      }
+    }
     removeOnlineBySocket(socket.id);
     connectionMeta.delete(socket.id);
   });

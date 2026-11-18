@@ -1,6 +1,14 @@
-import React, { useEffect } from "react";
-import { Linking } from "react-native";
-import { DarkTheme, NavigationContainer, NavigatorScreenParams, RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import React, { useEffect, useRef, useState } from "react";
+import { Linking, Modal } from "react-native";
+import {
+  DarkTheme,
+  NavigationContainer,
+  NavigatorScreenParams,
+  RouteProp,
+  createNavigationContainerRef,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import { createNativeStackNavigator, NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { createBottomTabNavigator, BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
@@ -20,11 +28,13 @@ import DMScreen, { DMPeer, DmInfoOpenParams } from "../screens/DMScreen";
 import DMListScreen from "../screens/DMListScreen";
 import DmInfoScreen from "../screens/DmInfoScreen";
 import VoiceCallScreen from "../screens/VoiceCallScreen";
+import VideoCallScreen, { type GroupParticipant } from "../screens/VideoCallScreen";
 import { DMMessage } from "../services/socket";
 import RoomPreviewScreen from "../screens/RoomPreviewScreen";
 import RoomScreen from "../screens/RoomScreen";
 import TabBar from "./TabBar";
 import { getSocket, PublicRoomSummary, RoomState } from "../services/socket";
+import { useCallEngineContext } from "../contexts/CallEngineContext";
 
 type PeerParam = { userId: string; name: string; handle?: string };
 
@@ -67,11 +77,22 @@ export type RootStackParamList = {
   DM: { peer: DMPeer };
   DmInfo: { peer: DMPeer } & DmInfoOpenParams;
   VoiceCall: { peer: DMPeer; peerAvatarUrl: string | null };
+  // VoiceCall'daki "Paylaş" butonundan - ekran paylasimi SADECE burada
+  // gercek oldugu icin (bkz. VoiceCallScreen.tsx onSwitchToVideo yorumu)
+  // kullanici onayladiktan sonra VoiceCall'dan BURAYA replace ediliyor.
+  VideoCall: { peer: DMPeer; peerAvatarUrl: string | null };
   RoomPreview: { room: PublicRoomSummary };
   Room: { room: RoomState };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Gelen arama kabul edildiginde (bkz. CallEngineProvider.tsx) herhangi bir
+// ekrandan VoiceCall/VideoCall'a GECIS yapabilmek icin - normal
+// useNavigation() hook'u SADECE bir ekran bileseni icinden calisir, ama
+// gelen arama bildirimi navigasyon agacinin DISINDA (App.tsx'teki provider)
+// gosteriliyor.
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabsParamList>();
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 // Tab icine gomulu ekranlarin navigasyonu: HEM kendi sekmeleri arasinda
@@ -278,6 +299,7 @@ function DMRoute() {
       peer={params.peer}
       onBack={() => navigation.goBack()}
       onOpenInfo={(info) => navigation.navigate("DmInfo", { peer: params.peer, ...info })}
+      onStartVoiceCall={(peerAvatarUrl) => navigation.navigate("VoiceCall", { peer: params.peer, peerAvatarUrl })}
     />
   );
 }
@@ -300,10 +322,120 @@ function DmInfoRoute() {
   );
 }
 
-function VoiceCallRoute() {
+// Gelen/giden GERCEK arama durumunu (useCallEngineContext) VoiceCall/
+// VideoCall rotalarina baglayan ortak mantik - ikisi de AYNI sekilde
+// davranir, sadece isVideo degeri ve render edilen ekran farkli.
+function useRealCallWiring(peerUserId: string, isVideo: boolean) {
   const navigation = useNavigation<Nav>();
+  const engine = useCallEngineContext();
+  const startedRef = useRef(false);
+  const everActiveRef = useRef(false);
+
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    // phase "idle" ise bu ekran GELEN (zaten kabul edilmis) degil, GIDEN
+    // yeni bir arama olarak acildi (bkz. DMScreen/DmInfoScreen) - davet
+    // simdi gonderiliyor. Gelen aramada CallEngineContext.tsx zaten
+    // acceptCall()'i navigasyondan ONCE cagirdigi icin phase burada "idle"
+    // olmaz, tekrar davet gondermeyiz.
+    if (engine.phase === "idle") {
+      engine.startCall(peerUserId, isVideo);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (engine.phase !== "idle") everActiveRef.current = true;
+    else if (everActiveRef.current && navigation.isFocused()) navigation.goBack();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine.phase]);
+
+  function endCall() {
+    engine.endCall();
+    navigation.goBack();
+  }
+
+  return { engine, endCall };
+}
+
+// "Arama Ekle" - zaten gercek bir aramadayken (bkz. engine.addToCall) yeni
+// bir kisi davet etmek icin FriendsScreen'in davet modunu bir Modal icinde
+// acar - __DevHarness.tsx'teki AYNI deseni kullanir, sadece secilen kisiyi
+// GERCEKTEN (call:group-add ile) ekler.
+function useAddCallModal(engine: ReturnType<typeof useCallEngineContext>, myUserId: string | null, peerUserId: string) {
+  const [visible, setVisible] = useState(false);
+  const excludeIds = [peerUserId, ...engine.participants.map((p) => p.userId), ...(myUserId ? [myUserId] : [])];
+  const modal = (
+    <Modal visible={visible} animationType="slide" onRequestClose={() => setVisible(false)} statusBarTranslucent>
+      <FriendsScreen
+        onBack={() => setVisible(false)}
+        onOpenDM={() => {}}
+        onOpenParticipant={() => {}}
+        inviteMode
+        hideInviteExtras
+        excludeUserIds={excludeIds}
+        onSendInvites={(userIds) => {
+          userIds.forEach((id) => engine.addToCall(id));
+          setVisible(false);
+        }}
+      />
+    </Modal>
+  );
+  return { onAddCall: () => setVisible(true), modal };
+}
+
+function VoiceCallRoute() {
   const { params } = useRoute<RouteProp<RootStackParamList, "VoiceCall">>();
-  return <VoiceCallScreen peer={params.peer} peerAvatarUrl={params.peerAvatarUrl} onEnd={() => navigation.goBack()} />;
+  const navigation = useNavigation<Nav>();
+  const { engine, endCall } = useRealCallWiring(params.peer.userId, false);
+  const { onAddCall, modal } = useAddCallModal(engine, null, params.peer.userId);
+  // Birden fazla kisi gercekten aramaya katildiysa (bkz. "Arama Ekle")
+  // VideoCallScreen'in grup moduna (GroupCallGrid) gecilir - sesli aramada
+  // boyle bir grid yok, bu yuzden GERCEKTEN goruntulu aramaya da geciliyor
+  // (katilimcilarin birbirini GORMESI icin zaten video acik olmasi gerekir).
+  useEffect(() => {
+    if (engine.participants.length > 1) {
+      navigation.replace("VideoCall", { peer: params.peer, peerAvatarUrl: params.peerAvatarUrl });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine.participants.length]);
+  return (
+    <>
+      <VoiceCallScreen
+        peer={params.peer}
+        peerAvatarUrl={params.peerAvatarUrl}
+        onEnd={endCall}
+        onSwitchToVideo={() => navigation.replace("VideoCall", { peer: params.peer, peerAvatarUrl: params.peerAvatarUrl })}
+        onAddCall={onAddCall}
+        realCall={engine}
+      />
+      {modal}
+    </>
+  );
+}
+
+function VideoCallRoute() {
+  const { params } = useRoute<RouteProp<RootStackParamList, "VideoCall">>();
+  const { engine, endCall } = useRealCallWiring(params.peer.userId, true);
+  const { onAddCall, modal } = useAddCallModal(engine, null, params.peer.userId);
+  // 1'den fazla katilimci varsa (bkz. "Arama Ekle") GroupCallGrid'e gecmek
+  // icin VideoCallScreen'e GERCEK katilimci listesini veriyoruz.
+  const groupParticipants: GroupParticipant[] | undefined =
+    engine.participants.length > 1 ? engine.participants.map((p) => ({ userId: p.userId, name: p.name, avatarUrl: p.avatarUrl })) : undefined;
+  return (
+    <>
+      <VideoCallScreen
+        peer={params.peer}
+        peerAvatarUrl={params.peerAvatarUrl}
+        onEnd={endCall}
+        onAddCall={onAddCall}
+        participants={groupParticipants}
+        realCall={engine}
+      />
+      {modal}
+    </>
+  );
 }
 
 function RoomPreviewRoute() {
@@ -350,7 +482,7 @@ function RoomRoute() {
 
 export default function RootNavigator() {
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -383,6 +515,7 @@ export default function RootNavigator() {
         <Stack.Screen name="DM" component={DMRoute} />
         <Stack.Screen name="DmInfo" component={DmInfoRoute} />
         <Stack.Screen name="VoiceCall" component={VoiceCallRoute} options={{ animation: "fade", gestureEnabled: false }} />
+        <Stack.Screen name="VideoCall" component={VideoCallRoute} options={{ animation: "fade", gestureEnabled: false }} />
         <Stack.Screen name="RoomPreview" component={RoomPreviewRoute} />
         <Stack.Screen name="Room" component={RoomRoute} options={{ animation: "fade", gestureEnabled: false }} />
       </Stack.Navigator>
