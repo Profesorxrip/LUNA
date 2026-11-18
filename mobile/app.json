@@ -36,6 +36,19 @@
         {
           "savePhotosPermission": "LUNA, indirdiğin fotoğrafları galerine kaydetmek için fotoğraflarına erişim izni istiyor."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "LUNA, görüntülü arama yapabilmen için kameranıza erişim izni istiyor.",
+          "microphonePermission": "LUNA, sesli/görüntülü arama yapabilmen için mikrofonunuza erişim izni istiyor."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "LUNA, sesli/görüntülü arama yapabilmen için mikrofonunuza erişim izni istiyor."
+        }
       ]
     ]
   }
