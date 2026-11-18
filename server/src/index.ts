@@ -1004,7 +1004,20 @@ io.on("connection", (socket: Socket) => {
       if (toUserId === myUserId) return ack?.({ ok: false, error: "Kendini arayamazsin." });
       if (isUserBusy(myUserId!)) return ack?.({ ok: false, error: "Zaten bir aramadasin." });
       const peerSocketId = getSocketIdForUser(toUserId);
-      if (!peerSocketId) return ack?.({ ok: false, error: "Kullanici su an cevrimdisi." });
+      if (!peerSocketId) {
+        // Karsi taraf su an baglanmamis (uygulama kapali/arka planda) - GERCEK
+        // zamanli calma yapamayiz ama en azindan kacirdigi aramadan push
+        // bildirimiyle haberdar olsun (bkz. notifications.ts, DM/arkadaslik
+        // istegiyle AYNI mekanizma - Expo Push API).
+        notifyIfOffline(
+          myDb!,
+          toUserId,
+          false,
+          myName,
+          `${myName} seni ${isVideo ? "görüntülü" : "sesli"} aradı`
+        ).catch(() => {});
+        return ack?.({ ok: false, error: "Kullanici su an cevrimdisi." });
+      }
       if (isUserBusy(toUserId)) return ack?.({ ok: false, error: "Kullanici su an baska bir aramada." });
       if (!allow("call:invite", 10, 30_000)) return ack?.({ ok: false, error: "Cok fazla arama denemesi, biraz bekle." });
       const callerProfile = await getPublicProfile(myDb!, myUserId!);
@@ -1036,7 +1049,10 @@ io.on("connection", (socket: Socket) => {
       if (call.members.has(toUserId)) return ack?.({ ok: false, error: "Bu kisi zaten aramada." });
       if (toUserId === myUserId) return ack?.({ ok: false });
       const peerSocketId = getSocketIdForUser(toUserId);
-      if (!peerSocketId) return ack?.({ ok: false, error: "Kullanici su an cevrimdisi." });
+      if (!peerSocketId) {
+        notifyIfOffline(myDb!, toUserId, false, myName, `${myName} seni bir aramaya ekledi`).catch(() => {});
+        return ack?.({ ok: false, error: "Kullanici su an cevrimdisi." });
+      }
       if (isUserBusy(toUserId)) return ack?.({ ok: false, error: "Kullanici su an baska bir aramada." });
       if (!allow("call:invite", 10, 30_000)) return ack?.({ ok: false, error: "Cok fazla arama denemesi, biraz bekle." });
       const inviterProfile = await getPublicProfile(myDb!, myUserId!);
