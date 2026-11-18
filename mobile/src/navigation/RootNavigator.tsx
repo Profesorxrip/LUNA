@@ -406,6 +406,13 @@ function VoiceCallRoute() {
         peer={params.peer}
         peerAvatarUrl={params.peerAvatarUrl}
         onEnd={endCall}
+        onMinimize={() => {
+          // GERCEK arama/baglanti kesilmez (motor RootNavigator'in disinda,
+          // bkz. CallEngineContext.tsx) - sadece bu ekran yiginindan kalkar,
+          // yerine kucultulmus banner gelir.
+          engine.setCallMinimized(true);
+          navigation.goBack();
+        }}
         onSwitchToVideo={() => navigation.replace("VideoCall", { peer: params.peer, peerAvatarUrl: params.peerAvatarUrl })}
         onAddCall={onAddCall}
         realCall={engine}
@@ -417,6 +424,7 @@ function VoiceCallRoute() {
 
 function VideoCallRoute() {
   const { params } = useRoute<RouteProp<RootStackParamList, "VideoCall">>();
+  const navigation = useNavigation<Nav>();
   const { engine, endCall } = useRealCallWiring(params.peer.userId, true);
   const { onAddCall, modal } = useAddCallModal(engine, null, params.peer.userId);
   // 1'den fazla katilimci varsa (bkz. "Arama Ekle") GroupCallGrid'e gecmek
@@ -429,6 +437,10 @@ function VideoCallRoute() {
         peer={params.peer}
         peerAvatarUrl={params.peerAvatarUrl}
         onEnd={endCall}
+        onMinimize={() => {
+          engine.setCallMinimized(true);
+          navigation.goBack();
+        }}
         onAddCall={onAddCall}
         participants={groupParticipants}
         realCall={engine}

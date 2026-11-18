@@ -130,6 +130,17 @@ export function useCallEngine() {
   // basindaki aciklama) - e2eeSupported bu CIHAZDA/tarayicida Insertable
   // Streams olup olmadigini (SADECE web/Chromium) bir kere kontrol eder.
   const [e2eeSupported] = useState(() => e2eeFrameLayerSupported());
+  // Arama GORUNTULU mu (banner/kucultme gibi EKRAN DEGISTIRSE bile dogru
+  // ekrana donebilmek icin disariya acik tutulur - bkz. isVideoRef, bu SADECE
+  // onun GORUNUR/public yansimasi, iceride hala isVideoRef kaynak alinir).
+  // Isim "isVideo" degil "isVideoCall" - cok sayida fonksiyonda zaten "isVideo"
+  // adinda bir PARAMETRE var, isim CAKISMASIN diye.
+  const [isVideoCall, setIsVideoCallState] = useState(false);
+  // Aramanin GERCEK suresi - ekranin kendi yerel sayacinin AKSINE burada
+  // (motorun kendisinde) tutulur, boylece arama ekrani kucultulup (bkz.
+  // RootNavigator.tsx onMinimize) baska bir ekrana gecilse/arama ekrani
+  // UNMOUNT olsa bile sure SIFIRLANMAZ, dogru kaldigi yerden devam eder.
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const callIdRef = useRef<string | null>(null);
   const isVideoRef = useRef(false);
@@ -181,7 +192,19 @@ export function useCallEngine() {
     setConnectionQuality("good");
     myKeyPairRef.current = null;
     peerKeysRef.current.clear();
+    setIsVideoCallState(false);
+    setElapsedSeconds(0);
   }, []);
+
+  // Arama suresi - "connected" oldugu andan itibaren saniyede bir artar,
+  // arama ekrani kucultulup (bkz. RootNavigator.tsx onMinimize) baska bir
+  // ekrana gecilse/arama ekrani UNMOUNT olsa bile BU EFEKT CallEngineProvider
+  // (uygulamanin KOKU) icinde calistigi icin kesintisiz devam eder.
+  useEffect(() => {
+    if (phase !== "connected") return;
+    const id = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [phase]);
 
   // GERCEK baglanti kalitesi olcumu: ping tabanli sahte bir RTT DEGIL,
   // dogrudan aktif her RTCPeerConnection'in getStats() raporundan "nominated"
@@ -350,6 +373,7 @@ export function useCallEngine() {
   const startCall = useCallback(async (toUserId: string, isVideo: boolean): Promise<boolean> => {
     setError(null);
     isVideoRef.current = isVideo;
+    setIsVideoCallState(isVideo);
     const socket = getSocket();
     const res: any = await new Promise((resolve) => socket.emit("call:invite", { toUserId, isVideo }, resolve));
     if (!res?.ok) {
@@ -372,6 +396,7 @@ export function useCallEngine() {
     setIncomingCall(null);
     callIdRef.current = call.callId;
     isVideoRef.current = call.isVideo;
+    setIsVideoCallState(call.isVideo);
     setPhase("connecting");
     const socket = getSocket();
     const res: any = await new Promise((resolve) => socket.emit("call:accept", { callId: call.callId }, resolve));
@@ -424,6 +449,7 @@ export function useCallEngine() {
       localStreamRef.current.addTrack(videoTrack);
       cameraTrackRef.current = videoTrack;
       isVideoRef.current = true;
+      setIsVideoCallState(true);
       setCameraEnabledState(true);
       const socket = getSocket();
       for (const [userId, pc] of peersRef.current) {
@@ -812,6 +838,8 @@ export function useCallEngine() {
   return {
     incomingCall,
     phase,
+    isVideoCall,
+    elapsedSeconds,
     localStream,
     participants,
     remoteStreams,

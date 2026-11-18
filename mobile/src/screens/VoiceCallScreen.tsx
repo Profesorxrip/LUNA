@@ -117,7 +117,12 @@ export default function VoiceCallScreen({
   const { t } = useTranslation();
   const [connectedMock, setConnectedMock] = useState(false);
   const connected = realCall ? realCall.phase === "connected" : connectedMock;
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsedMock, setElapsedMock] = useState(0);
+  // GERCEK aramada sure artik motorun kendisinde (bkz. useCallEngine.ts
+  // elapsedSeconds) tutuluyor - bu ekran kucultulup (bkz. RootNavigator.tsx
+  // onMinimize) UNMOUNT olsa bile sure SIFIRLANMAZ, dogru kaldigi yerden
+  // devam eder (MinimizedCallBanner da AYNI degeri okur).
+  const elapsed = realCall ? realCall.elapsedSeconds : elapsedMock;
   const [mutedInternal, setMutedInternal] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
   const [speakerOnInternal, setSpeakerOnInternal] = useState(false);
@@ -210,10 +215,10 @@ export default function VoiceCallScreen({
   }, []);
 
   useEffect(() => {
-    if (!connected) return;
-    const interval = setInterval(() => setElapsed((s) => s + 1), 1000);
+    if (realCall || !connected) return;
+    const interval = setInterval(() => setElapsedMock((s) => s + 1), 1000);
     return () => clearInterval(interval);
-  }, [connected]);
+  }, [realCall, connected]);
 
   useEffect(() => {
     onStateChange?.(connected, elapsed);

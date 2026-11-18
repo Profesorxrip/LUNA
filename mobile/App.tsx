@@ -21,15 +21,7 @@ const PREVIEW_SKIP_AUTH = false;
 
 const SCREEN_H = Dimensions.get("window").height;
 
-// __TEST_HARNESS__
-import DevHarness from "./src/screens/__DevHarness";
-export function __RealApp() {
-  return null;
-}
 export default function App() {
-  return <DevHarness />;
-}
-function __UnusedApp() {
   const [session, setSession] = useState<Session | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const isAuthed = Boolean(session) || PREVIEW_SKIP_AUTH;

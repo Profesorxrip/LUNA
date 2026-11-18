@@ -1,14 +1,25 @@
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useCallEngine } from "../hooks/useCallEngine";
 import IncomingCallScreen from "../screens/IncomingCallScreen";
+import MinimizedCallBanner from "../components/MinimizedCallBanner";
+import { formatElapsed } from "../screens/VoiceCallScreen";
 import { navigationRef } from "../navigation/RootNavigator";
 
 type CallEngine = ReturnType<typeof useCallEngine>;
+export interface CallEngineContextValue extends CallEngine {
+  // GERCEK kucultme durumu - VoiceCallScreen/VideoCallScreen'in "kucult"
+  // butonu buraya yazar (bkz. RootNavigator.tsx onMinimize), engine'in
+  // KENDISI degil CallEngineProvider bu bilgiyi tutar cunku kucultulmus
+  // banner da onun render ettigi bir overlay (bkz. asagisi).
+  callMinimized: boolean;
+  setCallMinimized: (minimized: boolean) => void;
+}
 
-const CallEngineContext = createContext<CallEngine | null>(null);
+const CallEngineContext = createContext<CallEngineContextValue | null>(null);
 
-export function useCallEngineContext(): CallEngine {
+export function useCallEngineContext(): CallEngineContextValue {
   const ctx = useContext(CallEngineContext);
   if (!ctx) throw new Error("useCallEngineContext, CallEngineProvider disinda cagrilamaz.");
   return ctx;
@@ -18,18 +29,46 @@ export function useCallEngineContext(): CallEngine {
  * render edilir - GERCEK 1'e 1 WebRTC arama motorunu (bkz. useCallEngine.ts)
  * burada TEK bir ornek olarak tutar: hem DM ekranindan arama baslatilabilsin
  * hem de GELEN bir arama, kullanici o an uygulamanin NERESINDE olursa olsun,
- * tam ekran bir overlay olarak (navigasyon agacinin USTUNDE) gosterilebilsin. */
+ * tam ekran bir overlay olarak (navigasyon agacinin USTUNDE) gosterilebilsin.
+ *
+ * AYNI sekilde, arama ekrani "kucultulunce" (bkz. RootNavigator.tsx
+ * onMinimize) GERCEK arama/baglanti HIC KESILMEZ (useCallEngine burada,
+ * RootNavigator'in disinda yasadigi icin ekran degisse de motor calismaya
+ * devam eder) - sadece VoiceCall/VideoCall ekrani navigasyon yiginindan
+ * kaldirilir ve yerine, kullanici uygulamanin NERESINDE olursa olsun GORUNEN
+ * bu kucuk banner gelir (bkz. asagidaki MinimizedCallBanner). Banner'a
+ * dokununca AYNI ekrana geri donulur - useRealCallWiring zaten "phase idle
+ * degilse yeniden davet gonderme" kuralina sahip oldugu icin bu GERCEKTEN
+ * ayni (kesintisiz) aramaya geri donmek olur, yeni bir arama BASLATMAZ. */
 export default function CallEngineProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const engine = useCallEngine();
-  const { incomingCall, acceptCall, declineCall } = engine;
+  const { incomingCall, acceptCall, declineCall, phase, participants, elapsedSeconds, isVideoCall, micEnabled, setMicEnabled, speakerOn, setSpeakerRoute, endCall } = engine;
+  const [callMinimized, setCallMinimized] = useState(false);
+
+  // Arama tamamen bitince (phase "idle"e donunce) kucultulmus banner da
+  // kendiliginden kapanir - bir sonraki aramada BOS yere acik kalmasin diye.
+  useEffect(() => {
+    if (phase === "idle") setCallMinimized(false);
+  }, [phase]);
+
+  const contextValue: CallEngineContextValue = { ...engine, callMinimized, setCallMinimized };
   // Gelen arama zaten devam eden bir GRUP aramasiysa (existingMembers dolu),
   // ekranda bildirim olarak ARAYANIN adi/avatari gosterilir - kabul edilince
   // navigasyon yine ARAYANIN bilgileriyle acilir, ekran kendi icinde
   // engine.participants'tan (existingMembers DAHIL) gercek katilimci
   // listesini okuyup grid'i olusturur.
 
+  // Kucultulmus banner SADECE 1'e 1 aramada (tek katilimci) gosterilir -
+  // grup aramasi icin banner'in kimi gosterecegi belirsiz olurdu, bkz.
+  // MinimizedCallBanner.tsx'in tek bir isim/avatar alan tasarimi. "ringing-in"
+  // (henuz cevaplanmamis gelen arama) zaten tam ekran IncomingCallScreen ile
+  // gosterildigi icin burada HARIC tutulur.
+  const minimizedPeer = participants.length === 1 ? participants[0] : null;
+  const showMinimizedBanner = callMinimized && phase !== "idle" && phase !== "ringing-in" && !!minimizedPeer;
+
   return (
-    <CallEngineContext.Provider value={engine}>
+    <CallEngineContext.Provider value={contextValue}>
       {children}
       {incomingCall && (
         <View style={StyleSheet.absoluteFill}>
@@ -50,6 +89,40 @@ export default function CallEngineProvider({ children }: { children: React.React
           />
         </View>
       )}
+      {showMinimizedBanner && minimizedPeer && (
+        // Mutlak konumlandirma SART - banner normal akista birakilirsa
+        // RootNavigator'in (flex:1 ile tum alani kaplayan) ALTINA/sonuna
+        // dusup ekranin EN ALTINDA gorunurdu; IncomingCallScreen'in kendi
+        // tam-ekran overlay'iyle AYNI mantik, ustte sabit kalsin diye.
+        <View style={styles.minimizedBannerOverlay} pointerEvents="box-none">
+          <MinimizedCallBanner
+          name={minimizedPeer.name}
+          avatarUrl={minimizedPeer.avatarUrl}
+          elapsedLabel={phase === "connected" ? formatElapsed(elapsedSeconds) : t("dm.callRinging")}
+          muted={!micEnabled}
+          onToggleMute={() => setMicEnabled(!micEnabled)}
+          speakerOn={speakerOn}
+          onToggleSpeaker={() => setSpeakerRoute(!speakerOn)}
+          onEndCall={() => {
+            endCall();
+            setCallMinimized(false);
+          }}
+          onPress={() => {
+            setCallMinimized(false);
+            if (navigationRef.isReady()) {
+              navigationRef.navigate(isVideoCall ? "VideoCall" : "VoiceCall", {
+                peer: { userId: minimizedPeer.userId, name: minimizedPeer.name },
+                peerAvatarUrl: minimizedPeer.avatarUrl,
+              });
+            }
+          }}
+          />
+        </View>
+      )}
     </CallEngineContext.Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  minimizedBannerOverlay: { position: "absolute", top: 0, left: 0, right: 0 },
+});

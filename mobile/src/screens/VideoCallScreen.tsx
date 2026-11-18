@@ -311,7 +311,10 @@ export default function VideoCallScreen({
   // useCallEngine.ts). DevHarness'taki saf GORSEL testlerde (realCall yok)
   // eski prop davranisina doner.
   const effectivePeerSharingScreen = realCall ? realCall.screenSharingPeers.has(peer.userId) : peerSharingScreen;
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsedMock, setElapsedMock] = useState(0);
+  // GERCEK aramada sure motorun kendisinde (bkz. useCallEngine.ts
+  // elapsedSeconds) tutuluyor - ekran kucultulup UNMOUNT olsa bile sifirlanmaz.
+  const elapsed = realCall ? realCall.elapsedSeconds : elapsedMock;
   const [mutedInternal, setMutedInternal] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
   const [facing, setFacing] = useState<CameraType>("front");
@@ -604,10 +607,10 @@ export default function VideoCallScreen({
   }, []);
 
   useEffect(() => {
-    if (!connected) return;
-    const interval = setInterval(() => setElapsed((s) => s + 1), 1000);
+    if (realCall || !connected) return;
+    const interval = setInterval(() => setElapsedMock((s) => s + 1), 1000);
     return () => clearInterval(interval);
-  }, [connected]);
+  }, [realCall, connected]);
 
   useEffect(() => {
     onStateChange?.(connected, elapsed);
@@ -1122,7 +1125,10 @@ function GroupCallGrid({
   const { t } = useTranslation();
   const [connectedMock, setConnectedMock] = useState(false);
   const connected = realCall ? realCall.phase === "connected" : connectedMock;
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsedMock, setElapsedMock] = useState(0);
+  // GERCEK aramada sure motorun kendisinde (bkz. useCallEngine.ts
+  // elapsedSeconds) tutuluyor - ekran kucultulup UNMOUNT olsa bile sifirlanmaz.
+  const elapsed = realCall ? realCall.elapsedSeconds : elapsedMock;
   const [muted, setMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
   const [speakerOn, setSpeakerOn] = useState(false);
@@ -1151,9 +1157,10 @@ function GroupCallGrid({
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => setElapsed((e) => e + 1), 1000);
+    if (realCall) return;
+    const timer = setInterval(() => setElapsedMock((e) => e + 1), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [realCall]);
 
   useEffect(() => {
     if (!controlsVisible) return;
