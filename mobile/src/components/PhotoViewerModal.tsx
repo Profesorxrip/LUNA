@@ -266,7 +266,7 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
             bir cerceve - "Profili Duzenle" ekranindaki editHeader ile
             AYNI yapi/bosluklar (bkz. kullanicinin istegi). */}
         <View
-          style={[styles.topBar, { paddingTop: insets.top + 14 }]}
+          style={[styles.topBar, { paddingTop: insets.top + 24 }]}
           onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
         >
           <View style={styles.topBarLeft}>
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 22,
     backgroundColor: "#121212",
   },
   topBarLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, marginRight: 10 },
