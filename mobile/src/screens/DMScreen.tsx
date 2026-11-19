@@ -23,7 +23,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X } from "lucide-react-native";
 import { RoomMicIcon } from "../components/CustomIcons";
 import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
@@ -767,13 +767,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
 
       {searchVisible && (
         <View style={styles.searchBar}>
-          <Icon name="search" size={16} color={MUTED} />
+          <Search size={15} color={theme.textMuted} />
           <TextInput
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder={t("dm.searchPlaceholder")}
-            placeholderTextColor={MUTED}
+            placeholderTextColor={theme.textMuted}
             autoFocus
           />
           <TouchableOpacity
@@ -783,7 +783,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             }}
             hitSlop={8}
           >
-            <Icon name="close" size={14} color={MUTED} />
+            <X size={16} color={theme.textMuted} />
           </TouchableOpacity>
         </View>
       )}
@@ -1278,22 +1278,26 @@ const styles = StyleSheet.create({
   menuRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
   menuRowText: { color: TEXT, fontSize: 14, fontWeight: "600" },
   headerNameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  // Uye bilgisi ekranindaki (DmInfoScreen.tsx searchRow) ile AYNI stil/boyut -
+  // yuvarlak lacivert (#15202B) kutu, tam genislik koyu bir cubuk DEGIL.
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#0E0C0A",
-    borderBottomWidth: 1,
-    borderColor: "#1E1A17",
+    gap: 8,
+    marginHorizontal: 18,
+    marginTop: 5,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#15202B",
   },
   searchInput: {
     flex: 1,
-    color: TEXT,
+    color: theme.text,
     fontSize: 13,
-    paddingVertical: 0,
-    includeFontPadding: false,
+    padding: 0,
+    marginTop: 2,
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
