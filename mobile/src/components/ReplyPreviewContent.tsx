@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, Image, StyleSheet, LayoutChangeEvent } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Image as ImageIcon, MapPin, File as FileIcon, Phone } from "lucide-react-native";
 import { MicrophoneIcon } from "react-native-heroicons/outline";
@@ -41,9 +41,22 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, va
   const fromColor = "#FFFFFF";
   const bodyColor = variant === "bubble" ? "rgba(255,255,255,0.75)" : "#9A8F80";
   const iconColor = variant === "bubble" ? "rgba(255,255,255,0.85)" : "#9A8F80";
-  const thumbSize = 38;
+  // Foto/video kucuk resmi KARE olsun (genislik=yukseklik) istiyoruz, ama
+  // yukseklik sabit degil (ustteki thumbAbs top:3/bottom:3 ile saran
+  // replyQuote/replyBarText kutusunun - yani metnin satir sayisina gore
+  // degisen - boyuna gore OTOMATIK uzuyor). Bu yuzden genisligi ELLE sabit
+  // bir sayi yerine, ilk render'da olculen GERCEK yuksekligi onLayout ile
+  // yakalayip ona esitliyoruz - saga dogru buyuyerek (sol kenar/thumbLeft
+  // sabit kaliyor). fallbackSize ilk kare boyanana kadarki tahmin.
+  const fallbackSize = 38;
+  const [squareSize, setSquareSize] = useState(fallbackSize);
   const thumbLeft = 6;
   const thumbTextGap = 3;
+  const thumbSize = squareSize;
+  const handleThumbLayout = (e: LayoutChangeEvent) => {
+    const h = Math.round(e.nativeEvent.layout.height);
+    if (h > 0 && h !== squareSize) setSquareSize(h);
+  };
 
   const hasThumb = (kind === "photo" || kind === "video") && !!mediaUrl;
   // Ikon bilgisi varken on ekteki emoji artik GEREKSIZ (ikon zaten onu
@@ -96,9 +109,9 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, va
     <View style={[styles.row, cancelOuter]}>
       {hasThumb ? (
         kind === "photo" ? (
-          <Image source={{ uri: mediaUrl! }} style={[styles.thumbAbs, { left: thumbLeft, width: thumbSize }]} />
+          <Image source={{ uri: mediaUrl! }} style={[styles.thumbAbs, { left: thumbLeft, width: thumbSize }]} onLayout={handleThumbLayout} />
         ) : (
-          <View style={[styles.thumbAbs, { left: thumbLeft, width: thumbSize }]}>
+          <View style={[styles.thumbAbs, { left: thumbLeft, width: thumbSize }]} onLayout={handleThumbLayout}>
             <VideoThumb uri={mediaUrl!} />
           </View>
         )
