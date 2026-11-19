@@ -54,6 +54,11 @@ interface Props {
    * RoomScreen.tsx'teki mevcut Modal kullanimini ETKILEMEZ (orada hic
    * verilmiyor, varsayilan false/undefined). */
   embedded?: boolean;
+  /** "Oluştur" sekmesi (CreateRoomScreen.tsx) kucultulmus arama banner'ini
+   * SADECE platform secme IZGARASINDAYKEN gostermek, alt ekranlardayken
+   * (youtube/weburl/history/liked/external - ust barlari banner'in bindirme
+   * bolgesiyle cakisiyor) GIZLEMEK icin - mod her degistiginde cagrilir. */
+  onModeChange?: (mode: Mode) => void;
 }
 
 type Mode = "grid" | "youtube" | "weburl" | "history" | "liked" | "external";
@@ -243,10 +248,18 @@ function getAllItems(t: (key: string) => string): GridItem[] {
  * YOK - DRM'li platformlarda video basligini uygulama icinden GOREMEDIGIMIZ
  * icin (bkz. MediaPlayer.tsx aciklamasi) oda/kart ismi platformun kendi adi
  * olarak kalir. */
-export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVideosFor, embedded }: Props) {
+export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVideosFor, embedded, onModeChange }: Props) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>("grid");
+
+  useEffect(() => {
+    onModeChange?.(mode);
+    // onModeChange KASITLI olarak bagimlilik dizisine eklenmedi - cagiran
+    // taraf (CreateRoomScreen.tsx) her render'da YENI bir fonksiyon
+    // gecebilir, bu SADECE mod GERCEKTEN degistiginde tetiklenmeli.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
   const [search, setSearch] = useState("");
   const [webUrlInput, setWebUrlInput] = useState("");
   const [loadingTitle, setLoadingTitle] = useState(false);

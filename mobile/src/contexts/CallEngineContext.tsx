@@ -15,16 +15,24 @@ export interface CallEngineContextValue extends CallEngine {
   // banner da onun render ettigi bir overlay (bkz. asagisi).
   callMinimized: boolean;
   setCallMinimized: (minimized: boolean) => void;
+  // Belirli bir EKRANIN KENDISI (orn. CreateRoomScreen.tsx, platform secme
+  // IZGARASINDAN bir ALT ekrana - youtube/weburl/history/liked/external -
+  // gecince) banner'i GECICI olarak bastirmak icin - route adina gore
+  // (bkz. asagidaki HIDE_BANNER_ROUTES) tum ekran icin sabit bir karardan
+  // FARKLI olarak, bu ekranin KENDI ic durumuna gore degisir.
+  bannerSuppressedByScreen: boolean;
+  setBannerSuppressedByScreen: (suppressed: boolean) => void;
 }
 
 const CallEngineContext = createContext<CallEngineContextValue | null>(null);
 
-// Banner'in GIZLENDIGI ekranlar: "Room" - zaten kendi sesli/goruntulu oda
-// arayuzu var, ustune bir de 1'e 1 arama banner'i binmesin diye; "Create" -
-// platform secme/URL girme ekraninin ust bari banner'in bindirme
-// bolgesiyle (bkz. asagidaki -36 marginTop) cakisiyor, bkz. RootNavigator.tsx
-// subscribeCurrentRouteName.
-const HIDE_BANNER_ROUTES = new Set(["Room", "Create"]);
+// Banner'in HER ZAMAN GIZLENDIGI ekranlar - "Room": zaten kendi sesli/
+// goruntulu oda arayuzu var, ustune bir de 1'e 1 arama banner'i binmesin
+// diye (bkz. RootNavigator.tsx subscribeCurrentRouteName). "Create" TAB'inin
+// kendisi burada YOK - platform secme IZGARASINDA banner gorunmeli, sadece
+// alt ekranlarinda (bkz. bannerSuppressedByScreen, CreateRoomScreen.tsx)
+// gizlenmeli.
+const HIDE_BANNER_ROUTES = new Set(["Room"]);
 
 export function useCallEngineContext(): CallEngineContextValue {
   const ctx = useContext(CallEngineContext);
@@ -53,6 +61,7 @@ export default function CallEngineProvider({ children }: { children: React.React
   const { incomingCall, acceptCall, declineCall, phase, participants, elapsedSeconds, isVideoCall, micEnabled, setMicEnabled, speakerOn, setSpeakerRoute, endCall } = engine;
   const [callMinimized, setCallMinimized] = useState(false);
   const [onHiddenRoute, setOnHiddenRoute] = useState(false);
+  const [bannerSuppressedByScreen, setBannerSuppressedByScreen] = useState(false);
 
   // Arama tamamen bitince (phase "idle"e donunce) kucultulmus banner da
   // kendiliginden kapanir - bir sonraki aramada BOS yere acik kalmasin diye.
@@ -62,7 +71,13 @@ export default function CallEngineProvider({ children }: { children: React.React
 
   useEffect(() => subscribeCurrentRouteName((name) => setOnHiddenRoute(!!name && HIDE_BANNER_ROUTES.has(name))), []);
 
-  const contextValue: CallEngineContextValue = { ...engine, callMinimized, setCallMinimized };
+  const contextValue: CallEngineContextValue = {
+    ...engine,
+    callMinimized,
+    setCallMinimized,
+    bannerSuppressedByScreen,
+    setBannerSuppressedByScreen,
+  };
   // Gelen arama zaten devam eden bir GRUP aramasiysa (existingMembers dolu),
   // ekranda bildirim olarak ARAYANIN adi/avatari gosterilir - kabul edilince
   // navigasyon yine ARAYANIN bilgileriyle acilir, ekran kendi icinde
@@ -75,7 +90,8 @@ export default function CallEngineProvider({ children }: { children: React.React
   // (henuz cevaplanmamis gelen arama) zaten tam ekran IncomingCallScreen ile
   // gosterildigi icin burada HARIC tutulur.
   const minimizedPeer = participants.length === 1 ? participants[0] : null;
-  const showMinimizedBanner = callMinimized && phase !== "idle" && phase !== "ringing-in" && !!minimizedPeer && !onHiddenRoute;
+  const showMinimizedBanner =
+    callMinimized && phase !== "idle" && phase !== "ringing-in" && !!minimizedPeer && !onHiddenRoute && !bannerSuppressedByScreen;
 
   return (
     <CallEngineContext.Provider value={contextValue}>

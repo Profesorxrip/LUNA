@@ -5,6 +5,7 @@ import { supabase } from "../services/supabase";
 import { showAlert } from "../components/CustomAlert";
 import MediaPickerSheet from "../components/MediaPickerSheet";
 import { addToBlankPlaylist } from "../utils/blankPlaylist";
+import { useCallEngineContext } from "../contexts/CallEngineContext";
 
 interface Props {
   onRoomCreated: (room: RoomState) => void;
@@ -17,6 +18,7 @@ interface Props {
 export default function CreateRoomScreen({ onRoomCreated }: Props) {
   const { t } = useTranslation();
   const [hostName, setHostName] = useState(t("discover.defaultGuestName"));
+  const { setBannerSuppressedByScreen } = useCallEngineContext();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -24,6 +26,16 @@ export default function CreateRoomScreen({ onRoomCreated }: Props) {
       if (email) setHostName(email.split("@")[0]);
     });
   }, []);
+
+  // Kucultulmus arama banner'i SADECE platform secme IZGARASINDA gorunmeli -
+  // youtube/weburl/history/liked/external gibi alt ekranlarin ust barlari
+  // banner'in bindirme bolgesiyle cakisiyor (bkz. CallEngineContext.tsx
+  // bannerSuppressedByScreen). Ekrandan tamamen ayrilinca (unmount) da
+  // bastirma sifirlanir, aksi halde baska bir sekmede banner GEREKSIZ YERE
+  // gizli kalabilirdi.
+  useEffect(() => {
+    return () => setBannerSuppressedByScreen(false);
+  }, [setBannerSuppressedByScreen]);
 
   function createRoomWithSource(source: MediaSource) {
     getSocket()
@@ -37,5 +49,13 @@ export default function CreateRoomScreen({ onRoomCreated }: Props) {
       });
   }
 
-  return <MediaPickerSheet visible embedded onClose={() => {}} onSelect={createRoomWithSource} />;
+  return (
+    <MediaPickerSheet
+      visible
+      embedded
+      onClose={() => {}}
+      onSelect={createRoomWithSource}
+      onModeChange={(mode) => setBannerSuppressedByScreen(mode !== "grid")}
+    />
+  );
 }
