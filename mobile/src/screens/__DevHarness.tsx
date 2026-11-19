@@ -223,6 +223,7 @@ export default function DevHarness() {
               muted={infoProps?.muted ?? false}
               mediaMessages={MESSAGES.filter((m) => !!m.mediaUrl) as any}
               fileMessages={infoProps?.fileMessages ?? []}
+              onShowInChat={infoProps?.onShowInChat ?? (() => {})}
               onToggleMute={infoProps?.onToggleMute ?? (() => {})}
               onBack={() => setScreen("dm")}
               onBlocked={() => setScreen("dm")}

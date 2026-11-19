@@ -71,6 +71,9 @@ export interface DmInfoOpenParams {
   // (sesli mesaj/konum/genel dosya) mesajlar. mediaMessages'tan AYRI
   // tutuluyor cunku DmInfoScreen'in iki sekmesi ayri listeler.
   fileMessages: DMMessage[];
+  // "Dosyalar" satirindaki "Sohbette Göster" ikonu icin - DMScreen'in
+  // KENDI scrollToMessage'ini tasir (bkz. asagidaki fonksiyon).
+  onShowInChat: (messageId: string) => void;
   onToggleMute: () => void;
 }
 
@@ -734,7 +737,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
           activeOpacity={0.75}
           disabled={!onOpenInfo}
           onPress={() =>
-            onOpenInfo?.({ peerAvatarUrl, muted, mediaMessages, fileMessages, onToggleMute: toggleMute })
+            onOpenInfo?.({ peerAvatarUrl, muted, mediaMessages, fileMessages, onShowInChat: scrollToMessage, onToggleMute: toggleMute })
           }
         >
           <View style={{ marginLeft: -1 }}>

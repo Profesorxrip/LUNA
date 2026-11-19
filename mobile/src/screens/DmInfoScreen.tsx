@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Activi
 import { useTranslation } from "react-i18next";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { LinearGradient } from "expo-linear-gradient";
-import { Search, PhoneCall, BellOff, Bell, Ban, Image as ImageIcon, Paperclip, CircleArrowDown, X, MapPin, Mic, Play, Pause, ExternalLink, Download } from "lucide-react-native";
+import { Search, PhoneCall, BellOff, Bell, Ban, Image as ImageIcon, Paperclip, CircleArrowDown, X, MapPin, Mic, Play, Pause, ExternalLink, Download, MessageSquare } from "lucide-react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { getSocket, DMMessage } from "../services/socket";
 import { theme } from "../theme";
@@ -24,6 +24,10 @@ interface Props {
   // Ataç ikonunun actigi "Dosyalar" sekmesi - sesli mesaj/konum/genel
   // dosya mesajlari (bkz. DMScreen.tsx DmInfoOpenParams).
   fileMessages: DMMessage[];
+  // Dosyalar sekmesindeki bir satirin "Sohbette Göster" ikonu - DMScreen'in
+  // KENDI scrollToMessage'ini cagirir (bkz. DmInfoOpenParams), ardindan
+  // onBack ile geri donulur.
+  onShowInChat: (messageId: string) => void;
   onToggleMute: () => void;
   onBack: () => void;
   onBlocked: () => void;
@@ -47,12 +51,23 @@ const VOICE_COLOR = theme.accent;
 const LOCATION_COLOR = "#F59E0B";
 const FILE_COLOR = "#22C55E";
 
+// Sag ustteki uc nokta menusundeki "Sohbette Göster" (PhotoViewerModal.tsx)
+// ile AYNI ikon - ayni eylemin tutarli gorsel dili.
+function ShowInChatButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity onPress={onPress} hitSlop={10}>
+      <MessageSquare size={17} color={theme.textMuted} />
+    </TouchableOpacity>
+  );
+}
+
 function FileRowShell({
   color,
   icon,
   title,
   subtitle,
   trailing,
+  onShowInChat,
   onPress,
 }: {
   color: string;
@@ -60,6 +75,7 @@ function FileRowShell({
   title: string;
   subtitle: string;
   trailing?: React.ReactNode;
+  onShowInChat: () => void;
   onPress?: () => void;
 }) {
   return (
@@ -73,12 +89,23 @@ function FileRowShell({
           {subtitle}
         </Text>
       </View>
-      {trailing}
+      <View style={styles.fileRowActions}>
+        <ShowInChatButton onPress={onShowInChat} />
+        {trailing}
+      </View>
     </TouchableOpacity>
   );
 }
 
-function VoiceFileRow({ message, language }: { message: DMMessage; language: string }) {
+function VoiceFileRow({
+  message,
+  language,
+  onShowInChat,
+}: {
+  message: DMMessage;
+  language: string;
+  onShowInChat: () => void;
+}) {
   const player = useAudioPlayer(message.mediaUrl!);
   const status = useAudioPlayerStatus(player);
   const duration = status.duration || (message.durationMs ? message.durationMs / 1000 : 0);
@@ -98,12 +125,21 @@ function VoiceFileRow({ message, language }: { message: DMMessage; language: str
       icon={status.playing ? <Pause size={18} color={VOICE_COLOR} /> : <Play size={18} color={VOICE_COLOR} />}
       title="Sesli Mesaj"
       subtitle={`${message.fromName} · ${formatDuration(duration)} · ${formatMessageTime(message.createdAt, language)}`}
+      onShowInChat={onShowInChat}
       onPress={toggle}
     />
   );
 }
 
-function LocationFileRow({ message, language }: { message: DMMessage; language: string }) {
+function LocationFileRow({
+  message,
+  language,
+  onShowInChat,
+}: {
+  message: DMMessage;
+  language: string;
+  onShowInChat: () => void;
+}) {
   return (
     <FileRowShell
       color={LOCATION_COLOR}
@@ -111,12 +147,21 @@ function LocationFileRow({ message, language }: { message: DMMessage; language: 
       title="Konum"
       subtitle={`${message.fromName} · ${formatMessageTime(message.createdAt, language)}`}
       trailing={<ExternalLink size={16} color={theme.textMuted} />}
+      onShowInChat={onShowInChat}
       onPress={() => Linking.openURL(`https://maps.google.com/?q=${message.latitude},${message.longitude}`)}
     />
   );
 }
 
-function GenericFileRow({ message, language }: { message: DMMessage; language: string }) {
+function GenericFileRow({
+  message,
+  language,
+  onShowInChat,
+}: {
+  message: DMMessage;
+  language: string;
+  onShowInChat: () => void;
+}) {
   const [downloading, setDownloading] = useState(false);
   const fileName = message.fileName || message.text;
   const Icon = fileIconFor(message.mimeType, fileName);
@@ -141,16 +186,26 @@ function GenericFileRow({ message, language }: { message: DMMessage; language: s
       title={fileName}
       subtitle={`${message.fromName}${sizeLabel ? ` · ${sizeLabel}` : ""} · ${formatMessageTime(message.createdAt, language)}`}
       trailing={downloading ? <ActivityIndicator size="small" color={theme.textMuted} /> : <Download size={16} color={theme.textMuted} />}
+      onShowInChat={onShowInChat}
       onPress={handlePress}
     />
   );
 }
 
-function FileTabRow({ message, language }: { message: DMMessage; language: string }) {
-  if (message.kind === "voice" && message.mediaUrl) return <VoiceFileRow message={message} language={language} />;
+function FileTabRow({
+  message,
+  language,
+  onShowInChat,
+}: {
+  message: DMMessage;
+  language: string;
+  onShowInChat: (messageId: string) => void;
+}) {
+  const showInChat = () => onShowInChat(message.id);
+  if (message.kind === "voice" && message.mediaUrl) return <VoiceFileRow message={message} language={language} onShowInChat={showInChat} />;
   if (message.kind === "location" && message.latitude != null && message.longitude != null)
-    return <LocationFileRow message={message} language={language} />;
-  if (message.kind === "file" && message.mediaUrl) return <GenericFileRow message={message} language={language} />;
+    return <LocationFileRow message={message} language={language} onShowInChat={showInChat} />;
+  if (message.kind === "file" && message.mediaUrl) return <GenericFileRow message={message} language={language} onShowInChat={showInChat} />;
   return null;
 }
 
@@ -159,7 +214,7 @@ function FileTabRow({ message, language }: { message: DMMessage; language: strin
  * alinacak bir ekran yok) kendi tasarimi: buyuk avatar + kompakt isim,
  * 4 aksiyon karesi (Ara/Sessiz/Sesli Ara/Engelle), Medya sekmesi GERCEK DM
  * gorsellerini gosterir. */
-export default function DmInfoScreen({ peer, peerAvatarUrl, muted, mediaMessages, fileMessages, onToggleMute, onBack, onBlocked, onOpenParticipant, onStartVoiceCall }: Props) {
+export default function DmInfoScreen({ peer, peerAvatarUrl, muted, mediaMessages, fileMessages, onShowInChat, onToggleMute, onBack, onBlocked, onOpenParticipant, onStartVoiceCall }: Props) {
   const { t, i18n } = useTranslation();
   const socket = getSocket();
   const [tab, setTab] = useState<Tab>("media");
@@ -188,6 +243,14 @@ export default function DmInfoScreen({ peer, peerAvatarUrl, muted, mediaMessages
 
   function placeholder(label: string) {
     showAlert(label, t("profile.comingSoon"));
+  }
+
+  // "Dosyalar" satirindaki "Sohbette Göster" ikonu - DMScreen'in KENDI
+  // scrollToMessage'ini tetikler (bkz. onShowInChat prop'u), ardindan
+  // sohbete geri donulur.
+  function handleShowInChat(messageId: string) {
+    onShowInChat(messageId);
+    onBack();
   }
 
   function confirmBlock() {
@@ -346,11 +409,8 @@ export default function DmInfoScreen({ peer, peerAvatarUrl, muted, mediaMessages
           </Text>
         ) : (
           <View style={styles.filesList}>
-            {filteredFileMessages.map((m, index) => (
-              <React.Fragment key={m.id}>
-                <FileTabRow message={m} language={i18n.language} />
-                {index < filteredFileMessages.length - 1 && <View style={styles.fileRowDivider} />}
-              </React.Fragment>
+            {filteredFileMessages.map((m) => (
+              <FileTabRow key={m.id} message={m} language={i18n.language} onShowInChat={handleShowInChat} />
             ))}
           </View>
         )}
@@ -413,5 +473,5 @@ const styles = StyleSheet.create({
   fileRowBody: { flex: 1, minWidth: 0 },
   fileRowTitle: { color: theme.text, fontSize: 14, fontWeight: "700" },
   fileRowSubtitle: { color: theme.textMuted, fontSize: 12, marginTop: 2 },
-  fileRowDivider: { height: 1, backgroundColor: theme.border, marginLeft: 18 + 42 + 12 },
+  fileRowActions: { flexDirection: "row", alignItems: "center", gap: 16 },
 });

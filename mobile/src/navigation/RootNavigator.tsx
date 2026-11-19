@@ -335,6 +335,7 @@ function DmInfoRoute() {
       muted={params.muted}
       mediaMessages={params.mediaMessages}
       fileMessages={params.fileMessages}
+      onShowInChat={params.onShowInChat}
       onToggleMute={params.onToggleMute}
       onBack={() => navigation.goBack()}
       onBlocked={() => navigation.popToTop()}
