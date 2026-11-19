@@ -961,13 +961,16 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               multiline
               autoFocus
             />
-            <TouchableOpacity
-              style={[styles.reportSubmitBtn, !reportReason.trim() && styles.reportSubmitBtnDisabled]}
-              onPress={submitReport}
-              disabled={!reportReason.trim()}
+            <LinearGradient
+              colors={["#FFFFFF", "#38BDF8"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.reportSubmitGradientBorder, !reportReason.trim() && styles.reportSubmitBtnDisabled]}
             >
-              <Text style={styles.reportSubmitBtnText}>{t("dm.reportSend")}</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.reportSubmitBtnDark} onPress={submitReport} disabled={!reportReason.trim()}>
+                <Text style={styles.reportSubmitBtnDarkText}>{t("dm.reportSend")}</Text>
+              </TouchableOpacity>
+            </LinearGradient>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -1385,14 +1388,11 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  reportSubmitBtn: {
-    width: "100%",
-    backgroundColor: ACCENT,
-    borderRadius: 10,
-    paddingVertical: 13,
-    alignItems: "center",
-    marginTop: 14,
-  },
+  // FriendsScreen.tsx'teki "Davet At" butonuyla (hideInviteExtras, ProfileScreen
+  // "Çıkış Yap"la AYNI) AYNI gorsel dil - disarida beyazdan maviye gecen
+  // degrade kenarlik, icinde siyah dolgulu buton.
+  reportSubmitGradientBorder: { alignSelf: "stretch", borderRadius: 10, padding: 2, marginTop: 14 },
   reportSubmitBtnDisabled: { opacity: 0.4 },
-  reportSubmitBtnText: { color: "#04140D", fontSize: 14, fontWeight: "700" },
+  reportSubmitBtnDark: { backgroundColor: "#000000", borderRadius: 8, paddingVertical: 14, alignItems: "center" },
+  reportSubmitBtnDarkText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800", letterSpacing: 0.2, textTransform: "uppercase" },
 });
