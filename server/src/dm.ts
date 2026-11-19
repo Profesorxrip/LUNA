@@ -16,9 +16,9 @@ export interface DMMessage {
   createdAt: number;
   expiresAt: number | null;
   // "photo" (eski kayitlarda da gecerli varsayim - bkz. 0033 migration'daki
-  // geriye donuk isaretleme), "voice", "location", "file" - bkz.
-  // 0033_dm_message_kinds.sql.
-  kind: "text" | "photo" | "voice" | "location" | "file";
+  // geriye donuk isaretleme), "voice", "location", "file", "video" - bkz.
+  // 0033_dm_message_kinds.sql / 0034_dm_video_messages.sql.
+  kind: "text" | "photo" | "voice" | "location" | "file" | "video";
   durationMs: number | null;
   latitude: number | null;
   longitude: number | null;
@@ -155,6 +155,25 @@ export async function sendVoiceMessage(
     to_user: toUserId,
     media_url: mediaUrl,
     duration_ms: durationMs ?? null,
+  });
+  if (error) {
+    return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  return { ok: true, message: mapRow(data) };
+}
+
+export async function sendVideoMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  mediaUrl: string,
+  durationMs?: number,
+  caption?: string
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_dm_video", {
+    to_user: toUserId,
+    media_url: mediaUrl,
+    duration_ms: durationMs ?? null,
+    caption: caption ?? null,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };

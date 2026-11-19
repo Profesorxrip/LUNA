@@ -46,7 +46,7 @@ export default function LocationMessageBubble({ latitude, longitude }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { width: 225, borderRadius: 12, overflow: "hidden" },
+  card: { width: 225, borderRadius: 8, overflow: "hidden" },
   map: { height: 95, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   mapLine: { position: "absolute", height: 2, backgroundColor: "rgba(255,255,255,0.12)" },
   pinShadow: { position: "absolute", bottom: 23, width: 14, height: 5, borderRadius: 7, backgroundColor: "rgba(0,0,0,0.35)" },

@@ -60,6 +60,7 @@ import {
   sendMessage,
   sendImageMessage,
   sendVoiceMessage,
+  sendVideoMessage,
   sendLocationMessage,
   sendFileMessage,
   setExpiryMs,
@@ -982,6 +983,31 @@ io.on("connection", (socket: Socket) => {
       const peerSocketId = getSocketIdForUser(toUserId);
       if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
       notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "🎤 Sesli mesaj gönderdi").catch(() => {});
+    }
+  );
+
+  // DM'de video mesaji - foto ile AYNI desen (client "chat-media" bucket'ina
+  // kendisi yukler), ek olarak sesli mesaj gibi bir sure (durationMs) tasir.
+  socket.on(
+    "dm:sendVideo",
+    async (
+      { toUserId, mediaUrl, durationMs, caption }: { toUserId: string; mediaUrl: string; durationMs?: number; caption?: string },
+      ack
+    ) => {
+      if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isNonEmptyString(mediaUrl, 2000)) {
+        return ack?.({ ok: false });
+      }
+      if (durationMs !== undefined && !isFiniteNumber(durationMs, 0, 24 * 60 * 60 * 1000)) return ack?.({ ok: false });
+      if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendVideoMessage(myDb!, toUserId, mediaUrl, durationMs, caption?.trim() || undefined);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      const peerSocketId = getSocketIdForUser(toUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+      notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "🎥 Video gönderdi").catch(() => {});
     }
   );
 

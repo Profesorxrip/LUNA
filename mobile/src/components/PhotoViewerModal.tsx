@@ -27,6 +27,12 @@ import { theme } from "../theme";
 interface Props {
   uri: string | null;
   onClose: () => void;
+  // Birden fazla fotografi (bkz. PhotoGridBubble.tsx) ayni tam ekran
+  // goruntuyecide sola/saga kaydirarak gezmek icin - verilmezse (tum diger
+  // cagiranlarda) davranis TEK fotografli haliyle AYNI kalir (bkz. asagidaki
+  // "list" hesabi: photos yoksa sadece [uri]).
+  photos?: string[];
+  initialIndex?: number;
   // Gonderenin adi/saati - sadece bir sohbet mesaji baglaminda (ChatImageBubble
   // uzerinden) verilir, verilmezse (orn. UserProfileScreen'in galeri/avatar
   // fotograflarinda mesaj baglami OLMADIGI icin) geri tusunun yaninda hic
@@ -62,6 +68,9 @@ const DOUBLE_TAP_DELAY_MS = 280;
 const DISMISS_DISTANCE = 120;
 const DISMISS_VELOCITY = 1.1;
 const DISMISS_FADE_RANGE = 300;
+// Fotograflar arasi (yakinlastirilmamisken yatay surukleme) gecis icin -
+// dikey kapatma esigiyle (DISMISS_DISTANCE) AYNI mantik, sadece yon farkli.
+const PAGE_SWIPE_DISTANCE = 80;
 
 function touchDistance(touches: GestureResponderEvent["nativeEvent"]["touches"]): number {
   const [a, b] = touches;
@@ -81,11 +90,31 @@ function touchDistance(touches: GestureResponderEvent["nativeEvent"]["touches"])
  * editHeader) AYNI gorsel dili kullanir - aynı donen CircleArrowDown geri
  * oku, "Indir" artik ayri bir ikon degil, saga TASINAN uc nokta menusunun
  * icinde bir secenek. */
-export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onReply, onShowInChat, onReport }: Props) {
+export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onReply, onShowInChat, onReport, photos, initialIndex }: Props) {
   const insets = useSafeAreaInsets();
   const { i18n } = useTranslation();
   const [downloading, setDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Coklu fotograf gezintisi - photos verilmemisse (tek fotografli TUM diger
+  // cagiranlar) sadece [uri] icerir, currentIndex hep 0'da kalir.
+  const list = photos && photos.length > 0 ? photos : uri ? [uri] : [];
+  const [currentIndex, setCurrentIndex] = useState(initialIndex ?? 0);
+  const listRef = useRef<string[]>(list);
+  const currentIndexRef = useRef(currentIndex);
+  useEffect(() => {
+    listRef.current = list;
+  }, [list]);
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+  // Goruntuyeci YENIDEN acildiginda (uri degisince) baslangic fotografina don.
+  useEffect(() => {
+    if (uri) setCurrentIndex(initialIndex ?? 0);
+  }, [uri]);
+  const displayUri = list[currentIndex] ?? null;
+  // Yakinlastirilmamisken yatay surukleme ile fotograflar arasi gecis -
+  // dikey kapatma suruklemesiyle (dismissY) AYNI mantik, ayri eksen.
+  const pageDragX = useRef(new Animated.Value(0)).current;
   const [menuVisible, setMenuVisible] = useState(false);
   const [forwardVisible, setForwardVisible] = useState(false);
   // Ust bar kendi SABIT yuksekligi yerine icerigine (gonderen adi/saati
@@ -93,7 +122,18 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
   // uc nokta menusunu TAM onun bittigi yere (asagisina) koymak icin gercek
   // yuksekligi burada olculuyor.
   const [barHeight, setBarHeight] = useState(0);
+  // Bos alana (surukleme/zoom SAYILMAYAN duz bir dokunus) dokununca ust
+  // barin gizlenip tekrar dokununca geri gelmesi icin (kullanicinin istegi,
+  // VideoViewerModal ile AYNI davranis) - bkz. asagidaki onPanResponderRelease.
+  const [barsVisible, setBarsVisible] = useState(true);
+  const barsOpacity = useRef(new Animated.Value(1)).current;
   const { width: screenW, height: screenH } = Dimensions.get("window");
+
+  function toggleBars() {
+    const next = !barsVisible;
+    setBarsVisible(next);
+    Animated.timing(barsOpacity, { toValue: next ? 1 : 0, duration: 160, useNativeDriver: true }).start();
+  }
 
   const scale = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
@@ -132,10 +172,11 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
       translateY.setValue(0);
     }
     dismissY.setValue(0);
+    pageDragX.setValue(0);
   }
 
-  // Her YENI fotograf acildiginda (ya da kapanip tekrar acildiginda) eski
-  // zoom/kaydirma durumu KALMASIN - sifirdan baslar.
+  // Her YENI fotograf acildiginda (ilk acilista ya da kaydirarak gecilince)
+  // eski zoom/kaydirma durumu KALMASIN - sifirdan baslar.
   useEffect(() => {
     resetTransform(false);
     setLoading(!!uri);
@@ -210,7 +251,13 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
           translateX.setValue(t.x);
           translateY.setValue(t.y);
         } else if (gesture.current.mode === "dismiss") {
-          dismissY.setValue(g.dy);
+          if (Math.abs(g.dx) > Math.abs(g.dy)) {
+            pageDragX.setValue(g.dx);
+            dismissY.setValue(0);
+          } else {
+            dismissY.setValue(g.dy);
+            pageDragX.setValue(0);
+          }
         }
       },
       onPanResponderRelease: (_evt, g: PanResponderGestureState) => {
@@ -227,14 +274,36 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
             ]).start();
           }
         } else if (gesture.current.mode === "dismiss") {
-          if (Math.abs(g.dy) > DISMISS_DISTANCE || Math.abs(g.vy) > DISMISS_VELOCITY) {
+          const horizontalDominant = Math.abs(g.dx) > Math.abs(g.dy);
+          if (horizontalDominant && Math.abs(g.dx) > PAGE_SWIPE_DISTANCE) {
+            // Saga kaydirma (dx>0) -> onceki, sola kaydirma (dx<0) -> sonraki.
+            const dir = g.dx < 0 ? 1 : -1;
+            const idx = currentIndexRef.current;
+            const canMove = dir > 0 ? idx < listRef.current.length - 1 : idx > 0;
+            if (canMove) {
+              Animated.timing(pageDragX, {
+                toValue: dir > 0 ? -screenW : screenW,
+                duration: 180,
+                useNativeDriver: true,
+              }).start(() => {
+                setCurrentIndex((i) => i + dir);
+                pageDragX.setValue(0);
+              });
+            } else {
+              Animated.spring(pageDragX, { toValue: 0, useNativeDriver: true, friction: 7 }).start();
+            }
+          } else if (!horizontalDominant && (Math.abs(g.dy) > DISMISS_DISTANCE || Math.abs(g.vy) > DISMISS_VELOCITY)) {
             Animated.timing(dismissY, {
               toValue: g.dy > 0 ? screenH : -screenH,
               duration: 180,
               useNativeDriver: true,
             }).start(onClose);
           } else {
+            // Hemen hemen hic hareket etmemis (surukleme DEGIL, duz bir
+            // dokunus) - bos alana dokununca ust bar gizlenir/geri gelir.
+            if (Math.abs(g.dx) < 10 && Math.abs(g.dy) < 10) toggleBars();
             Animated.spring(dismissY, { toValue: 0, useNativeDriver: true, friction: 7 }).start();
+            Animated.spring(pageDragX, { toValue: 0, useNativeDriver: true, friction: 7 }).start();
           }
         }
         gesture.current.mode = "none";
@@ -260,11 +329,11 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
   // DMScreen.tsx'teki sendPickedImage'in AKSINE yeniden YUKLEMEYE gerek
   // yok, dogrudan "dm:sendImage" ile mevcut mediaUrl gonderilir.
   function forwardToUsers(userIds: string[]) {
-    if (!uri || userIds.length === 0) return;
+    if (!displayUri || userIds.length === 0) return;
     let remaining = userIds.length;
     let failed = 0;
     userIds.forEach((toUserId) => {
-      getSocket().emit("dm:sendImage", { toUserId, mediaUrl: uri }, (res: any) => {
+      getSocket().emit("dm:sendImage", { toUserId, mediaUrl: displayUri }, (res: any) => {
         if (!res?.ok) failed++;
         remaining--;
         if (remaining === 0) {
@@ -314,8 +383,9 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
             KATI arka planiyla, normal akista (fotografi ASAGI iten) AYRI
             bir cerceve - "Profili Duzenle" ekranindaki editHeader ile
             AYNI yapi/bosluklar (bkz. kullanicinin istegi). */}
-        <View
-          style={[styles.topBar, { paddingTop: insets.top + 44 }]}
+        <Animated.View
+          style={[styles.topBar, { paddingTop: insets.top + 44, opacity: barsOpacity }]}
+          pointerEvents={barsVisible ? "auto" : "none"}
           onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
         >
           <View style={styles.topBarLeft}>
@@ -329,8 +399,20 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
                 <Text style={styles.senderName} numberOfLines={1}>
                   {senderName}
                 </Text>
-                {sentAt != null && <Text style={styles.sentTime}>{formatMessageTime(sentAt, i18n.language)}</Text>}
+                <View style={styles.sentTimeRow}>
+                  {sentAt != null && <Text style={styles.sentTime}>{formatMessageTime(sentAt, i18n.language)}</Text>}
+                  {list.length > 1 && (
+                    <Text style={styles.pageIndicator}>
+                      {currentIndex + 1}/{list.length}
+                    </Text>
+                  )}
+                </View>
               </View>
+            )}
+            {!senderName && list.length > 1 && (
+              <Text style={styles.pageIndicator}>
+                {currentIndex + 1}/{list.length}
+              </Text>
             )}
           </View>
           <View style={styles.topBarRight}>
@@ -360,20 +442,20 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
               <MoreVertical size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
 
         <Animated.View
           style={[styles.imageWrap, { opacity: dismissOpacity }]}
           {...panResponder.panHandlers}
         >
-          {uri && (
+          {displayUri && (
             <Animated.Image
-              source={{ uri }}
+              source={{ uri: displayUri }}
               style={[
                 styles.image,
                 {
                   transform: [
-                    { translateX },
+                    { translateX: Animated.add(translateX, pageDragX) },
                     { translateY: Animated.add(translateY, dismissY) },
                     { scale: Animated.multiply(scale, dismissScale) },
                   ],
@@ -400,7 +482,7 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
                 disabled={downloading}
                 onPress={() => {
                   setMenuVisible(false);
-                  if (uri) downloadPhoto(uri);
+                  if (displayUri) downloadPhoto(displayUri);
                 }}
               >
                 {downloading ? (
@@ -477,9 +559,11 @@ const styles = StyleSheet.create({
   topBarLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, marginRight: 10 },
   topBarRight: { flexDirection: "row", alignItems: "center", gap: 4 },
   iconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  pageIndicator: { color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: "600" },
   senderInfo: { flex: 1 },
   senderName: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  sentTime: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 1 },
+  sentTimeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 1 },
+  sentTime: { color: "rgba(255,255,255,0.6)", fontSize: 12 },
   menuOverlay: { flex: 1 },
   menuCard: {
     position: "absolute",

@@ -37,6 +37,8 @@ import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
 import { formatMessageTime } from "../utils/time";
 import ChatImageBubble from "../components/ChatImageBubble";
+import PhotoGridBubble from "../components/PhotoGridBubble";
+import VideoMessageBubble from "../components/VideoMessageBubble";
 import VoiceMessageBubble from "../components/VoiceMessageBubble";
 import LocationMessageBubble from "../components/LocationMessageBubble";
 import FileMessageBubble from "../components/FileMessageBubble";
@@ -47,6 +49,43 @@ function formatRecordingTime(ms: number): string {
   const mm = Math.floor(totalSec / 60);
   const ss = totalSec % 60;
   return `${mm}:${ss.toString().padStart(2, "0")}`;
+}
+
+// Toplu secimle art arda gonderilen fotograflar sunucuya/diziye hala AYRI
+// birer mesaj olarak dusuyor (bkz. sendPickedImage) - sadece GORUNUMDE tek
+// bir izgara balonuna toplanabilsinler diye "duz fotograf" sayilan ardisik
+// mesajlar burada gruplanir (ayni gonderen, sesli/konum/dosya DEGIL, medyasi
+// var).
+function isPlainPhotoMessage(m: DMMessage): boolean {
+  return m.kind !== "voice" && m.kind !== "location" && m.kind !== "file" && m.kind !== "video" && !!m.mediaUrl;
+}
+
+type DMDisplayItem = { type: "single"; message: DMMessage } | { type: "photoGroup"; id: string; fromUserId: string; createdAt: number; photos: DMMessage[] };
+
+function groupConsecutivePhotos(list: DMMessage[]): DMDisplayItem[] {
+  const result: DMDisplayItem[] = [];
+  let i = 0;
+  while (i < list.length) {
+    const m = list[i];
+    if (isPlainPhotoMessage(m)) {
+      let j = i + 1;
+      while (j < list.length && isPlainPhotoMessage(list[j]) && list[j].fromUserId === m.fromUserId) {
+        const hasRealCaption = !!list[j].text && list[j].text !== "📷 Fotoğraf";
+        j++;
+        if (hasRealCaption) break;
+      }
+      const run = list.slice(i, j);
+      if (run.length > 1) {
+        const last = run[run.length - 1];
+        result.push({ type: "photoGroup", id: `${m.id}-group`, fromUserId: m.fromUserId, createdAt: last.createdAt, photos: run });
+        i = j;
+        continue;
+      }
+    }
+    result.push({ type: "single", message: m });
+    i++;
+  }
+  return result;
 }
 
 function getExpiryOptions(t: (key: string) => string): { label: string; ms: number | null }[] {
@@ -196,6 +235,8 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               !groupedWithPrev && (isMine ? styles.bubbleMineFirst : styles.bubbleTheirsFirst),
               item.kind === "voice" && styles.bubbleVoicePad,
               item.kind === "location" && styles.bubbleLocationPad,
+              item.kind === "file" && styles.bubbleFilePad,
+              item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.mediaUrl && styles.bubblePhotoPad,
             ]}
           >
             {!groupedWithPrev && <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />}
@@ -218,10 +259,22 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 fileSize={item.fileSize}
                 mimeType={item.mimeType}
               />
+            ) : item.kind === "video" && item.mediaUrl ? (
+              <VideoMessageBubble
+                uri={item.mediaUrl}
+                size={280}
+                borderRadius={8}
+                senderName={item.fromName}
+                sentAt={item.createdAt}
+                onReply={onReply}
+                onReport={onReport}
+              />
             ) : item.mediaUrl ? (
               <ChatImageBubble
                 uri={item.mediaUrl}
                 isAdult={item.isAdult}
+                size={280}
+                borderRadius={8}
                 senderName={item.fromName}
                 sentAt={item.createdAt}
                 onReply={onReply}
@@ -230,10 +283,20 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
             )}
-            {item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.mediaUrl && item.text && item.text !== "📷 Fotoğraf" && (
-              <Text style={styles.mediaCaption}>{item.text}</Text>
-            )}
-            <View style={[styles.metaRow, item.kind === "voice" && styles.metaRowVoice]}>
+            {item.kind !== "voice" &&
+              item.kind !== "location" &&
+              item.kind !== "file" &&
+              item.kind !== "video" &&
+              item.mediaUrl &&
+              item.text &&
+              item.text !== "📷 Fotoğraf" && <Text style={styles.mediaCaption}>{item.text}</Text>}
+            <View
+              style={[
+                styles.metaRow,
+                item.kind === "voice" && styles.metaRowVoice,
+                item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.mediaUrl && styles.metaRowPhotoOverlay,
+              ]}
+            >
               {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
               <View style={styles.metaRowRight}>
                 <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
@@ -316,7 +379,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
   const [peerAvatarUrl, setPeerAvatarUrl] = useState<string | null>(null);
   const lastTapRef = useRef<Record<string, number>>({});
-  const listRef = useRef<FlatList<DMMessage>>(null);
+  const listRef = useRef<FlatList<DMDisplayItem>>(null);
   // "Sohbette Göster" - kayan listede henuz olcum alinmamis bir mesaja
   // scrollToIndex basarisiz olursa (bkz. FlatList'in onScrollToIndexFailed'i)
   // asagida yaklasik bir offset'e gidip TEKRAR denemek icin hangi mesaji
@@ -436,14 +499,17 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ["images", "videos"],
       quality: 0.7,
       allowsMultipleSelection: true,
       selectionLimit: 10,
     });
     if (result.canceled || !result.assets?.length) return;
     setAttachSheetVisible(false);
-    setPendingImages((prev) => [...prev, ...result.assets.map((a) => a.uri)]);
+    const videos = result.assets.filter((a) => a.type === "video");
+    const images = result.assets.filter((a) => a.type !== "video");
+    if (images.length) setPendingImages((prev) => [...prev, ...images.map((a) => a.uri)]);
+    videos.forEach((a) => sendPickedVideo(a.uri, a.mimeType));
   }
 
   // Kullanici: "...basınca kamerayı açsa nasıl olur" -> "expo-camera ekle,
@@ -546,6 +612,28 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     } finally {
       setUploadingImage(false);
       setUploadProgress(0);
+    }
+  }
+
+  // Video - fotografin AKSINE SendMediaSheet'teki (kirpma/cizim/sticker)
+  // editorden GECMIYOR (o editor sadece resim icin) - secilir secilmez
+  // dogrudan yuklenip gonderiliyor.
+  async function sendPickedVideo(uri: string, mimeType?: string | null) {
+    if (!myUserId) return;
+    try {
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "mp4";
+      const contentType = mimeType || (ext === "mov" ? "video/quicktime" : "video/mp4");
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const path = `${myUserId}/${fileName}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, contentType, () => {});
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      socket.emit("dm:sendVideo", { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl }, (res: any) => {
+        if (res?.ok) setMessages((prev) => [...prev, res.message]);
+        else showAlert(t("dm.sendFailedTitle"), res?.error || "Video gönderilemedi.");
+      });
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || "Video gönderilirken bir hata oluştu.");
     }
   }
 
@@ -664,7 +752,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // Medya listesinden (fotograf izleyicideki "Sohbette Göster") ana sohbette
   // o mesaja kaydirir.
   function scrollToMessage(id: string) {
-    const index = visibleMessages.findIndex((m) => m.id === id);
+    const index = displayItems.findIndex((d) => (d.type === "single" ? d.message.id === id : d.photos.some((p) => p.id === id)));
     if (index === -1) return;
     pendingScrollMessageId.current = id;
     listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
@@ -712,6 +800,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     searchVisible && searchQuery.trim()
       ? notExpired.filter((m) => m.text.toLowerCase().includes(searchQuery.trim().toLowerCase()))
       : notExpired;
+  const displayItems = groupConsecutivePhotos(visibleMessages);
   const mediaMessages = notExpired.filter((m) => !!m.mediaUrl && m.kind !== "voice" && m.kind !== "file");
   // Uye bilgisi ekranindaki ataç ikonunun actigi "Dosyalar" sekmesi icin -
   // bkz. DmInfoOpenParams.fileMessages.
@@ -805,8 +894,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
 
       <FlatList
         ref={listRef}
-        data={visibleMessages}
-        keyExtractor={(m) => m.id}
+        data={displayItems}
+        keyExtractor={(d) => (d.type === "single" ? d.message.id : d.id)}
         contentContainerStyle={styles.listContent}
         onScrollToIndexFailed={(info) => {
           listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
@@ -828,20 +917,68 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             </View>
           </View>
         }
-        renderItem={({ item, index }) => {
+        renderItem={({ item: displayItem, index }) => {
+          const prevDisplay = displayItems[index - 1];
+          const prevFromUserId = prevDisplay ? (prevDisplay.type === "single" ? prevDisplay.message.fromUserId : prevDisplay.fromUserId) : undefined;
+          if (displayItem.type === "photoGroup") {
+            const isMine = displayItem.fromUserId === myUserId;
+            const grouped = !!prevFromUserId && prevFromUserId === displayItem.fromUserId;
+            return (
+              <View
+                style={[
+                  styles.messageRow,
+                  isMine ? styles.messageRowMine : styles.messageRowTheirs,
+                  !grouped && styles.messageRowNewGroup,
+                ]}
+              >
+                <TouchableOpacity activeOpacity={0.85} style={styles.bubbleWrap} onPress={() => {}}>
+                  <View
+                    style={[
+                      styles.bubble,
+                      isMine ? styles.bubbleMine : styles.bubbleTheirs,
+                      !grouped && (isMine ? styles.bubbleMineFirst : styles.bubbleTheirsFirst),
+                      styles.bubblePhotoPad,
+                    ]}
+                  >
+                    {!grouped && <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />}
+                    <PhotoGridBubble
+                      photos={displayItem.photos.map((p) => ({ uri: p.mediaUrl! }))}
+                      size={280}
+                      senderName={displayItem.photos[0].fromName}
+                      sentAt={displayItem.createdAt}
+                      onReply={() => startReply(displayItem.photos[displayItem.photos.length - 1])}
+                      onReport={() => setReportVisible(true)}
+                    />
+                    <View style={[styles.metaRow, styles.metaRowPhotoOverlay]}>
+                      <View style={styles.metaRowRight}>
+                        <Text style={styles.metaTime}>{formatMessageTime(displayItem.createdAt, i18n.language)}</Text>
+                        {isMine && (
+                          <MaterialIcons
+                            name={displayItem.createdAt <= seenUpTo ? "done-all" : "done"}
+                            size={16}
+                            color={displayItem.createdAt <= seenUpTo ? "#FFFFFF" : "rgba(255,255,255,0.65)"}
+                          />
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            );
+          }
+          const item = displayItem.message;
           const isMine = item.fromUserId === myUserId;
           const seen = isMine && item.createdAt <= seenUpTo;
           // Oda sohbetindeki (RoomScreen.tsx) gruplama ile AYNI mantik: arka
           // arkaya gelen mesajlarda gonderici avatari sadece grubun ilkinde
           // gosterilir, devaminda bubble hizasini bozmamak icin ayni genislikte
           // bos bir spacer konur, satirlar arasi bosluk da daraltilir.
-          const prev = visibleMessages[index - 1];
-          const groupedWithPrev = !!prev && prev.fromUserId === item.fromUserId;
+          const groupedWithPrevSingle = !!prevFromUserId && prevFromUserId === item.fromUserId;
           return (
             <DMBubbleRow
               item={item}
               isMine={isMine}
-              groupedWithPrev={groupedWithPrev}
+              groupedWithPrev={groupedWithPrevSingle}
               seen={seen}
               onTap={() => handleMessageTap(item)}
               onReply={() => startReply(item)}
@@ -1104,6 +1241,24 @@ const styles = StyleSheet.create({
   // kenara kadar yer acildi (alt tarafta gonderim saati oldugu icin o
   // paylasilan 8px'e dokunulmadi).
   bubbleLocationPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
+  // Dosya karti icin de AYNI mantik - bkz. FileMessageBubble'daki buyutme.
+  bubbleFilePad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
+  // Fotograf balonu icin de AYNI mantik - ChatImageBubble'in kendi boyutu da
+  // buyutuldu (bkz. asagidaki size/borderRadius prop'lari).
+  bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  // Saat/tik fotografin alt-sag kosesine BINDIRILIYOR (normal akistan
+  // cikarilip mutlak konumlandiriliyor) - fotograf boylece balonun en
+  // altina kadar (3px) buyuyebiliyor, altinda ayri bir satir kalmiyor.
+  metaRowPhotoOverlay: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    marginTop: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
   bubbleMine: { backgroundColor: BUBBLE_MINE_COLOR },
   // Balonun disina tasan, WhatsApp'taki gibi TEK bir bezier egrisiyle
   // cizilen yumusak kuyruk (bkz. BubbleTail) - kirik ucgen cizgisi degil.

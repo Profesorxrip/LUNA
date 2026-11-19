@@ -308,7 +308,7 @@ export interface DMMessage {
   // disinda) mediaUrl varligina bakilarak "photo" kabul edilir (bkz.
   // DMScreen.tsx render dallanmasi) - eski, bu alani hic tasimayan
   // kayitlarla geriye uyumluluk icin.
-  kind?: "text" | "photo" | "voice" | "location" | "file";
+  kind?: "text" | "photo" | "voice" | "location" | "file" | "video";
   durationMs?: number | null;
   latitude?: number | null;
   longitude?: number | null;
