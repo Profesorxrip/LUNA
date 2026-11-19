@@ -3,6 +3,11 @@ import { SupabaseClient } from "@supabase/supabase-js";
 export interface DMReply {
   text: string;
   fromName: string;
+  // Alinti kutusunda uygun ikonu/kucuk resmi gosterebilmek icin - bkz.
+  // 0036_dm_reply_rich.sql. Eski (bu migration'dan ONCE gonderilmis)
+  // kayitlarda ikisi de null, istemci duz metne geri doner.
+  kind?: DMMessage["kind"] | null;
+  mediaUrl?: string | null;
 }
 
 export interface DMMessage {
@@ -59,7 +64,9 @@ function mapRow(row: any): DMMessage {
     text: row.text,
     mediaUrl: row.media_url ?? null,
     isAdult: row.is_adult === true,
-    replyTo: row.reply_to_text ? { text: row.reply_to_text, fromName: row.reply_to_from_name } : null,
+    replyTo: row.reply_to_text
+      ? { text: row.reply_to_text, fromName: row.reply_to_from_name, kind: row.reply_to_kind ?? null, mediaUrl: row.reply_to_media_url ?? null }
+      : null,
     createdAt: new Date(row.created_at).getTime(),
     expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : null,
     kind: row.kind ?? "text",
@@ -124,6 +131,8 @@ export async function sendMessage(
     body: text,
     reply_text: replyTo?.text ?? null,
     reply_from_name: replyTo?.fromName ?? null,
+    reply_kind: replyTo?.kind ?? null,
+    reply_media_url: replyTo?.mediaUrl ?? null,
   });
   if (error) {
     // RPC 'blocked' exception'ini firlatiyorsa PostgREST bunu error.message'da tasir.

@@ -918,7 +918,11 @@ io.on("connection", (socket: Socket) => {
         return ack?.({ ok: false });
       }
       const validReplyTo =
-        replyTo && isNonEmptyString(replyTo.text, 1000) && isNonEmptyString(replyTo.fromName, 200)
+        replyTo &&
+        isNonEmptyString(replyTo.text, 1000) &&
+        isNonEmptyString(replyTo.fromName, 200) &&
+        isOptionalString(replyTo.kind ?? undefined, 20) &&
+        isOptionalString(replyTo.mediaUrl ?? undefined, 2000)
           ? replyTo
           : null;
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });

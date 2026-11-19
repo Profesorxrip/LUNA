@@ -30,6 +30,7 @@ import { useTranslation } from "react-i18next";
 import { getSocket, DMMessage, DMReply } from "../services/socket";
 import { supabase } from "../services/supabase";
 import Icon from "../components/Icon";
+import ReplyPreviewContent from "../components/ReplyPreviewContent";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import SendMediaSheet from "../components/SendMediaSheet";
@@ -244,10 +245,13 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
             {!groupedWithPrev && <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />}
             {item.replyTo && (
               <View style={styles.replyQuote}>
-                <Text style={styles.replyQuoteFrom}>{item.replyTo.fromName}</Text>
-                <Text style={styles.replyQuoteText} numberOfLines={1}>
-                  {item.replyTo.text}
-                </Text>
+                <ReplyPreviewContent
+                  fromName={item.replyTo.fromName}
+                  text={item.replyTo.text}
+                  kind={item.replyTo.kind}
+                  mediaUrl={item.replyTo.mediaUrl}
+                  variant="bubble"
+                />
               </View>
             )}
             {item.kind === "voice" && item.mediaUrl ? (
@@ -763,7 +767,12 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   }
 
   function startReply(message: DMMessage) {
-    setReplyingTo({ text: message.text, fromName: message.fromUserId === myUserId ? t("dm.you") : message.fromName });
+    setReplyingTo({
+      text: message.text,
+      fromName: message.fromUserId === myUserId ? t("dm.you") : message.fromName,
+      kind: message.kind,
+      mediaUrl: message.mediaUrl,
+    });
   }
 
   // Medya listesinden (fotograf izleyicideki "Sohbette Göster") ana sohbette
@@ -1026,10 +1035,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                 <View style={styles.replyPreviewCard}>
                   <View style={styles.replyBarAccent} />
                   <View style={styles.replyBarText}>
-                    <Text style={styles.replyBarFrom}>{replyingTo.fromName}</Text>
-                    <Text style={styles.replyBarBody} numberOfLines={1}>
-                      {replyingTo.text}
-                    </Text>
+                    <ReplyPreviewContent
+                      fromName={replyingTo.fromName}
+                      text={replyingTo.text}
+                      kind={replyingTo.kind}
+                      mediaUrl={replyingTo.mediaUrl}
+                      variant="composer"
+                    />
                   </View>
                   <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8} style={styles.replyBarClose}>
                     <Icon name="close" size={16} color={MUTED} />
@@ -1306,8 +1318,6 @@ const styles = StyleSheet.create({
     marginTop: -2,
     marginBottom: 4,
   },
-  replyQuoteFrom: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  replyQuoteText: { color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 1 },
   // Metin her zaman SOLA hizali - balonun kendisi zaten sag/sol tarafa
   // yaslanmis oluyor (WhatsApp'in gercek davranisi).
   bubbleText: { color: TEXT, fontSize: 16, lineHeight: 21 },
@@ -1407,8 +1417,6 @@ const styles = StyleSheet.create({
   },
   replyBarAccent: { width: 4, backgroundColor: "#FFFFFF" },
   replyBarText: { flex: 1, paddingVertical: 12, paddingHorizontal: 10 },
-  replyBarFrom: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  replyBarBody: { color: MUTED, fontSize: 12, marginTop: 2 },
   replyBarClose: { paddingHorizontal: 12, justifyContent: "flex-start", paddingTop: 12 },
   inputBar: {
     flexDirection: "row",

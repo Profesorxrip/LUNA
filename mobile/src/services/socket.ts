@@ -286,6 +286,12 @@ export interface RecentRoommate {
 export interface DMReply {
   text: string;
   fromName: string;
+  // Alinti kutusunda uygun ikonu/kucuk resmi gosterebilmek icin - bkz.
+  // 0036_dm_reply_rich.sql. Sadece DM'de dolu gelir (RoomScreen.tsx'teki
+  // ChatMessage.replyTo - AYNI tip - bunlari hic göndermez, dolayisiyla
+  // oda sohbetinde hep undefined/null kalip düz metne geri doner).
+  kind?: DMMessage["kind"] | null;
+  mediaUrl?: string | null;
 }
 
 export interface DMMessage {
