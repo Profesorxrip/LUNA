@@ -292,15 +292,17 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
             )}
           </View>
           <View style={styles.topBarRight}>
+            {/* FriendsScreen.tsx'teki "Geri Al" kutusunun AYNI ikonu
+                (undo-arrow.png, bkz. Icon.tsx "undoArrow") - dogal yonu
+                SAGA baktigi icin oldugu gibi Ilet, yatayda TERS cevrilince
+                (scaleX: -1) Yanitla olur. */}
             <TouchableOpacity style={styles.iconBtn} onPress={() => placeholder("Yanıtla")} hitSlop={10}>
-              <View style={{ transform: [{ rotate: "90deg" }] }}>
-                <CircleArrowDown size={20} color="#FFFFFF" />
+              <View style={{ transform: [{ scaleX: -1 }] }}>
+                <Icon name="undoArrow" size={20} color="#FFFFFF" />
               </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn} onPress={() => placeholder("İlet")} hitSlop={10}>
-              <View style={{ transform: [{ rotate: "-90deg" }] }}>
-                <CircleArrowDown size={20} color="#FFFFFF" />
-              </View>
+              <Icon name="undoArrow" size={20} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)} hitSlop={10}>
               <MoreVertical size={20} color="#FFFFFF" />
