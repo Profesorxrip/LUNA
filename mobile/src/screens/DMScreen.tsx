@@ -242,6 +242,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [mediaVisible, setMediaVisible] = useState(false);
+  // Medya sheet'inden Yanıtla/Sohbette Göster/Bildir ile baska bir yere
+  // GECERKEN (sheet'i kullanici elle kapatmadan) kaymali kapanis animasyonu
+  // calismasin diye - yoksa tam ekran fotograf izleyici kapanirken, ALTINDA
+  // bu kart kisaca kayarak kapaniyormus gibi SACMA bir kutu gorunuyor.
+  const [mediaCloseInstant, setMediaCloseInstant] = useState(false);
   const [expiryVisible, setExpiryVisible] = useState(false);
   const [expiresAfterMs, setExpiresAfterMs] = useState<number | null>(null);
   const [muted, setMuted] = useState(false);
@@ -564,7 +569,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
 
   const menuItems: { label: string; onPress: () => void }[] = [
     { label: t("dm.menuSearch"), onPress: () => setSearchVisible(true) },
-    { label: t("dm.menuMedia"), onPress: () => setMediaVisible(true) },
+    { label: t("dm.menuMedia"), onPress: () => { setMediaCloseInstant(false); setMediaVisible(true); } },
     { label: t("dm.menuExpiry"), onPress: () => setExpiryVisible(true) },
     { label: muted ? t("dm.menuUnmute") : t("dm.menuMute"), onPress: toggleMute },
     { label: t("dm.menuReport"), onPress: () => setReportVisible(true) },
@@ -761,7 +766,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={mediaVisible} transparent animationType="slide" onRequestClose={() => setMediaVisible(false)} statusBarTranslucent>
+      <Modal
+        visible={mediaVisible}
+        transparent
+        animationType={mediaCloseInstant ? "none" : "slide"}
+        onRequestClose={() => setMediaVisible(false)}
+        statusBarTranslucent
+      >
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setMediaVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.mediaSheet}>
             <Text style={styles.sheetTitle}>{t("dm.menuMedia")}</Text>
@@ -778,14 +789,17 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                     senderName={m.fromName}
                     sentAt={m.createdAt}
                     onReply={() => {
+                      setMediaCloseInstant(true);
                       setMediaVisible(false);
                       startReply(m);
                     }}
                     onShowInChat={() => {
+                      setMediaCloseInstant(true);
                       setMediaVisible(false);
                       scrollToMessage(m.id);
                     }}
                     onReport={() => {
+                      setMediaCloseInstant(true);
                       setMediaVisible(false);
                       setReportVisible(true);
                     }}

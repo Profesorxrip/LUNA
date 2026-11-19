@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { CircleArrowDown, MoreVertical } from "lucide-react-native";
+import { CircleArrowDown, MoreVertical, MessageSquare, TriangleAlert } from "lucide-react-native";
 import { File, Paths } from "expo-file-system";
 import Icon from "./Icon";
 import { showAlert } from "./CustomAlert";
@@ -406,7 +406,7 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
                 {downloading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Icon name="download" size={16} color="#FFFFFF" />
+                  <CircleArrowDown size={16} color="#FFFFFF" />
                 )}
                 <Text style={styles.menuRowText}>İndir</Text>
               </TouchableOpacity>
@@ -419,7 +419,7 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
                     onClose();
                   }}
                 >
-                  <Icon name="chatBubble" size={16} color="#FFFFFF" />
+                  <MessageSquare size={16} color="#FFFFFF" />
                   <Text style={styles.menuRowText}>Sohbette Göster</Text>
                 </TouchableOpacity>
               )}
@@ -432,7 +432,7 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
                     onClose();
                   }}
                 >
-                  <Icon name="warning" size={16} color={theme.danger} />
+                  <TriangleAlert size={16} color={theme.danger} />
                   <Text style={[styles.menuRowText, { color: theme.danger }]}>Bildir</Text>
                 </TouchableOpacity>
               )}
