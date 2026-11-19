@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { LinearGradient } from "expo-linear-gradient";
 import { CircleArrowDown, MoreVertical } from "lucide-react-native";
 import { File, Paths } from "expo-file-system";
 import Icon from "./Icon";
@@ -67,6 +66,11 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
   const [downloading, setDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+  // Ust bar kendi SABIT yuksekligi yerine icerigine (gonderen adi/saati
+  // varsa iki satira cikabiliyor) gore degisiyor - alt tarafindan acilan
+  // uc nokta menusunu TAM onun bittigi yere (asagisina) koymak icin gercek
+  // yuksekligi burada olculuyor.
+  const [barHeight, setBarHeight] = useState(0);
   const { width: screenW, height: screenH } = Dimensions.get("window");
 
   const scale = useRef(new Animated.Value(1)).current;
@@ -257,6 +261,34 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
   return (
     <Modal visible={!!uri} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.screen}>
+        {/* Artik fotografin USTUNE binen seffaf bir overlay degil, kendi
+            KATI arka planiyla, normal akista (fotografi ASAGI iten) AYRI
+            bir cerceve - "Profili Duzenle" ekranindaki editHeader ile
+            AYNI yapi/bosluklar (bkz. kullanicinin istegi). */}
+        <View
+          style={[styles.topBar, { paddingTop: insets.top + 14 }]}
+          onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
+        >
+          <View style={styles.topBarLeft}>
+            <TouchableOpacity style={styles.iconBtn} onPress={onClose} hitSlop={10}>
+              <View style={{ transform: [{ rotate: "90deg" }] }}>
+                <CircleArrowDown size={22} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            {!!senderName && (
+              <View style={styles.senderInfo}>
+                <Text style={styles.senderName} numberOfLines={1}>
+                  {senderName}
+                </Text>
+                {sentAt != null && <Text style={styles.sentTime}>{formatMessageTime(sentAt, i18n.language)}</Text>}
+              </View>
+            )}
+          </View>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)} hitSlop={10}>
+            <MoreVertical size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
         <Animated.View
           style={[styles.imageWrap, { opacity: dismissOpacity }]}
           {...panResponder.panHandlers}
@@ -280,43 +312,16 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
               onError={() => setLoading(false)}
             />
           )}
+          {loading && (
+            <View style={[StyleSheet.absoluteFill, styles.loadingOverlay]} pointerEvents="none">
+              <ActivityIndicator color="#FFFFFF" size="large" />
+            </View>
+          )}
         </Animated.View>
-        {loading && (
-          <View style={[StyleSheet.absoluteFill, styles.loadingOverlay]} pointerEvents="none">
-            <ActivityIndicator color="#FFFFFF" size="large" />
-          </View>
-        )}
-        <LinearGradient
-          colors={["rgba(0,0,0,0.75)", "transparent"]}
-          style={[styles.topGradient, { height: insets.top + 110 }]}
-          pointerEvents="none"
-        />
-        {/* paddingTop insets.top'un biraz USTUNDE - butonlar ekranin en
-            tepesine YAPISMASIN diye (bkz. kullanicinin istegi). */}
-        <View style={[styles.topBar, { paddingTop: insets.top + 26 }]}>
-          <View style={styles.topBarLeft}>
-            <TouchableOpacity style={styles.iconBtn} onPress={onClose} hitSlop={10}>
-              <View style={{ transform: [{ rotate: "90deg" }] }}>
-                <CircleArrowDown size={22} color="#FFFFFF" />
-              </View>
-            </TouchableOpacity>
-            {!!senderName && (
-              <View style={styles.senderInfo}>
-                <Text style={styles.senderName} numberOfLines={1}>
-                  {senderName}
-                </Text>
-                {sentAt != null && <Text style={styles.sentTime}>{formatMessageTime(sentAt, i18n.language)}</Text>}
-              </View>
-            )}
-          </View>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)} hitSlop={10}>
-            <MoreVertical size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
 
         <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
           <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
-            <View style={[styles.menuCard, { top: insets.top + 26 + 48 }]}>
+            <View style={[styles.menuCard, { top: barHeight }]}>
               <TouchableOpacity
                 style={styles.menuRow}
                 disabled={downloading}
@@ -345,20 +350,16 @@ const styles = StyleSheet.create({
   imageWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   image: { width: "100%", height: "100%" },
   loadingOverlay: { alignItems: "center", justifyContent: "center" },
-  topGradient: { position: "absolute", top: 0, left: 0, right: 0 },
   topBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    backgroundColor: "#121212",
   },
   topBarLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, marginRight: 10 },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(30,30,30,0.7)", alignItems: "center", justifyContent: "center" },
+  iconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   senderInfo: { flex: 1 },
   senderName: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   sentTime: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 1 },
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
   menuCard: {
     position: "absolute",
     right: 14,
-    backgroundColor: "#141210",
+    backgroundColor: "#1E1E1E",
     borderRadius: 12,
     paddingVertical: 6,
     minWidth: 130,
