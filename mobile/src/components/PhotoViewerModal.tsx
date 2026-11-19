@@ -20,6 +20,8 @@ import { File, Paths } from "expo-file-system";
 import Icon from "./Icon";
 import { showAlert } from "./CustomAlert";
 import { formatMessageTime } from "../utils/time";
+import { getSocket } from "../services/socket";
+import FriendsScreen from "../screens/FriendsScreen";
 
 interface Props {
   uri: string | null;
@@ -66,6 +68,7 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
   const [downloading, setDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [forwardVisible, setForwardVisible] = useState(false);
   // Ust bar kendi SABIT yuksekligi yerine icerigine (gonderen adi/saati
   // varsa iki satira cikabiliyor) gore degisiyor - alt tarafindan acilan
   // uc nokta menusunu TAM onun bittigi yere (asagisina) koymak icin gercek
@@ -231,11 +234,38 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
     extrapolate: "clamp",
   });
 
-  // "Yanıtla"/"İlet" henuz GERCEK bir hedefe (DM/oda sohbeti) baglanmadi -
-  // sadece butonlarin yerini/gorunumunu ister (bkz. kullanicinin istegi) -
-  // bkz. DMScreen.tsx/DmInfoScreen.tsx AYNI isimdeki yardimci.
+  // "Yanıtla" henuz GERCEK bir hedefe (DM/oda sohbeti) baglanmadi - sadece
+  // butonun yerini/gorunumunu ister (bkz. kullanicinin istegi) - bkz.
+  // DMScreen.tsx/DmInfoScreen.tsx AYNI isimdeki yardimci.
   function placeholder(label: string) {
     showAlert(label, "Bu özellik yakında eklenecek.");
+  }
+
+  // "İlet" - FriendsScreen.tsx'i (RoomScreen.tsx'teki "Davet et" akisiyla
+  // AYNI inviteMode, coklu secim) bir kisi secici olarak acar, secilen HER
+  // arkadasa bu fotografi AYRI bir DM fotograf mesaji olarak gonderir -
+  // fotograf zaten (chat-media bucket'inda) genel bir URL oldugu icin
+  // DMScreen.tsx'teki sendPickedImage'in AKSINE yeniden YUKLEMEYE gerek
+  // yok, dogrudan "dm:sendImage" ile mevcut mediaUrl gonderilir.
+  function forwardToUsers(userIds: string[]) {
+    if (!uri || userIds.length === 0) return;
+    let remaining = userIds.length;
+    let failed = 0;
+    userIds.forEach((toUserId) => {
+      getSocket().emit("dm:sendImage", { toUserId, mediaUrl: uri }, (res: any) => {
+        if (!res?.ok) failed++;
+        remaining--;
+        if (remaining === 0) {
+          setForwardVisible(false);
+          showAlert(
+            failed === 0 ? "İletildi" : "Kısmen iletildi",
+            failed === 0
+              ? `Fotoğraf ${userIds.length} kişiye iletildi.`
+              : `Fotoğraf ${userIds.length - failed}/${userIds.length} kişiye iletildi.`
+          );
+        }
+      });
+    });
   }
 
   async function downloadPhoto(url: string) {
@@ -301,7 +331,7 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
                 <Icon name="undoArrow" size={20} color="#FFFFFF" />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => placeholder("İlet")} hitSlop={10}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => setForwardVisible(true)} hitSlop={10}>
               <Icon name="undoArrow" size={20} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)} hitSlop={10}>
@@ -360,6 +390,20 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
+        </Modal>
+
+        {/* "İlet" - RoomScreen.tsx'teki "Davet et" ile AYNI kisi secici
+            (FriendsScreen.tsx inviteMode), sadece buton metni "Davet At"
+            yerine "İlet" (bkz. confirmButtonLabel). */}
+        <Modal visible={forwardVisible} animationType="slide" onRequestClose={() => setForwardVisible(false)} statusBarTranslucent>
+          <FriendsScreen
+            onBack={() => setForwardVisible(false)}
+            onOpenDM={() => {}}
+            onOpenParticipant={() => {}}
+            inviteMode
+            confirmButtonLabel={(count) => `İlet (${count})`}
+            onSendInvites={forwardToUsers}
+          />
         </Modal>
       </View>
     </Modal>

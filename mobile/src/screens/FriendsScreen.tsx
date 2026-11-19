@@ -28,6 +28,10 @@ interface Props {
   inviteMode?: boolean;
   excludeUserIds?: string[];
   onSendInvites?: (userIds: string[]) => void;
+  // inviteMode BAŞKA bir seçim akışı icin (orn. PhotoViewerModal.tsx'teki
+  // "İlet") yeniden kullanıldığında alt butonun metni - verilmezse varsayılan
+  // "Davet At (N)" (t("friends.sendInvites")) kalir.
+  confirmButtonLabel?: (count: number) => string;
   // VoiceCallScreen'in "Arama Ekle" akisinda (bkz. __DevHarness.tsx) sadece
   // duz bir arkadas listesi gerekiyor - oda davetine ozel "Son Zamanlarda"/
   // "Paylas" sekmeleri VE "Tumu" (hepsini sec) butonu bu modda gizlenir.
@@ -73,6 +77,7 @@ export default function FriendsScreen({
   inviteMode = false,
   excludeUserIds = [],
   onSendInvites,
+  confirmButtonLabel,
   hideInviteExtras = false,
   roomCode,
   roomTitle,
@@ -695,12 +700,16 @@ export default function FriendsScreen({
                 style={styles.inviteButtonDark}
                 onPress={() => onSendInvites?.(Array.from(selected))}
               >
-                <Text style={styles.inviteButtonDarkText}>{t("friends.sendInvites", { count: selected.size })}</Text>
+                <Text style={styles.inviteButtonDarkText}>
+                  {confirmButtonLabel ? confirmButtonLabel(selected.size) : t("friends.sendInvites", { count: selected.size })}
+                </Text>
               </TouchableOpacity>
             </LinearGradient>
           ) : (
             <TouchableOpacity style={styles.inviteButton} onPress={() => onSendInvites?.(Array.from(selected))}>
-              <Text style={styles.inviteButtonText}>{t("friends.sendInvites", { count: selected.size })}</Text>
+              <Text style={styles.inviteButtonText}>
+                {confirmButtonLabel ? confirmButtonLabel(selected.size) : t("friends.sendInvites", { count: selected.size })}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
