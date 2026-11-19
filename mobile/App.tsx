@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
+import { enableScreens } from "react-native-screens";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Session } from "@supabase/supabase-js";
@@ -18,6 +19,16 @@ import { loadStoredLanguage } from "./src/i18n";
 // Supabase'de etkinlestirildigi icin artik gercekten test edilebilir,
 // bu yuzden atlama KALICI olarak kapatildi.
 const PREVIEW_SKIP_AUTH = false;
+
+// react-native-screens VARSAYILAN olarak SADECE native'de (iOS/Android)
+// aktif - web'de bunu ACIKCA ISTEMEK gerekiyor, yoksa alt sekme
+// navigator'inin (MainTabsRoute) GERCEK ekran gizleme mekanizmasi (her
+// Screen.web.tsx'in kendi "display: focused ? flex : none" mantigi)
+// HIC CALISMAZ: tum sekmeler ayni anda "display:flex" kalir, birbirinin
+// USTUNE biner (sekme degistirince bir onceki ekranin icerigi SEFFAF
+// sekilde gorunmeye devam eder - bkz. MainTabsRoute, Profile/Create
+// sekmelerinde fark edilen hata).
+enableScreens();
 
 const SCREEN_H = Dimensions.get("window").height;
 
