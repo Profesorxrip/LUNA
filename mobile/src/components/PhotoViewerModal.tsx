@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
   View,
+  Text,
   Animated,
   PanResponder,
   TouchableOpacity,
@@ -13,15 +14,23 @@ import {
   PanResponderGestureState,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft } from "lucide-react-native";
+import { CircleArrowDown, MoreVertical } from "lucide-react-native";
 import { File, Paths } from "expo-file-system";
 import Icon from "./Icon";
 import { showAlert } from "./CustomAlert";
+import { formatMessageTime } from "../utils/time";
 
 interface Props {
   uri: string | null;
   onClose: () => void;
+  // Gonderenin adi/saati - sadece bir sohbet mesaji baglaminda (ChatImageBubble
+  // uzerinden) verilir, verilmezse (orn. UserProfileScreen'in galeri/avatar
+  // fotograflarinda mesaj baglami OLMADIGI icin) geri tusunun yaninda hic
+  // gosterilmez.
+  senderName?: string;
+  sentAt?: number;
 }
 
 const MIN_SCALE = 1;
@@ -47,11 +56,17 @@ function touchDistance(touches: GestureResponderEvent["nativeEvent"]["touches"])
  * kendi PanResponder + Animated API'siyle - bkz. UserProfileScreen.tsx
  * DragToCloseSheet'teki BENZER PanResponder kullanimi). Indir native'de
  * expo-media-library ile galeriye kaydediyor, web'de tarayicinin kendi
- * indirme davranisina birakiyor. */
-export default function PhotoViewerModal({ uri, onClose }: Props) {
+ * indirme davranisina birakiyor. Ustteki geri/menu butonlari ve varsa
+ * gonderen adi/saati, "Profili Duzenle" ekraniyla (bkz. UserProfileScreen.tsx
+ * editHeader) AYNI gorsel dili kullanir - aynı donen CircleArrowDown geri
+ * oku, "Indir" artik ayri bir ikon degil, saga TASINAN uc nokta menusunun
+ * icinde bir secenek. */
+export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: Props) {
   const insets = useSafeAreaInsets();
+  const { i18n } = useTranslation();
   const [downloading, setDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [menuVisible, setMenuVisible] = useState(false);
   const { width: screenW, height: screenH } = Dimensions.get("window");
 
   const scale = useRef(new Animated.Value(1)).current;
@@ -273,26 +288,53 @@ export default function PhotoViewerModal({ uri, onClose }: Props) {
         )}
         <LinearGradient
           colors={["rgba(0,0,0,0.75)", "transparent"]}
-          style={[styles.topGradient, { height: insets.top + 84 }]}
+          style={[styles.topGradient, { height: insets.top + 110 }]}
           pointerEvents="none"
         />
-        <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity style={styles.iconBtn} onPress={onClose} hitSlop={10}>
-            <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2.5} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => uri && downloadPhoto(uri)}
-            disabled={downloading}
-            hitSlop={10}
-          >
-            {downloading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Icon name="download" size={18} color="#FFFFFF" />
+        {/* paddingTop insets.top'un biraz USTUNDE - butonlar ekranin en
+            tepesine YAPISMASIN diye (bkz. kullanicinin istegi). */}
+        <View style={[styles.topBar, { paddingTop: insets.top + 26 }]}>
+          <View style={styles.topBarLeft}>
+            <TouchableOpacity style={styles.iconBtn} onPress={onClose} hitSlop={10}>
+              <View style={{ transform: [{ rotate: "90deg" }] }}>
+                <CircleArrowDown size={22} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            {!!senderName && (
+              <View style={styles.senderInfo}>
+                <Text style={styles.senderName} numberOfLines={1}>
+                  {senderName}
+                </Text>
+                {sentAt != null && <Text style={styles.sentTime}>{formatMessageTime(sentAt, i18n.language)}</Text>}
+              </View>
             )}
+          </View>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)} hitSlop={10}>
+            <MoreVertical size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+
+        <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+          <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
+            <View style={[styles.menuCard, { top: insets.top + 26 + 48 }]}>
+              <TouchableOpacity
+                style={styles.menuRow}
+                disabled={downloading}
+                onPress={() => {
+                  setMenuVisible(false);
+                  if (uri) downloadPhoto(uri);
+                }}
+              >
+                {downloading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Icon name="download" size={16} color="#FFFFFF" />
+                )}
+                <Text style={styles.menuRowText}>İndir</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </Modal>
   );
@@ -315,5 +357,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 10,
   },
+  topBarLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, marginRight: 10 },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(30,30,30,0.7)", alignItems: "center", justifyContent: "center" },
+  senderInfo: { flex: 1 },
+  senderName: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  sentTime: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 1 },
+  menuOverlay: { flex: 1 },
+  menuCard: {
+    position: "absolute",
+    right: 14,
+    backgroundColor: "#141210",
+    borderRadius: 12,
+    paddingVertical: 6,
+    minWidth: 130,
+  },
+  menuRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
+  menuRowText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
 });

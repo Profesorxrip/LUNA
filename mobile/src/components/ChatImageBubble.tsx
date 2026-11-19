@@ -10,6 +10,12 @@ interface Props {
   isAdult?: boolean;
   size?: number;
   borderRadius?: number;
+  // Tam ekran goruntuyeciye (PhotoViewerModal) gonderenin adini/saatini
+  // TASIMAK icin - verilmezse (orn. UserProfileScreen'in dogrudan kendi
+  // PhotoViewerModal kullanimi, mesaj baglami OLMAYAN galeri/avatar
+  // fotograflari) o bilgi goruntuleyicide hic gosterilmez.
+  senderName?: string;
+  sentAt?: number;
 }
 
 /** Chat/DM'de gonderilen fotograf - "+18 icerik" isaretliyse varsayilan
@@ -18,7 +24,7 @@ interface Props {
  * yok, her acilista yeniden karar verilir). Bulanik degilken (ya da bir kez
  * acildiktan sonra) dokununca PhotoViewerModal ile tam ekran acilir - profil
  * galerisi/avatar ile AYNI bilesen. */
-export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius = 12 }: Props) {
+export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius = 12, senderName, sentAt }: Props) {
   const [revealed, setRevealed] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const blurred = isAdult && !revealed;
@@ -41,7 +47,7 @@ export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius
           </BlurView>
         )}
       </TouchableOpacity>
-      <PhotoViewerModal uri={viewerOpen ? uri : null} onClose={() => setViewerOpen(false)} />
+      <PhotoViewerModal uri={viewerOpen ? uri : null} onClose={() => setViewerOpen(false)} senderName={senderName} sentAt={sentAt} />
     </>
   );
 }

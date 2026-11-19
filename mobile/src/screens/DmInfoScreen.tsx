@@ -203,7 +203,15 @@ export default function DmInfoScreen({ peer, peerAvatarUrl, muted, mediaMessages
           ) : (
             <View style={[styles.mediaGrid, { gap: MEDIA_GAP, paddingHorizontal: MEDIA_EDGE_PAD }]}>
               {filteredMediaMessages.map((m) => (
-                <ChatImageBubble key={m.id} uri={m.mediaUrl!} isAdult={m.isAdult} size={mediaCellSize} borderRadius={0} />
+                <ChatImageBubble
+                  key={m.id}
+                  uri={m.mediaUrl!}
+                  isAdult={m.isAdult}
+                  size={mediaCellSize}
+                  borderRadius={0}
+                  senderName={m.fromName}
+                  sentAt={m.createdAt}
+                />
               ))}
             </View>
           )

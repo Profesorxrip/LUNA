@@ -30,6 +30,7 @@ import LoadingView from "../components/LoadingView";
 import SendMediaSheet from "../components/SendMediaSheet";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
+import { formatMessageTime } from "../utils/time";
 import ChatImageBubble from "../components/ChatImageBubble";
 import Avatar from "../components/Avatar";
 
@@ -41,22 +42,6 @@ function getExpiryOptions(t: (key: string) => string): { label: string; ms: numb
     { label: t("dm.expiry1Week"), ms: 7 * 24 * 60 * 60 * 1000 },
   ];
 }
-
-// toLocaleTimeString icin dil koduna karsilik gelen BCP-47 etiketi - bazi
-// dillerin (ku) resmi bir ICU locale'i olmayabilir, tarayici/JS motoru
-// bilmedigi bir etiketi sessizce sistem varsayilanina dusurur (hata vermez).
-const TIME_LOCALE: Record<string, string> = {
-  tr: "tr-TR",
-  en: "en-US",
-  de: "de-DE",
-  fr: "fr-FR",
-  ar: "ar",
-  ku: "ku",
-  el: "el-GR",
-  ru: "ru-RU",
-  az: "az-AZ",
-  es: "es-ES",
-};
 
 export interface DMPeer {
   userId: string;
@@ -195,7 +180,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply }: DM
               </View>
             )}
             {item.mediaUrl ? (
-              <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} />
+              <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} senderName={item.fromName} sentAt={item.createdAt} />
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
             )}
@@ -203,12 +188,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply }: DM
               <Text style={styles.mediaCaption}>{item.text}</Text>
             )}
             <View style={styles.metaRow}>
-              <Text style={styles.metaTime}>
-                {new Date(item.createdAt).toLocaleTimeString(TIME_LOCALE[i18n.language] ?? "en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
+              <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
               {isMine && (
                 <MaterialIcons
                   name={seen ? "done-all" : "done"}
@@ -762,7 +742,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             ) : (
               <View style={styles.mediaGrid}>
                 {mediaMessages.map((m) => (
-                  <ChatImageBubble key={m.id} uri={m.mediaUrl!} isAdult={m.isAdult} size={96} />
+                  <ChatImageBubble key={m.id} uri={m.mediaUrl!} isAdult={m.isAdult} size={96} senderName={m.fromName} sentAt={m.createdAt} />
                 ))}
               </View>
             )}
