@@ -334,6 +334,7 @@ function DmInfoRoute() {
       peerAvatarUrl={params.peerAvatarUrl}
       muted={params.muted}
       mediaMessages={params.mediaMessages}
+      fileMessages={params.fileMessages}
       onToggleMute={params.onToggleMute}
       onBack={() => navigation.goBack()}
       onBlocked={() => navigation.popToTop()}

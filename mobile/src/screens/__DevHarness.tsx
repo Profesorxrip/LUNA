@@ -222,6 +222,7 @@ export default function DevHarness() {
               peerAvatarUrl={infoProps?.peerAvatarUrl ?? null}
               muted={infoProps?.muted ?? false}
               mediaMessages={MESSAGES.filter((m) => !!m.mediaUrl) as any}
+              fileMessages={infoProps?.fileMessages ?? []}
               onToggleMute={infoProps?.onToggleMute ?? (() => {})}
               onBack={() => setScreen("dm")}
               onBlocked={() => setScreen("dm")}

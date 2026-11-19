@@ -59,6 +59,9 @@ import {
   listConversations,
   sendMessage,
   sendImageMessage,
+  sendVoiceMessage,
+  sendLocationMessage,
+  sendFileMessage,
   setExpiryMs,
   markSeen,
   setDmPinned,
@@ -958,6 +961,90 @@ io.on("connection", (socket: Socket) => {
       const peerSocketId = getSocketIdForUser(toUserId);
       if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
       notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "📷 Fotoğraf gönderdi").catch(() => {});
+    }
+  );
+
+  // DM'de sesli mesaj - client kaydi "chat-media" bucket'ina kendisi yukler
+  // (foto ile AYNI desen), buraya sadece ortaya cikan public URL + sure gelir.
+  socket.on(
+    "dm:sendVoice",
+    async ({ toUserId, mediaUrl, durationMs }: { toUserId: string; mediaUrl: string; durationMs?: number }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isNonEmptyString(mediaUrl, 2000)) {
+        return ack?.({ ok: false });
+      }
+      if (durationMs !== undefined && !isFiniteNumber(durationMs, 0, 24 * 60 * 60 * 1000)) return ack?.({ ok: false });
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendVoiceMessage(myDb!, toUserId, mediaUrl, durationMs);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      const peerSocketId = getSocketIdForUser(toUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+      notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "🎤 Sesli mesaj gönderdi").catch(() => {});
+    }
+  );
+
+  // DM'de konum paylasimi - dosya yok, sadece iki koordinat. RoomScreen'in
+  // CANLI oda haritasindaki (room:location, bkz. rooms.ts) ile
+  // KARISTIRILMASIN: bu kalici, TEK SEFERLIK bir mesaj.
+  socket.on(
+    "dm:sendLocation",
+    async ({ toUserId, latitude, longitude }: { toUserId: string; latitude: number; longitude: number }, ack) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(toUserId, 200) ||
+        !isFiniteNumber(latitude, -90, 90) ||
+        !isFiniteNumber(longitude, -180, 180)
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendLocationMessage(myDb!, toUserId, latitude, longitude);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      const peerSocketId = getSocketIdForUser(toUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+      notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "📍 Konum gönderdi").catch(() => {});
+    }
+  );
+
+  // DM'de genel dosya (pdf/zip/vb.) - client "chat-media" bucket'ina kendisi
+  // yukler (foto ile AYNI desen), buraya sadece ortaya cikan public URL +
+  // dosya bilgisi gelir.
+  socket.on(
+    "dm:sendFile",
+    async (
+      {
+        toUserId,
+        mediaUrl,
+        fileName,
+        fileSize,
+        mimeType,
+      }: { toUserId: string; mediaUrl: string; fileName: string; fileSize?: number; mimeType?: string },
+      ack
+    ) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(toUserId, 200) ||
+        !isNonEmptyString(mediaUrl, 2000) ||
+        !isNonEmptyString(fileName, 255)
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (fileSize !== undefined && !isFiniteNumber(fileSize, 0, 500 * 1024 * 1024)) return ack?.({ ok: false });
+      if (mimeType !== undefined && !isOptionalString(mimeType, 150)) return ack?.({ ok: false });
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendFileMessage(myDb!, toUserId, mediaUrl, fileName, fileSize, mimeType);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      const peerSocketId = getSocketIdForUser(toUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+      notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, `📎 ${fileName}`).catch(() => {});
     }
   );
 

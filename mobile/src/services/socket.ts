@@ -303,4 +303,16 @@ export interface DMMessage {
   // "dm:reaction"). Konusma yeniden acilinca kaybolur.
   myReaction?: string | null;
   peerReaction?: string | null;
+  // "photo" (eski kayitlarda da gecerli varsayim), "voice", "location",
+  // "file" - bkz. 0033_dm_message_kinds.sql. Eksikse ("text" varsayilani
+  // disinda) mediaUrl varligina bakilarak "photo" kabul edilir (bkz.
+  // DMScreen.tsx render dallanmasi) - eski, bu alani hic tasimayan
+  // kayitlarla geriye uyumluluk icin.
+  kind?: "text" | "photo" | "voice" | "location" | "file";
+  durationMs?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  mimeType?: string | null;
 }

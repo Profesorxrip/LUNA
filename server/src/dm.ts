@@ -15,6 +15,16 @@ export interface DMMessage {
   replyTo: DMReply | null;
   createdAt: number;
   expiresAt: number | null;
+  // "photo" (eski kayitlarda da gecerli varsayim - bkz. 0033 migration'daki
+  // geriye donuk isaretleme), "voice", "location", "file" - bkz.
+  // 0033_dm_message_kinds.sql.
+  kind: "text" | "photo" | "voice" | "location" | "file";
+  durationMs: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  fileName: string | null;
+  fileSize: number | null;
+  mimeType: string | null;
 }
 
 // userId -> socketId. Sadece hangi acik socket'in hangi kullanici oldugunu
@@ -48,6 +58,13 @@ function mapRow(row: any): DMMessage {
     replyTo: row.reply_to_text ? { text: row.reply_to_text, fromName: row.reply_to_from_name } : null,
     createdAt: new Date(row.created_at).getTime(),
     expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : null,
+    kind: row.kind ?? "text",
+    durationMs: row.duration_ms ?? null,
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
+    fileName: row.file_name ?? null,
+    fileSize: row.file_size ?? null,
+    mimeType: row.mime_type ?? null,
   };
 }
 
@@ -121,6 +138,61 @@ export async function sendImageMessage(
     media_url: mediaUrl,
     is_adult: isAdult,
     caption: caption ?? null,
+  });
+  if (error) {
+    return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  return { ok: true, message: mapRow(data) };
+}
+
+export async function sendVoiceMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  mediaUrl: string,
+  durationMs?: number
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_dm_voice", {
+    to_user: toUserId,
+    media_url: mediaUrl,
+    duration_ms: durationMs ?? null,
+  });
+  if (error) {
+    return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  return { ok: true, message: mapRow(data) };
+}
+
+export async function sendLocationMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  latitude: number,
+  longitude: number
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_dm_location", {
+    to_user: toUserId,
+    latitude,
+    longitude,
+  });
+  if (error) {
+    return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  return { ok: true, message: mapRow(data) };
+}
+
+export async function sendFileMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  mediaUrl: string,
+  fileName: string,
+  fileSize?: number,
+  mimeType?: string
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_dm_file", {
+    to_user: toUserId,
+    media_url: mediaUrl,
+    file_name: fileName,
+    file_size: fileSize ?? null,
+    mime_type: mimeType ?? null,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };

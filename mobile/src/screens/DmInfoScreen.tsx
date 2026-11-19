@@ -3,13 +3,17 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, useWin
 import { useTranslation } from "react-i18next";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { LinearGradient } from "expo-linear-gradient";
-import { Search, PhoneCall, BellOff, Bell, Ban, Image as ImageIcon, Paperclip, CircleArrowDown, X } from "lucide-react-native";
+import { Search, PhoneCall, BellOff, Bell, Ban, Image as ImageIcon, Paperclip, CircleArrowDown, X, MapPin, FileText, Mic } from "lucide-react-native";
 import { getSocket, DMMessage } from "../services/socket";
 import { theme } from "../theme";
 import Avatar from "../components/Avatar";
 import AppBackground from "../components/AppBackground";
 import ChatImageBubble from "../components/ChatImageBubble";
+import VoiceMessageBubble from "../components/VoiceMessageBubble";
+import LocationMessageBubble from "../components/LocationMessageBubble";
+import FileMessageBubble from "../components/FileMessageBubble";
 import { showAlert } from "../components/CustomAlert";
+import { formatMessageTime } from "../utils/time";
 import type { DMPeer } from "./DMScreen";
 
 interface Props {
@@ -17,6 +21,9 @@ interface Props {
   peerAvatarUrl: string | null;
   muted: boolean;
   mediaMessages: DMMessage[];
+  // Ataç ikonunun actigi "Dosyalar" sekmesi - sesli mesaj/konum/genel
+  // dosya mesajlari (bkz. DMScreen.tsx DmInfoOpenParams).
+  fileMessages: DMMessage[];
   onToggleMute: () => void;
   onBack: () => void;
   onBlocked: () => void;
@@ -37,8 +44,8 @@ const MEDIA_EDGE_PAD = 3;
  * alinacak bir ekran yok) kendi tasarimi: buyuk avatar + kompakt isim,
  * 4 aksiyon karesi (Ara/Sessiz/Sesli Ara/Engelle), Medya sekmesi GERCEK DM
  * gorsellerini gosterir. */
-export default function DmInfoScreen({ peer, peerAvatarUrl, muted, mediaMessages, onToggleMute, onBack, onBlocked, onOpenParticipant, onStartVoiceCall }: Props) {
-  const { t } = useTranslation();
+export default function DmInfoScreen({ peer, peerAvatarUrl, muted, mediaMessages, fileMessages, onToggleMute, onBack, onBlocked, onOpenParticipant, onStartVoiceCall }: Props) {
+  const { t, i18n } = useTranslation();
   const socket = getSocket();
   const [tab, setTab] = useState<Tab>("media");
   const [searchVisible, setSearchVisible] = useState(false);
@@ -58,6 +65,9 @@ export default function DmInfoScreen({ peer, peerAvatarUrl, muted, mediaMessages
   const filteredMediaMessages = searchVisible && searchQuery.trim()
     ? mediaMessages.filter((m) => m.text.toLowerCase().includes(searchQuery.trim().toLowerCase()))
     : mediaMessages;
+  const filteredFileMessages = searchVisible && searchQuery.trim()
+    ? fileMessages.filter((m) => m.text.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : fileMessages;
   // Engellenenler/Gonderi olusturma ekranlarindaki BASLIKLA AYNI (Bebas Neue).
   const [titleFontLoaded] = useFonts({ BebasNeue_400Regular });
 
@@ -215,8 +225,27 @@ export default function DmInfoScreen({ peer, peerAvatarUrl, muted, mediaMessages
               ))}
             </View>
           )
+        ) : filteredFileMessages.length === 0 ? (
+          <Text style={styles.emptyText}>
+            {searchVisible && searchQuery ? t("dm.noSearchResults") : t("dm.tabFilesEmpty")}
+          </Text>
         ) : (
-          <Text style={styles.emptyText}>{t("dm.tabFilesEmpty")}</Text>
+          <View style={styles.filesList}>
+            {filteredFileMessages.map((m) => (
+              <View key={m.id} style={styles.fileRow}>
+                {m.kind === "voice" && m.mediaUrl ? (
+                  <VoiceMessageBubble uri={m.mediaUrl} durationMs={m.durationMs} />
+                ) : m.kind === "location" && m.latitude != null && m.longitude != null ? (
+                  <LocationMessageBubble latitude={m.latitude} longitude={m.longitude} />
+                ) : m.kind === "file" && m.mediaUrl ? (
+                  <FileMessageBubble uri={m.mediaUrl} fileName={m.fileName || m.text} fileSize={m.fileSize} mimeType={m.mimeType} />
+                ) : null}
+                <Text style={styles.fileRowMeta}>
+                  {m.fromName} · {formatMessageTime(m.createdAt, i18n.language)}
+                </Text>
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -271,4 +300,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: theme.text, fontSize: 13, padding: 0, marginTop: 2, outlineWidth: 0, outlineStyle: "none" } as any,
   emptyText: { color: theme.textMuted, fontSize: 13, textAlign: "center", marginTop: 30 },
   mediaGrid: { flexDirection: "row", flexWrap: "wrap", marginTop: 3 },
+  filesList: { paddingHorizontal: 18, marginTop: 3, gap: 10 },
+  fileRow: { backgroundColor: "#15202B", borderRadius: 14, padding: 12, gap: 6 },
+  fileRowMeta: { color: theme.textMuted, fontSize: 11 },
 });

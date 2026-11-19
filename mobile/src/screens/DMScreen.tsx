@@ -11,6 +11,7 @@ import {
   Modal,
   Animated,
   PanResponder,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
@@ -18,8 +19,11 @@ import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { LockClosedIcon } from "react-native-heroicons/outline";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import * as Location from "expo-location";
+import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2 } from "lucide-react-native";
 import { RoomMicIcon } from "../components/CustomIcons";
 import { useTranslation } from "react-i18next";
 import { getSocket, DMMessage, DMReply } from "../services/socket";
@@ -32,7 +36,17 @@ import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
 import { formatMessageTime } from "../utils/time";
 import ChatImageBubble from "../components/ChatImageBubble";
+import VoiceMessageBubble from "../components/VoiceMessageBubble";
+import LocationMessageBubble from "../components/LocationMessageBubble";
+import FileMessageBubble from "../components/FileMessageBubble";
 import Avatar from "../components/Avatar";
+
+function formatRecordingTime(ms: number): string {
+  const totalSec = Math.floor(Math.max(0, ms) / 1000);
+  const mm = Math.floor(totalSec / 60);
+  const ss = totalSec % 60;
+  return `${mm}:${ss.toString().padStart(2, "0")}`;
+}
 
 function getExpiryOptions(t: (key: string) => string): { label: string; ms: number | null }[] {
   return [
@@ -53,6 +67,10 @@ export interface DmInfoOpenParams {
   peerAvatarUrl: string | null;
   muted: boolean;
   mediaMessages: DMMessage[];
+  // Ataç ikonunun actigi "Dosyalar" sekmesi icin - foto DISINDAKI
+  // (sesli mesaj/konum/genel dosya) mesajlar. mediaMessages'tan AYRI
+  // tutuluyor cunku DmInfoScreen'in iki sekmesi ayri listeler.
+  fileMessages: DMMessage[];
   onToggleMute: () => void;
 }
 
@@ -180,7 +198,18 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 </Text>
               </View>
             )}
-            {item.mediaUrl ? (
+            {item.kind === "voice" && item.mediaUrl ? (
+              <VoiceMessageBubble uri={item.mediaUrl} durationMs={item.durationMs} />
+            ) : item.kind === "location" && item.latitude != null && item.longitude != null ? (
+              <LocationMessageBubble latitude={item.latitude} longitude={item.longitude} />
+            ) : item.kind === "file" && item.mediaUrl ? (
+              <FileMessageBubble
+                uri={item.mediaUrl}
+                fileName={item.fileName || item.text}
+                fileSize={item.fileSize}
+                mimeType={item.mimeType}
+              />
+            ) : item.mediaUrl ? (
               <ChatImageBubble
                 uri={item.mediaUrl}
                 isAdult={item.isAdult}
@@ -192,7 +221,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
             )}
-            {item.mediaUrl && item.text && item.text !== "📷 Fotoğraf" && (
+            {item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.mediaUrl && item.text && item.text !== "📷 Fotoğraf" && (
               <Text style={styles.mediaCaption}>{item.text}</Text>
             )}
             <View style={styles.metaRow}>
@@ -261,6 +290,16 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraReadyRef = useRef(false);
   const cameraRef = useRef<CameraView>(null);
+  // Dosya (pdf/zip/vb.) gonderme - foto ile AYNI "chat-media" bucket'ina
+  // yukleme deseni, ama kendi onizleme/caption ekrani yok, secilince
+  // DOGRUDAN gonderilir.
+  const [sendingFile, setSendingFile] = useState(false);
+  // Sesli mesaj kaydi - expo-audio'nun kendi "ne kadar surdu" sayacini
+  // (useAudioRecorderState) kullaniyoruz, kendi zamanlayicimizi KURMUYORUZ.
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder, 200);
+  const [voiceRecording, setVoiceRecording] = useState(false);
+  const [sendingVoice, setSendingVoice] = useState(false);
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
   // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
@@ -504,6 +543,110 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     }
   }
 
+  // Kullanici: "konumda gözüksün" - ataç menüsundeki "Konum" satiri. Dosya
+  // YOK, sadece o anki konumu (tek seferlik, "canli" DEGIL) gonderiyoruz -
+  // RoomScreen'in surekli guncellenen oda haritasiyla (room:location)
+  // KARISTIRILMASIN.
+  async function sendLocation() {
+    setAttachSheetVisible(false);
+    const perm = await Location.requestForegroundPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.locationPermissionRequiredBody"));
+      return;
+    }
+    try {
+      const pos = await Location.getCurrentPositionAsync({});
+      socket.emit(
+        "dm:sendLocation",
+        { toUserId: peer.userId, latitude: pos.coords.latitude, longitude: pos.coords.longitude },
+        (res: any) => {
+          if (res?.ok) setMessages((prev) => [...prev, res.message]);
+          else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+        }
+      );
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    }
+  }
+
+  // Kullanici: "dosya gönderme özelliği ekle" - ataç menüsundeki "Dosya"
+  // satiri. Fotograf akisindaki (sendPickedImage) ile AYNI "chat-media"
+  // yukleme deseni, ama kendi onizleme/caption ekrani yok - secilince
+  // DOGRUDAN gonderilir.
+  async function pickAndSendFile() {
+    const result = await DocumentPicker.getDocumentAsync({ multiple: false });
+    if (result.canceled || !result.assets?.[0] || !myUserId) return;
+    setAttachSheetVisible(false);
+    const asset = result.assets[0];
+    setSendingFile(true);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(asset.uri);
+      const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
+      const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", () => {});
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      socket.emit(
+        "dm:sendFile",
+        { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType },
+        (res: any) => {
+          if (res?.ok) setMessages((prev) => [...prev, res.message]);
+          else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+        }
+      );
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingFile(false);
+    }
+  }
+
+  // Mikrofon dugmesi: TIKLAYINCA kayit baslar (composer yerine kayit cubugu
+  // gosterilir, bkz. asagidaki JSX), cop kutusuyla vazgecilir, gonder
+  // ikonuyla "chat-media"ya yuklenip dm:sendVoice ile gonderilir.
+  async function startVoiceRecording() {
+    const perm = await requestRecordingPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.micPermissionRequiredBody"));
+      return;
+    }
+    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+    await audioRecorder.prepareToRecordAsync();
+    audioRecorder.record();
+    setVoiceRecording(true);
+  }
+
+  async function cancelVoiceRecording() {
+    if (audioRecorder.isRecording) await audioRecorder.stop();
+    setVoiceRecording(false);
+  }
+
+  async function sendVoiceRecording() {
+    const durationMs = recorderState.durationMillis;
+    if (audioRecorder.isRecording) await audioRecorder.stop();
+    setVoiceRecording(false);
+    const uri = audioRecorder.uri;
+    if (!uri || !myUserId) return;
+    setSendingVoice(true);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.m4a`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, "audio/m4a", () => {});
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      socket.emit(
+        "dm:sendVoice",
+        { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, durationMs },
+        (res: any) => {
+          if (res?.ok) setMessages((prev) => [...prev, res.message]);
+          else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+        }
+      );
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingVoice(false);
+    }
+  }
+
   function insertMention() {
     setInput((prev) => (prev.endsWith("@") || prev.length === 0 ? prev + "@" : prev + " @"));
   }
@@ -563,7 +706,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     searchVisible && searchQuery.trim()
       ? notExpired.filter((m) => m.text.toLowerCase().includes(searchQuery.trim().toLowerCase()))
       : notExpired;
-  const mediaMessages = notExpired.filter((m) => !!m.mediaUrl);
+  const mediaMessages = notExpired.filter((m) => !!m.mediaUrl && m.kind !== "voice" && m.kind !== "file");
+  // Uye bilgisi ekranindaki ataç ikonunun actigi "Dosyalar" sekmesi icin -
+  // bkz. DmInfoOpenParams.fileMessages.
+  const fileMessages = notExpired.filter((m) => m.kind === "voice" || m.kind === "location" || m.kind === "file");
   const expiryOptions = getExpiryOptions(t);
   const expiryLabel = expiryOptions.find((o) => o.ms === expiresAfterMs)?.label ?? t("dm.expiryOff");
 
@@ -588,7 +734,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
           activeOpacity={0.75}
           disabled={!onOpenInfo}
           onPress={() =>
-            onOpenInfo?.({ peerAvatarUrl, muted, mediaMessages, onToggleMute: toggleMute })
+            onOpenInfo?.({ peerAvatarUrl, muted, mediaMessages, fileMessages, onToggleMute: toggleMute })
           }
         >
           <View style={{ marginLeft: -1 }}>
@@ -697,53 +843,66 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       />
 
       <View style={[styles.inputBar, replyingTo && styles.inputBarWithReply]}>
-        <View style={[styles.inputPill, replyingTo ? styles.inputPillWithReply : styles.inputPillNormal]}>
-          {replyingTo && (
-            <View style={styles.replyPreviewCard}>
-              <View style={styles.replyBarAccent} />
-              <View style={styles.replyBarText}>
-                <Text style={styles.replyBarFrom}>{replyingTo.fromName}</Text>
-                <Text style={styles.replyBarBody} numberOfLines={1}>
-                  {replyingTo.text}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8} style={styles.replyBarClose}>
-                <Icon name="close" size={16} color={MUTED} />
+        {voiceRecording ? (
+          <>
+            <View style={[styles.inputPill, styles.inputPillNormal, styles.recordingPill]}>
+              <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={8}>
+                <Trash2 size={20} color={MUTED} />
               </TouchableOpacity>
+              <View style={styles.recordingDot} />
+              <Text style={styles.recordingTime}>{formatRecordingTime(recorderState.durationMillis)}</Text>
             </View>
-          )}
-          <View style={styles.inputIconsRow}>
-            <TouchableOpacity onPress={insertMention} hitSlop={6} style={{ marginLeft: -3 }}>
-              <Laugh size={25} color="#FFFFFF" />
+            <TouchableOpacity style={styles.inputRoundBtn} onPress={sendVoiceRecording} disabled={sendingVoice} hitSlop={8}>
+              {sendingVoice ? <ActivityIndicator size="small" color="#141210" /> : <Send size={20} color="#141210" />}
             </TouchableOpacity>
-            <TextInput
-              style={styles.input}
-              value={input}
-              onChangeText={setInput}
-              placeholder={t("dm.messagePlaceholder")}
-              placeholderTextColor={MUTED}
-              onSubmitEditing={sendMessage}
-            />
-            <TouchableOpacity onPress={() => setAttachSheetVisible(true)} hitSlop={6} style={{ marginLeft: -25 }}>
-              <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={19} color="#FFFFFF" /></View>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={openCamera} hitSlop={6} style={{ marginLeft: 5 }}>
-              <MaterialCommunityIcons name="camera-outline" size={25} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        {input.trim() ? (
-          <TouchableOpacity style={styles.inputRoundBtn} onPress={sendMessage} hitSlop={8}>
-            <Send size={20} color="#141210" />
-          </TouchableOpacity>
+          </>
         ) : (
-          <TouchableOpacity
-            style={styles.inputRoundBtn}
-            onPress={() => placeholder(t("dm.voiceMessageTitle"))}
-            hitSlop={8}
-          >
-            <RoomMicIcon size={22.5} color="#141210" />
-          </TouchableOpacity>
+          <>
+            <View style={[styles.inputPill, replyingTo ? styles.inputPillWithReply : styles.inputPillNormal]}>
+              {replyingTo && (
+                <View style={styles.replyPreviewCard}>
+                  <View style={styles.replyBarAccent} />
+                  <View style={styles.replyBarText}>
+                    <Text style={styles.replyBarFrom}>{replyingTo.fromName}</Text>
+                    <Text style={styles.replyBarBody} numberOfLines={1}>
+                      {replyingTo.text}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8} style={styles.replyBarClose}>
+                    <Icon name="close" size={16} color={MUTED} />
+                  </TouchableOpacity>
+                </View>
+              )}
+              <View style={styles.inputIconsRow}>
+                <TouchableOpacity onPress={insertMention} hitSlop={6} style={{ marginLeft: -3 }}>
+                  <Laugh size={25} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  value={input}
+                  onChangeText={setInput}
+                  placeholder={t("dm.messagePlaceholder")}
+                  placeholderTextColor={MUTED}
+                  onSubmitEditing={sendMessage}
+                />
+                <TouchableOpacity onPress={() => setAttachSheetVisible(true)} hitSlop={6} style={{ marginLeft: -25 }}>
+                  <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={19} color="#FFFFFF" /></View>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={openCamera} hitSlop={6} style={{ marginLeft: 5 }}>
+                  <MaterialCommunityIcons name="camera-outline" size={25} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            {input.trim() ? (
+              <TouchableOpacity style={styles.inputRoundBtn} onPress={sendMessage} hitSlop={8}>
+                <Send size={20} color="#141210" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.inputRoundBtn} onPress={startVoiceRecording} hitSlop={8}>
+                <RoomMicIcon size={22.5} color="#141210" />
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </View>
 
@@ -877,6 +1036,18 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                 <ImageIcon size={20} color={ACCENT} />
               </View>
               <Text style={styles.attachRowText}>{t("dm.attachGallery")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachRow} onPress={sendLocation}>
+              <View style={styles.attachIconWrap}>
+                <MapPin size={20} color={ACCENT} />
+              </View>
+              <Text style={styles.attachRowText}>{t("dm.attachLocation")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachRow} onPress={pickAndSendFile} disabled={sendingFile}>
+              <View style={styles.attachIconWrap}>
+                {sendingFile ? <ActivityIndicator size="small" color={ACCENT} /> : <FileTextIcon size={20} color={ACCENT} />}
+              </View>
+              <Text style={styles.attachRowText}>{t("dm.attachFile")}</Text>
             </TouchableOpacity>
             <View style={styles.sheetHandle} />
           </TouchableOpacity>
@@ -1097,6 +1268,9 @@ const styles = StyleSheet.create({
   },
   // Cevap yokken pill sabit 55 yukseklikte (tek satir ikon sirasi).
   inputPillNormal: { height: 55 },
+  recordingPill: { flexDirection: "row", alignItems: "center", gap: 10 },
+  recordingDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FF4D4F" },
+  recordingTime: { color: TEXT, fontSize: 15, fontWeight: "600" },
   // Cevap varken pill SUTUN (dikey) duzene geciyor: ust kisimda icine
   // gomulu cevap kartiyla, altta normal ikon sirasiyla - boy otomatik
   // uzuyor (sabit 55 yerine, icerige gore).
