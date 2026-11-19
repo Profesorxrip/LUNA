@@ -949,6 +949,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setReportVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+            <View style={styles.sheetHandleTop} />
             <Text style={styles.sheetTitle}>{t("dm.reportTitle", { name: peer.name })}</Text>
             <Text style={styles.sheetSubtitle}>{t("dm.reportSubtitle")}</Text>
             <TextInput
@@ -967,7 +968,6 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             >
               <Text style={styles.reportSubmitBtnText}>{t("dm.reportSend")}</Text>
             </TouchableOpacity>
-            <View style={styles.sheetHandle} />
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
