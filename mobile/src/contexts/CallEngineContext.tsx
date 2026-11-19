@@ -5,7 +5,7 @@ import { useCallEngine } from "../hooks/useCallEngine";
 import IncomingCallScreen from "../screens/IncomingCallScreen";
 import MinimizedCallBanner from "../components/MinimizedCallBanner";
 import { formatElapsed } from "../screens/VoiceCallScreen";
-import { navigationRef } from "../navigation/RootNavigator";
+import { navigationRef, subscribeCurrentRouteName } from "../navigation/RootNavigator";
 
 type CallEngine = ReturnType<typeof useCallEngine>;
 export interface CallEngineContextValue extends CallEngine {
@@ -45,12 +45,18 @@ export default function CallEngineProvider({ children }: { children: React.React
   const engine = useCallEngine();
   const { incomingCall, acceptCall, declineCall, phase, participants, elapsedSeconds, isVideoCall, micEnabled, setMicEnabled, speakerOn, setSpeakerRoute, endCall } = engine;
   const [callMinimized, setCallMinimized] = useState(false);
+  // "Oda" ekranindayken banner GIZLENIR - o ekranin zaten kendi sesli/
+  // goruntulu oda arayuzu var, ustune bir de 1'e 1 arama banner'i binmesin
+  // diye (bkz. RootNavigator.tsx subscribeCurrentRouteName).
+  const [onRoomScreen, setOnRoomScreen] = useState(false);
 
   // Arama tamamen bitince (phase "idle"e donunce) kucultulmus banner da
   // kendiliginden kapanir - bir sonraki aramada BOS yere acik kalmasin diye.
   useEffect(() => {
     if (phase === "idle") setCallMinimized(false);
   }, [phase]);
+
+  useEffect(() => subscribeCurrentRouteName((name) => setOnRoomScreen(name === "Room")), []);
 
   const contextValue: CallEngineContextValue = { ...engine, callMinimized, setCallMinimized };
   // Gelen arama zaten devam eden bir GRUP aramasiysa (existingMembers dolu),
@@ -65,7 +71,7 @@ export default function CallEngineProvider({ children }: { children: React.React
   // (henuz cevaplanmamis gelen arama) zaten tam ekran IncomingCallScreen ile
   // gosterildigi icin burada HARIC tutulur.
   const minimizedPeer = participants.length === 1 ? participants[0] : null;
-  const showMinimizedBanner = callMinimized && phase !== "idle" && phase !== "ringing-in" && !!minimizedPeer;
+  const showMinimizedBanner = callMinimized && phase !== "idle" && phase !== "ringing-in" && !!minimizedPeer && !onRoomScreen;
 
   return (
     <CallEngineContext.Provider value={contextValue}>

@@ -93,6 +93,27 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // gelen arama bildirimi navigasyon agacinin DISINDA (App.tsx'teki provider)
 // gosteriliyor.
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+// CallEngineContext.tsx (bu Navigator'in DISINDA, App.tsx'te onu saran
+// Provider) kucultulmus arama banner'ini bazi ekranlarda (orn. "Oda" -
+// zaten kendi arama/katilimci arayuzu oldugu icin banner orada gereksiz/
+// kafa karistirici) GIZLEYEBILMESI icin gecerli route adini disari acan
+// basit bir modul-seviyesi yayinci - o Context NavigationContainer'in
+// ICINDE olmadigindan normal bir navigasyon hook'u kullanamiyor.
+type RouteNameListener = (name: string | undefined) => void;
+const routeNameListeners = new Set<RouteNameListener>();
+export function subscribeCurrentRouteName(listener: RouteNameListener): () => void {
+  routeNameListeners.add(listener);
+  if (navigationRef.isReady()) listener(navigationRef.getCurrentRoute()?.name);
+  return () => {
+    routeNameListeners.delete(listener);
+  };
+}
+function notifyRouteNameListeners() {
+  const name = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : undefined;
+  routeNameListeners.forEach((listener) => listener(name));
+}
+
 const Tab = createBottomTabNavigator<MainTabsParamList>();
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 // Tab icine gomulu ekranlarin navigasyonu: HEM kendi sekmeleri arasinda
@@ -494,7 +515,7 @@ function RoomRoute() {
 
 export default function RootNavigator() {
   return (
-    <NavigationContainer ref={navigationRef} theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme} onReady={notifyRouteNameListeners} onStateChange={notifyRouteNameListeners}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
