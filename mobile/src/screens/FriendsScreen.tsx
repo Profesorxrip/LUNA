@@ -36,6 +36,10 @@ interface Props {
   // duz bir arkadas listesi gerekiyor - oda davetine ozel "Son Zamanlarda"/
   // "Paylas" sekmeleri VE "Tumu" (hepsini sec) butonu bu modda gizlenir.
   hideInviteExtras?: boolean;
+  // hideInviteExtras'taki baslik varsayilan olarak "Aramaya Ekle" - BASKA
+  // bir cagiran (orn. PhotoViewerModal.tsx'teki "İlet") kendi baslignini
+  // versin diye.
+  headerTitle?: string;
   // inviteMode'da "Engellendi" sekmesinin YERINI ALAN "Paylas" sekmesinin
   // icerigi (ShareRoomContent) icin gerekli - AYRI bir ekran ACMAZ, digerleri
   // gibi ayni sekme cubugunun altinda gosterilir (bkz. RoomScreen.tsx).
@@ -79,6 +83,7 @@ export default function FriendsScreen({
   onSendInvites,
   confirmButtonLabel,
   hideInviteExtras = false,
+  headerTitle,
   roomCode,
   roomTitle,
   embedded = false,
@@ -400,7 +405,7 @@ export default function FriendsScreen({
             </View>
           </TouchableOpacity>
           <Text style={[styles.editHeaderTitle, headerFontLoaded && styles.editHeaderTitleFontLoaded]}>
-            {t("friends.addToCallTitle")}
+            {headerTitle ?? t("friends.addToCallTitle")}
           </Text>
           <View style={styles.iconTouch} />
         </View>

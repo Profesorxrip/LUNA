@@ -392,15 +392,18 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
           </TouchableOpacity>
         </Modal>
 
-        {/* "İlet" - RoomScreen.tsx'teki "Davet et" ile AYNI kisi secici
-            (FriendsScreen.tsx inviteMode), sadece buton metni "Davet At"
-            yerine "İlet" (bkz. confirmButtonLabel). */}
+        {/* "İlet" - VoiceCallScreen.tsx'teki "Arama Ekle" ile AYNI sade
+            kisi secici (FriendsScreen.tsx inviteMode + hideInviteExtras:
+            "Son Zamanlarda"/"Paylaş" sekmeleri ve "Tümü" butonu olmadan,
+            tek basligi "İlet" diyen kendi header'iyla). */}
         <Modal visible={forwardVisible} animationType="slide" onRequestClose={() => setForwardVisible(false)} statusBarTranslucent>
           <FriendsScreen
             onBack={() => setForwardVisible(false)}
             onOpenDM={() => {}}
             onOpenParticipant={() => {}}
             inviteMode
+            hideInviteExtras
+            headerTitle="İlet"
             confirmButtonLabel={(count) => `İlet (${count})`}
             onSendInvites={forwardToUsers}
           />
