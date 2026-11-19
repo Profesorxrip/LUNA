@@ -934,9 +934,12 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             <Text style={styles.sheetTitle}>{t("dm.menuExpiry")}</Text>
             <Text style={styles.sheetSubtitle}>{t("dm.expirySubtitle")}</Text>
             {expiryOptions.map((opt) => (
-              <TouchableOpacity key={opt.label} style={styles.sheetRow} onPress={() => chooseExpiry(opt.ms)}>
+              <TouchableOpacity
+                key={opt.label}
+                style={[styles.sheetRow, expiresAfterMs === opt.ms && styles.sheetRowSelected]}
+                onPress={() => chooseExpiry(opt.ms)}
+              >
                 <Text style={styles.sheetRowText}>{opt.label}</Text>
-                {expiresAfterMs === opt.ms && <Text style={styles.sheetRowCheck}>✓</Text>}
               </TouchableOpacity>
             ))}
           </View>
@@ -1329,10 +1332,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
   },
+  // VoiceCallScreen/VideoCallScreen'in cikis secimi menusundeki
+  // (outputMenuRowSelected) ile AYNI secili-satir dili - tik yerine
+  // yarı saydam mavi kutu.
+  sheetRowSelected: { backgroundColor: "rgba(14,165,233,0.18)" },
   sheetRowText: { color: TEXT, fontSize: 15, fontWeight: "600" },
-  sheetRowCheck: { color: ACCENT, fontSize: 16, fontWeight: "700" },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#3A332C", marginTop: 14 },
   // Sure sonu sheet'inin KENDI tutamaci - digerlerinden (Sikayet Et/ataç)
   // farkli olarak ustte, baslikdan ONCE.
