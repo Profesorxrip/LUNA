@@ -23,8 +23,9 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2 } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert } from "lucide-react-native";
 import { RoomMicIcon } from "../components/CustomIcons";
+import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
 import { getSocket, DMMessage, DMReply } from "../services/socket";
 import { supabase } from "../services/supabase";
@@ -273,12 +274,6 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [menuVisible, setMenuVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [mediaVisible, setMediaVisible] = useState(false);
-  // Medya sheet'inden Yanıtla/Sohbette Göster/Bildir ile baska bir yere
-  // GECERKEN (sheet'i kullanici elle kapatmadan) kaymali kapanis animasyonu
-  // calismasin diye - yoksa tam ekran fotograf izleyici kapanirken, ALTINDA
-  // bu kart kisaca kayarak kapaniyormus gibi SACMA bir kutu gorunuyor.
-  const [mediaCloseInstant, setMediaCloseInstant] = useState(false);
   const [expiryVisible, setExpiryVisible] = useState(false);
   const [expiresAfterMs, setExpiresAfterMs] = useState<number | null>(null);
   const [muted, setMuted] = useState(false);
@@ -716,12 +711,15 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const expiryOptions = getExpiryOptions(t);
   const expiryLabel = expiryOptions.find((o) => o.ms === expiresAfterMs)?.label ?? t("dm.expiryOff");
 
-  const menuItems: { label: string; onPress: () => void }[] = [
-    { label: t("dm.menuSearch"), onPress: () => setSearchVisible(true) },
-    { label: t("dm.menuMedia"), onPress: () => { setMediaCloseInstant(false); setMediaVisible(true); } },
-    { label: t("dm.menuExpiry"), onPress: () => setExpiryVisible(true) },
-    { label: muted ? t("dm.menuUnmute") : t("dm.menuMute"), onPress: toggleMute },
-    { label: t("dm.menuReport"), onPress: () => setReportVisible(true) },
+  const menuItems: { label: string; icon: React.ReactNode; danger?: boolean; onPress: () => void }[] = [
+    { label: t("dm.menuSearch"), icon: <Search size={16} color={TEXT} />, onPress: () => setSearchVisible(true) },
+    { label: t("dm.menuExpiry"), icon: <Clock size={16} color={TEXT} />, onPress: () => setExpiryVisible(true) },
+    {
+      label: muted ? t("dm.menuUnmute") : t("dm.menuMute"),
+      icon: muted ? <Bell size={16} color={TEXT} /> : <BellOff size={16} color={TEXT} />,
+      onPress: toggleMute,
+    },
+    { label: t("dm.menuReport"), icon: <TriangleAlert size={16} color={theme.danger} />, danger: true, onPress: () => setReportVisible(true) },
   ];
 
   return (
@@ -921,58 +919,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                   item.onPress();
                 }}
               >
-                <Text style={styles.menuRowText}>{item.label}</Text>
+                {item.icon}
+                <Text style={[styles.menuRowText, item.danger && { color: theme.danger }]}>{item.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
-        </TouchableOpacity>
-      </Modal>
-
-      <Modal
-        visible={mediaVisible}
-        transparent
-        animationType={mediaCloseInstant ? "none" : "slide"}
-        onRequestClose={() => setMediaVisible(false)}
-        statusBarTranslucent
-      >
-        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setMediaVisible(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.mediaSheet}>
-            <Text style={styles.sheetTitle}>{t("dm.menuMedia")}</Text>
-            {mediaMessages.length === 0 ? (
-              <Text style={styles.mediaEmpty}>{t("dm.noMedia")}</Text>
-            ) : (
-              <View style={styles.mediaGrid}>
-                {mediaMessages.map((m) => (
-                  <ChatImageBubble
-                    key={m.id}
-                    uri={m.mediaUrl!}
-                    isAdult={m.isAdult}
-                    size={96}
-                    senderName={m.fromName}
-                    sentAt={m.createdAt}
-                    onReply={() => {
-                      setMediaCloseInstant(true);
-                      setMediaVisible(false);
-                      startReply(m);
-                    }}
-                    onShowInChat={() => {
-                      setMediaCloseInstant(true);
-                      setMediaVisible(false);
-                      scrollToMessage(m.id);
-                    }}
-                    onReport={() => {
-                      setMediaCloseInstant(true);
-                      setMediaVisible(false);
-                      setReportVisible(true);
-                    }}
-                  />
-                ))}
-              </View>
-            )}
-            <TouchableOpacity style={styles.sheetCloseBtn} onPress={() => setMediaVisible(false)}>
-              <Text style={styles.sheetCloseBtnText}>{t("common.close")}</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
@@ -1312,16 +1263,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   menuOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  // Profil ekranindaki kutularla AYNI koyu lacivert (#15202B, bkz.
+  // encryptionNotice/DmInfoScreen.tsx actionSquare) - eskiden siyaha yakin
+  // kahverengiydi (#141210).
   menuCard: {
     position: "absolute",
     top: 92,
     right: 16,
-    backgroundColor: "#141210",
+    backgroundColor: "#15202B",
     borderRadius: 12,
     paddingVertical: 6,
-    minWidth: 150,
+    minWidth: 170,
   },
-  menuRow: { paddingHorizontal: 16, paddingVertical: 12 },
+  menuRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
   menuRowText: { color: TEXT, fontSize: 14, fontWeight: "600" },
   headerNameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   searchBar: {
@@ -1376,15 +1330,6 @@ const styles = StyleSheet.create({
   sheetRowText: { color: TEXT, fontSize: 15, fontWeight: "600" },
   sheetRowCheck: { color: ACCENT, fontSize: 16, fontWeight: "700" },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#3A332C", marginTop: 14 },
-  mediaSheet: {
-    backgroundColor: "#141210",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    paddingTop: 18,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
-    minHeight: 200,
-  },
   // Kullanicinin istegi: ilk mesajin ustunde, ekrani ortalayacak sekilde,
   // profil ekranindaki kutularla AYNI koyu lacivert (#15202B) renkte,
   // solunda ayarlardaki gizlilik (LockClosedIcon) ikonu olan uctan uca
@@ -1406,7 +1351,6 @@ const styles = StyleSheet.create({
   encryptionNoticeIconWrap: { marginBottom: 6 },
   encryptionNoticeText: { color: "#FFFFFF", fontSize: 12, lineHeight: 17, textAlign: "center" },
   mediaEmpty: { color: MUTED, fontSize: 13, marginTop: 30, textAlign: "center" },
-  mediaGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
   sheetCloseBtn: { marginTop: 20, alignItems: "center", paddingVertical: 12 },
   sheetCloseBtnText: { color: MUTED, fontSize: 14, fontWeight: "600" },
   reportInput: {
