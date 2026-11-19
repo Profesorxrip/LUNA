@@ -22,6 +22,7 @@ import { showAlert } from "./CustomAlert";
 import { formatMessageTime } from "../utils/time";
 import { getSocket } from "../services/socket";
 import FriendsScreen from "../screens/FriendsScreen";
+import { theme } from "../theme";
 
 interface Props {
   uri: string | null;
@@ -39,6 +40,17 @@ interface Props {
   // galerisi gibi yanitlanacak bir composer OLMAYAN yerlerde) buton hic
   // gosterilmez.
   onReply?: () => void;
+  // "Sohbette Göster" - medya IZGARASI gibi sohbetin KENDISI olmayan bir
+  // yerden acildiginda (bkz. DMScreen.tsx mediaVisible sheet'i) o mesaja
+  // kaydirmak icin; verilmezse (orn. zaten sohbetin icinden acilmissa, ya
+  // da composer/mesaj listesi OLMAYAN DmInfoScreen.tsx/UserProfileScreen.tsx
+  // gibi yerlerde) uc nokta menusunde hic gosterilmez.
+  onShowInChat?: () => void;
+  // "Bildir" - sadece GERCEK bir report akisi (bkz. DMScreen.tsx/RoomScreen.tsx
+  // report:submit) VERILDIGINDE gosterilir. Rapor ekrani (bildiri modali)
+  // GORUNTULEYICININ DISINDA (cagiran ekranda) oldugu icin, Yanıtla/Sohbette
+  // Göster ile AYNI sekilde once izleyici kapatilir.
+  onReport?: () => void;
 }
 
 const MIN_SCALE = 1;
@@ -69,7 +81,7 @@ function touchDistance(touches: GestureResponderEvent["nativeEvent"]["touches"])
  * editHeader) AYNI gorsel dili kullanir - aynı donen CircleArrowDown geri
  * oku, "Indir" artik ayri bir ikon degil, saga TASINAN uc nokta menusunun
  * icinde bir secenek. */
-export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onReply }: Props) {
+export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onReply, onShowInChat, onReport }: Props) {
   const insets = useSafeAreaInsets();
   const { i18n } = useTranslation();
   const [downloading, setDownloading] = useState(false);
@@ -398,6 +410,32 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
                 )}
                 <Text style={styles.menuRowText}>İndir</Text>
               </TouchableOpacity>
+              {!!onShowInChat && (
+                <TouchableOpacity
+                  style={styles.menuRow}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    onShowInChat();
+                    onClose();
+                  }}
+                >
+                  <Icon name="chatBubble" size={16} color="#FFFFFF" />
+                  <Text style={styles.menuRowText}>Sohbette Göster</Text>
+                </TouchableOpacity>
+              )}
+              {!!onReport && (
+                <TouchableOpacity
+                  style={styles.menuRow}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    onReport();
+                    onClose();
+                  }}
+                >
+                  <Icon name="warning" size={16} color={theme.danger} />
+                  <Text style={[styles.menuRowText, { color: theme.danger }]}>Bildir</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </TouchableOpacity>
         </Modal>

@@ -112,13 +112,14 @@ interface DMBubbleRowProps {
   seen: boolean;
   onTap: () => void;
   onReply: () => void;
+  onReport: () => void;
 }
 
 // Oda sohbetindeki (RoomScreen.tsx -> ChatBubbleRow) ile AYNI mantik: kendi
 // mesajimizi SAGDAN SOLA, karsidakinin mesajini SOLDAN SAGA kaydirinca
 // yanitlama (reply) tetikleniyor. Satir translateX ile kaydirilirken
 // kenarda bir "reply" ikonu belirip bosalan tarafi gosteriyor.
-function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply }: DMBubbleRowProps) {
+function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport }: DMBubbleRowProps) {
   const { i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
 
@@ -186,6 +187,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply }: DM
                 senderName={item.fromName}
                 sentAt={item.createdAt}
                 onReply={onReply}
+                onReport={onReport}
               />
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
@@ -265,6 +267,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [peerAvatarUrl, setPeerAvatarUrl] = useState<string | null>(null);
   const lastTapRef = useRef<Record<string, number>>({});
   const listRef = useRef<FlatList<DMMessage>>(null);
+  // "Sohbette Göster" - kayan listede henuz olcum alinmamis bir mesaja
+  // scrollToIndex basarisiz olursa (bkz. FlatList'in onScrollToIndexFailed'i)
+  // asagida yaklasik bir offset'e gidip TEKRAR denemek icin hangi mesaji
+  // ariyoruz onu hatirliyoruz.
+  const pendingScrollMessageId = useRef<string | null>(null);
   const muteStorageKey = `dm_muted_${peer.userId}`;
 
   useEffect(() => {
@@ -500,6 +507,15 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setReplyingTo({ text: message.text, fromName: message.fromUserId === myUserId ? t("dm.you") : message.fromName });
   }
 
+  // Medya listesinden (fotograf izleyicideki "Sohbette Göster") ana sohbette
+  // o mesaja kaydirir.
+  function scrollToMessage(id: string) {
+    const index = visibleMessages.findIndex((m) => m.id === id);
+    if (index === -1) return;
+    pendingScrollMessageId.current = id;
+    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+  }
+
   // Bir mesaja CIFT TIKLAYINCA Ayarlar'da secilen hizli tepki emojisini
   // gonderir/geri alir (ayni emojiye ikinci cift-tik tepkiyi kaldirir).
   function handleMessageTap(message: DMMessage) {
@@ -632,6 +648,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         data={visibleMessages}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.listContent}
+        onScrollToIndexFailed={(info) => {
+          listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+          const id = pendingScrollMessageId.current;
+          if (id) setTimeout(() => scrollToMessage(id), 100);
+        }}
         ListEmptyComponent={
           loading ? <LoadingView /> : <Text style={styles.mediaEmpty}>{t("dm.noMessagesYet")}</Text>
         }
@@ -664,6 +685,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               seen={seen}
               onTap={() => handleMessageTap(item)}
               onReply={() => startReply(item)}
+              onReport={() => setReportVisible(true)}
             />
           );
         }}
@@ -758,6 +780,14 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                     onReply={() => {
                       setMediaVisible(false);
                       startReply(m);
+                    }}
+                    onShowInChat={() => {
+                      setMediaVisible(false);
+                      scrollToMessage(m.id);
+                    }}
+                    onReport={() => {
+                      setMediaVisible(false);
+                      setReportVisible(true);
                     }}
                   />
                 ))}

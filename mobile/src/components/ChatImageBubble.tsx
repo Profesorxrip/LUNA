@@ -19,6 +19,10 @@ interface Props {
   // PhotoViewerModal.tsx'teki "Yanıtla" butonu icin - bkz. oradaki Props
   // aciklamasi (sadece verilirse buton gosterilir).
   onReply?: () => void;
+  // PhotoViewerModal.tsx'teki "Sohbette Göster"/"Bildir" icin - bkz. oradaki
+  // Props aciklamalari (sadece verilirse ilgili buton gosterilir).
+  onShowInChat?: () => void;
+  onReport?: () => void;
 }
 
 /** Chat/DM'de gonderilen fotograf - "+18 icerik" isaretliyse varsayilan
@@ -27,7 +31,7 @@ interface Props {
  * yok, her acilista yeniden karar verilir). Bulanik degilken (ya da bir kez
  * acildiktan sonra) dokununca PhotoViewerModal ile tam ekran acilir - profil
  * galerisi/avatar ile AYNI bilesen. */
-export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius = 12, senderName, sentAt, onReply }: Props) {
+export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius = 12, senderName, sentAt, onReply, onShowInChat, onReport }: Props) {
   const [revealed, setRevealed] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const blurred = isAdult && !revealed;
@@ -56,6 +60,8 @@ export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius
         senderName={senderName}
         sentAt={sentAt}
         onReply={onReply}
+        onShowInChat={onShowInChat}
+        onReport={onReport}
       />
     </>
   );
