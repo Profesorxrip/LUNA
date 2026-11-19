@@ -1327,12 +1327,18 @@ const styles = StyleSheet.create({
   },
   sheetTitle: { color: TEXT, fontSize: 16, fontWeight: "700", marginBottom: 4, alignSelf: "flex-start" },
   sheetSubtitle: { color: MUTED, fontSize: 12, marginBottom: 14, alignSelf: "flex-start" },
+  // marginHorizontal (-10) + paddingHorizontal (10) birbirini NOTRLER -
+  // yazinin konumu AYNI kalir (bkz. onceki duzeltme), ama secili kutunun
+  // kendisi kenarlardan tasarak biraz daha GENIS gorunur, yazi da artik
+  // kutunun kenarina YAPISIK degil.
   sheetRow: {
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 14,
+    paddingHorizontal: 10,
+    marginHorizontal: -10,
     borderRadius: 10,
   },
   // VoiceCallScreen/VideoCallScreen'in cikis secimi menusundeki
