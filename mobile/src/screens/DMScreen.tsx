@@ -1332,8 +1332,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: 14,
     borderRadius: 10,
   },
   // VoiceCallScreen/VideoCallScreen'in cikis secimi menusundeki
