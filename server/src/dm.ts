@@ -16,15 +16,19 @@ export interface DMMessage {
   createdAt: number;
   expiresAt: number | null;
   // "photo" (eski kayitlarda da gecerli varsayim - bkz. 0033 migration'daki
-  // geriye donuk isaretleme), "voice", "location", "file", "video" - bkz.
-  // 0033_dm_message_kinds.sql / 0034_dm_video_messages.sql.
-  kind: "text" | "photo" | "voice" | "location" | "file" | "video";
+  // geriye donuk isaretleme), "voice", "location", "file", "video", "call" -
+  // bkz. 0033_dm_message_kinds.sql / 0034_dm_video_messages.sql /
+  // 0035_dm_call_messages.sql.
+  kind: "text" | "photo" | "voice" | "location" | "file" | "video" | "call";
   durationMs: number | null;
   latitude: number | null;
   longitude: number | null;
   fileName: string | null;
   fileSize: number | null;
   mimeType: string | null;
+  // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
+  callIsVideo: boolean | null;
+  callStatus: "completed" | "missed" | null;
 }
 
 // userId -> socketId. Sadece hangi acik socket'in hangi kullanici oldugunu
@@ -65,6 +69,8 @@ function mapRow(row: any): DMMessage {
     fileName: row.file_name ?? null,
     fileSize: row.file_size ?? null,
     mimeType: row.mime_type ?? null,
+    callIsVideo: row.call_is_video ?? null,
+    callStatus: row.call_status ?? null,
   };
 }
 
@@ -177,6 +183,30 @@ export async function sendVideoMessage(
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  return { ok: true, message: mapRow(data) };
+}
+
+/** Bir aramanin (sesli/goruntulu) SONUCUNU DM sohbetine kayit duser -
+ * arayan ya da arananin HANGISI o anki olayi (kapatma/reddetme/vazgecme)
+ * tetikliyorsa ONUN kendi db client'iyla ("me" = auth.uid()) cagrilir, bkz.
+ * calls.ts/index.ts kullanim yeri. status "missed" oldugunda duration_ms
+ * RPC icinde zaten yoksayilir. */
+export async function sendCallMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  isVideo: boolean,
+  status: "completed" | "missed",
+  durationMs?: number
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_dm_call", {
+    to_user: toUserId,
+    is_video: isVideo,
+    status,
+    duration_ms: durationMs ?? null,
+  });
+  if (error) {
+    return { ok: false, error: "failed" };
   }
   return { ok: true, message: mapRow(data) };
 }

@@ -33,6 +33,11 @@ export interface ActiveCall {
   // baglanmis) kisilere gonderilir, cunku mesh baglantisi sadece onlarla
   // kurulacak.
   accepted: Set<string>;
+  // Arama GERCEKTEN kuruldugunda (ikinci kisi kabul ettiginde) damgalanir -
+  // DM'deki arama kayit mesajinin ("Sesli arama · 2:15" / "Cevapsız arama")
+  // sure hesabi VE "hic cevap verilmedi mi" ayrimi bunu kullanir (bkz.
+  // index.ts call:end/call:decline/call:cancel).
+  connectedAt?: number;
 }
 
 const activeCalls = new Map<string, ActiveCall>();
@@ -78,6 +83,7 @@ export function acceptCall(callId: string, userId: string): ActiveCall | undefin
   const call = activeCalls.get(callId);
   if (!call || !call.members.has(userId)) return undefined;
   call.accepted.add(userId);
+  if (call.connectedAt === undefined && call.accepted.size >= 2) call.connectedAt = Date.now();
   return call;
 }
 

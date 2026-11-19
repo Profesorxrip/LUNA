@@ -308,11 +308,14 @@ export interface DMMessage {
   // disinda) mediaUrl varligina bakilarak "photo" kabul edilir (bkz.
   // DMScreen.tsx render dallanmasi) - eski, bu alani hic tasimayan
   // kayitlarla geriye uyumluluk icin.
-  kind?: "text" | "photo" | "voice" | "location" | "file" | "video";
+  kind?: "text" | "photo" | "voice" | "location" | "file" | "video" | "call";
   durationMs?: number | null;
   latitude?: number | null;
   longitude?: number | null;
   fileName?: string | null;
   fileSize?: number | null;
   mimeType?: string | null;
+  // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
+  callIsVideo?: boolean | null;
+  callStatus?: "completed" | "missed" | null;
 }

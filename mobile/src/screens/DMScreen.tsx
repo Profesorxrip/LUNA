@@ -42,6 +42,7 @@ import VideoMessageBubble from "../components/VideoMessageBubble";
 import VoiceMessageBubble from "../components/VoiceMessageBubble";
 import LocationMessageBubble from "../components/LocationMessageBubble";
 import FileMessageBubble from "../components/FileMessageBubble";
+import CallMessageBubble from "../components/CallMessageBubble";
 import Avatar from "../components/Avatar";
 
 function formatRecordingTime(ms: number): string {
@@ -236,6 +237,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               item.kind === "voice" && styles.bubbleVoicePad,
               item.kind === "location" && styles.bubbleLocationPad,
               item.kind === "file" && styles.bubbleFilePad,
+              item.kind === "call" && styles.bubbleCallPad,
               item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.mediaUrl && styles.bubblePhotoPad,
             ]}
           >
@@ -269,6 +271,8 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 onReply={onReply}
                 onReport={onReport}
               />
+            ) : item.kind === "call" ? (
+              <CallMessageBubble isVideo={!!item.callIsVideo} status={item.callStatus || "completed"} durationMs={item.durationMs ?? null} />
             ) : item.mediaUrl ? (
               <ChatImageBubble
                 uri={item.mediaUrl}
@@ -295,12 +299,13 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 styles.metaRow,
                 item.kind === "voice" && styles.metaRowVoice,
                 item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.mediaUrl && styles.metaRowPhotoOverlay,
+                item.kind === "call" && styles.metaRowCallOverlay,
               ]}
             >
               {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
               <View style={styles.metaRowRight}>
                 <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
-                {isMine && (
+                {isMine && item.kind !== "call" && (
                   <MaterialIcons
                     name={seen ? "done-all" : "done"}
                     size={16}
@@ -431,6 +436,16 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       if (fromUserId !== peer.userId) return;
       setMessages((prev) => [...prev, message]);
     }
+    // Arama bitince sunucunun KENDI tarafimizdan ("ben" o olayi tetikledim -
+    // kapattim/reddettim/vazgectim) olusturdugu kayit mesaji - normal
+    // "dm:message" fromUserId'si her zaman KARSI tarafi varsaydigi icin
+    // (bkz. yukarisi) bu durumda isemiyor, bu yuzden ayri bir event (bkz.
+    // server/src/index.ts logCallMessage). toUserId, bu mesajin HANGI DM
+    // konusmasina ait oldugunu (karsi tarafi) belirtir.
+    function handleOwnMessage({ toUserId, message }: { toUserId: string; message: DMMessage }) {
+      if (toUserId !== peer.userId) return;
+      setMessages((prev) => [...prev, message]);
+    }
     function handleSeen({ byUserId, at }: { byUserId: string; at: number }) {
       if (byUserId !== peer.userId) return;
       setSeenUpTo(at);
@@ -452,11 +467,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, peerReaction: emoji } : m)));
     }
     socket.on("dm:message", handleMessage);
+    socket.on("dm:message:self", handleOwnMessage);
     socket.on("dm:seen", handleSeen);
     socket.on("dm:expiry", handleExpiry);
     socket.on("dm:reaction", handleReaction);
     return () => {
       socket.off("dm:message", handleMessage);
+      socket.off("dm:message:self", handleOwnMessage);
       socket.off("dm:seen", handleSeen);
       socket.off("dm:expiry", handleExpiry);
       socket.off("dm:reaction", handleReaction);
@@ -1243,6 +1260,7 @@ const styles = StyleSheet.create({
   bubbleLocationPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
   // Dosya karti icin de AYNI mantik - bkz. FileMessageBubble'daki buyutme.
   bubbleFilePad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
+  bubbleCallPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   // Fotograf balonu icin de AYNI mantik - ChatImageBubble'in kendi boyutu da
   // buyutuldu (bkz. asagidaki size/borderRadius prop'lari).
   bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
@@ -1258,6 +1276,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 3,
+  },
+  // Arama kutusundaki saat icin AYNI konum (sag alt, kutunun icinde) ama
+  // fotograftaki gibi arkasinda cerceve/kutu YOK (kullanicinin istegi) -
+  // kartin kendi arka plani zaten yeterince okunabilir.
+  metaRowCallOverlay: {
+    position: "absolute",
+    bottom: 8,
+    right: 10,
+    marginTop: 0,
   },
   bubbleMine: { backgroundColor: BUBBLE_MINE_COLOR },
   // Balonun disina tasan, WhatsApp'taki gibi TEK bir bezier egrisiyle

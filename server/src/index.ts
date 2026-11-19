@@ -63,6 +63,7 @@ import {
   sendVideoMessage,
   sendLocationMessage,
   sendFileMessage,
+  sendCallMessage,
   setExpiryMs,
   markSeen,
   setDmPinned,
@@ -1104,6 +1105,21 @@ io.on("connection", (socket: Socket) => {
     if (peerSocketId) io.to(peerSocketId).emit("dm:expiry", { byUserId: myUserId, ms });
   });
 
+  // Arama bitince (kapatildi/reddedildi/cevap verilmedi) DM sohbetine bir
+  // kayit mesaji dusurur - SADECE saf 1'e 1 aramalarda cagrilir (bkz.
+  // asagidaki call:decline/call:cancel/call:end, grup aramalarinda
+  // atlanir). O anki olayi tetikleyen taraf (arayan ya da aranan,
+  // hangisiyse) KENDI db client'iyla ("me" = auth.uid()) yazdigi icin peer'e
+  // "dm:message", kendi acik DMScreen'ine (varsa) "dm:message:self" ile
+  // iletilir - ikisi de DMScreen.tsx'te dinleniyor.
+  async function logCallMessage(toUserId: string, isVideo: boolean, status: "completed" | "missed", durationMs?: number) {
+    const result = await sendCallMessage(myDb!, toUserId, isVideo, status, durationMs);
+    if (!result.ok || !result.message) return;
+    const peerSocketId = getSocketIdForUser(toUserId);
+    if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+    socket.emit("dm:message:self", { toUserId, message: result.message });
+  }
+
   // ---- DM sesli/goruntulu arama sinyallesmesi (1'e 1 VE grup) ----
   // Sunucu burada GERCEK ses/goruntu akisini HIC TASIMAZ - sadece
   // istemcilerin birbirini "calma" asamasinda bulmasini ve ardindan
@@ -1226,9 +1242,14 @@ io.on("connection", (socket: Socket) => {
     const inviterSocketIds = Array.from(call.members.entries())
       .filter(([uid]) => call.accepted.has(uid))
       .map(([, sid]) => sid);
+    // Saf 1'e 1 (grup aramasi degil) - cevapsiz arama kaydi icin DM karsisi.
+    const otherUserId =
+      call.members.size === 2 ? Array.from(call.members.keys()).find((uid) => uid !== myUserId) : undefined;
+    const isVideo = call.isVideo;
     removeMember(callId, myUserId!);
     ack?.({ ok: true });
     for (const sid of inviterSocketIds) io.to(sid).emit("call:declined", { callId, userId: myUserId });
+    if (otherUserId) logCallMessage(otherUserId, isVideo, "missed").catch(() => {});
   });
 
   socket.on("call:cancel", ({ callId }: { callId: string }, ack) => {
@@ -1240,12 +1261,16 @@ io.on("connection", (socket: Socket) => {
     // kalan (zaten kabul etmis) kisilere dokunma - "cancel" SADECE kendi
     // cevapsiz davetini geri cekmek icindir.
     const pendingIds = Array.from(call.members.keys()).filter((uid) => !call.accepted.has(uid));
+    // Saf 1'e 1 (grup aramasi degil) - cevapsiz arama kaydi icin DM karsisi.
+    const otherUserId = call.members.size === 2 && pendingIds.length === 1 ? pendingIds[0] : undefined;
+    const isVideo = call.isVideo;
     for (const uid of pendingIds) {
       const sid = call.members.get(uid);
       removeMember(callId, uid);
       if (sid) io.to(sid).emit("call:cancelled", { callId });
     }
     ack?.({ ok: true });
+    if (otherUserId) logCallMessage(otherUserId, isVideo, "missed").catch(() => {});
   });
 
   socket.on("call:end", ({ callId }: { callId: string }, ack) => {
@@ -1254,6 +1279,10 @@ io.on("connection", (socket: Socket) => {
     const call = getCall(callId);
     if (!call || !call.members.has(myUserId!)) return ack?.({ ok: false });
     const remainingBefore = Array.from(call.members.entries()).filter(([uid]) => uid !== myUserId);
+    // Saf 1'e 1 (grup aramasi degil) - arama kaydi icin DM karsisi + sure.
+    const otherUserId = call.members.size === 2 && remainingBefore.length === 1 ? remainingBefore[0][0] : undefined;
+    const isVideo = call.isVideo;
+    const connectedAt = call.connectedAt;
     const result = removeMember(callId, myUserId!);
     ack?.({ ok: true });
     for (const [uid, sid] of remainingBefore) {
@@ -1261,6 +1290,10 @@ io.on("connection", (socket: Socket) => {
       // Cikisin ardindan SADECE 1 kisi kaldiysa, o kisiye de "call:ended"
       // gonderip yalniz kalan bir arama ekraninda takili kalmasini onle.
       if (result?.lastRemainingUserId === uid) io.to(sid).emit("call:ended", { callId });
+    }
+    if (otherUserId) {
+      if (connectedAt) logCallMessage(otherUserId, isVideo, "completed", Date.now() - connectedAt).catch(() => {});
+      else logCallMessage(otherUserId, isVideo, "missed").catch(() => {});
     }
   });
 
@@ -1537,6 +1570,15 @@ io.on("connection", (socket: Socket) => {
           if (result.lastRemainingUserId === uid) {
             io.to(sid).emit("call:ended", { callId: result.call.callId, reason: "disconnected" });
           }
+        }
+        // Baglanti kopunca da (uygulama kapandi/ag gitti) saf 1'e 1 aramalar
+        // icin ayni arama kaydi - call:end ile AYNI mantik.
+        if (result.call.members.size === 1 && result.lastRemainingUserId) {
+          const otherUserId = result.lastRemainingUserId;
+          const isVideo = result.call.isVideo;
+          const connectedAt = result.call.connectedAt;
+          if (connectedAt) logCallMessage(otherUserId, isVideo, "completed", Date.now() - connectedAt).catch(() => {});
+          else logCallMessage(otherUserId, isVideo, "missed").catch(() => {});
         }
       }
     }
