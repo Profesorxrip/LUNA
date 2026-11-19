@@ -231,6 +231,13 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
     extrapolate: "clamp",
   });
 
+  // "Yanıtla"/"İlet" henuz GERCEK bir hedefe (DM/oda sohbeti) baglanmadi -
+  // sadece butonlarin yerini/gorunumunu ister (bkz. kullanicinin istegi) -
+  // bkz. DMScreen.tsx/DmInfoScreen.tsx AYNI isimdeki yardimci.
+  function placeholder(label: string) {
+    showAlert(label, "Bu özellik yakında eklenecek.");
+  }
+
   async function downloadPhoto(url: string) {
     if (downloading) return;
     setDownloading(true);
@@ -284,9 +291,21 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
               </View>
             )}
           </View>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)} hitSlop={10}>
-            <MoreVertical size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={styles.topBarRight}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => placeholder("Yanıtla")} hitSlop={10}>
+              <View style={{ transform: [{ rotate: "90deg" }] }}>
+                <CircleArrowDown size={20} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => placeholder("İlet")} hitSlop={10}>
+              <View style={{ transform: [{ rotate: "-90deg" }] }}>
+                <CircleArrowDown size={20} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)} hitSlop={10}>
+              <MoreVertical size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <Animated.View
@@ -359,6 +378,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#121212",
   },
   topBarLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, marginRight: 10 },
+  topBarRight: { flexDirection: "row", alignItems: "center", gap: 4 },
   iconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   senderInfo: { flex: 1 },
   senderName: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
