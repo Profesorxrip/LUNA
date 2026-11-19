@@ -23,11 +23,12 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, Check } from "lucide-react-native";
+import * as Clipboard from "expo-clipboard";
 import { RoomMicIcon } from "../components/CustomIcons";
 import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
-import { getSocket, DMMessage, DMReply } from "../services/socket";
+import { getSocket, DMMessage, DMReply, DMPinnedMessage, FriendUser } from "../services/socket";
 import { supabase } from "../services/supabase";
 import Icon from "../components/Icon";
 import ReplyPreviewContent from "../components/ReplyPreviewContent";
@@ -176,14 +177,17 @@ interface DMBubbleRowProps {
   onTap: () => void;
   onReply: () => void;
   onReport: () => void;
+  // Yanitla'dan (kaydirma hareketi onReply'i DOGRUDAN cagirir) AYRI - basili
+  // tutunca Yanitla/Kopyala/Sabitle/Ilet/Sil secenekli menuyu acar.
+  onLongPress: () => void;
 }
 
 // Oda sohbetindeki (RoomScreen.tsx -> ChatBubbleRow) ile AYNI mantik: kendi
 // mesajimizi SAGDAN SOLA, karsidakinin mesajini SOLDAN SAGA kaydirinca
 // yanitlama (reply) tetikleniyor. Satir translateX ile kaydirilirken
 // kenarda bir "reply" ikonu belirip bosalan tarafi gosteriyor.
-function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport }: DMBubbleRowProps) {
-  const { i18n } = useTranslation();
+function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport, onLongPress }: DMBubbleRowProps) {
+  const { t, i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   // Sesli mesajin sure etiketi - VoiceMessageBubble artik kendi icinde cizmiyor,
   // gonderim saatiyle AYNI alt satirda gosterebilelim diye buraya tasindi.
@@ -229,7 +233,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
       >
         <Icon name="reply" size={16} color={MUTED} />
       </Animated.View>
-      <TouchableOpacity activeOpacity={0.7} onPress={onTap} onLongPress={onReply} style={styles.bubbleWrap}>
+      <TouchableOpacity activeOpacity={0.7} onPress={onTap} onLongPress={item.deletedForEveryone ? undefined : onLongPress} style={styles.bubbleWrap}>
           <View
             style={[
               styles.bubble,
@@ -243,7 +247,13 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
             ]}
           >
             {!groupedWithPrev && <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />}
-            {item.replyTo && (
+            {item.isForwarded && !item.deletedForEveryone && (
+              <View style={styles.forwardedRow}>
+                <Forward size={11} color={isMine ? "rgba(255,255,255,0.75)" : MUTED} />
+                <Text style={[styles.forwardedText, { color: isMine ? "rgba(255,255,255,0.75)" : MUTED }]}>{t("dm.forwardedLabel")}</Text>
+              </View>
+            )}
+            {item.replyTo && !item.deletedForEveryone && (
               <View style={styles.replyQuote}>
                 <ReplyPreviewContent
                   fromName={item.replyTo.fromName}
@@ -254,7 +264,12 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 />
               </View>
             )}
-            {item.kind === "voice" && item.mediaUrl ? (
+            {item.deletedForEveryone ? (
+              <View style={styles.deletedRow}>
+                <Trash2 size={13} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} />
+                <Text style={[styles.deletedText, { color: isMine ? "rgba(255,255,255,0.6)" : MUTED }]}>{t("dm.deletedMessage")}</Text>
+              </View>
+            ) : item.kind === "voice" && item.mediaUrl ? (
               <VoiceMessageBubble uri={item.mediaUrl} durationMs={item.durationMs} onTimeLabel={setVoiceTimeLabel} />
             ) : item.kind === "location" && item.latitude != null && item.longitude != null ? (
               <LocationMessageBubble latitude={item.latitude} longitude={item.longitude} />
@@ -291,7 +306,8 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
             )}
-            {item.kind !== "voice" &&
+            {!item.deletedForEveryone &&
+              item.kind !== "voice" &&
               item.kind !== "location" &&
               item.kind !== "file" &&
               item.kind !== "video" &&
@@ -395,6 +411,16 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // ariyoruz onu hatirliyoruz.
   const pendingScrollMessageId = useRef<string | null>(null);
   const muteStorageKey = `dm_muted_${peer.userId}`;
+  // Basili tutma menusu (Yanitla/Kopyala/Sabitle/Ilet/Sil) - bkz.
+  // 0037_dm_message_actions.sql. "Sabitleme" burada BIRDEN FAZLA mesaj
+  // ayni anda sabit olabilir (headerdaki "sohbeti sabitle" ile KARISTIRMAYIN).
+  const [actionMenuMessage, setActionMenuMessage] = useState<DMMessage | null>(null);
+  const [pinnedMessages, setPinnedMessages] = useState<DMPinnedMessage[]>([]);
+  const [pinnedListVisible, setPinnedListVisible] = useState(false);
+  const [forwardTarget, setForwardTarget] = useState<DMMessage | null>(null);
+  const [forwardFriends, setForwardFriends] = useState<FriendUser[]>([]);
+  const [forwardSelected, setForwardSelected] = useState<Set<string>>(new Set());
+  const [forwardSending, setForwardSending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -423,6 +449,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         if (res?.ok) {
           setMessages(res.messages);
           setExpiresAfterMs(res.expiresAfterMs ?? null);
+          setPinnedMessages(res.pinned || []);
         }
         setLoading(false);
       });
@@ -470,19 +497,47 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       if (fromUserId !== peer.userId) return;
       setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, peerReaction: emoji } : m)));
     }
+    // Asagidaki uc event (deletedForEveryone/pinned/unpinned) "withUserId"
+    // TASIMIYOR - sunucu her iki tarafa da (ben dahil) yayinliyor, bu
+    // ekranin ILGILI konusmaya ait olup olmadigi dogal olarak "bu messageId
+    // benim mesajlarimda var mi" kontroluyle anlasiliyor (yoksa zaten no-op).
+    function handleDeletedForEveryone({ messageId }: { messageId: string }) {
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, deletedForEveryone: true } : m)));
+    }
+    function handlePinned({ messageId }: { messageId: string; pinnedBy: string; pinnedAt: number }) {
+      const full = messagesRef.current.find((m) => m.id === messageId);
+      if (!full) return;
+      setPinnedMessages((prev) =>
+        prev.some((p) => p.message.id === messageId) ? prev : [...prev, { message: full, pinnedBy: "", pinnedAt: Date.now() }]
+      );
+    }
+    function handleUnpinned({ messageId }: { messageId: string }) {
+      setPinnedMessages((prev) => prev.filter((p) => p.message.id !== messageId));
+    }
     socket.on("dm:message", handleMessage);
     socket.on("dm:message:self", handleOwnMessage);
     socket.on("dm:seen", handleSeen);
     socket.on("dm:expiry", handleExpiry);
     socket.on("dm:reaction", handleReaction);
+    socket.on("dm:message:deletedForEveryone", handleDeletedForEveryone);
+    socket.on("dm:message:pinned", handlePinned);
+    socket.on("dm:message:unpinned", handleUnpinned);
     return () => {
       socket.off("dm:message", handleMessage);
       socket.off("dm:message:self", handleOwnMessage);
       socket.off("dm:seen", handleSeen);
       socket.off("dm:expiry", handleExpiry);
       socket.off("dm:reaction", handleReaction);
+      socket.off("dm:message:deletedForEveryone", handleDeletedForEveryone);
+      socket.off("dm:message:pinned", handlePinned);
+      socket.off("dm:message:unpinned", handleUnpinned);
     };
   }, [peer.userId]);
+
+  const messagesRef = useRef<DMMessage[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     if (messages.length) listRef.current?.scrollToEnd({ animated: true });
@@ -775,6 +830,91 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     });
   }
 
+  // Basili tutma menusu (Yanitla/Kopyala/Sabitle/Ilet/Sil) - bkz.
+  // 0037_dm_message_actions.sql.
+  function openActionMenu(message: DMMessage) {
+    if (message.deletedForEveryone) return;
+    setActionMenuMessage(message);
+  }
+  function closeActionMenu() {
+    setActionMenuMessage(null);
+  }
+  async function handleCopy(message: DMMessage) {
+    closeActionMenu();
+    await Clipboard.setStringAsync(message.text || "");
+  }
+  function handleDeleteForMe(message: DMMessage) {
+    closeActionMenu();
+    showAlert(t("dm.deleteForMeConfirmTitle"), t("dm.deleteForMeConfirmBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("dm.actionDeleteForMe"),
+        style: "destructive",
+        onPress: () => {
+          socket.emit("dm:deleteMessage", { withUserId: peer.userId, messageId: message.id, forEveryone: false }, (res: any) => {
+            if (res?.ok) {
+              setMessages((prev) => prev.filter((m) => m.id !== message.id));
+              setPinnedMessages((prev) => prev.filter((p) => p.message.id !== message.id));
+            }
+          });
+        },
+      },
+    ]);
+  }
+  function handleDeleteForEveryone(message: DMMessage) {
+    closeActionMenu();
+    showAlert(t("dm.deleteForEveryoneConfirmTitle"), t("dm.deleteForEveryoneConfirmBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("dm.actionDeleteForEveryone"),
+        style: "destructive",
+        onPress: () => {
+          socket.emit("dm:deleteMessage", { withUserId: peer.userId, messageId: message.id, forEveryone: true }, () => {});
+        },
+      },
+    ]);
+  }
+  function handlePinToggle(message: DMMessage) {
+    closeActionMenu();
+    const isPinned = pinnedMessages.some((p) => p.message.id === message.id);
+    if (isPinned) {
+      socket.emit("dm:unpinMessage", { withUserId: peer.userId, messageId: message.id }, () => {});
+    } else {
+      socket.emit("dm:pinMessage", { withUserId: peer.userId, messageId: message.id }, () => {});
+    }
+  }
+  function openForwardPicker(message: DMMessage) {
+    closeActionMenu();
+    setForwardTarget(message);
+    setForwardSelected(new Set());
+    if (forwardFriends.length === 0) {
+      socket.emit("friends:list", {}, (res: any) => {
+        if (res?.ok) setForwardFriends(res.friends || []);
+      });
+    }
+  }
+  function toggleForwardSelect(userId: string) {
+    setForwardSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  }
+  function confirmForward() {
+    if (!forwardTarget || forwardSelected.size === 0) return;
+    setForwardSending(true);
+    socket.emit(
+      "dm:forwardMessage",
+      { toUserIds: Array.from(forwardSelected), message: forwardTarget },
+      () => {
+        setForwardSending(false);
+        setForwardTarget(null);
+        setForwardSelected(new Set());
+      }
+    );
+  }
+
   // Medya listesinden (fotograf izleyicideki "Sohbette Göster") ana sohbette
   // o mesaja kaydirir.
   function scrollToMessage(id: string) {
@@ -844,6 +984,37 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     },
     { label: t("dm.menuReport"), icon: <TriangleAlert size={16} color={theme.danger} />, danger: true, onPress: () => setReportVisible(true) },
   ];
+
+  // Basili tutma menusunun icerigi - mesaja gore degisir: "Herkesten Sil"
+  // sadece kendi mesajimizda, "Ilet" aramalarda (kind="call") gorunmuyor.
+  const actionMenuItems: { label: string; icon: React.ReactNode; danger?: boolean; onPress: () => void }[] = (() => {
+    const m = actionMenuMessage;
+    if (!m) return [];
+    const isMine = m.fromUserId === myUserId;
+    const isPinned = pinnedMessages.some((p) => p.message.id === m.id);
+    const items: { label: string; icon: React.ReactNode; danger?: boolean; onPress: () => void }[] = [
+      { label: t("dm.actionReply"), icon: <Icon name="reply" size={16} color={TEXT} />, onPress: () => startReply(m) },
+      { label: t("dm.actionCopy"), icon: <Copy size={16} color={TEXT} />, onPress: () => handleCopy(m) },
+      {
+        label: isPinned ? t("dm.actionUnpin") : t("dm.actionPin"),
+        icon: isPinned ? <PinOff size={16} color={TEXT} /> : <Pin size={16} color={TEXT} />,
+        onPress: () => handlePinToggle(m),
+      },
+    ];
+    if (m.kind !== "call") {
+      items.push({ label: t("dm.actionForward"), icon: <Forward size={16} color={TEXT} />, onPress: () => openForwardPicker(m) });
+    }
+    items.push({ label: t("dm.actionDeleteForMe"), icon: <Trash2 size={16} color={theme.danger} />, danger: true, onPress: () => handleDeleteForMe(m) });
+    if (isMine) {
+      items.push({
+        label: t("dm.actionDeleteForEveryone"),
+        icon: <Trash2 size={16} color={theme.danger} />,
+        danger: true,
+        onPress: () => handleDeleteForEveryone(m),
+      });
+    }
+    return items;
+  })();
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -918,6 +1089,17 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         </TouchableOpacity>
       )}
 
+      {pinnedMessages.length > 0 && (
+        <TouchableOpacity style={styles.pinnedBanner} onPress={() => setPinnedListVisible(true)} activeOpacity={0.8}>
+          <Pin size={13} color={ACCENT} />
+          <Text style={styles.pinnedBannerText} numberOfLines={1}>
+            {pinnedMessages.length === 1
+              ? t("dm.pinnedBannerOne")
+              : t("dm.pinnedBannerMany", { count: pinnedMessages.length })}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       <FlatList
         ref={listRef}
         data={displayItems}
@@ -957,7 +1139,12 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                   !grouped && styles.messageRowNewGroup,
                 ]}
               >
-                <TouchableOpacity activeOpacity={0.85} style={styles.bubbleWrap} onPress={() => {}}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.bubbleWrap}
+                  onPress={() => {}}
+                  onLongPress={() => openActionMenu(displayItem.photos[displayItem.photos.length - 1])}
+                >
                   <View
                     style={[
                       styles.bubble,
@@ -1009,6 +1196,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               onTap={() => handleMessageTap(item)}
               onReply={() => startReply(item)}
               onReport={() => setReportVisible(true)}
+              onLongPress={() => openActionMenu(item)}
             />
           );
         }}
@@ -1098,6 +1286,92 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               </TouchableOpacity>
             ))}
           </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={!!actionMenuMessage} transparent animationType="fade" onRequestClose={closeActionMenu} statusBarTranslucent>
+        <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={closeActionMenu}>
+          <View style={styles.menuCard}>
+            {actionMenuItems.map((item) => (
+              <TouchableOpacity key={item.label} style={styles.menuRow} onPress={item.onPress}>
+                {item.icon}
+                <Text style={[styles.menuRowText, item.danger && { color: theme.danger }]}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={pinnedListVisible} transparent animationType="slide" onRequestClose={() => setPinnedListVisible(false)} statusBarTranslucent>
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setPinnedListVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+            <View style={styles.sheetHandleTop} />
+            <Text style={styles.sheetTitle}>{t("dm.pinnedListTitle")}</Text>
+            {pinnedMessages.map((p) => (
+              <TouchableOpacity
+                key={p.message.id}
+                style={styles.pinnedListRow}
+                onPress={() => {
+                  setPinnedListVisible(false);
+                  scrollToMessage(p.message.id);
+                }}
+              >
+                <View style={styles.pinnedListRowText}>
+                  <Text style={styles.pinnedListRowName} numberOfLines={1}>
+                    {p.message.fromUserId === myUserId ? t("dm.you") : p.message.fromName}
+                  </Text>
+                  <Text style={styles.pinnedListRowBody} numberOfLines={1}>
+                    {p.message.text}
+                  </Text>
+                </View>
+                <TouchableOpacity hitSlop={8} onPress={() => handlePinToggle(p.message)}>
+                  <PinOff size={16} color={MUTED} />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={!!forwardTarget} transparent animationType="slide" onRequestClose={() => setForwardTarget(null)} statusBarTranslucent>
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setForwardTarget(null)}>
+          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+            <View style={styles.sheetHandleTop} />
+            <Text style={styles.sheetTitle}>{t("dm.forwardTitle")}</Text>
+            <Text style={styles.sheetSubtitle}>{t("dm.forwardSubtitle")}</Text>
+            <FlatList
+              data={forwardFriends}
+              keyExtractor={(f) => f.userId}
+              style={{ maxHeight: 320 }}
+              renderItem={({ item: friend }) => {
+                const selected = forwardSelected.has(friend.userId);
+                return (
+                  <TouchableOpacity style={styles.forwardFriendRow} onPress={() => toggleForwardSelect(friend.userId)}>
+                    <Avatar name={friend.name} avatarUrl={friend.avatarUrl} size={36} />
+                    <Text style={styles.forwardFriendName} numberOfLines={1}>
+                      {friend.name}
+                    </Text>
+                    <View style={[styles.forwardCheckbox, selected && styles.forwardCheckboxChecked]}>
+                      {selected && <Check size={13} color="#141210" />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+            <TouchableOpacity
+              style={[styles.forwardSendBtn, (forwardSelected.size === 0 || forwardSending) && styles.forwardSendBtnDisabled]}
+              onPress={confirmForward}
+              disabled={forwardSelected.size === 0 || forwardSending}
+            >
+              {forwardSending ? (
+                <ActivityIndicator color="#141210" />
+              ) : (
+                <Text style={styles.forwardSendBtnText}>
+                  {forwardSelected.size > 0 ? t("dm.forwardSendCount", { count: forwardSelected.size }) : t("dm.forwardSend")}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
@@ -1530,6 +1804,53 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(14,165,233,0.08)",
   },
   expiryBannerText: { color: ACCENT, fontSize: 11, fontWeight: "600" },
+  pinnedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(14,165,233,0.08)",
+  },
+  pinnedBannerText: { color: ACCENT, fontSize: 12, fontWeight: "600", flexShrink: 1 },
+  pinnedListRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
+  },
+  pinnedListRowText: { flex: 1, minWidth: 0 },
+  pinnedListRowName: { color: TEXT, fontSize: 13, fontWeight: "700" },
+  pinnedListRowBody: { color: MUTED, fontSize: 12, marginTop: 2 },
+  forwardedRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 3 },
+  forwardedText: { fontSize: 11, fontStyle: "italic" },
+  deletedRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
+  deletedText: { fontSize: 14, fontStyle: "italic" },
+  forwardFriendRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, width: "100%" },
+  forwardFriendName: { color: TEXT, fontSize: 14, fontWeight: "600", flex: 1 },
+  forwardCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: MUTED,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  forwardCheckboxChecked: { backgroundColor: ACCENT, borderColor: ACCENT },
+  forwardSendBtn: {
+    marginTop: 14,
+    width: "100%",
+    backgroundColor: ACCENT,
+    borderRadius: 24,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  forwardSendBtnDisabled: { opacity: 0.4 },
+  forwardSendBtnText: { color: "#141210", fontSize: 14, fontWeight: "700" },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   // Profil ekranindaki kutularla AYNI koyu lacivert (#15202B) - eskiden
   // siyaha yakin kahverengiydi (#141210).

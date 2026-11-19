@@ -34,6 +34,17 @@ export interface DMMessage {
   // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
   callIsVideo: boolean | null;
   callStatus: "completed" | "missed" | null;
+  // Basili tutma menusu (Sil/Sabitle/Ilet) - bkz. 0037_dm_message_actions.sql.
+  // "deletedForMe" burada YOK: boyle bir mesaj zaten listeden filtrelenip
+  // hic gonderilmiyor (bkz. openConversation).
+  deletedForEveryone: boolean;
+  isForwarded: boolean;
+}
+
+export interface DMPinnedMessage {
+  message: DMMessage;
+  pinnedBy: string;
+  pinnedAt: number;
 }
 
 // userId -> socketId. Sadece hangi acik socket'in hangi kullanici oldugunu
@@ -78,26 +89,39 @@ function mapRow(row: any): DMMessage {
     mimeType: row.mime_type ?? null,
     callIsVideo: row.call_is_video ?? null,
     callStatus: row.call_status ?? null,
+    deletedForEveryone: row.deleted_for_everyone === true,
+    isForwarded: row.is_forwarded === true,
   };
+}
+
+/** "Benden sil" uygulanmis satirlari (deleted_for dizisinde benim id'im
+ * varsa) tamamen eler - bkz. delete_dm_message_for_me. */
+function visibleToMe(row: any, myUserId: string): boolean {
+  return !Array.isArray(row.deleted_for) || !row.deleted_for.includes(myUserId);
 }
 
 /** Konusmayi (yoksa olusturarak) acar, gorulmus olarak isaretler ve mesaj
  * gecmisini dondurur. Suresi gecmis mesajlar RPC icinde zaten temizlenir. */
 export async function openConversation(
   db: SupabaseClient,
+  myUserId: string,
   otherUserId: string
-): Promise<{ messages: DMMessage[]; expiresAfterMs: number | null } | null> {
+): Promise<{ messages: DMMessage[]; expiresAfterMs: number | null; pinned: DMPinnedMessage[] } | null> {
   const { data: convoId, error } = await db.rpc("open_dm", { other_user: otherUserId });
   if (error || !convoId) return null;
 
-  const [{ data: rows }, { data: convoRow }] = await Promise.all([
+  const [{ data: rows }, { data: convoRow }, { data: pinnedRows }] = await Promise.all([
     db.from("dm_messages").select("*").eq("conversation_id", convoId).order("created_at", { ascending: true }),
     db.from("dm_conversations").select("expires_after_ms").eq("id", convoId).single(),
+    db.from("dm_pinned_messages").select("*, dm_messages(*)").eq("conversation_id", convoId).order("pinned_at", { ascending: true }),
   ]);
 
   return {
-    messages: (rows || []).map(mapRow),
+    messages: (rows || []).filter((r: any) => visibleToMe(r, myUserId)).map(mapRow),
     expiresAfterMs: convoRow?.expires_after_ms ?? null,
+    pinned: (pinnedRows || [])
+      .filter((r: any) => r.dm_messages)
+      .map((r: any) => ({ message: mapRow(r.dm_messages), pinnedBy: r.pinned_by, pinnedAt: new Date(r.pinned_at).getTime() })),
   };
 }
 
@@ -309,6 +333,7 @@ export async function listConversations(db: SupabaseClient, myUserId: string): P
   const lastRowByConvo = new Map<string, any>();
   const unreadCountByConvo = new Map<string, number>();
   for (const row of messages || []) {
+    if (!visibleToMe(row, myUserId)) continue;
     if (!lastRowByConvo.has(row.conversation_id)) lastRowByConvo.set(row.conversation_id, row);
     if (row.from_user === myUserId) continue;
     const lastSeenAt = readStateByConvo.get(row.conversation_id)?.last_seen_at;
@@ -375,4 +400,58 @@ export async function setExpiryMs(db: SupabaseClient, otherUserId: string, ms: n
 
 export async function markSeen(db: SupabaseClient, otherUserId: string): Promise<void> {
   await db.rpc("mark_dm_seen", { other_user: otherUserId });
+}
+
+// -------------------------------------------------------------------
+// Basili tutma menusu: Sil (herkesten/benden), Sabitle, Ilet - bkz.
+// 0037_dm_message_actions.sql.
+// -------------------------------------------------------------------
+
+export async function deleteMessageForEveryone(db: SupabaseClient, messageId: string): Promise<boolean> {
+  const { error } = await db.rpc("delete_dm_message_for_everyone", { message_id: messageId });
+  return !error;
+}
+
+export async function deleteMessageForMe(db: SupabaseClient, messageId: string): Promise<boolean> {
+  const { error } = await db.rpc("delete_dm_message_for_me", { message_id: messageId });
+  return !error;
+}
+
+export async function pinMessage(db: SupabaseClient, messageId: string): Promise<boolean> {
+  const { error } = await db.rpc("pin_dm_message", { message_id: messageId });
+  return !error;
+}
+
+export async function unpinMessage(db: SupabaseClient, messageId: string): Promise<boolean> {
+  const { error } = await db.rpc("unpin_dm_message", { message_id: messageId });
+  return !error;
+}
+
+/** Var olan bir mesaji (herhangi bir "kind") baska bir kisiye, kendi
+ * mesajimmis gibi yeniden gonderir - bkz. forward_dm_message RPC. Aramalar
+ * (kind="call") burada DA reddedilir (ekstra guvenlik, asil engel
+ * istemcide "Ilet" secenegini hic gostermemek). */
+export async function forwardMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  original: DMMessage
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  if (original.kind === "call") return { ok: false, error: "not_forwardable" };
+  const { data, error } = await db.rpc("forward_dm_message", {
+    to_user: toUserId,
+    kind: original.kind,
+    body: original.text,
+    media_url: original.mediaUrl,
+    duration_ms: original.durationMs,
+    latitude: original.latitude,
+    longitude: original.longitude,
+    file_name: original.fileName,
+    file_size: original.fileSize,
+    mime_type: original.mimeType,
+    is_adult: original.isAdult,
+  });
+  if (error) {
+    return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  return { ok: true, message: mapRow(data) };
 }

@@ -324,4 +324,16 @@ export interface DMMessage {
   // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
   callIsVideo?: boolean | null;
   callStatus?: "completed" | "missed" | null;
+  // Basili tutma menusu (Sil/Sabitle/Ilet) - bkz. 0037_dm_message_actions.sql.
+  deletedForEveryone?: boolean;
+  isForwarded?: boolean;
+}
+
+// Bir sohbet icinde sabitlenmis TEK bir mesaj - ayni sohbette BIRDEN FAZLA
+// olabilir (bkz. DMScreen.tsx pinnedMessages state'i). DIKKAT: FriendsScreen/
+// dm:setPinned'deki "sohbeti sabitle"den TAMAMEN FARKLI bir kavram.
+export interface DMPinnedMessage {
+  message: DMMessage;
+  pinnedBy: string;
+  pinnedAt: number;
 }

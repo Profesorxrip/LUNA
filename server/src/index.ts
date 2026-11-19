@@ -74,7 +74,13 @@ import {
   setOnline,
   removeOnlineBySocket,
   getSocketIdForUser,
+  deleteMessageForEveryone,
+  deleteMessageForMe,
+  pinMessage,
+  unpinMessage,
+  forwardMessage,
   DMReply,
+  DMMessage,
 } from "./dm";
 import {
   setUserName,
@@ -904,12 +910,85 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("dm:open", async ({ withUserId }: { withUserId: string }, ack) => {
     if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200)) return ack?.({ ok: false });
-    const result = await openConversation(myDb!, withUserId);
+    const result = await openConversation(myDb!, myUserId!, withUserId);
     if (!result) return ack?.({ ok: false, error: "Konusma acilamadi." });
-    ack?.({ ok: true, messages: result.messages, expiresAfterMs: result.expiresAfterMs });
+    ack?.({ ok: true, messages: result.messages, expiresAfterMs: result.expiresAfterMs, pinned: result.pinned });
     const peerSocketId = getSocketIdForUser(withUserId);
     if (peerSocketId) io.to(peerSocketId).emit("dm:seen", { byUserId: myUserId, at: Date.now() });
   });
+
+  // Basili tutma menusu: Sil (herkesten/benden), Sabitle, Ilet. "withUserId"
+  // sadece ESLERE olay yonlendirmek icin - RPC'ler mesaj sahibi/konusma
+  // uyeligini zaten auth.uid() ile kendisi dogruluyor (bkz. 0037_dm_message_
+  // actions.sql), burada AYRICA kontrol etmiyoruz.
+  socket.on(
+    "dm:deleteMessage",
+    async ({ withUserId, messageId, forEveryone }: { withUserId: string; messageId: string; forEveryone: boolean }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200) || !isNonEmptyString(messageId, 200)) {
+        return ack?.({ ok: false });
+      }
+      const ok = forEveryone ? await deleteMessageForEveryone(myDb!, messageId) : await deleteMessageForMe(myDb!, messageId);
+      if (!ok) return ack?.({ ok: false });
+      ack?.({ ok: true });
+      if (forEveryone) {
+        const peerSocketId = getSocketIdForUser(withUserId);
+        if (peerSocketId) io.to(peerSocketId).emit("dm:message:deletedForEveryone", { messageId });
+        socket.emit("dm:message:deletedForEveryone", { messageId });
+      }
+    }
+  );
+
+  socket.on("dm:pinMessage", async ({ withUserId, messageId }: { withUserId: string; messageId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200) || !isNonEmptyString(messageId, 200)) {
+      return ack?.({ ok: false });
+    }
+    const ok = await pinMessage(myDb!, messageId);
+    if (!ok) return ack?.({ ok: false });
+    const payload = { messageId, pinnedBy: myUserId, pinnedAt: Date.now() };
+    ack?.({ ok: true, ...payload });
+    const peerSocketId = getSocketIdForUser(withUserId);
+    if (peerSocketId) io.to(peerSocketId).emit("dm:message:pinned", payload);
+    socket.emit("dm:message:pinned", payload);
+  });
+
+  socket.on("dm:unpinMessage", async ({ withUserId, messageId }: { withUserId: string; messageId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200) || !isNonEmptyString(messageId, 200)) {
+      return ack?.({ ok: false });
+    }
+    const ok = await unpinMessage(myDb!, messageId);
+    if (!ok) return ack?.({ ok: false });
+    ack?.({ ok: true });
+    const peerSocketId = getSocketIdForUser(withUserId);
+    if (peerSocketId) io.to(peerSocketId).emit("dm:message:unpinned", { messageId });
+    socket.emit("dm:message:unpinned", { messageId });
+  });
+
+  // Ilet: AYNI mesaji birden fazla kisiye tek tek yeniden gonderir - her
+  // hedef icin ayri sonuc dondurur, biri basarisiz olsa da digerleri denenir.
+  socket.on(
+    "dm:forwardMessage",
+    async ({ toUserIds, message }: { toUserIds: string[]; message: DMMessage }, ack) => {
+      if (!requireAuth(ack) || !Array.isArray(toUserIds) || toUserIds.length === 0 || toUserIds.length > 20 || !message) {
+        return ack?.({ ok: false });
+      }
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const results: { userId: string; ok: boolean }[] = [];
+      for (const toUserId of toUserIds) {
+        if (!isNonEmptyString(toUserId, 200)) {
+          results.push({ userId: toUserId, ok: false });
+          continue;
+        }
+        const result = await forwardMessage(myDb!, toUserId, message);
+        results.push({ userId: toUserId, ok: result.ok });
+        if (result.ok && result.message) {
+          const peerSocketId = getSocketIdForUser(toUserId);
+          if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+          socket.emit("dm:message:self", { toUserId, message: result.message });
+        }
+      }
+      ack?.({ ok: true, results });
+    }
+  );
 
   socket.on(
     "dm:send",
