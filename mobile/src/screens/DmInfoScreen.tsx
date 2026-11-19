@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Linking, useWindowDimensions } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { LinearGradient } from "expo-linear-gradient";
-import { Search, PhoneCall, BellOff, Bell, Ban, Image as ImageIcon, Paperclip, CircleArrowDown, X, MapPin, FileText, Mic } from "lucide-react-native";
+import { Search, PhoneCall, BellOff, Bell, Ban, Image as ImageIcon, Paperclip, CircleArrowDown, X, MapPin, Mic, Play, Pause, ExternalLink, Download } from "lucide-react-native";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { getSocket, DMMessage } from "../services/socket";
 import { theme } from "../theme";
 import Avatar from "../components/Avatar";
 import AppBackground from "../components/AppBackground";
 import ChatImageBubble from "../components/ChatImageBubble";
-import VoiceMessageBubble from "../components/VoiceMessageBubble";
-import LocationMessageBubble from "../components/LocationMessageBubble";
-import FileMessageBubble from "../components/FileMessageBubble";
 import { showAlert } from "../components/CustomAlert";
 import { formatMessageTime } from "../utils/time";
+import { formatDuration, formatFileSize, fileIconFor } from "../utils/format";
+import { downloadOrShareFile } from "../utils/fileDownload";
 import type { DMPeer } from "./DMScreen";
 
 interface Props {
@@ -38,6 +38,121 @@ type Tab = "media" | "files";
 const MEDIA_GAP = 3;
 // Ekranin en sagina ve en soluna da birer px bosluk birakiyor.
 const MEDIA_EDGE_PAD = 3;
+
+// "Dosyalar" sekmesindeki satirlarin turune gore ikon rengi - sohbet
+// balonundaki (VoiceMessageBubble/LocationMessageBubble/FileMessageBubble,
+// hepsi beyaz) ile KARISTIRILMASIN: burasi duz koyu bir liste, renk
+// ayrimi olmadan tum satirlar birbirinin ayni gorunurdu.
+const VOICE_COLOR = theme.accent;
+const LOCATION_COLOR = "#F59E0B";
+const FILE_COLOR = "#22C55E";
+
+function FileRowShell({
+  color,
+  icon,
+  title,
+  subtitle,
+  trailing,
+  onPress,
+}: {
+  color: string;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  trailing?: React.ReactNode;
+  onPress?: () => void;
+}) {
+  return (
+    <TouchableOpacity style={styles.fileRow} activeOpacity={onPress ? 0.6 : 1} onPress={onPress} disabled={!onPress}>
+      <View style={[styles.fileRowIcon, { backgroundColor: `${color}26` }]}>{icon}</View>
+      <View style={styles.fileRowBody}>
+        <Text style={styles.fileRowTitle} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.fileRowSubtitle} numberOfLines={1}>
+          {subtitle}
+        </Text>
+      </View>
+      {trailing}
+    </TouchableOpacity>
+  );
+}
+
+function VoiceFileRow({ message, language }: { message: DMMessage; language: string }) {
+  const player = useAudioPlayer(message.mediaUrl!);
+  const status = useAudioPlayerStatus(player);
+  const duration = status.duration || (message.durationMs ? message.durationMs / 1000 : 0);
+
+  function toggle() {
+    if (status.playing) {
+      player.pause();
+    } else {
+      if (status.currentTime >= duration && duration > 0) player.seekTo(0);
+      player.play();
+    }
+  }
+
+  return (
+    <FileRowShell
+      color={VOICE_COLOR}
+      icon={status.playing ? <Pause size={18} color={VOICE_COLOR} /> : <Play size={18} color={VOICE_COLOR} />}
+      title="Sesli Mesaj"
+      subtitle={`${message.fromName} · ${formatDuration(duration)} · ${formatMessageTime(message.createdAt, language)}`}
+      onPress={toggle}
+    />
+  );
+}
+
+function LocationFileRow({ message, language }: { message: DMMessage; language: string }) {
+  return (
+    <FileRowShell
+      color={LOCATION_COLOR}
+      icon={<MapPin size={18} color={LOCATION_COLOR} />}
+      title="Konum"
+      subtitle={`${message.fromName} · ${formatMessageTime(message.createdAt, language)}`}
+      trailing={<ExternalLink size={16} color={theme.textMuted} />}
+      onPress={() => Linking.openURL(`https://maps.google.com/?q=${message.latitude},${message.longitude}`)}
+    />
+  );
+}
+
+function GenericFileRow({ message, language }: { message: DMMessage; language: string }) {
+  const [downloading, setDownloading] = useState(false);
+  const fileName = message.fileName || message.text;
+  const Icon = fileIconFor(message.mimeType, fileName);
+
+  async function handlePress() {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      await downloadOrShareFile(message.mediaUrl!, message.mimeType);
+    } catch (err: any) {
+      showAlert("İndirilemedi", err?.message || "Dosya indirilirken bir hata oluştu, tekrar dene.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  const sizeLabel = formatFileSize(message.fileSize);
+  return (
+    <FileRowShell
+      color={FILE_COLOR}
+      icon={<Icon size={18} color={FILE_COLOR} />}
+      title={fileName}
+      subtitle={`${message.fromName}${sizeLabel ? ` · ${sizeLabel}` : ""} · ${formatMessageTime(message.createdAt, language)}`}
+      trailing={downloading ? <ActivityIndicator size="small" color={theme.textMuted} /> : <Download size={16} color={theme.textMuted} />}
+      onPress={handlePress}
+    />
+  );
+}
+
+function FileTabRow({ message, language }: { message: DMMessage; language: string }) {
+  if (message.kind === "voice" && message.mediaUrl) return <VoiceFileRow message={message} language={language} />;
+  if (message.kind === "location" && message.latitude != null && message.longitude != null)
+    return <LocationFileRow message={message} language={language} />;
+  if (message.kind === "file" && message.mediaUrl) return <GenericFileRow message={message} language={language} />;
+  return null;
+}
 
 /** DM'deki karsi tarafin profiline dokununca acilan "Uye Bilgisi" ekrani -
  * uygulamada grup sohbeti olmadigi icin (GroupSetupScreen gibi mirror
@@ -231,19 +346,11 @@ export default function DmInfoScreen({ peer, peerAvatarUrl, muted, mediaMessages
           </Text>
         ) : (
           <View style={styles.filesList}>
-            {filteredFileMessages.map((m) => (
-              <View key={m.id} style={styles.fileRow}>
-                {m.kind === "voice" && m.mediaUrl ? (
-                  <VoiceMessageBubble uri={m.mediaUrl} durationMs={m.durationMs} />
-                ) : m.kind === "location" && m.latitude != null && m.longitude != null ? (
-                  <LocationMessageBubble latitude={m.latitude} longitude={m.longitude} />
-                ) : m.kind === "file" && m.mediaUrl ? (
-                  <FileMessageBubble uri={m.mediaUrl} fileName={m.fileName || m.text} fileSize={m.fileSize} mimeType={m.mimeType} />
-                ) : null}
-                <Text style={styles.fileRowMeta}>
-                  {m.fromName} · {formatMessageTime(m.createdAt, i18n.language)}
-                </Text>
-              </View>
+            {filteredFileMessages.map((m, index) => (
+              <React.Fragment key={m.id}>
+                <FileTabRow message={m} language={i18n.language} />
+                {index < filteredFileMessages.length - 1 && <View style={styles.fileRowDivider} />}
+              </React.Fragment>
             ))}
           </View>
         )}
@@ -300,7 +407,11 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: theme.text, fontSize: 13, padding: 0, marginTop: 2, outlineWidth: 0, outlineStyle: "none" } as any,
   emptyText: { color: theme.textMuted, fontSize: 13, textAlign: "center", marginTop: 30 },
   mediaGrid: { flexDirection: "row", flexWrap: "wrap", marginTop: 3 },
-  filesList: { paddingHorizontal: 18, marginTop: 3, gap: 10 },
-  fileRow: { backgroundColor: "#15202B", borderRadius: 14, padding: 12, gap: 6 },
-  fileRowMeta: { color: theme.textMuted, fontSize: 11 },
+  filesList: { marginTop: 5 },
+  fileRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18, paddingVertical: 12 },
+  fileRowIcon: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+  fileRowBody: { flex: 1, minWidth: 0 },
+  fileRowTitle: { color: theme.text, fontSize: 14, fontWeight: "700" },
+  fileRowSubtitle: { color: theme.textMuted, fontSize: 12, marginTop: 2 },
+  fileRowDivider: { height: 1, backgroundColor: theme.border, marginLeft: 18 + 42 + 12 },
 });

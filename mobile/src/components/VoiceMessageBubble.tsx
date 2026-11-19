@@ -2,17 +2,11 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Play, Pause } from "lucide-react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import { formatDuration } from "../utils/format";
 
 interface Props {
   uri: string;
   durationMs?: number | null;
-}
-
-function formatSeconds(totalSeconds: number): string {
-  const s = Math.max(0, Math.round(totalSeconds));
-  const m = Math.floor(s / 60);
-  const rest = s % 60;
-  return `${m}:${rest.toString().padStart(2, "0")}`;
 }
 
 /** Sohbette gelen/giden sesli mesaj balonu - duz bir play/pause dugmesi +
@@ -44,7 +38,7 @@ export default function VoiceMessageBubble({ uri, durationMs }: Props) {
         <View style={styles.track}>
           <View style={[styles.trackFill, { width: `${progress * 100}%` }]} />
         </View>
-        <Text style={styles.time}>{formatSeconds(status.playing || status.currentTime > 0 ? status.currentTime : duration)}</Text>
+        <Text style={styles.time}>{formatDuration(status.playing || status.currentTime > 0 ? status.currentTime : duration)}</Text>
       </View>
     </TouchableOpacity>
   );
