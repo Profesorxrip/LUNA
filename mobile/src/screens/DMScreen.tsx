@@ -180,7 +180,13 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply }: DM
               </View>
             )}
             {item.mediaUrl ? (
-              <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} senderName={item.fromName} sentAt={item.createdAt} />
+              <ChatImageBubble
+                uri={item.mediaUrl}
+                isAdult={item.isAdult}
+                senderName={item.fromName}
+                sentAt={item.createdAt}
+                onReply={onReply}
+              />
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
             )}
@@ -742,7 +748,18 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             ) : (
               <View style={styles.mediaGrid}>
                 {mediaMessages.map((m) => (
-                  <ChatImageBubble key={m.id} uri={m.mediaUrl!} isAdult={m.isAdult} size={96} senderName={m.fromName} sentAt={m.createdAt} />
+                  <ChatImageBubble
+                    key={m.id}
+                    uri={m.mediaUrl!}
+                    isAdult={m.isAdult}
+                    size={96}
+                    senderName={m.fromName}
+                    sentAt={m.createdAt}
+                    onReply={() => {
+                      setMediaVisible(false);
+                      startReply(m);
+                    }}
+                  />
                 ))}
               </View>
             )}

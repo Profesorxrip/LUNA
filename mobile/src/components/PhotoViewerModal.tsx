@@ -32,6 +32,13 @@ interface Props {
   // gosterilmez.
   senderName?: string;
   sentAt?: number;
+  // "Yanıtla" - sadece bir sohbet EKRANI (kendi yanıt/composer durumu olan
+  // DMScreen.tsx/RoomScreen.tsx) icinden acildiginda verilir; o ekranin
+  // KENDI "swipe ile yanitla" akisiyla AYNI fonksiyonu (startReply) tetikler.
+  // Verilmezse (DmInfoScreen.tsx medya izgarasi, UserProfileScreen.tsx
+  // galerisi gibi yanitlanacak bir composer OLMAYAN yerlerde) buton hic
+  // gosterilmez.
+  onReply?: () => void;
 }
 
 const MIN_SCALE = 1;
@@ -62,7 +69,7 @@ function touchDistance(touches: GestureResponderEvent["nativeEvent"]["touches"])
  * editHeader) AYNI gorsel dili kullanir - aynı donen CircleArrowDown geri
  * oku, "Indir" artik ayri bir ikon degil, saga TASINAN uc nokta menusunun
  * icinde bir secenek. */
-export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: Props) {
+export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onReply }: Props) {
   const insets = useSafeAreaInsets();
   const { i18n } = useTranslation();
   const [downloading, setDownloading] = useState(false);
@@ -234,13 +241,6 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
     extrapolate: "clamp",
   });
 
-  // "Yanıtla" henuz GERCEK bir hedefe (DM/oda sohbeti) baglanmadi - sadece
-  // butonun yerini/gorunumunu ister (bkz. kullanicinin istegi) - bkz.
-  // DMScreen.tsx/DmInfoScreen.tsx AYNI isimdeki yardimci.
-  function placeholder(label: string) {
-    showAlert(label, "Bu özellik yakında eklenecek.");
-  }
-
   // "İlet" - FriendsScreen.tsx'i (RoomScreen.tsx'teki "Davet et" akisiyla
   // AYNI inviteMode, coklu secim) bir kisi secici olarak acar, secilen HER
   // arkadasa bu fotografi AYRI bir DM fotograf mesaji olarak gonderir -
@@ -325,12 +325,22 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt }: P
             {/* FriendsScreen.tsx'teki "Geri Al" kutusunun AYNI ikonu
                 (undo-arrow.png, bkz. Icon.tsx "undoArrow") - dogal yonu
                 SAGA baktigi icin oldugu gibi Ilet, yatayda TERS cevrilince
-                (scaleX: -1) Yanitla olur. */}
-            <TouchableOpacity style={styles.iconBtn} onPress={() => placeholder("Yanıtla")} hitSlop={10}>
-              <View style={{ transform: [{ scaleX: -1 }] }}>
-                <Icon name="undoArrow" size={20} color="#FFFFFF" />
-              </View>
-            </TouchableOpacity>
+                (scaleX: -1) Yanitla olur. Sadece onReply VERILMISSE
+                gosterilir - bkz. Props.onReply aciklamasi. */}
+            {!!onReply && (
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={() => {
+                  onReply();
+                  onClose();
+                }}
+                hitSlop={10}
+              >
+                <View style={{ transform: [{ scaleX: -1 }] }}>
+                  <Icon name="undoArrow" size={20} color="#FFFFFF" />
+                </View>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.iconBtn} onPress={() => setForwardVisible(true)} hitSlop={10}>
               <Icon name="undoArrow" size={20} color="#FFFFFF" />
             </TouchableOpacity>

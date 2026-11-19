@@ -16,6 +16,9 @@ interface Props {
   // fotograflari) o bilgi goruntuleyicide hic gosterilmez.
   senderName?: string;
   sentAt?: number;
+  // PhotoViewerModal.tsx'teki "Yanıtla" butonu icin - bkz. oradaki Props
+  // aciklamasi (sadece verilirse buton gosterilir).
+  onReply?: () => void;
 }
 
 /** Chat/DM'de gonderilen fotograf - "+18 icerik" isaretliyse varsayilan
@@ -24,7 +27,7 @@ interface Props {
  * yok, her acilista yeniden karar verilir). Bulanik degilken (ya da bir kez
  * acildiktan sonra) dokununca PhotoViewerModal ile tam ekran acilir - profil
  * galerisi/avatar ile AYNI bilesen. */
-export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius = 12, senderName, sentAt }: Props) {
+export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius = 12, senderName, sentAt, onReply }: Props) {
   const [revealed, setRevealed] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const blurred = isAdult && !revealed;
@@ -47,7 +50,13 @@ export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius
           </BlurView>
         )}
       </TouchableOpacity>
-      <PhotoViewerModal uri={viewerOpen ? uri : null} onClose={() => setViewerOpen(false)} senderName={senderName} sentAt={sentAt} />
+      <PhotoViewerModal
+        uri={viewerOpen ? uri : null}
+        onClose={() => setViewerOpen(false)}
+        senderName={senderName}
+        sentAt={sentAt}
+        onReply={onReply}
+      />
     </>
   );
 }
