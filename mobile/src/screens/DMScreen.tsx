@@ -144,6 +144,9 @@ interface DMBubbleRowProps {
 function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport }: DMBubbleRowProps) {
   const { i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
+  // Sesli mesajin sure etiketi - VoiceMessageBubble artik kendi icinde cizmiyor,
+  // gonderim saatiyle AYNI alt satirda gosterebilelim diye buraya tasindi.
+  const [voiceTimeLabel, setVoiceTimeLabel] = useState("0:00");
 
   const pan = useRef(
     PanResponder.create({
@@ -191,6 +194,8 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               styles.bubble,
               isMine ? styles.bubbleMine : styles.bubbleTheirs,
               !groupedWithPrev && (isMine ? styles.bubbleMineFirst : styles.bubbleTheirsFirst),
+              item.kind === "voice" && styles.bubbleVoicePad,
+              item.kind === "location" && styles.bubbleLocationPad,
             ]}
           >
             {!groupedWithPrev && <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />}
@@ -203,7 +208,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               </View>
             )}
             {item.kind === "voice" && item.mediaUrl ? (
-              <VoiceMessageBubble uri={item.mediaUrl} durationMs={item.durationMs} />
+              <VoiceMessageBubble uri={item.mediaUrl} durationMs={item.durationMs} onTimeLabel={setVoiceTimeLabel} />
             ) : item.kind === "location" && item.latitude != null && item.longitude != null ? (
               <LocationMessageBubble latitude={item.latitude} longitude={item.longitude} />
             ) : item.kind === "file" && item.mediaUrl ? (
@@ -228,15 +233,18 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
             {item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.mediaUrl && item.text && item.text !== "📷 Fotoğraf" && (
               <Text style={styles.mediaCaption}>{item.text}</Text>
             )}
-            <View style={styles.metaRow}>
-              <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
-              {isMine && (
-                <MaterialIcons
-                  name={seen ? "done-all" : "done"}
-                  size={16}
-                  color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"}
-                />
-              )}
+            <View style={[styles.metaRow, item.kind === "voice" && styles.metaRowVoice]}>
+              {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
+              <View style={styles.metaRowRight}>
+                <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
+                {isMine && (
+                  <MaterialIcons
+                    name={seen ? "done-all" : "done"}
+                    size={16}
+                    color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"}
+                  />
+                )}
+              </View>
             </View>
           </View>
           {(item.myReaction || item.peerReaction) && (
@@ -1087,6 +1095,15 @@ const styles = StyleSheet.create({
   // Kullanicinin istegi: TUM kenarlar (ilk balonun cikintili sag-ust kosesiyle
   // AYNI) keskin/az yuvarlak dursun.
   bubble: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 8, position: "relative" },
+  // Sesli mesajda play+dalga satiri (30px) BOS kalan toplam alana gore dikey
+  // ortalansin diye ust/alt bosluk boyle paylastirildi - TOPLAM balon
+  // yuksekligi degismiyor (8+3+8=19 idi, simdi 18+1+0=19).
+  bubbleVoicePad: { paddingTop: 13, paddingBottom: 10 },
+  // Konum kartinin kendisi genisletildi/yukseltildi (bkz. LocationMessageBubble),
+  // balonun kendi sol/sag/ust bosluğu da 3px'e indirilerek karta neredeyse
+  // kenara kadar yer acildi (alt tarafta gonderim saati oldugu icin o
+  // paylasilan 8px'e dokunulmadi).
+  bubbleLocationPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
   bubbleMine: { backgroundColor: BUBBLE_MINE_COLOR },
   // Balonun disina tasan, WhatsApp'taki gibi TEK bir bezier egrisiyle
   // cizilen yumusak kuyruk (bkz. BubbleTail) - kirik ucgen cizgisi degil.
@@ -1180,7 +1197,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, alignSelf: "flex-end" },
+  // Sesli mesajda bu satir TUM genisligi kaplar - sure SOLDA (dalganin
+  // basladigi hizada), saat+tik SAGDA kalsin diye.
+  metaRowVoice: { alignSelf: "stretch", justifyContent: "space-between", marginTop: -4 },
+  metaRowRight: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaTime: { color: "rgba(255,255,255,0.65)", fontSize: 11 },
+  // Sesli mesajin sure etiketi - dikeyde saatle AYNI satirda, yatayda dalganin
+  // basladigi yere (play butonu genisligi + aralarindaki bosluk) hizali.
+  voiceMetaTime: { color: "rgba(255,255,255,0.65)", fontSize: 11, marginLeft: 38 },
   // Referans goruntudeki gibi: cevap onizlemesi, mesaj kutusunun (pill) KENDI
   // SINIRI DEGIL - pill'in ICINDE, kenarlardan bosluklu, kendi ayri (daha
   // acik renk) kucuk bir kart olarak duruyor. Disaridaki tek buyuk kutu
