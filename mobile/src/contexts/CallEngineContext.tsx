@@ -19,6 +19,13 @@ export interface CallEngineContextValue extends CallEngine {
 
 const CallEngineContext = createContext<CallEngineContextValue | null>(null);
 
+// Banner'in GIZLENDIGI ekranlar: "Room" - zaten kendi sesli/goruntulu oda
+// arayuzu var, ustune bir de 1'e 1 arama banner'i binmesin diye; "Create" -
+// platform secme/URL girme ekraninin ust bari banner'in bindirme
+// bolgesiyle (bkz. asagidaki -36 marginTop) cakisiyor, bkz. RootNavigator.tsx
+// subscribeCurrentRouteName.
+const HIDE_BANNER_ROUTES = new Set(["Room", "Create"]);
+
 export function useCallEngineContext(): CallEngineContextValue {
   const ctx = useContext(CallEngineContext);
   if (!ctx) throw new Error("useCallEngineContext, CallEngineProvider disinda cagrilamaz.");
@@ -45,10 +52,7 @@ export default function CallEngineProvider({ children }: { children: React.React
   const engine = useCallEngine();
   const { incomingCall, acceptCall, declineCall, phase, participants, elapsedSeconds, isVideoCall, micEnabled, setMicEnabled, speakerOn, setSpeakerRoute, endCall } = engine;
   const [callMinimized, setCallMinimized] = useState(false);
-  // "Oda" ekranindayken banner GIZLENIR - o ekranin zaten kendi sesli/
-  // goruntulu oda arayuzu var, ustune bir de 1'e 1 arama banner'i binmesin
-  // diye (bkz. RootNavigator.tsx subscribeCurrentRouteName).
-  const [onRoomScreen, setOnRoomScreen] = useState(false);
+  const [onHiddenRoute, setOnHiddenRoute] = useState(false);
 
   // Arama tamamen bitince (phase "idle"e donunce) kucultulmus banner da
   // kendiliginden kapanir - bir sonraki aramada BOS yere acik kalmasin diye.
@@ -56,7 +60,7 @@ export default function CallEngineProvider({ children }: { children: React.React
     if (phase === "idle") setCallMinimized(false);
   }, [phase]);
 
-  useEffect(() => subscribeCurrentRouteName((name) => setOnRoomScreen(name === "Room")), []);
+  useEffect(() => subscribeCurrentRouteName((name) => setOnHiddenRoute(!!name && HIDE_BANNER_ROUTES.has(name))), []);
 
   const contextValue: CallEngineContextValue = { ...engine, callMinimized, setCallMinimized };
   // Gelen arama zaten devam eden bir GRUP aramasiysa (existingMembers dolu),
@@ -71,7 +75,7 @@ export default function CallEngineProvider({ children }: { children: React.React
   // (henuz cevaplanmamis gelen arama) zaten tam ekran IncomingCallScreen ile
   // gosterildigi icin burada HARIC tutulur.
   const minimizedPeer = participants.length === 1 ? participants[0] : null;
-  const showMinimizedBanner = callMinimized && phase !== "idle" && phase !== "ringing-in" && !!minimizedPeer && !onRoomScreen;
+  const showMinimizedBanner = callMinimized && phase !== "idle" && phase !== "ringing-in" && !!minimizedPeer && !onHiddenRoute;
 
   return (
     <CallEngineContext.Provider value={contextValue}>
