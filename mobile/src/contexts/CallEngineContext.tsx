@@ -69,7 +69,38 @@ export default function CallEngineProvider({ children }: { children: React.React
 
   return (
     <CallEngineContext.Provider value={contextValue}>
-      {children}
+      <View style={{ flex: 1 }}>
+        {showMinimizedBanner && minimizedPeer && (
+          <MinimizedCallBanner
+            name={minimizedPeer.name}
+            avatarUrl={minimizedPeer.avatarUrl}
+            elapsedLabel={phase === "connected" ? formatElapsed(elapsedSeconds) : t("dm.callRinging")}
+            muted={!micEnabled}
+            onToggleMute={() => setMicEnabled(!micEnabled)}
+            speakerOn={speakerOn}
+            onToggleSpeaker={() => setSpeakerRoute(!speakerOn)}
+            onEndCall={() => {
+              endCall();
+              setCallMinimized(false);
+            }}
+            onPress={() => {
+              setCallMinimized(false);
+              if (navigationRef.isReady()) {
+                navigationRef.navigate(isVideoCall ? "VideoCall" : "VoiceCall", {
+                  peer: { userId: minimizedPeer.userId, name: minimizedPeer.name },
+                  peerAvatarUrl: minimizedPeer.avatarUrl,
+                });
+              }
+            }}
+          />
+        )}
+        {/* Banner GORUNURKEN icerik normal akista banner'in TAM altina
+            degil, biraz YUKARI cekilerek (-36) kasitli kucuk bir bindirme
+            yapilir - __DevHarness.tsx'teki AYNI tasarim (bkz. oradaki
+            marginTop aciklamasi + MinimizedCallBanner.tsx'teki zIndex notu,
+            bindirmeye ragmen banner'in tiklanabilir kalmasini saglar). */}
+        <View style={{ flex: 1, marginTop: showMinimizedBanner ? -36 : 0 }}>{children}</View>
+      </View>
       {incomingCall && (
         <View style={StyleSheet.absoluteFill}>
           <IncomingCallScreen
@@ -89,40 +120,6 @@ export default function CallEngineProvider({ children }: { children: React.React
           />
         </View>
       )}
-      {showMinimizedBanner && minimizedPeer && (
-        // Mutlak konumlandirma SART - banner normal akista birakilirsa
-        // RootNavigator'in (flex:1 ile tum alani kaplayan) ALTINA/sonuna
-        // dusup ekranin EN ALTINDA gorunurdu; IncomingCallScreen'in kendi
-        // tam-ekran overlay'iyle AYNI mantik, ustte sabit kalsin diye.
-        <View style={styles.minimizedBannerOverlay} pointerEvents="box-none">
-          <MinimizedCallBanner
-          name={minimizedPeer.name}
-          avatarUrl={minimizedPeer.avatarUrl}
-          elapsedLabel={phase === "connected" ? formatElapsed(elapsedSeconds) : t("dm.callRinging")}
-          muted={!micEnabled}
-          onToggleMute={() => setMicEnabled(!micEnabled)}
-          speakerOn={speakerOn}
-          onToggleSpeaker={() => setSpeakerRoute(!speakerOn)}
-          onEndCall={() => {
-            endCall();
-            setCallMinimized(false);
-          }}
-          onPress={() => {
-            setCallMinimized(false);
-            if (navigationRef.isReady()) {
-              navigationRef.navigate(isVideoCall ? "VideoCall" : "VoiceCall", {
-                peer: { userId: minimizedPeer.userId, name: minimizedPeer.name },
-                peerAvatarUrl: minimizedPeer.avatarUrl,
-              });
-            }
-          }}
-          />
-        </View>
-      )}
     </CallEngineContext.Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  minimizedBannerOverlay: { position: "absolute", top: 0, left: 0, right: 0 },
-});
