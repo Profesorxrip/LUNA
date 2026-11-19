@@ -2632,7 +2632,11 @@ const styles = StyleSheet.create({
   },
   // Kapak fotografi HENUZ eklenmediyse - duz, mat gri bir yer tutucu.
   bannerWrapEmpty: { backgroundColor: "#55554F" },
-  bannerActionsRow: { position: "absolute", top: 34, right: 14, flexDirection: "row", gap: 8 },
+  // top: 34 degil 44 - kucultulmus arama banner'i (bkz. CallEngineContext.tsx
+  // marginTop: -36) acikken ekranin ilk 36px'i KASITLI olarak banner'in
+  // altina biniyor; bu satir o bolgenin icinde kalirsa butonlar banner'a
+  // "temas eder" gorunuyordu. 44, o bindirme bolgesinin tamamen disinda.
+  bannerActionsRow: { position: "absolute", top: 44, right: 14, flexDirection: "row", gap: 8 },
   bannerActionButton: {
     width: 36,
     height: 36,
