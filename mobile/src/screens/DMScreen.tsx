@@ -930,6 +930,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       <Modal visible={expiryVisible} transparent animationType="slide" onRequestClose={() => setExpiryVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setExpiryVisible(false)}>
           <View style={styles.sheetCard}>
+            <View style={styles.sheetHandleTop} />
             <Text style={styles.sheetTitle}>{t("dm.menuExpiry")}</Text>
             <Text style={styles.sheetSubtitle}>{t("dm.expirySubtitle")}</Text>
             {expiryOptions.map((opt) => (
@@ -938,7 +939,6 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                 {expiresAfterMs === opt.ms && <Text style={styles.sheetRowCheck}>✓</Text>}
               </TouchableOpacity>
             ))}
-            <View style={styles.sheetHandle} />
           </View>
         </TouchableOpacity>
       </Modal>
@@ -1311,8 +1311,10 @@ const styles = StyleSheet.create({
   },
   expiryBannerText: { color: ACCENT, fontSize: 11, fontWeight: "600" },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  // Profil ekranindaki kutularla AYNI koyu lacivert (#15202B) - eskiden
+  // siyaha yakin kahverengiydi (#141210).
   sheetCard: {
-    backgroundColor: "#141210",
+    backgroundColor: "#15202B",
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     paddingTop: 18,
@@ -1328,12 +1330,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 14,
-    borderTopWidth: 1,
-    borderColor: "#2A2422",
   },
   sheetRowText: { color: TEXT, fontSize: 15, fontWeight: "600" },
   sheetRowCheck: { color: ACCENT, fontSize: 16, fontWeight: "700" },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#3A332C", marginTop: 14 },
+  // Sure sonu sheet'inin KENDI tutamaci - digerlerinden (Sikayet Et/ataç)
+  // farkli olarak ustte, baslikdan ONCE.
+  sheetHandleTop: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#3A4C5E", marginBottom: 14 },
   // Kullanicinin istegi: ilk mesajin ustunde, ekrani ortalayacak sekilde,
   // profil ekranindaki kutularla AYNI koyu lacivert (#15202B) renkte,
   // solunda ayarlardaki gizlilik (LockClosedIcon) ikonu olan uctan uca
