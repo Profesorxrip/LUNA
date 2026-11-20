@@ -11,6 +11,11 @@ interface Props {
   text: string;
   kind?: DMMessage["kind"] | null;
   mediaUrl?: string | null;
+  // Sadece kind="call" icin - metindeki emoji yerine GERCEK bilgiye
+  // bakabilelim diye (bkz. asagidaki IconEl secimi). Verilmezse (eski
+  // cagrilar - DMReply bu alani HENUZ tasimiyor) metindeki "🎥" emojisine
+  // geri donulur.
+  callIsVideo?: boolean | null;
   // "composer": yaziyorken alttaki cevap cubugu (koyu/MUTED renkler).
   // "bubble": bir mesaj balonunun kendi icindeki alinti (beyaz/yari-saydam).
   variant: "composer" | "bubble";
@@ -37,7 +42,7 @@ function VideoThumb({ uri }: { uri: string }) {
  * (foto/video icin kucuk bir resim onizlemesi, digerleri icin uygun bir
  * simge) + ozet metin. kind/mediaUrl verilmemisse (eski kayitlar) sadece
  * duz metin gosterir - bkz. 0036_dm_reply_rich.sql. */
-export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, variant }: Props) {
+export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, callIsVideo, variant }: Props) {
   const fromColor = "#FFFFFF";
   const bodyColor = variant === "bubble" ? "rgba(255,255,255,0.75)" : "#9A8F80";
   const iconColor = variant === "bubble" ? "rgba(255,255,255,0.85)" : "#9A8F80";
@@ -59,10 +64,24 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, va
   };
 
   const hasThumb = (kind === "photo" || kind === "video") && !!mediaUrl;
-  // Ikon bilgisi varken on ekteki emoji artik GEREKSIZ (ikon zaten onu
-  // anlatiyor) - sadece ilk karakterin emoji olma ihtimaline karsi basit
-  // bir kirpma (emoji + takip eden bosluk).
-  const label = kind ? text.replace(/^\S+\s*/u, "") || text : text;
+  // Foto/video icin "text" alani ya SABIT bir varsayilan ("📷 Fotoğraf"/
+  // "🎥 Video" - emoji ON EKLI) YA DA kullanicinin yazdigi GERCEK bir
+  // altyazi (emoji eki OLMADAN, "Beyaz BMW" gibi) olabilir (bkz.
+  // 0033/0034_dm_message_kinds.sql: "coalesce(nullif(trim(caption),''), ...)").
+  // Asagidaki "ilk kelimeyi emoji sanip kirpma" numarasi bu YUZDEN foto/
+  // videoda GUVENSIZ: gercek bir altyazi varsa ilk kelimesini yerdi ("Beyaz
+  // BMW" -> "BMW"). O yuzden bu iki turde kucuk resim zaten "foto/video
+  // oldugunu" gosterdigi icin, altyaziyi hic DENEMEDEN sabit bir tur
+  // etiketi gosteriyoruz.
+  const displayText = kind === "photo" ? "Fotoğraf" : kind === "video" ? "Video" : text;
+  // Diger zengin (ikonlu) turlerde metin HER ZAMAN sunucunun kendi sabit
+  // "emoji + etiket" seklidir (voice/location/call) ya da "emoji + dosya
+  // adi" (file) - orada ilk "kelimeyi" (emojiyi) kirpmak guvenli. "text"
+  // turu de DB'de HER ZAMAN dolu geliyor (not null default 'text'), bu
+  // yuzden "kind ?" tek basina duz metin mesajlarinin da ILK KELIMESINI
+  // yanlislikla emoji saniyordu.
+  const isRichKind = kind && kind !== "text" && kind !== "photo" && kind !== "video";
+  const label = isRichKind ? displayText.replace(/^\S+\s*/u, "") || displayText : displayText;
 
   // Kucuk resim varsa, onu saran ASIL kutunun (balon ici "replyQuote" ya da
   // composer'daki "replyBarText") kenarindan TAM 3px kalsin istiyoruz. Sabit
@@ -101,7 +120,14 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, va
       IconEl = <FileIcon size={14} color={iconColor} />;
       iconShift = -1.75;
     } else if (kind === "call") {
-      IconEl = text.includes("🎥") ? <AppIcon name="video" size={14} color={iconColor} /> : <Phone size={14} color={iconColor} />;
+      // "callIsVideo" GERCEK bilgiyi tasir (bkz. DMMessage.callIsVideo) -
+      // metindeki "🎥" emojisine sadece bu alan YOKSA (eski DMReply
+      // cagrilari) geri donulur. Bu fark ONEMLI: CEVAPSIZ aramalarda
+      // (0035_dm_call_messages.sql) metin HER ZAMAN "📞 Cevapsız arama"
+      // olur - görüntülü olsa bile emoji tasimaz, bu yuzden sadece metne
+      // bakmak cevapsiz GORUNTULU aramalari hep "sesli" gibi gosterirdi.
+      const isVideoCall = callIsVideo ?? text.includes("🎥");
+      IconEl = isVideoCall ? <AppIcon name="video" size={14} color={iconColor} /> : <Phone size={14} color={iconColor} />;
     }
   }
 

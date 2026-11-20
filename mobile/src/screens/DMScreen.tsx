@@ -23,12 +23,12 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, Check } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { RoomMicIcon } from "../components/CustomIcons";
 import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
-import { getSocket, DMMessage, DMReply, DMPinnedMessage, FriendUser } from "../services/socket";
+import { getSocket, DMMessage, DMReply, DMPinnedMessage } from "../services/socket";
 import { supabase } from "../services/supabase";
 import Icon from "../components/Icon";
 import ReplyPreviewContent from "../components/ReplyPreviewContent";
@@ -45,6 +45,7 @@ import VoiceMessageBubble from "../components/VoiceMessageBubble";
 import LocationMessageBubble from "../components/LocationMessageBubble";
 import FileMessageBubble from "../components/FileMessageBubble";
 import CallMessageBubble from "../components/CallMessageBubble";
+import FriendsScreen from "./FriendsScreen";
 import Avatar from "../components/Avatar";
 
 function formatRecordingTime(ms: number): string {
@@ -416,11 +417,21 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // ayni anda sabit olabilir (headerdaki "sohbeti sabitle" ile KARISTIRMAYIN).
   const [actionMenuMessage, setActionMenuMessage] = useState<DMMessage | null>(null);
   const [pinnedMessages, setPinnedMessages] = useState<DMPinnedMessage[]>([]);
-  const [pinnedListVisible, setPinnedListVisible] = useState(false);
+  // Banner her zaman AYNI mesaji degil, sohbetteki konumuna gore SIRAYLA
+  // farkli bir sabitlenmis mesaji gosterir (WhatsApp'daki gibi): bu index
+  // "orderedPins" (sohbetteki konumuna gore eskiden-yeniye siralanmis) icinde
+  // su an GOSTERILEN mesaji isaret eder - baslangicta EN SONuncusu (en
+  // yeni). Banner'a her basista o mesaja gidilir VE index bir ONCEKI
+  // (daha eski) sabitlenmis mesaja kaydirilir, en basa gelince en yeniye
+  // sarar - kullanicinin istegi.
+  const [pinnedCursor, setPinnedCursor] = useState(0);
   const [forwardTarget, setForwardTarget] = useState<DMMessage | null>(null);
-  const [forwardFriends, setForwardFriends] = useState<FriendUser[]>([]);
-  const [forwardSelected, setForwardSelected] = useState<Set<string>>(new Set());
-  const [forwardSending, setForwardSending] = useState(false);
+
+  // Sabitlenen mesaj SAYISI degistikce (yeni sabitleme/kaldirma) gosterge
+  // en yeniye (son indekse) sifirlanir.
+  useEffect(() => {
+    setPinnedCursor(Math.max(0, pinnedMessages.length - 1));
+  }, [pinnedMessages.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -883,36 +894,19 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       socket.emit("dm:pinMessage", { withUserId: peer.userId, messageId: message.id }, () => {});
     }
   }
+  // Foto izleyicideki (PhotoViewerModal.tsx) "İlet" ile AYNI ekran:
+  // FriendsScreen'i inviteMode + hideInviteExtras ile bir kisi secici olarak
+  // acar - kendi arkadas listesini/arama/coklu secimini kendisi yonetir,
+  // biz sadece secilen kisilere forwardTarget'i gonderiyoruz.
   function openForwardPicker(message: DMMessage) {
     closeActionMenu();
     setForwardTarget(message);
-    setForwardSelected(new Set());
-    if (forwardFriends.length === 0) {
-      socket.emit("friends:list", {}, (res: any) => {
-        if (res?.ok) setForwardFriends(res.friends || []);
-      });
-    }
   }
-  function toggleForwardSelect(userId: string) {
-    setForwardSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
+  function forwardToUsers(userIds: string[]) {
+    if (!forwardTarget || userIds.length === 0) return;
+    socket.emit("dm:forwardMessage", { toUserIds: userIds, message: forwardTarget }, () => {
+      setForwardTarget(null);
     });
-  }
-  function confirmForward() {
-    if (!forwardTarget || forwardSelected.size === 0) return;
-    setForwardSending(true);
-    socket.emit(
-      "dm:forwardMessage",
-      { toUserIds: Array.from(forwardSelected), message: forwardTarget },
-      () => {
-        setForwardSending(false);
-        setForwardTarget(null);
-        setForwardSelected(new Set());
-      }
-    );
   }
 
   // Medya listesinden (fotograf izleyicideki "Sohbette Göster") ana sohbette
@@ -987,77 +981,122 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
 
   // Basili tutma menusunun icerigi - mesaja gore degisir: "Herkesten Sil"
   // sadece kendi mesajimizda, "Ilet" aramalarda (kind="call") gorunmuyor.
+  // Ust bardaki secim-modu ikonlari - bkz. asagidaki header render'i. Tek
+  // bir Sil ikonu var (iki ayri cop kutusu yerine): kendi mesajimizsa
+  // "benden/herkesten" secimini SORAN bir onay (handleDeleteTap), degilse
+  // dogrudan "benden sil" onayi.
+  function handleDeleteTap(message: DMMessage) {
+    closeActionMenu();
+    const isMine = message.fromUserId === myUserId;
+    if (!isMine) {
+      handleDeleteForMe(message);
+      return;
+    }
+    showAlert(t("dm.deleteChooseTitle"), undefined, [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("dm.actionDeleteForMe"), style: "destructive", onPress: () => handleDeleteForMe(message) },
+      { text: t("dm.actionDeleteForEveryone"), style: "destructive", onPress: () => handleDeleteForEveryone(message) },
+    ]);
+  }
   const actionMenuItems: { label: string; icon: React.ReactNode; danger?: boolean; onPress: () => void }[] = (() => {
     const m = actionMenuMessage;
     if (!m) return [];
-    const isMine = m.fromUserId === myUserId;
     const isPinned = pinnedMessages.some((p) => p.message.id === m.id);
+    // Ikon boyutu ust bardaki sesli arama (Phone) ikonuyla AYNI (25) olsun
+    // diye. Yanitla/Ilet, foto izleyicideki (PhotoViewerModal) ile AYNI ikon:
+    // "undoArrow" (dogal yonu saga - Ilet), yatayda ters cevrilince Yanitla.
     const items: { label: string; icon: React.ReactNode; danger?: boolean; onPress: () => void }[] = [
-      { label: t("dm.actionReply"), icon: <Icon name="reply" size={16} color={TEXT} />, onPress: () => startReply(m) },
-      { label: t("dm.actionCopy"), icon: <Copy size={16} color={TEXT} />, onPress: () => handleCopy(m) },
+      {
+        label: t("dm.actionReply"),
+        icon: (
+          <View style={{ transform: [{ scaleX: -1 }] }}>
+            <Icon name="undoArrow" size={25} color={TEXT} />
+          </View>
+        ),
+        // Foto izleyicideki Yanitla ile AYNI: cevap cubugunu acar VE secim
+        // modundan (digerleri gibi) cikar - eskiden sadece startReply
+        // cagrilip secim modu ACIK kaliyordu.
+        onPress: () => {
+          startReply(m);
+          closeActionMenu();
+        },
+      },
+      { label: t("dm.actionCopy"), icon: <Copy size={25} color={TEXT} />, onPress: () => handleCopy(m) },
       {
         label: isPinned ? t("dm.actionUnpin") : t("dm.actionPin"),
-        icon: isPinned ? <PinOff size={16} color={TEXT} /> : <Pin size={16} color={TEXT} />,
+        icon: isPinned ? <PinOff size={25} color={TEXT} /> : <Pin size={25} color={TEXT} />,
         onPress: () => handlePinToggle(m),
       },
     ];
     if (m.kind !== "call") {
-      items.push({ label: t("dm.actionForward"), icon: <Forward size={16} color={TEXT} />, onPress: () => openForwardPicker(m) });
+      items.push({ label: t("dm.actionForward"), icon: <Icon name="undoArrow" size={25} color={TEXT} />, onPress: () => openForwardPicker(m) });
     }
-    items.push({ label: t("dm.actionDeleteForMe"), icon: <Trash2 size={16} color={theme.danger} />, danger: true, onPress: () => handleDeleteForMe(m) });
-    if (isMine) {
-      items.push({
-        label: t("dm.actionDeleteForEveryone"),
-        icon: <Trash2 size={16} color={theme.danger} />,
-        danger: true,
-        onPress: () => handleDeleteForEveryone(m),
-      });
-    }
+    items.push({ label: t("dm.actionDeleteForMe"), icon: <Trash2 size={25} color={theme.danger} />, danger: true, onPress: () => handleDeleteTap(m) });
     return items;
   })();
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} hitSlop={10} style={{ marginTop: 1 }}>
-          <View style={{ transform: [{ rotate: "90deg" }] }}>
-            <CircleArrowDown size={22} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.headerProfileTouch}
-          activeOpacity={0.75}
-          disabled={!onOpenInfo}
-          onPress={() =>
-            onOpenInfo?.({ peerAvatarUrl, muted, mediaMessages, fileMessages, onShowInChat: scrollToMessage, onToggleMute: toggleMute })
-          }
-        >
-          <View style={{ marginLeft: -1 }}>
-            <Avatar name={peer.name} avatarUrl={peerAvatarUrl} size={46} />
-          </View>
-          <View style={styles.headerTextBlock}>
-            <View style={styles.headerNameRow}>
-              <Text style={styles.headerName}>{peer.name}</Text>
+        {actionMenuMessage ? (
+          <>
+            <TouchableOpacity onPress={closeActionMenu} hitSlop={10} style={{ marginTop: 1 }}>
+              <View style={{ transform: [{ rotate: "90deg" }] }}>
+                <CircleArrowDown size={22} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.headerSelectionCount}>
+              <Text style={styles.headerSelectionCountText}>1</Text>
             </View>
-            {!!peer.handle && <Text style={styles.headerHandle}>@{peer.handle}</Text>}
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => (onStartVoiceCall ? onStartVoiceCall(peerAvatarUrl) : placeholder(t("dm.callAction")))}
-          hitSlop={10}
-        >
-          <Phone size={25} color={TEXT} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setMenuVisible(true)} hitSlop={10}>
-          <MoreVertical size={27.5} color={TEXT} />
-        </TouchableOpacity>
-        <LinearGradient
-          colors={["#FFFFFF", "#38BDF8"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.headerDivider}
-        />
+            {actionMenuItems.map((item) => (
+              <TouchableOpacity key={item.label} onPress={item.onPress} hitSlop={10}>
+                {item.icon}
+              </TouchableOpacity>
+            ))}
+          </>
+        ) : (
+          <>
+            <TouchableOpacity onPress={onBack} hitSlop={10} style={{ marginTop: 1 }}>
+              <View style={{ transform: [{ rotate: "90deg" }] }}>
+                <CircleArrowDown size={22} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerProfileTouch}
+              activeOpacity={0.75}
+              disabled={!onOpenInfo}
+              onPress={() =>
+                onOpenInfo?.({ peerAvatarUrl, muted, mediaMessages, fileMessages, onShowInChat: scrollToMessage, onToggleMute: toggleMute })
+              }
+            >
+              <View style={{ marginLeft: -1 }}>
+                <Avatar name={peer.name} avatarUrl={peerAvatarUrl} size={46} />
+              </View>
+              <View style={styles.headerTextBlock}>
+                <View style={styles.headerNameRow}>
+                  <Text style={styles.headerName}>{peer.name}</Text>
+                </View>
+                {!!peer.handle && <Text style={styles.headerHandle}>@{peer.handle}</Text>}
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => (onStartVoiceCall ? onStartVoiceCall(peerAvatarUrl) : placeholder(t("dm.callAction")))}
+              hitSlop={10}
+            >
+              <Phone size={25} color={TEXT} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setMenuVisible(true)} hitSlop={10}>
+              <MoreVertical size={27.5} color={TEXT} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
+      <LinearGradient
+        colors={["#FFFFFF", "#38BDF8"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.headerDivider}
+      />
 
       {searchVisible && (
         <View style={styles.searchBar}>
@@ -1089,16 +1128,41 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         </TouchableOpacity>
       )}
 
-      {pinnedMessages.length > 0 && (
-        <TouchableOpacity style={styles.pinnedBanner} onPress={() => setPinnedListVisible(true)} activeOpacity={0.8}>
-          <Pin size={13} color={ACCENT} />
-          <Text style={styles.pinnedBannerText} numberOfLines={1}>
-            {pinnedMessages.length === 1
-              ? t("dm.pinnedBannerOne")
-              : t("dm.pinnedBannerMany", { count: pinnedMessages.length })}
-          </Text>
-        </TouchableOpacity>
-      )}
+      {pinnedMessages.length > 0 &&
+        (() => {
+          // Sohbetteki konumuna gore eskiden yeniye siralanmis liste -
+          // pinnedCursor bunun icinde su an gosterilen mesaji isaret eder.
+          const orderedPins = [...pinnedMessages].sort((a, b) => a.message.createdAt - b.message.createdAt);
+          const cursor = Math.min(pinnedCursor, orderedPins.length - 1);
+          const shown = orderedPins[cursor].message;
+          return (
+            <TouchableOpacity
+              style={styles.pinnedBanner}
+              activeOpacity={0.75}
+              onPress={() => {
+                scrollToMessage(shown.id);
+                setPinnedCursor(cursor === 0 ? orderedPins.length - 1 : cursor - 1);
+              }}
+            >
+              <View style={styles.pinnedBannerQuote}>
+                <Pin size={18} color="#FFFFFF" />
+                <View style={styles.pinnedBannerQuoteText}>
+                  <ReplyPreviewContent
+                    fromName={shown.fromUserId === myUserId ? t("dm.you") : shown.fromName}
+                    text={shown.text}
+                    kind={shown.kind}
+                    mediaUrl={shown.mediaUrl}
+                    callIsVideo={shown.callIsVideo}
+                    variant="bubble"
+                  />
+                </View>
+                <Text style={styles.pinnedBannerCounter}>
+                  {cursor + 1}/{orderedPins.length}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })()}
 
       <FlatList
         ref={listRef}
@@ -1289,90 +1353,20 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={!!actionMenuMessage} transparent animationType="fade" onRequestClose={closeActionMenu} statusBarTranslucent>
-        <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={closeActionMenu}>
-          <View style={styles.menuCard}>
-            {actionMenuItems.map((item) => (
-              <TouchableOpacity key={item.label} style={styles.menuRow} onPress={item.onPress}>
-                {item.icon}
-                <Text style={[styles.menuRowText, item.danger && { color: theme.danger }]}>{item.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      <Modal visible={pinnedListVisible} transparent animationType="slide" onRequestClose={() => setPinnedListVisible(false)} statusBarTranslucent>
-        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setPinnedListVisible(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
-            <View style={styles.sheetHandleTop} />
-            <Text style={styles.sheetTitle}>{t("dm.pinnedListTitle")}</Text>
-            {pinnedMessages.map((p) => (
-              <TouchableOpacity
-                key={p.message.id}
-                style={styles.pinnedListRow}
-                onPress={() => {
-                  setPinnedListVisible(false);
-                  scrollToMessage(p.message.id);
-                }}
-              >
-                <View style={styles.pinnedListRowText}>
-                  <Text style={styles.pinnedListRowName} numberOfLines={1}>
-                    {p.message.fromUserId === myUserId ? t("dm.you") : p.message.fromName}
-                  </Text>
-                  <Text style={styles.pinnedListRowBody} numberOfLines={1}>
-                    {p.message.text}
-                  </Text>
-                </View>
-                <TouchableOpacity hitSlop={8} onPress={() => handlePinToggle(p.message)}>
-                  <PinOff size={16} color={MUTED} />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
-      <Modal visible={!!forwardTarget} transparent animationType="slide" onRequestClose={() => setForwardTarget(null)} statusBarTranslucent>
-        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setForwardTarget(null)}>
-          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
-            <View style={styles.sheetHandleTop} />
-            <Text style={styles.sheetTitle}>{t("dm.forwardTitle")}</Text>
-            <Text style={styles.sheetSubtitle}>{t("dm.forwardSubtitle")}</Text>
-            <FlatList
-              data={forwardFriends}
-              keyExtractor={(f) => f.userId}
-              style={{ maxHeight: 320 }}
-              renderItem={({ item: friend }) => {
-                const selected = forwardSelected.has(friend.userId);
-                return (
-                  <TouchableOpacity style={styles.forwardFriendRow} onPress={() => toggleForwardSelect(friend.userId)}>
-                    <Avatar name={friend.name} avatarUrl={friend.avatarUrl} size={36} />
-                    <Text style={styles.forwardFriendName} numberOfLines={1}>
-                      {friend.name}
-                    </Text>
-                    <View style={[styles.forwardCheckbox, selected && styles.forwardCheckboxChecked]}>
-                      {selected && <Check size={13} color="#141210" />}
-                    </View>
-                  </TouchableOpacity>
-                );
-              }}
-            />
-            <TouchableOpacity
-              style={[styles.forwardSendBtn, (forwardSelected.size === 0 || forwardSending) && styles.forwardSendBtnDisabled]}
-              onPress={confirmForward}
-              disabled={forwardSelected.size === 0 || forwardSending}
-            >
-              {forwardSending ? (
-                <ActivityIndicator color="#141210" />
-              ) : (
-                <Text style={styles.forwardSendBtnText}>
-                  {forwardSelected.size > 0 ? t("dm.forwardSendCount", { count: forwardSelected.size }) : t("dm.forwardSend")}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
+      {/* Foto izleyicideki (PhotoViewerModal.tsx) "İlet" ile AYNI ekran -
+          FriendsScreen'in kendi arkadas listesi/arama/coklu secimi, sadece
+          "Davet Ekle" extra'lari gizli ve kendi basligi/buton metniyle. */}
+      <Modal visible={!!forwardTarget} animationType="slide" onRequestClose={() => setForwardTarget(null)} statusBarTranslucent>
+        <FriendsScreen
+          onBack={() => setForwardTarget(null)}
+          onOpenDM={() => {}}
+          onOpenParticipant={() => {}}
+          inviteMode
+          hideInviteExtras
+          headerTitle={t("dm.forwardTitle")}
+          confirmButtonLabel={(count) => t("dm.forwardSendCount", { count })}
+          onSendInvites={forwardToUsers}
+        />
       </Modal>
 
       <Modal visible={expiryVisible} transparent animationType="slide" onRequestClose={() => setExpiryVisible(false)} statusBarTranslucent>
@@ -1500,11 +1494,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 50,
     paddingBottom: 20,
-    position: "relative",
+    // Secim modunda (X + sayi + ikonlar) icerik avatardan (46px) daha
+    // KISA oldugu icin bu olmadan satirin toplam yuksekligi kuculuyor ve
+    // altindaki gradyan cizgi yukari kayiyormus gibi gorunuyordu - satirin
+    // yuksekligi iki modda da AYNI kalsin diye ("minHeight" tek basina RN
+    // Web'de bu flex satirinda islemedi, "height" sabitiyle zorluyoruz).
+    height: 116,
   },
   // Eski duz "#1E1A17" alt cizgi yerine - uygulamanin genelindeki AYNI
-  // beyazdan maviye gecen gradyan (kullanicinin istegi).
-  headerDivider: { position: "absolute", left: 0, right: 0, bottom: 5, height: 1 },
+  // beyazdan maviye gecen gradyan (kullanicinin istegi). Header'in ICINDE
+  // degil, hemen ALTINDA normal akista (absolute degil) render ediliyor -
+  // boylece altina gelen (sabitlenmis mesaj bannerI gibi) herhangi bir
+  // oge araya bosluk girmeden TAM OTURUYOR.
+  headerDivider: { height: 1, width: "100%" },
   headerAvatar: {
     width: 40,
     height: 40,
@@ -1516,6 +1518,10 @@ const styles = StyleSheet.create({
   headerAvatarInitial: { color: ACCENT, fontSize: 16, fontWeight: "700" },
   headerTextBlock: { flex: 1, marginLeft: -2 },
   headerName: { color: TEXT, fontSize: 18, fontWeight: "700" },
+  // Basili tutma SONRASI ust bar - telefon/uc nokta yerini secim ikonlarina,
+  // profil blogu yerini "N mesaj secildi" yazisina birakir.
+  headerSelectionCount: { flex: 1 },
+  headerSelectionCountText: { color: TEXT, fontSize: 20, fontWeight: "700" },
   headerHandle: { color: MUTED, fontSize: 13, marginTop: 1 },
   // Satirlar arasi varsayilan bosluk DAR tutulup (4) ayni gondericiden arka
   // arkaya gelen mesajlar birbirine yakin durur, yeni bir grup basladiginda
@@ -1806,51 +1812,50 @@ const styles = StyleSheet.create({
   expiryBannerText: { color: ACCENT, fontSize: 11, fontWeight: "600" },
   pinnedBanner: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: "rgba(14,165,233,0.08)",
+    // Kartin kendisi (pinnedBannerQuote) banner kutusunun dort tarafindan
+    // da (sol/ust/alt/sag) SADECE 3px icinde kalsin istegi.
+    padding: 3,
+    backgroundColor: "rgba(14,165,233,0.10)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(14,165,233,0.16)",
   },
-  pinnedBannerText: { color: ACCENT, fontSize: 12, fontWeight: "600", flexShrink: 1 },
-  pinnedListRow: {
-    width: "100%",
+  // Banner icindeki mesaj onizlemesi - balon icindeki cevap alintisiyle
+  // (bkz. "replyQuote") AYNI gorunumde: sol kenarda beyaz aksan cubugu +
+  // kendi (daha acik) kart arka plani - kullanicinin istegi, "cevap blogu
+  // gibi" gozuksun diye. Sabitleme ikonu artik bu kartin ICINDE (sol ucta),
+  // kart banner'i (ustten/alttan/soldan 3px disinda) tamamen doldursun diye.
+  pinnedBannerQuote: {
+    position: "relative",
+    flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderLeftWidth: 3,
+    borderLeftColor: "#FFFFFF",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  pinnedListRowText: { flex: 1, minWidth: 0 },
-  pinnedListRowName: { color: TEXT, fontSize: 13, fontWeight: "700" },
-  pinnedListRowBody: { color: MUTED, fontSize: 12, marginTop: 2 },
+  // Birden fazla sabitlenmis mesaj varken - foto izleyicideki "4/5" sayfa
+  // gostergesiyle AYNI sade gorunum (kutusuz, yari saydam beyaz metin) -
+  // kartin sag UST kosesinde (kullanicinin istegi).
+  pinnedBannerCounter: {
+    position: "absolute",
+    top: 5,
+    right: 8,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  // Sagdaki sayac ("pinnedBannerCounter") ile metin UST USTE binmesin diye
+  // sag tarafta ona yetecek kadar bosluk ayriliyor.
+  pinnedBannerQuoteText: { flex: 1, minWidth: 0, paddingRight: 26 },
   forwardedRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 3 },
   forwardedText: { fontSize: 11, fontStyle: "italic" },
   deletedRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
   deletedText: { fontSize: 14, fontStyle: "italic" },
-  forwardFriendRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, width: "100%" },
-  forwardFriendName: { color: TEXT, fontSize: 14, fontWeight: "600", flex: 1 },
-  forwardCheckbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: MUTED,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  forwardCheckboxChecked: { backgroundColor: ACCENT, borderColor: ACCENT },
-  forwardSendBtn: {
-    marginTop: 14,
-    width: "100%",
-    backgroundColor: ACCENT,
-    borderRadius: 24,
-    paddingVertical: 13,
-    alignItems: "center",
-  },
-  forwardSendBtnDisabled: { opacity: 0.4 },
-  forwardSendBtnText: { color: "#141210", fontSize: 14, fontWeight: "700" },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   // Profil ekranindaki kutularla AYNI koyu lacivert (#15202B) - eskiden
   // siyaha yakin kahverengiydi (#141210).

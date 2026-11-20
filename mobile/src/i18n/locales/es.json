@@ -260,7 +260,9 @@
     "pinnedBannerOne": "Mensaje fijado",
     "pinnedBannerMany": "{{count}} mensajes fijados",
     "pinnedListTitle": "Mensajes Fijados",
-    "copiedToast": "Copiado"
+    "copiedToast": "Copiado",
+    "selectedCount": "{{count}} seleccionado(s)",
+    "deleteChooseTitle": "Eliminar mensaje"
   },
   "userProfile": {
     "defaultName": "Usuario",

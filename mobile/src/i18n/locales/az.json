@@ -260,7 +260,9 @@
     "pinnedBannerOne": "Bərkidilmiş mesaj",
     "pinnedBannerMany": "{{count}} bərkidilmiş mesaj",
     "pinnedListTitle": "Bərkidilmiş Mesajlar",
-    "copiedToast": "Kopyalandı"
+    "copiedToast": "Kopyalandı",
+    "selectedCount": "{{count}} seçildi",
+    "deleteChooseTitle": "Mesajı sil"
   },
   "userProfile": {
     "defaultName": "İstifadəçi",

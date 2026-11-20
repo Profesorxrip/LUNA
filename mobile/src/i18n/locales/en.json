@@ -260,7 +260,9 @@
     "pinnedBannerOne": "Pinned message",
     "pinnedBannerMany": "{{count}} pinned messages",
     "pinnedListTitle": "Pinned Messages",
-    "copiedToast": "Copied"
+    "copiedToast": "Copied",
+    "selectedCount": "{{count}} selected",
+    "deleteChooseTitle": "Delete message"
   },
   "userProfile": {
     "defaultName": "User",

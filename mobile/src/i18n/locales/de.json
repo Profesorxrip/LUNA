@@ -260,7 +260,9 @@
     "pinnedBannerOne": "Angeheftete Nachricht",
     "pinnedBannerMany": "{{count}} angeheftete Nachrichten",
     "pinnedListTitle": "Angeheftete Nachrichten",
-    "copiedToast": "Kopiert"
+    "copiedToast": "Kopiert",
+    "selectedCount": "{{count}} ausgewählt",
+    "deleteChooseTitle": "Nachricht löschen"
   },
   "userProfile": {
     "defaultName": "Nutzer",

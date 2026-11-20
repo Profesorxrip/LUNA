@@ -260,7 +260,9 @@
     "pinnedBannerOne": "Καρφιτσωμένο μήνυμα",
     "pinnedBannerMany": "{{count}} καρφιτσωμένα μηνύματα",
     "pinnedListTitle": "Καρφιτσωμένα Μηνύματα",
-    "copiedToast": "Αντιγράφηκε"
+    "copiedToast": "Αντιγράφηκε",
+    "selectedCount": "{{count}} επιλεγμένα",
+    "deleteChooseTitle": "Διαγραφή μηνύματος"
   },
   "userProfile": {
     "defaultName": "Χρήστης",

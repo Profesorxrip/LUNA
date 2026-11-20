@@ -260,7 +260,9 @@
     "pinnedBannerOne": "رسالة مثبتة",
     "pinnedBannerMany": "{{count}} رسائل مثبتة",
     "pinnedListTitle": "الرسائل المثبتة",
-    "copiedToast": "تم النسخ"
+    "copiedToast": "تم النسخ",
+    "selectedCount": "تم تحديد {{count}}",
+    "deleteChooseTitle": "حذف الرسالة"
   },
   "userProfile": {
     "defaultName": "مستخدم",

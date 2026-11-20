@@ -260,7 +260,9 @@
     "pinnedBannerOne": "Закреплённое сообщение",
     "pinnedBannerMany": "Закреплённых сообщений: {{count}}",
     "pinnedListTitle": "Закреплённые сообщения",
-    "copiedToast": "Скопировано"
+    "copiedToast": "Скопировано",
+    "selectedCount": "Выбрано: {{count}}",
+    "deleteChooseTitle": "Удалить сообщение"
   },
   "userProfile": {
     "defaultName": "Пользователь",

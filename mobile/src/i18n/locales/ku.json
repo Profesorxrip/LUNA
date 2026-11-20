@@ -260,7 +260,9 @@
     "pinnedBannerOne": "Peyama pêvekirî",
     "pinnedBannerMany": "{{count}} peyamên pêvekirî",
     "pinnedListTitle": "Peyamên Pêvekirî",
-    "copiedToast": "Hat kopîkirin"
+    "copiedToast": "Hat kopîkirin",
+    "selectedCount": "{{count}} hatin hilbijartin",
+    "deleteChooseTitle": "Peyamê jê bibe"
   },
   "userProfile": {
     "defaultName": "Bikarhêner",
