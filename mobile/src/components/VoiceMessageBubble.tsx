@@ -11,6 +11,10 @@ interface Props {
   // alt bilgi satirina (gonderim saatiyle AYNI hizaya) tasinabilsin diye
   // deger her degistiginde bu callback ile yukari bildiriliyor.
   onTimeLabel?: (label: string) => void;
+  // SADECE tek-gorunumluk (view-once) mesajlarda verilir - DURDURULMUS/
+  // BASLANGICTAKI durumdan OYNAMAYA gecerken (ilk "play" basisi) bir kere
+  // cagrilir, DMScreen bunu sunucuya "dm:consumeVoiceOnce" olarak iletir.
+  onPlay?: () => void;
 }
 
 const BAR_COUNT = 24;
@@ -34,7 +38,7 @@ function waveformHeights(seed: string): number[] {
  * Sure etiketi artik DMScreen'in alt bilgi satirinda (gonderim saatiyle ayni
  * hizada) gosteriliyor - bkz. onTimeLabel. expo-audio'nun kendi oynatma
  * durumunu (useAudioPlayerStatus) izler, kendi "playing" state'ini TUTMAZ. */
-export default function VoiceMessageBubble({ uri, durationMs, onTimeLabel }: Props) {
+export default function VoiceMessageBubble({ uri, durationMs, onTimeLabel, onPlay }: Props) {
   const player = useAudioPlayer(uri);
   const status = useAudioPlayerStatus(player);
   const duration = status.duration || (durationMs ? durationMs / 1000 : 0);
@@ -55,6 +59,7 @@ export default function VoiceMessageBubble({ uri, durationMs, onTimeLabel }: Pro
         if (status.playing) {
           player.pause();
         } else {
+          onPlay?.();
           if (status.currentTime >= duration && duration > 0) player.seekTo(0);
           player.play();
         }

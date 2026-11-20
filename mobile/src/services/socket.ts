@@ -327,6 +327,10 @@ export interface DMMessage {
   // Basili tutma menusu (Sil/Sabitle/Ilet) - bkz. 0037_dm_message_actions.sql.
   deletedForEveryone?: boolean;
   isForwarded?: boolean;
+  // Tek-gorunumluk sesli mesaj - bkz. 0038_dm_voice_view_once.sql.
+  // viewOnceConsumed true olunca mediaUrl sunucuda zaten null'dur.
+  viewOnce?: boolean;
+  viewOnceConsumed?: boolean;
 }
 
 // Bir sohbet icinde sabitlenmis TEK bir mesaj - ayni sohbette BIRDEN FAZLA

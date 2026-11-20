@@ -263,7 +263,11 @@
     "copiedToast": "Скопировано",
     "selectedCount": "Выбрано: {{count}}",
     "deleteChooseTitle": "Удалить сообщение",
-    "deleteChooseBody": "Как вы хотите удалить это сообщение?"
+    "deleteChooseBody": "Как вы хотите удалить это сообщение?",
+    "recordSlideToCancel": "Проведите, чтобы отменить",
+    "recordPause": "Пауза",
+    "recordResume": "Продолжить",
+    "voiceOnceConsumed": "Это голосовое сообщение уже прослушано"
   },
   "userProfile": {
     "defaultName": "Пользователь",

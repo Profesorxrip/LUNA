@@ -263,7 +263,11 @@
     "copiedToast": "Kopyalandı",
     "selectedCount": "{{count}} mesaj seçildi",
     "deleteChooseTitle": "Mesajı sil",
-    "deleteChooseBody": "Bu mesajı nasıl silmek istiyorsunuz?"
+    "deleteChooseBody": "Bu mesajı nasıl silmek istiyorsunuz?",
+    "recordSlideToCancel": "Kaydırarak iptal et",
+    "recordPause": "Duraklat",
+    "recordResume": "Devam et",
+    "voiceOnceConsumed": "Bu sesli mesaj dinlendi"
   },
   "userProfile": {
     "defaultName": "Kullanıcı",

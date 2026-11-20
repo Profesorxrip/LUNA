@@ -120,6 +120,32 @@ export function VideoOffIcon({ size = 24, color = "#F5F5F7" }: Props) {
   );
 }
 
+// Sesli mesaj "tek gorunumluk" rozeti - kullanicinin gonderdigi IKI
+// referans gorselden cikarilmis GERCEK siluet (assets/icons/voice-once-
+// ring.png / voice-once-filled.png, siyah zemin alpha'ya cevrilerek
+// silindi - bkz. yukaridaki video-camera/microphone ile ayni yontem).
+// tintColor ile aktif/pasif renge boyanabiliyor (DMScreen.tsx kilitli
+// kayit cubugu).
+export function VoiceOnceRingIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Image
+      source={require("../../assets/icons/voice-once-ring.png")}
+      style={{ width: size, height: size, tintColor: color }}
+      resizeMode="contain"
+    />
+  );
+}
+
+export function VoiceOnceFilledIcon({ size = 24, color = "#F5F5F7" }: Props) {
+  return (
+    <Image
+      source={require("../../assets/icons/voice-once-filled.png")}
+      style={{ width: size, height: size, tintColor: color }}
+      resizeMode="contain"
+    />
+  );
+}
+
 // "Mikrofon" - kullanicinin kamera ikonuyla AYNI referans gorselinden
 // cikarilmis GERCEK siluet (assets/icons/microphone.png) - SADECE
 // RoomPreviewScreen.tsx'teki katilimci satirinda, kameranin hemen yaninda

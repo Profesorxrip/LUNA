@@ -39,6 +39,10 @@ export interface DMMessage {
   // hic gonderilmiyor (bkz. openConversation).
   deletedForEveryone: boolean;
   isForwarded: boolean;
+  // Tek-gorunumluk sesli mesaj - bkz. 0038_dm_voice_view_once.sql.
+  // viewOnceConsumed true olunca mediaUrl ARTIK null'dur (sunucu temizledi).
+  viewOnce: boolean;
+  viewOnceConsumed: boolean;
 }
 
 export interface DMPinnedMessage {
@@ -91,6 +95,8 @@ function mapRow(row: any): DMMessage {
     callStatus: row.call_status ?? null,
     deletedForEveryone: row.deleted_for_everyone === true,
     isForwarded: row.is_forwarded === true,
+    viewOnce: row.view_once === true,
+    viewOnceConsumed: row.view_once_consumed_at != null,
   };
 }
 
@@ -188,16 +194,31 @@ export async function sendVoiceMessage(
   db: SupabaseClient,
   toUserId: string,
   mediaUrl: string,
-  durationMs?: number
+  durationMs?: number,
+  viewOnce?: boolean
 ): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
   const { data, error } = await db.rpc("send_dm_voice", {
     to_user: toUserId,
     media_url: mediaUrl,
     duration_ms: durationMs ?? null,
+    view_once: viewOnce ?? false,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
   }
+  return { ok: true, message: mapRow(data) };
+}
+
+/** Tek-gorunumluk sesli mesaji "tuketir" - sadece ALICI cagirabilir (bkz.
+ * consume_dm_voice_once RPC'deki "from_user <> me" kontrolu). Basarili
+ * olursa donen mesajin mediaUrl'i ARTIK null'dur - cagiran taraf bunu
+ * her iki soket ucuna da (dm:message:voiceOnceConsumed) yayinlamali. */
+export async function consumeVoiceOnce(
+  db: SupabaseClient,
+  messageId: string
+): Promise<{ ok: boolean; message?: DMMessage }> {
+  const { data, error } = await db.rpc("consume_dm_voice_once", { message_id: messageId });
+  if (error || !data) return { ok: false };
   return { ok: true, message: mapRow(data) };
 }
 

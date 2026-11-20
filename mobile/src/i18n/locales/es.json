@@ -263,7 +263,11 @@
     "copiedToast": "Copiado",
     "selectedCount": "{{count}} seleccionado(s)",
     "deleteChooseTitle": "Eliminar mensaje",
-    "deleteChooseBody": "¿Cómo quieres eliminar este mensaje?"
+    "deleteChooseBody": "¿Cómo quieres eliminar este mensaje?",
+    "recordSlideToCancel": "Desliza para cancelar",
+    "recordPause": "Pausar",
+    "recordResume": "Reanudar",
+    "voiceOnceConsumed": "Este mensaje de voz ya se reprodujo"
   },
   "userProfile": {
     "defaultName": "Usuario",

@@ -263,7 +263,11 @@
     "copiedToast": "Hat kopîkirin",
     "selectedCount": "{{count}} hatin hilbijartin",
     "deleteChooseTitle": "Peyamê jê bibe",
-    "deleteChooseBody": "Hûn dixwazin vî peyamî çawa jê bibin?"
+    "deleteChooseBody": "Hûn dixwazin vî peyamî çawa jê bibin?",
+    "recordSlideToCancel": "Ji bo betalkirinê bisirîne",
+    "recordPause": "Rawestîne",
+    "recordResume": "Berdewam bike",
+    "voiceOnceConsumed": "Ev peyama dengî berê hatiye guhdarîkirin"
   },
   "userProfile": {
     "defaultName": "Bikarhêner",

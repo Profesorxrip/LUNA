@@ -60,6 +60,7 @@ import {
   sendMessage,
   sendImageMessage,
   sendVoiceMessage,
+  consumeVoiceOnce,
   sendVideoMessage,
   sendLocationMessage,
   sendFileMessage,
@@ -1053,13 +1054,17 @@ io.on("connection", (socket: Socket) => {
   // (foto ile AYNI desen), buraya sadece ortaya cikan public URL + sure gelir.
   socket.on(
     "dm:sendVoice",
-    async ({ toUserId, mediaUrl, durationMs }: { toUserId: string; mediaUrl: string; durationMs?: number }, ack) => {
+    async (
+      { toUserId, mediaUrl, durationMs, viewOnce }: { toUserId: string; mediaUrl: string; durationMs?: number; viewOnce?: boolean },
+      ack
+    ) => {
       if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isNonEmptyString(mediaUrl, 2000)) {
         return ack?.({ ok: false });
       }
       if (durationMs !== undefined && !isFiniteNumber(durationMs, 0, 24 * 60 * 60 * 1000)) return ack?.({ ok: false });
+      if (viewOnce !== undefined && typeof viewOnce !== "boolean") return ack?.({ ok: false });
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
-      const result = await sendVoiceMessage(myDb!, toUserId, mediaUrl, durationMs);
+      const result = await sendVoiceMessage(myDb!, toUserId, mediaUrl, durationMs, viewOnce);
       if (!result.ok || !result.message) {
         return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
       }
@@ -1067,6 +1072,25 @@ io.on("connection", (socket: Socket) => {
       const peerSocketId = getSocketIdForUser(toUserId);
       if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
       notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "🎤 Sesli mesaj gönderdi").catch(() => {});
+    }
+  );
+
+  // Tek-gorunumluk sesli mesaji ALICI dinlemeye basladiginda cagirir - bkz.
+  // consume_dm_voice_once RPC (0038_dm_voice_view_once.sql). Basarili olursa
+  // her iki soket ucuna da (gonderen + alici) yayinlanir ki ikisi de ayni
+  // anda "dinlendi" placeholder'ina gecsin.
+  socket.on(
+    "dm:consumeVoiceOnce",
+    async ({ withUserId, messageId }: { withUserId: string; messageId: string }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200) || !isNonEmptyString(messageId, 200)) {
+        return ack?.({ ok: false });
+      }
+      const result = await consumeVoiceOnce(myDb!, messageId);
+      if (!result.ok) return ack?.({ ok: false });
+      ack?.({ ok: true });
+      const peerSocketId = getSocketIdForUser(withUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message:voiceOnceConsumed", { messageId });
+      socket.emit("dm:message:voiceOnceConsumed", { messageId });
     }
   );
 

@@ -263,7 +263,11 @@
     "copiedToast": "Copied",
     "selectedCount": "{{count}} selected",
     "deleteChooseTitle": "Delete message",
-    "deleteChooseBody": "How would you like to delete this message?"
+    "deleteChooseBody": "How would you like to delete this message?",
+    "recordSlideToCancel": "Slide to cancel",
+    "recordPause": "Pause",
+    "recordResume": "Resume",
+    "voiceOnceConsumed": "This voice message has been played"
   },
   "userProfile": {
     "defaultName": "User",

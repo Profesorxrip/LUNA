@@ -263,7 +263,11 @@
     "copiedToast": "تم النسخ",
     "selectedCount": "تم تحديد {{count}}",
     "deleteChooseTitle": "حذف الرسالة",
-    "deleteChooseBody": "كيف تريد حذف هذه الرسالة؟"
+    "deleteChooseBody": "كيف تريد حذف هذه الرسالة؟",
+    "recordSlideToCancel": "اسحب للإلغاء",
+    "recordPause": "إيقاف مؤقت",
+    "recordResume": "استئناف",
+    "voiceOnceConsumed": "تم تشغيل هذه الرسالة الصوتية بالفعل"
   },
   "userProfile": {
     "defaultName": "مستخدم",

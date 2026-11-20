@@ -263,7 +263,11 @@
     "copiedToast": "Αντιγράφηκε",
     "selectedCount": "{{count}} επιλεγμένα",
     "deleteChooseTitle": "Διαγραφή μηνύματος",
-    "deleteChooseBody": "Πώς θέλετε να διαγράψετε αυτό το μήνυμα;"
+    "deleteChooseBody": "Πώς θέλετε να διαγράψετε αυτό το μήνυμα;",
+    "recordSlideToCancel": "Σύρετε για ακύρωση",
+    "recordPause": "Παύση",
+    "recordResume": "Συνέχεια",
+    "voiceOnceConsumed": "Αυτό το φωνητικό μήνυμα έχει ήδη ακουστεί"
   },
   "userProfile": {
     "defaultName": "Χρήστης",

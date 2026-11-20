@@ -263,7 +263,11 @@
     "copiedToast": "Kopiert",
     "selectedCount": "{{count}} ausgewählt",
     "deleteChooseTitle": "Nachricht löschen",
-    "deleteChooseBody": "Wie möchten Sie diese Nachricht löschen?"
+    "deleteChooseBody": "Wie möchten Sie diese Nachricht löschen?",
+    "recordSlideToCancel": "Zum Abbrechen ziehen",
+    "recordPause": "Pausieren",
+    "recordResume": "Fortsetzen",
+    "voiceOnceConsumed": "Diese Sprachnachricht wurde abgespielt"
   },
   "userProfile": {
     "defaultName": "Nutzer",

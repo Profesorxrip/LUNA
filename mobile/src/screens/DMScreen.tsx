@@ -16,21 +16,21 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { LockClosedIcon } from "react-native-heroicons/outline";
+import { LockClosedIcon, MicrophoneIcon } from "react-native-heroicons/outline";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, Lock, ChevronUp, Pause, Play } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
-import { RoomMicIcon } from "../components/CustomIcons";
 import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
 import { getSocket, DMMessage, DMReply, DMPinnedMessage } from "../services/socket";
 import { supabase } from "../services/supabase";
 import Icon from "../components/Icon";
+import { VoiceOnceRingIcon, VoiceOnceFilledIcon } from "../components/CustomIcons";
 import ReplyPreviewContent from "../components/ReplyPreviewContent";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
@@ -181,13 +181,16 @@ interface DMBubbleRowProps {
   // Yanitla'dan (kaydirma hareketi onReply'i DOGRUDAN cagirir) AYRI - basili
   // tutunca Yanitla/Kopyala/Sabitle/Ilet/Sil secenekli menuyu acar.
   onLongPress: () => void;
+  // Tek-gorunumluk sesli mesaj ilk kez oynatilmaya baslandiginda cagirilir -
+  // bkz. asagidaki VoiceMessageBubble onPlay kullanimi.
+  onConsumeVoiceOnce?: (messageId: string) => void;
 }
 
 // Oda sohbetindeki (RoomScreen.tsx -> ChatBubbleRow) ile AYNI mantik: kendi
 // mesajimizi SAGDAN SOLA, karsidakinin mesajini SOLDAN SAGA kaydirinca
 // yanitlama (reply) tetikleniyor. Satir translateX ile kaydirilirken
 // kenarda bir "reply" ikonu belirip bosalan tarafi gosteriyor.
-function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport, onLongPress }: DMBubbleRowProps) {
+function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport, onLongPress, onConsumeVoiceOnce }: DMBubbleRowProps) {
   const { t, i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   // Sesli mesajin sure etiketi - VoiceMessageBubble artik kendi icinde cizmiyor,
@@ -270,8 +273,18 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 <Trash2 size={13} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} />
                 <Text style={[styles.deletedText, { color: isMine ? "rgba(255,255,255,0.6)" : MUTED }]}>{t("dm.deletedMessage")}</Text>
               </View>
+            ) : item.kind === "voice" && item.viewOnce && item.viewOnceConsumed ? (
+              <View style={styles.deletedRow}>
+                <MicrophoneIcon size={14} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} strokeWidth={1.8} />
+                <Text style={[styles.deletedText, { color: isMine ? "rgba(255,255,255,0.6)" : MUTED }]}>{t("dm.voiceOnceConsumed")}</Text>
+              </View>
             ) : item.kind === "voice" && item.mediaUrl ? (
-              <VoiceMessageBubble uri={item.mediaUrl} durationMs={item.durationMs} onTimeLabel={setVoiceTimeLabel} />
+              <VoiceMessageBubble
+                uri={item.mediaUrl}
+                durationMs={item.durationMs}
+                onTimeLabel={setVoiceTimeLabel}
+                onPlay={item.viewOnce ? () => onConsumeVoiceOnce?.(item.id) : undefined}
+              />
             ) : item.kind === "location" && item.latitude != null && item.longitude != null ? (
               <LocationMessageBubble latitude={item.latitude} longitude={item.longitude} />
             ) : item.kind === "file" && item.mediaUrl ? (
@@ -391,10 +404,99 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [sendingFile, setSendingFile] = useState(false);
   // Sesli mesaj kaydi - expo-audio'nun kendi "ne kadar surdu" sayacini
   // (useAudioRecorderState) kullaniyoruz, kendi zamanlayicimizi KURMUYORUZ.
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // isMeteringEnabled: kilitli kayit cubugundaki ses dalgasi ARTIK SAHTE
+  // bir desen degil - recorderState.metering (gercek mikrofon seviyesi,
+  // dBFS) 200ms'de bir okunup asagidaki waveHistoryRef'e biriktiriliyor.
+  const audioRecorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
   const recorderState = useAudioRecorderState(audioRecorder, 200);
+  // Son WAVE_BAR_COUNT kadar gercek metering ornegi (0..1 normalize edilmis) -
+  // her yeni recorderState tick'inde (durationMillis degisince) bir deger
+  // eklenip en eskisi atiliyor, boylece cubuklar soldan saga dogru GERCEK
+  // ses seviyesini gosterir. Render govdesinde dogrudan ref mutasyonu -
+  // recorderState zaten her 200ms'de bir re-render tetikledigi icin ayri
+  // bir state/effect'e gerek yok.
+  const WAVE_BAR_COUNT = 40;
+  const waveHistoryRef = useRef<number[]>([]);
+  const lastMeteringTickRef = useRef(-1);
   const [voiceRecording, setVoiceRecording] = useState(false);
   const [sendingVoice, setSendingVoice] = useState(false);
+  // WhatsApp tarzi "basili tutarak kaydet" - parmak YUKARI kaydirilinca
+  // kayit kilitlenir (parmagi kaldirmak kaydi KESMEZ, elden serbest devam
+  // eder), SOLA kaydirilinca (kilitlenmeden once) kayit iptal olur.
+  const [recordingLocked, setRecordingLocked] = useState(false);
+  // Kilitli moddayken duraklat/devam et - expo-audio'nun kendi pause()/
+  // record() cagrilari (bkz. handlePauseResumeRecording).
+  const [recordingPaused, setRecordingPaused] = useState(false);
+  // "Tek gorunumluk" sesli mesaj anahtari - kilitli kayit cubugundaki "1"
+  // rozetiyle acilip kapatiliyor, gonderirken mesaja eklenir.
+  const [voiceOnceView, setVoiceOnceView] = useState(false);
+  // Mikrofon dugmesindeki surukleme - kilit ikonu YUKARI, iptal ipucu SOLA
+  // kayar (bkz. asagidaki micPan). PanResponder callback'leri her zaman ILK
+  // render'daki closure'i gordugu icin "kilitlendi mi" bilgisini STATE
+  // yerine ref'te tutuyoruz (recordingLocked state'i gecikmeli olabilir).
+  const recordDragX = useRef(new Animated.Value(0)).current;
+  const recordDragY = useRef(new Animated.Value(0)).current;
+  const recordLockedRef = useRef(false);
+  const LOCK_DRAG_THRESHOLD = 70;
+  const CANCEL_DRAG_THRESHOLD = 90;
+  const micPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        // Web'de parmak/fare yukari surukleyince araya giren metin
+        // (orn. "Mesaj yazin...") secilmeye baslayip tarayicinin kendi
+        // surukle-sec davranisina kayiyor - bu da PanResponder'in
+        // yakalamasini (responder) koparip kaydi erken iptal ediyordu.
+        // Surukleme bitene kadar TUM sayfada secimi kapatiyoruz.
+        if (Platform.OS === "web" && typeof document !== "undefined") {
+          (document.body.style as any).userSelect = "none";
+        }
+        recordLockedRef.current = false;
+        recordDragX.setValue(0);
+        recordDragY.setValue(0);
+        startVoiceRecording();
+      },
+      onPanResponderMove: (_evt, g) => {
+        if (recordLockedRef.current) return;
+        recordDragX.setValue(Math.min(0, g.dx));
+        recordDragY.setValue(Math.min(0, g.dy));
+        if (-g.dy > LOCK_DRAG_THRESHOLD) {
+          recordLockedRef.current = true;
+          setRecordingLocked(true);
+          Animated.spring(recordDragX, { toValue: 0, useNativeDriver: true }).start();
+          Animated.spring(recordDragY, { toValue: 0, useNativeDriver: true }).start();
+        }
+      },
+      onPanResponderRelease: (_evt, g) => {
+        if (Platform.OS === "web" && typeof document !== "undefined") {
+          (document.body.style as any).userSelect = "";
+        }
+        if (recordLockedRef.current) return;
+        Animated.spring(recordDragX, { toValue: 0, useNativeDriver: true }).start();
+        Animated.spring(recordDragY, { toValue: 0, useNativeDriver: true }).start();
+        if (-g.dx > CANCEL_DRAG_THRESHOLD) cancelVoiceRecording();
+        else sendVoiceRecording();
+      },
+      onPanResponderTerminate: () => {
+        if (Platform.OS === "web" && typeof document !== "undefined") {
+          (document.body.style as any).userSelect = "";
+        }
+        Animated.spring(recordDragX, { toValue: 0, useNativeDriver: true }).start();
+        Animated.spring(recordDragY, { toValue: 0, useNativeDriver: true }).start();
+        if (!recordLockedRef.current) cancelVoiceRecording();
+      },
+    })
+  ).current;
+  const recordCancelHintOpacity = recordDragX.interpolate({
+    inputRange: [-CANCEL_DRAG_THRESHOLD, -10, 0],
+    outputRange: [0, 1, 1],
+    extrapolate: "clamp",
+  });
+  const recordLockProgress = recordDragY.interpolate({
+    inputRange: [-LOCK_DRAG_THRESHOLD, 0],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
   // Ayarlar ekranindaki "Hizli Tepki" tercihi - bir mesaja CIFT TIKLAYINCA
   // gonderilecek emoji budur (bkz. ProfileScreen.tsx default_reaction_emoji).
   const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
@@ -525,6 +627,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     function handleUnpinned({ messageId }: { messageId: string }) {
       setPinnedMessages((prev) => prev.filter((p) => p.message.id !== messageId));
     }
+    // deletedForEveryone/pinned/unpinned ile AYNI gerekce (withUserId yok,
+    // sunucu her iki tarafa da yayinliyor) - bkz. consume_dm_voice_once RPC.
+    function handleVoiceOnceConsumed({ messageId }: { messageId: string }) {
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, viewOnceConsumed: true, mediaUrl: undefined } : m)));
+    }
     socket.on("dm:message", handleMessage);
     socket.on("dm:message:self", handleOwnMessage);
     socket.on("dm:seen", handleSeen);
@@ -533,6 +640,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     socket.on("dm:message:deletedForEveryone", handleDeletedForEveryone);
     socket.on("dm:message:pinned", handlePinned);
     socket.on("dm:message:unpinned", handleUnpinned);
+    socket.on("dm:message:voiceOnceConsumed", handleVoiceOnceConsumed);
     return () => {
       socket.off("dm:message", handleMessage);
       socket.off("dm:message:self", handleOwnMessage);
@@ -542,6 +650,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       socket.off("dm:message:deletedForEveryone", handleDeletedForEveryone);
       socket.off("dm:message:pinned", handlePinned);
       socket.off("dm:message:unpinned", handleUnpinned);
+      socket.off("dm:message:voiceOnceConsumed", handleVoiceOnceConsumed);
     };
   }, [peer.userId]);
 
@@ -793,18 +902,41 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
     await audioRecorder.prepareToRecordAsync();
     audioRecorder.record();
+    waveHistoryRef.current = [];
+    lastMeteringTickRef.current = -1;
     setVoiceRecording(true);
+    setRecordingLocked(false);
+    setRecordingPaused(false);
+    setVoiceOnceView(false);
   }
 
   async function cancelVoiceRecording() {
     if (audioRecorder.isRecording) await audioRecorder.stop();
     setVoiceRecording(false);
+    setRecordingLocked(false);
+    setRecordingPaused(false);
+  }
+
+  // Kilitli (elden serbest) moddayken kayda ara ver / devam et - expo-audio
+  // sesi diskte TUTUYOR, pause() sonrasi record() ile KALDIGI YERDEN devam
+  // ediyor (yeni bir dosya ACMIYOR).
+  function pauseResumeRecording() {
+    if (recordingPaused) {
+      audioRecorder.record();
+      setRecordingPaused(false);
+    } else {
+      audioRecorder.pause();
+      setRecordingPaused(true);
+    }
   }
 
   async function sendVoiceRecording() {
     const durationMs = recorderState.durationMillis;
+    const viewOnce = voiceOnceView;
     if (audioRecorder.isRecording) await audioRecorder.stop();
     setVoiceRecording(false);
+    setRecordingLocked(false);
+    setRecordingPaused(false);
     const uri = audioRecorder.uri;
     if (!uri || !myUserId) return;
     setSendingVoice(true);
@@ -815,7 +947,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
       socket.emit(
         "dm:sendVoice",
-        { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, durationMs },
+        { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, durationMs, viewOnce },
         (res: any) => {
           if (res?.ok) setMessages((prev) => [...prev, res.message]);
           else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
@@ -825,7 +957,23 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
     } finally {
       setSendingVoice(false);
+      setVoiceOnceView(false);
     }
+  }
+
+  // Tek-gorunumluk sesli mesaj ilk kez oynatilmaya baslandiginda (bkz.
+  // VoiceMessageBubble onPlay) cagrilir - sunucuya "tuket" der, basarili
+  // olursa HEM alici HEM gonderen sokete yayinlanan "dm:message:
+  // voiceOnceConsumed" ile mesaj listesi guncellenir (bkz. yukaridaki
+  // handleVoiceOnceConsumed). consumedOnceRef, ag gecikmesi sirasinda
+  // ayni mesaja TEKRAR tiklanirsa birden fazla istek atilmasini onler.
+  const consumedOnceRef = useRef<Set<string>>(new Set());
+  function handleConsumeVoiceOnce(messageId: string) {
+    if (consumedOnceRef.current.has(messageId)) return;
+    consumedOnceRef.current.add(messageId);
+    socket.emit("dm:consumeVoiceOnce", { withUserId: peer.userId, messageId }, (res: any) => {
+      if (!res?.ok) consumedOnceRef.current.delete(messageId);
+    });
   }
 
   function insertMention() {
@@ -1034,6 +1182,22 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     items.push({ label: t("dm.actionDeleteForMe"), icon: <Trash2 size={25} color={theme.danger} />, danger: true, onPress: () => handleDeleteTap(m) });
     return items;
   })();
+
+  // Kilitli kayit cubugundaki ses dalgasi icin GERCEK mikrofon seviyesi
+  // (recorderState.metering, dBFS - isMeteringEnabled ile acildi) her yeni
+  // tick'te (durationMillis degisince) biriktiriliyor. -60dB..0dB araligi
+  // 0..1'e, oradan da 4..18px cubuk yuksekligine esleniyor.
+  if (voiceRecording && recorderState.durationMillis !== lastMeteringTickRef.current) {
+    lastMeteringTickRef.current = recorderState.durationMillis;
+    const db = typeof recorderState.metering === "number" ? recorderState.metering : -60;
+    const norm = Math.max(0, Math.min(1, (db + 60) / 60));
+    waveHistoryRef.current = [...waveHistoryRef.current, norm].slice(-WAVE_BAR_COUNT);
+  }
+  const waveHeights = Array.from({ length: WAVE_BAR_COUNT }, (_, i) => {
+    const idx = waveHistoryRef.current.length - WAVE_BAR_COUNT + i;
+    const norm = idx >= 0 ? waveHistoryRef.current[idx] : 0;
+    return 4 + norm * 14;
+  });
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -1261,73 +1425,159 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               onReply={() => startReply(item)}
               onReport={() => setReportVisible(true)}
               onLongPress={() => openActionMenu(item)}
+              onConsumeVoiceOnce={handleConsumeVoiceOnce}
             />
           );
         }}
       />
 
-      <View style={[styles.inputBar, replyingTo && styles.inputBarWithReply]}>
-        {voiceRecording ? (
-          <>
-            <View style={[styles.inputPill, styles.inputPillNormal, styles.recordingPill]}>
-              <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={8}>
-                <Trash2 size={20} color={MUTED} />
-              </TouchableOpacity>
-              <View style={styles.recordingDot} />
-              <Text style={styles.recordingTime}>{formatRecordingTime(recorderState.durationMillis)}</Text>
+      <View
+        style={[
+          styles.inputBar,
+          replyingTo && styles.inputBarWithReply,
+          voiceRecording && recordingLocked && styles.inputBarLockedWrap,
+        ]}
+      >
+        {voiceRecording && !recordingLocked && (
+          <Animated.View pointerEvents="none" style={[styles.recordLockHintWrap, { transform: [{ translateY: recordDragY }] }]}>
+            <View style={{ marginTop: 5, alignItems: "center" }}>
+              <Lock size={15} color={MUTED} />
+              <ChevronUp size={13} color={MUTED} style={{ marginTop: -2 }} />
             </View>
-            <TouchableOpacity style={styles.inputRoundBtn} onPress={sendVoiceRecording} disabled={sendingVoice} hitSlop={8}>
-              {sendingVoice ? <ActivityIndicator size="small" color="#141210" /> : <Send size={20} color="#141210" />}
-            </TouchableOpacity>
-          </>
+          </Animated.View>
+        )}
+        {voiceRecording && recordingLocked ? (
+          // Kilitli mod: sagi solu tam kaplayan, 100px yukseklikte, ekranin
+          // ALTINA TAM OTURAN tek parca bir cubuk (pill + ayri yuvarlak
+          // dugme YOK artik - WhatsApp'in kilitli kayit cubugu gibi).
+          <View style={styles.recordingLockedBar}>
+            <View style={[styles.recordLockedTopRow, { transform: [{ translateY: -5 }] }]}>
+              <View style={{ height: 58, justifyContent: "center", marginLeft: 6.9 }}>
+                <Text style={[styles.recordingTimeLocked, { transform: [{ translateY: -1 }] }]}>
+                  {formatRecordingTime(recorderState.durationMillis)}
+                </Text>
+              </View>
+              <View style={styles.recordLiveWave}>
+                {waveHeights.map((h, i) => (
+                  <View key={i} style={[styles.recordLiveWaveBar, { height: h }]} />
+                ))}
+              </View>
+              {/* Tek-gonderimlik anahtari - basilmadan once "G" (noktali
+                  halka), basilinca "H" (dolu daire) gorunur - kullanicinin
+                  gonderdigi iki referans gorsel, siyah alpha'ya cevrilerek
+                  (bkz. CustomIcons.tsx VoiceOnce*Icon). */}
+              <TouchableOpacity
+                onPress={() => setVoiceOnceView((v) => !v)}
+                hitSlop={8}
+                style={{ width: 58, height: 58, marginRight: -1.5, alignItems: "center", justifyContent: "center" }}
+              >
+                {voiceOnceView ? (
+                  <VoiceOnceFilledIcon size={58} color="#FFFFFF" />
+                ) : (
+                  <VoiceOnceRingIcon size={58} color={MUTED} />
+                )}
+              </TouchableOpacity>
+            </View>
+            <View style={styles.recordLockedBottomRow}>
+              <TouchableOpacity
+                onPress={cancelVoiceRecording}
+                hitSlop={8}
+                style={[styles.inputRoundBtn, { backgroundColor: "#FF4D4F" }]}
+              >
+                <Trash2 size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={pauseResumeRecording} hitSlop={8} style={styles.recordPausePill}>
+                {recordingPaused ? <Play size={16} color={TEXT} /> : <Pause size={16} color={TEXT} />}
+                <Text style={styles.recordPausePillText}>{recordingPaused ? t("dm.recordResume") : t("dm.recordPause")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.inputRoundBtn} onPress={sendVoiceRecording} disabled={sendingVoice} hitSlop={8}>
+                {sendingVoice ? <ActivityIndicator size="small" color="#141210" /> : <Send size={20} color="#141210" />}
+              </TouchableOpacity>
+            </View>
+          </View>
         ) : (
           <>
-            <View style={[styles.inputPill, replyingTo ? styles.inputPillWithReply : styles.inputPillNormal]}>
-              {replyingTo && (
-                <View style={styles.replyPreviewCard}>
-                  <View style={styles.replyBarAccent} />
-                  <View style={styles.replyBarText}>
-                    <ReplyPreviewContent
-                      fromName={replyingTo.fromName}
-                      text={replyingTo.text}
-                      kind={replyingTo.kind}
-                      mediaUrl={replyingTo.mediaUrl}
-                      variant="composer"
-                    />
-                  </View>
-                  <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8} style={styles.replyBarClose}>
-                    <Icon name="close" size={16} color={MUTED} />
+            {/* Mikrofon dugmesi (asagida) surukleme sirasinda AYNI DOM
+                node'unda kalmali - "voiceRecording" true olunca farkli bir
+                JSX dalina gecip yeniden mount olursa (eskiden boyleydi)
+                tarayici o anda devam eden fare/dokunma yakalamasini
+                kaybediyor (PanResponder terminate oluyor, surukleme
+                koptugu icin kayit otomatik iptal oluyordu). Bu yuzden pill
+                ICERIGI duruma gore degisse de, sag alttaki yuvarlak dugme
+                TEK bir JSX konumunda tutuluyor. */}
+            <View
+              style={[
+                styles.inputPill,
+                voiceRecording ? styles.inputPillNormal : replyingTo ? styles.inputPillWithReply : styles.inputPillNormal,
+                voiceRecording && styles.recordingPill,
+              ]}
+            >
+              {voiceRecording ? (
+                <>
+                  <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={8}>
+                    <Trash2 size={20} color={MUTED} />
                   </TouchableOpacity>
-                </View>
+                  <View style={styles.recordingDot} />
+                  <Text style={styles.recordingTime}>{formatRecordingTime(recorderState.durationMillis)}</Text>
+                  <View style={{ flex: 1 }} />
+                  <Animated.Text
+                    style={[styles.recordCancelHintText, { opacity: recordCancelHintOpacity, transform: [{ translateX: recordDragX }] }]}
+                    numberOfLines={1}
+                  >
+                    {"‹ " + t("dm.recordSlideToCancel")}
+                  </Animated.Text>
+                </>
+              ) : (
+                <>
+                  {replyingTo && (
+                    <View style={styles.replyPreviewCard}>
+                      <View style={styles.replyBarAccent} />
+                      <View style={styles.replyBarText}>
+                        <ReplyPreviewContent
+                          fromName={replyingTo.fromName}
+                          text={replyingTo.text}
+                          kind={replyingTo.kind}
+                          mediaUrl={replyingTo.mediaUrl}
+                          variant="composer"
+                        />
+                      </View>
+                      <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8} style={styles.replyBarClose}>
+                        <Icon name="close" size={16} color={MUTED} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  <View style={styles.inputIconsRow}>
+                    <TouchableOpacity onPress={insertMention} hitSlop={6}>
+                      <Laugh size={25} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <TextInput
+                      style={styles.input}
+                      value={input}
+                      onChangeText={setInput}
+                      placeholder={t("dm.messagePlaceholder")}
+                      placeholderTextColor={MUTED}
+                      onSubmitEditing={sendMessage}
+                    />
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -40 }}>
+                      <TouchableOpacity onPress={() => setAttachSheetVisible(true)} hitSlop={6}>
+                        <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={19} color="#FFFFFF" /></View>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={openCamera} hitSlop={6}>
+                        <MaterialCommunityIcons name="camera-outline" size={25} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </>
               )}
-              <View style={styles.inputIconsRow}>
-                <TouchableOpacity onPress={insertMention} hitSlop={6} style={{ marginLeft: -3 }}>
-                  <Laugh size={25} color="#FFFFFF" />
-                </TouchableOpacity>
-                <TextInput
-                  style={styles.input}
-                  value={input}
-                  onChangeText={setInput}
-                  placeholder={t("dm.messagePlaceholder")}
-                  placeholderTextColor={MUTED}
-                  onSubmitEditing={sendMessage}
-                />
-                <TouchableOpacity onPress={() => setAttachSheetVisible(true)} hitSlop={6} style={{ marginLeft: -25 }}>
-                  <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={19} color="#FFFFFF" /></View>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={openCamera} hitSlop={6} style={{ marginLeft: 5 }}>
-                  <MaterialCommunityIcons name="camera-outline" size={25} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
             </View>
-            {input.trim() ? (
+            {!voiceRecording && input.trim() ? (
               <TouchableOpacity style={styles.inputRoundBtn} onPress={sendMessage} hitSlop={8}>
                 <Send size={20} color="#141210" />
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={styles.inputRoundBtn} onPress={startVoiceRecording} hitSlop={8}>
-                <RoomMicIcon size={22.5} color="#141210" />
-              </TouchableOpacity>
+              <View style={styles.inputRoundBtn} {...micPan.panHandlers}>
+                <MicrophoneIcon size={22.5} color="#141210" strokeWidth={2} />
+              </View>
             )}
           </>
         )}
@@ -1713,6 +1963,43 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   inputBarWithReply: { alignItems: "flex-end" },
+  // Kilitli kayit modunda inputBar'in kendi dolgusu (sag/sol/alt) iptal
+  // edilir - cubuk EKRANIN TAM kenarlarina otursun diye (bkz. asagidaki
+  // recordingLockedBar - dolgu artik ONUN kendi icinde).
+  inputBarLockedWrap: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
+  // Kilitli kayit cubugu - sagi solu TAM kaplar, 100px sabit yukseklikte,
+  // ekranin altina TAM oturur (WhatsApp'taki kilitli kayit cubugu gibi).
+  recordingLockedBar: {
+    width: "100%",
+    height: 150,
+    flexDirection: "column",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    backgroundColor: "#3A3A3E",
+  },
+  // Ust satir: kirmizi nokta + sure solda, tek-gonderimlik rozeti sagda.
+  recordLockedTopRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  // Sure yazisi ile tek-gonderimlik dugmesi arasindaki canli ses dalgasi.
+  recordLiveWave: { flex: 1, flexDirection: "row", alignItems: "center", gap: 1.5, height: 18 },
+  recordLiveWaveBar: { flex: 1, borderRadius: 1, backgroundColor: MUTED },
+  // Alt satir: sil (solda), duraklat/devam hapı (ortada), gonder (sagda) -
+  // ayri bir satirda olduklari icin genisligi UST satirdaki ogelerden
+  // (sure/rozet) ETKILENMIYOR.
+  recordLockedBottomRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  // Kilitli kayit cubugundaki "Duraklat/Devam et" hap (pill) butonu -
+  // ikon + yazi yan yana, ortalanmis.
+  recordPausePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    width: 260,
+    height: 55,
+    borderRadius: 27.5,
+    backgroundColor: "#55555A",
+  },
+  recordPausePillText: { color: TEXT, fontSize: 14, fontWeight: "600" },
   // WhatsApp'taki gibi TEK bir hap (pill) kutu - emoji/ek/kamera ikonlari
   // bu kutunun ICINDE, mikrofon/gonder ise AYRI bir daire olarak disinda
   // (kullanicinin istegi, paylastigi referans goruntuye gore).
@@ -1731,6 +2018,23 @@ const styles = StyleSheet.create({
   recordingPill: { flexDirection: "row", alignItems: "center", gap: 10 },
   recordingDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FF4D4F" },
   recordingTime: { color: TEXT, fontSize: 15, fontWeight: "600" },
+  // Kilitli kayit cubugundaki sure yazisi - sag ustteki tek-gonderimlik
+  // dugmesiyle (58px) AYNI yukseklikte gorunmesi icin cok daha buyuk font.
+  recordingTimeLocked: { color: TEXT, fontSize: 20, fontWeight: "600" },
+  recordCancelHintText: { color: MUTED, fontSize: 13, fontWeight: "500" },
+  // Mikrofon dugmesinin TAM USTUNDE - parmak yukari kaydirdikca onunla
+  // birlikte kayar (bkz. recordDragY), WhatsApp'taki "kilitle" ipucu.
+  recordLockHintWrap: {
+    position: "absolute",
+    right: 24.5,
+    bottom: 84,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#3A3A3E",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   // Cevap varken pill SUTUN (dikey) duzene geciyor: ust kisimda icine
   // gomulu cevap kartiyla, altta normal ikon sirasiyla - boy otomatik
   // uzuyor (sabit 55 yerine, icerige gore).
@@ -1748,6 +2052,9 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingLeft: 14,
     paddingRight: 10,
+    // Emoji/yazi/atac/kamera grubunun TAMAMI 15px sola kaysin istegi -
+    // pill'in kendi genisligi/arka plani ETKILENMEDEN sadece ICERIK kayiyor.
+    marginLeft: -15,
   },
   // Web onizlemesindeki varsayilan odak cercevesini (beyaz kare) kapatiyor -
   // gercek Android/iOS'ta zaten yok, sadece tarayici davranisi.
