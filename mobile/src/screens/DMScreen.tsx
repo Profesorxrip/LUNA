@@ -1492,14 +1492,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 18,
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: 44,
+    paddingBottom: 14,
     // Secim modunda (X + sayi + ikonlar) icerik avatardan (46px) daha
     // KISA oldugu icin bu olmadan satirin toplam yuksekligi kuculuyor ve
     // altindaki gradyan cizgi yukari kayiyormus gibi gorunuyordu - satirin
     // yuksekligi iki modda da AYNI kalsin diye ("minHeight" tek basina RN
     // Web'de bu flex satirinda islemedi, "height" sabitiyle zorluyoruz).
-    height: 116,
+    // (116 -> 104: kullanicinin istegi uzerine ust bar biraz alcaltildi -
+    // paddingTop/paddingBottom da ORANTILI azaltildi ki icerik yuksekligi
+    // (46px) avatarla AYNI kalsin.)
+    height: 104,
   },
   // Eski duz "#1E1A17" alt cizgi yerine - uygulamanin genelindeki AYNI
   // beyazdan maviye gecen gradyan (kullanicinin istegi). Header'in ICINDE
@@ -1527,7 +1530,10 @@ const styles = StyleSheet.create({
   // arkaya gelen mesajlar birbirine yakin durur, yeni bir grup basladiginda
   // (messageRowNewGroup) ekstra ust bosluk eklenir - RoomScreen.tsx'teki
   // gruplama hissiyle AYNI.
-  listContent: { padding: 16, gap: 4 },
+  // En son mesaj mesaj yazma kutusuna YAPISMASIN, HAFIF bir bosluk kalsin
+  // istegi (once 26/20/10/5 denendi - hepsi COK fazla geldi, kullanicinin
+  // istegi).
+  listContent: { padding: 16, paddingBottom: 1, gap: 4 },
   // "flex-start" (en ustten hizali) - "flex-end" iken fotograf gibi uzun
   // balonlarda gonderici avatari balonun ALT ucuna kayiyordu, oysa UST ucuyla
   // hizali olmali (bkz. RoomScreen.tsx messageRow'daki AYNI tercih).
