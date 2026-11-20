@@ -1582,7 +1582,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                   )}
                   <View style={styles.inputIconsRow}>
                     <TouchableOpacity onPress={insertMention} hitSlop={6}>
-                      <Laugh size={25} color="#FFFFFF" />
+                      <Laugh size={25} color="#9CA3AF" />
                     </TouchableOpacity>
                     <TextInput
                       style={styles.input}
@@ -1594,10 +1594,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                     />
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -33 }}>
                       <TouchableOpacity onPress={() => setAttachSheetVisible(true)} hitSlop={6}>
-                        <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={19} color="#FFFFFF" /></View>
+                        <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={19} color="#9CA3AF" /></View>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={openCamera} hitSlop={6} style={{ marginLeft: 5 }}>
-                        <MaterialCommunityIcons name="camera-outline" size={25} color="#FFFFFF" />
+                        <MaterialCommunityIcons name="camera-outline" size={25} color="#9CA3AF" />
                       </TouchableOpacity>
                     </View>
                   </View>

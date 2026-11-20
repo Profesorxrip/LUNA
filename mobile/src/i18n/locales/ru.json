@@ -567,7 +567,10 @@
   "sendMedia": {
     "send": "Отправить",
     "captionPlaceholder": "Добавить сообщение...",
-    "stickerDefaultText": "Текст"
+    "stickerDefaultText": "Текст",
+    "colorPaletteTitle": "Палитра цветов",
+    "colorPaletteDone": "Готово",
+    "cropHint": "Перетащите, чтобы настроить область обрезки"
   },
   "tabs": {
     "discover": "Обзор",

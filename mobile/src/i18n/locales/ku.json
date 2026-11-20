@@ -567,7 +567,10 @@
   "sendMedia": {
     "send": "Bişîne",
     "captionPlaceholder": "Peyamek zêde bike...",
-    "stickerDefaultText": "Nivîs"
+    "stickerDefaultText": "Nivîs",
+    "colorPaletteTitle": "Palêta Rengan",
+    "colorPaletteDone": "Temam",
+    "cropHint": "Ji bo sererastkirina qada birrînê bikişîne"
   },
   "tabs": {
     "discover": "Vedîtin",

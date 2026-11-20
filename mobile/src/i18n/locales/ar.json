@@ -567,7 +567,10 @@
   "sendMedia": {
     "send": "إرسال",
     "captionPlaceholder": "أضف رسالة...",
-    "stickerDefaultText": "نص"
+    "stickerDefaultText": "نص",
+    "colorPaletteTitle": "لوحة الألوان",
+    "colorPaletteDone": "تم",
+    "cropHint": "اسحب لضبط منطقة القص"
   },
   "tabs": {
     "discover": "استكشاف",

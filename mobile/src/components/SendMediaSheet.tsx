@@ -15,15 +15,27 @@ import {
   ScrollView,
 } from "react-native";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 import { captureRef } from "react-native-view-shot";
 import * as ImageManipulator from "expo-image-manipulator";
 import Svg, { Path } from "react-native-svg";
-import { RotateCw, ArrowLeftRight, Crop, PenLine, Type, Plus, X, Undo2, FaceGrinning, Trash2 } from "lucide-react-native";
+import { RotateCw, ArrowLeftRight, Crop, PenLine, Type, Plus, X, Check, FaceGrinning, Trash2, Send, CircleArrowDown } from "lucide-react-native";
+import { MicrophoneIcon } from "react-native-heroicons/outline";
 import { useFonts, Inter_700Bold } from "@expo-google-fonts/inter";
 import { Sora_700Bold } from "@expo-google-fonts/sora";
 import { BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { Rubik_700Bold } from "@expo-google-fonts/rubik";
+import { Oswald_700Bold } from "@expo-google-fonts/oswald";
+import { Pacifico_400Regular } from "@expo-google-fonts/pacifico";
+import { PlayfairDisplay_700Bold } from "@expo-google-fonts/playfair-display";
+import { Poppins_700Bold } from "@expo-google-fonts/poppins";
+import { Caveat_700Bold } from "@expo-google-fonts/caveat";
+import { RobotoMono_700Bold } from "@expo-google-fonts/roboto-mono";
+import { Lobster_400Regular } from "@expo-google-fonts/lobster";
+import { Anton_400Regular } from "@expo-google-fonts/anton";
+import { DancingScript_700Bold } from "@expo-google-fonts/dancing-script";
+import { PermanentMarker_400Regular } from "@expo-google-fonts/permanent-marker";
 import { theme } from "../theme";
-import Icon from "./Icon";
 
 interface Props {
   visible: boolean;
@@ -37,14 +49,33 @@ interface Props {
   onSend: (caption: string) => void;
 }
 
-const DRAW_COLORS = ["#FFFFFF", "#FF3B30", "#FFD60A", "#34C759", "#0A84FF"];
 const EMOJI_QUICK = ["😀", "😂", "😍", "😎", "🥳", "😢", "😮", "🔥", "❤️", "👍", "🙏", "🎉", "😡", "😴", "🤔", "👀"];
-const STICKER_COLORS = ["#FFFFFF", "#000000", "#FF3B30", "#FFD60A", "#34C759", "#0A84FF", "#BF5AF2", "#FF2D55"];
+const STICKER_COLORS = [
+  "#FFFFFF", "#000000", "#9CA3AF", "#FF3B30", "#FF9F0A", "#FFD60A",
+  "#34C759", "#06D6A0", "#0A84FF", "#5AC8FA", "#6366F1", "#BF5AF2",
+  "#FF2D55", "#F472B6",
+];
+// Kullanici: "Renk paleti profesyonellikten uzak, kendi renklerimizi
+// oluşturamıyoruz" - gokkusagi dugmesi artik sabit bir renk listesi degil,
+// GERCEK bir HSV secici (doygunluk/parlaklik karesi + ton cubugu + hex
+// girisi) acıyor, bkz. asagidaki hsvToRgb/rgbToHex/hexToHsv ve picker
+// state'i (pickerHue/pickerSat/pickerVal/pickerHexText).
 const STICKER_FONTS: { id: string; label: string; family?: string }[] = [
   { id: "default", label: "Aa" },
   { id: "inter", label: "Aa", family: "Inter_700Bold" },
   { id: "sora", label: "Aa", family: "Sora_700Bold" },
   { id: "bebas", label: "AA", family: "BebasNeue_400Regular" },
+  { id: "rubik", label: "Aa", family: "Rubik_700Bold" },
+  { id: "oswald", label: "Aa", family: "Oswald_700Bold" },
+  { id: "poppins", label: "Aa", family: "Poppins_700Bold" },
+  { id: "anton", label: "AA", family: "Anton_400Regular" },
+  { id: "playfair", label: "Aa", family: "PlayfairDisplay_700Bold" },
+  { id: "pacifico", label: "Aa", family: "Pacifico_400Regular" },
+  { id: "lobster", label: "Aa", family: "Lobster_400Regular" },
+  { id: "dancing", label: "Aa", family: "DancingScript_700Bold" },
+  { id: "caveat", label: "Aa", family: "Caveat_700Bold" },
+  { id: "marker", label: "Aa", family: "PermanentMarker_400Regular" },
+  { id: "mono", label: "Aa", family: "RobotoMono_700Bold" },
 ];
 
 interface StrokePath {
@@ -70,6 +101,127 @@ function clamp(n: number, min: number, max: number) {
 }
 function distance(a: { pageX: number; pageY: number }, b: { pageX: number; pageY: number }) {
   return Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY);
+}
+
+// Kullanici: "Kendi renklerimizi felan oluşturamamız çok kötü" - sabit 28
+// renklik bir izgara yerine GERCEK bir HSV renk secici (doygunluk/parlaklik
+// karesi + ton cubugu + hex girisi) - herhangi bir rengi uretebiliyoruz.
+function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
+  const c = v * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+function rgbToHex(r: number, g: number, b: number): string {
+  return (
+    "#" +
+    [r, g, b]
+      .map((n) => clamp(Math.round(n), 0, 255).toString(16).padStart(2, "0"))
+      .join("")
+      .toUpperCase()
+  );
+}
+function hexToRgb(hex: string): [number, number, number] | null {
+  const clean = hex.replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
+  const m = clean.match(/.{1,2}/g);
+  if (!m) return null;
+  const [r, g, b] = m.map((h) => parseInt(h, 16));
+  return [r, g, b];
+}
+function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === rn) h = 60 * (((gn - bn) / d) % 6);
+    else if (max === gn) h = 60 * ((bn - rn) / d + 2);
+    else h = 60 * ((rn - gn) / d + 4);
+  }
+  if (h < 0) h += 360;
+  const s = max === 0 ? 0 : d / max;
+  return [h, s, max];
+}
+function hexToHsv(hex: string): [number, number, number] {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return [0, 0, 1];
+  return rgbToHsv(...rgb);
+}
+
+type Rect = { x: number; y: number; width: number; height: number };
+
+// "contain" resizeMode'daki bir Image'in GERCEKTEN kapladigi (letterbox
+// haric) alani hesapliyor - elle kirpma cercevesinin sinirlarini (imgRect)
+// bulmak icin.
+function computeContainRect(origW: number, origH: number, containerW: number, containerH: number): Rect {
+  if (!origW || !origH || !containerW || !containerH) return { x: 0, y: 0, width: containerW, height: containerH };
+  const scale = Math.min(containerW / origW, containerH / origH);
+  const width = origW * scale;
+  const height = origH * scale;
+  return { x: (containerW - width) / 2, y: (containerH - height) / 2, width, height };
+}
+
+const CROP_MIN_SIZE = 60;
+
+function clampCropRect(rect: Rect, bounds: Rect): Rect {
+  let { x, y, width, height } = rect;
+  width = clamp(width, CROP_MIN_SIZE, bounds.width);
+  height = clamp(height, CROP_MIN_SIZE, bounds.height);
+  x = clamp(x, bounds.x, bounds.x + bounds.width - width);
+  y = clamp(y, bounds.y, bounds.y + bounds.height - height);
+  return { x, y, width, height };
+}
+
+// Kose tutamaclarindan biri suruklenince cercevenin o kosesini buyutup
+// kuculturken KARSI kenari SABIT tutuyor (klasik kirpma araci davranisi).
+function resizeCropRect(rect: Rect, corner: "tl" | "tr" | "bl" | "br", dx: number, dy: number, bounds: Rect): Rect {
+  let { x, y, width, height } = rect;
+  if (corner === "tl") {
+    x += dx;
+    y += dy;
+    width -= dx;
+    height -= dy;
+  } else if (corner === "tr") {
+    y += dy;
+    width += dx;
+    height -= dy;
+  } else if (corner === "bl") {
+    x += dx;
+    width -= dx;
+    height += dy;
+  } else {
+    width += dx;
+    height += dy;
+  }
+  if (width < CROP_MIN_SIZE) {
+    if (corner === "tl" || corner === "bl") x -= CROP_MIN_SIZE - width;
+    width = CROP_MIN_SIZE;
+  }
+  if (height < CROP_MIN_SIZE) {
+    if (corner === "tl" || corner === "tr") y -= CROP_MIN_SIZE - height;
+    height = CROP_MIN_SIZE;
+  }
+  if (x < bounds.x) {
+    width -= bounds.x - x;
+    x = bounds.x;
+  }
+  if (y < bounds.y) {
+    height -= bounds.y - y;
+    y = bounds.y;
+  }
+  if (x + width > bounds.x + bounds.width) width = bounds.x + bounds.width - x;
+  if (y + height > bounds.y + bounds.height) height = bounds.y + bounds.height - y;
+  width = Math.max(width, CROP_MIN_SIZE);
+  height = Math.max(height, CROP_MIN_SIZE);
+  return { x, y, width, height };
 }
 
 /** Resimdeki bir metin etiketi - kendi PanResponder'iyla surukleniyor. Her
@@ -209,12 +361,27 @@ export default function SendMediaSheet({
   onSend,
 }: Props) {
   const { t } = useTranslation();
-  useFonts({ Inter_700Bold, Sora_700Bold, BebasNeue_400Regular });
+  useFonts({
+    Inter_700Bold,
+    Sora_700Bold,
+    BebasNeue_400Regular,
+    Rubik_700Bold,
+    Oswald_700Bold,
+    Pacifico_400Regular,
+    PlayfairDisplay_700Bold,
+    Poppins_700Bold,
+    Caveat_700Bold,
+    RobotoMono_700Bold,
+    Lobster_400Regular,
+    Anton_400Regular,
+    DancingScript_700Bold,
+    PermanentMarker_400Regular,
+  });
   const [activeIndex, setActiveIndex] = useState(0);
   const [caption, setCaption] = useState("");
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [drawing, setDrawing] = useState(false);
-  const [drawColor, setDrawColor] = useState(DRAW_COLORS[0]);
+  const [drawColor, setDrawColor] = useState("#FFFFFF");
   const [editingStickerId, setEditingStickerId] = useState<string | null>(null);
   // Kullanici: "...rengini ve fontunu değiltirebildiğimiz bir alanda
   // olmalı" - renk/font araclari "editingStickerId" (sadece metin kutusu
@@ -224,6 +391,19 @@ export default function SendMediaSheet({
   // "secili" kalip rengi/fontu degistirilebiliyor. Bos bir yere dokununca
   // (previewResponder'in "tap" algilamasi) secim kaldiriliyor.
   const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
+  const [colorPaletteOpen, setColorPaletteOpen] = useState(false);
+  // Renk paleti HEM metin etiketi HEM de cizim rengi icin kullanilan ORTAK
+  // bir sheet - hangisini degistirecegini bu anahtar belirliyor.
+  const [colorPickerTarget, setColorPickerTarget] = useState<"sticker" | "draw">("sticker");
+  // Gercek HSV secici - ton (0-359), doygunluk/parlaklik (0-1) ve bunlardan
+  // turetilen hex. svSize/hueBarSize dokunma konumunu orana cevirmek icin
+  // onLayout ile olculuyor (ekran genisligine gore degisebilir).
+  const [pickerHue, setPickerHue] = useState(0);
+  const [pickerSat, setPickerSat] = useState(1);
+  const [pickerVal, setPickerVal] = useState(1);
+  const [pickerHexText, setPickerHexText] = useState("#FF0000");
+  const [svSize, setSvSize] = useState({ width: 1, height: 1 });
+  const [hueBarWidth, setHueBarWidth] = useState(1);
   const [editsByIndex, setEditsByIndex] = useState<Record<number, ImageEdits>>({});
   const [currentPath, setCurrentPath] = useState("");
   const [busy, setBusy] = useState(false);
@@ -235,6 +415,18 @@ export default function SendMediaSheet({
   const [areaSize, setAreaSize] = useState({ width: 0, height: 0 });
   const viewShotRef = useRef<View>(null);
   const prevIndexRef = useRef(0);
+
+  // Kullanici: "Kırpma işi çıkarmalı, insanlar eliyle ayarlayabilmeli" -
+  // tek dokunuşla ortadan kare kırpma yerine GERCEK, elle suruklenip
+  // kosalerinden buyutulup kuculebilen bir kirpma cercevesi. "cropRect"
+  // ve "imgRect" shotArea'nin KENDI yerel piksel uzayinda (areaSize ile
+  // AYNI olcek) - imgRect, "contain" modunda resmin GERCEKTEN kapladigi
+  // (harf kutusu/letterbox haric) alan; cropRect kullanicinin surukledigi
+  // cerceve, her zaman imgRect icine sikistiriliyor.
+  const [cropping, setCropping] = useState(false);
+  const [cropRect, setCropRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [imgRect, setImgRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [cropOrigSize, setCropOrigSize] = useState({ width: 1, height: 1 });
 
   // Kullanici: "Yazıyı sürükleyip çöp kovasına atabilelim" - bir sticker
   // suruklenirken ekranda beliren cop kutusu ve uzerine mi geldigini
@@ -267,6 +459,20 @@ export default function SendMediaSheet({
   useEffect(() => {
     if (activeIndex >= images.length && images.length > 0) setActiveIndex(images.length - 1);
   }, [images.length, activeIndex]);
+
+  // Kullanici: "Fotoğraf kırpma alanı tam bir ekran olmalı" - kirpma
+  // moduna girerken alt mesaj cubugu/emoji gibi alanlar gizleniyor, bu
+  // da onizleme alaninin (areaSize) BUYUMESINE sebep oluyor. imgRect/
+  // cropRect o anki areaSize ile hesaplanmisti, bu yuzden boyut
+  // degisince (composer kaybolup previewWrap genisleyince) GUNCEL,
+  // GENISLEMIS alana gore yeniden hesaplaniyor.
+  useEffect(() => {
+    if (!cropping || !areaSize.width || !areaSize.height) return;
+    const rect = computeContainRect(cropOrigSize.width, cropOrigSize.height, areaSize.width, areaSize.height);
+    setImgRect(rect);
+    setCropRect(rect);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cropping, areaSize.width, areaSize.height]);
 
   function resetZoom() {
     pan.setValue({ x: 0, y: 0 });
@@ -344,27 +550,69 @@ export default function SendMediaSheet({
     }
   }
 
-  async function cropActiveSquare() {
+  // "T" ve kalemde oldugu gibi kirpma da bir MOD: ikona basinca cerceve
+  // belirir, kullanici kenarlarindan/kosalerinden eliyle ayarlar, Tamam'a
+  // basinca GERCEKTEN kirpilir (ImageManipulator ile, piksel bazinda).
+  async function enterCropMode() {
     const uri = images[activeIndex];
-    if (!uri || busy) return;
-    setBusy(true);
+    if (!uri || busy || !areaSize.width || !areaSize.height) return;
     try {
       const size = await new Promise<{ width: number; height: number }>((resolve, reject) => {
         Image.getSize(uri, (width, height) => resolve({ width, height }), reject);
       });
-      const side = Math.min(size.width, size.height);
-      const originX = Math.round((size.width - side) / 2);
-      const originY = Math.round((size.height - side) / 2);
-      const result = await ImageManipulator.manipulateAsync(uri, [{ crop: { originX, originY, width: side, height: side } }], {
+      setCropOrigSize(size);
+      const rect = computeContainRect(size.width, size.height, areaSize.width, areaSize.height);
+      setImgRect(rect);
+      setCropRect(rect);
+      setCropping(true);
+    } catch (err) {
+      console.error("kirpma modu acilamadi:", err);
+    }
+  }
+  function cancelCropMode() {
+    setCropping(false);
+  }
+  async function confirmCrop() {
+    const uri = images[activeIndex];
+    if (!uri || busy) return;
+    setBusy(true);
+    try {
+      const scale = imgRect.width / cropOrigSize.width;
+      const originX = clamp(Math.round((cropRect.x - imgRect.x) / scale), 0, cropOrigSize.width - 1);
+      const originY = clamp(Math.round((cropRect.y - imgRect.y) / scale), 0, cropOrigSize.height - 1);
+      const width = clamp(Math.round(cropRect.width / scale), 1, cropOrigSize.width - originX);
+      const height = clamp(Math.round(cropRect.height / scale), 1, cropOrigSize.height - originY);
+      const result = await ImageManipulator.manipulateAsync(uri, [{ crop: { originX, originY, width, height } }], {
         compress: 0.9,
         format: ImageManipulator.SaveFormat.JPEG,
       });
       onReplaceImage(activeIndex, result.uri);
+      setCropping(false);
     } catch (err) {
       console.error("kirpma basarisiz:", err);
     } finally {
       setBusy(false);
     }
+  }
+  // NOT useRef: dosyadaki diger surukleme responder'lariyla (StickerView,
+  // HSV secici) AYNI sebepten - her render'da YENIDEN kuruluyor ki
+  // cropRect/imgRect KAPANISLARI her zaman GUNCEL olsun, ve gestureState.dx/dy
+  // bu yuzden TOPLAM degil bir onceki kareden bu yana olan KUCUK artis.
+  const cropMoveResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderMove: (_evt, g) => {
+      setCropRect((prev) => clampCropRect({ ...prev, x: prev.x + g.dx, y: prev.y + g.dy }, imgRect));
+    },
+  });
+  function makeCropCornerResponder(corner: "tl" | "tr" | "bl" | "br") {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_evt, g) => {
+        setCropRect((prev) => resizeCropRect(prev, corner, g.dx, g.dy, imgRect));
+      },
+    });
   }
 
   function addTextSticker() {
@@ -415,6 +663,56 @@ export default function SendMediaSheet({
   function changeStickerColor(id: string, color: string) {
     setEditsForIndex(activeIndex, { ...edits, stickers: edits.stickers.map((s) => (s.id === id ? { ...s, color } : s)) });
   }
+  // HSV secicideki kare/ton cubugu suruklenirken CANLI olarak cagriliyor -
+  // hem secili etiketin gercek rengini (onizleme icin) hem de picker'in
+  // kendi hue/sat/val + hex durumunu gunceller.
+  function applyPickerHsv(h: number, s: number, v: number) {
+    setPickerHue(h);
+    setPickerSat(s);
+    setPickerVal(v);
+    const [r, g, b] = hsvToRgb(h, s, v);
+    const hex = rgbToHex(r, g, b);
+    setPickerHexText(hex);
+    if (colorPickerTarget === "draw") setDrawColor(hex);
+    else if (selectedStickerId) changeStickerColor(selectedStickerId, hex);
+  }
+  function applyPickerHex(text: string) {
+    setPickerHexText(text);
+    const clean = text.startsWith("#") ? text : `#${text}`;
+    const rgb = hexToRgb(clean);
+    if (!rgb) return;
+    const [h, s, v] = rgbToHsv(...rgb);
+    setPickerHue(h);
+    setPickerSat(s);
+    setPickerVal(v);
+    if (colorPickerTarget === "draw") setDrawColor(clean.toUpperCase());
+    else if (selectedStickerId) changeStickerColor(selectedStickerId, clean.toUpperCase());
+  }
+  // NOT useRef: StickerView'daki ayni notla ayni sebepten (bkz. dosya
+  // basi) - bu PanResponder'lar her render'da YENIDEN kuruluyor ki
+  // pickerHue/Sat/Val/svSize/hueBarWidth KAPANISLARI her zaman GUNCEL olsun.
+  const svResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (evt) => {
+      const { locationX, locationY } = evt.nativeEvent;
+      applyPickerHsv(pickerHue, clamp(locationX / svSize.width, 0, 1), clamp(1 - locationY / svSize.height, 0, 1));
+    },
+    onPanResponderMove: (evt) => {
+      const { locationX, locationY } = evt.nativeEvent;
+      applyPickerHsv(pickerHue, clamp(locationX / svSize.width, 0, 1), clamp(1 - locationY / svSize.height, 0, 1));
+    },
+  });
+  const hueResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (evt) => {
+      applyPickerHsv(clamp(evt.nativeEvent.locationX / hueBarWidth, 0, 1) * 359, pickerSat, pickerVal);
+    },
+    onPanResponderMove: (evt) => {
+      applyPickerHsv(clamp(evt.nativeEvent.locationX / hueBarWidth, 0, 1) * 359, pickerSat, pickerVal);
+    },
+  });
   function changeStickerFont(id: string, font: string | undefined) {
     setEditsForIndex(activeIndex, { ...edits, stickers: edits.stickers.map((s) => (s.id === id ? { ...s, font } : s)) });
   }
@@ -442,9 +740,6 @@ export default function SendMediaSheet({
     setDraggingSticker(false);
     setOverTrash(false);
     if (hit) deleteSticker(id);
-  }
-  function undoLastStroke() {
-    setEditsForIndex(activeIndex, { ...edits, paths: edits.paths.slice(0, -1) });
   }
 
   // Cizim katmani - SADECE "drawing" acikken dokunuslari yakalar, aktif
@@ -521,47 +816,51 @@ export default function SendMediaSheet({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
-      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.iconTouch} onPress={onCancel} disabled={uploading} hitSlop={10}>
-            <Icon name="close" size={22} color={theme.text} />
-          </TouchableOpacity>
-          {images.length > 1 && (
-            <Text style={styles.counterText}>
-              {activeIndex + 1}/{images.length}
-            </Text>
-          )}
-          <View style={styles.toolbarRow}>
-            <TouchableOpacity style={styles.iconTouch} onPress={rotateActive} disabled={busy || uploading} hitSlop={6}>
-              <RotateCw size={20} color={theme.text} />
+      <KeyboardAvoidingView style={[styles.screen, cropping && styles.screenCropping]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        {!cropping && (
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.iconTouch} onPress={onCancel} disabled={uploading} hitSlop={10}>
+              <View style={{ transform: [{ rotate: "90deg" }] }}>
+                <CircleArrowDown size={22} color={theme.text} />
+              </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconTouch} onPress={flipActive} disabled={busy || uploading} hitSlop={6}>
-              <ArrowLeftRight size={20} color={theme.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconTouch} onPress={cropActiveSquare} disabled={busy || uploading} hitSlop={6}>
-              <Crop size={20} color={theme.text} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.iconTouch, drawing && styles.iconTouchActive]}
-              onPress={() => setDrawing((d) => !d)}
-              disabled={uploading}
-              hitSlop={6}
-            >
-              <PenLine size={20} color={theme.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconTouch} onPress={addTextSticker} disabled={uploading} hitSlop={6}>
-              <Type size={20} color={theme.text} />
-            </TouchableOpacity>
+            {images.length > 1 && (
+              <Text style={styles.counterText}>
+                {activeIndex + 1}/{images.length}
+              </Text>
+            )}
+            <View style={styles.toolbarRow}>
+              <TouchableOpacity style={styles.iconTouch} onPress={rotateActive} disabled={busy || uploading} hitSlop={6}>
+                <RotateCw size={20} color={theme.text} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconTouch} onPress={flipActive} disabled={busy || uploading} hitSlop={6}>
+                <ArrowLeftRight size={20} color={theme.text} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconTouch} onPress={enterCropMode} disabled={busy || uploading} hitSlop={6}>
+                <Crop size={20} color={theme.text} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.iconTouch, drawing && styles.iconTouchActive]}
+                onPress={() => setDrawing((d) => !d)}
+                disabled={uploading}
+                hitSlop={6}
+              >
+                <PenLine size={20} color={theme.text} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconTouch} onPress={addTextSticker} disabled={uploading} hitSlop={6}>
+                <Type size={20} color={theme.text} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
 
         <View style={styles.previewWrap}>
           <View
             ref={viewShotRef}
             collapsable={false}
-            style={styles.shotArea}
+            style={[styles.shotArea, cropping && styles.shotAreaCropped]}
             onLayout={(e) => setAreaSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
-            {...(drawing ? drawResponder.panHandlers : previewResponder.panHandlers)}
+            {...(cropping ? {} : drawing ? drawResponder.panHandlers : previewResponder.panHandlers)}
           >
             {activeUri && (
               <Animated.Image
@@ -592,6 +891,57 @@ export default function SendMediaSheet({
                 onDragEnd={handleStickerDragEnd}
               />
             ))}
+            {cropping && (
+              <>
+                {/* Cerceve DISINDAKI 4 bolgeyi karartiyor - "delikli" bir
+                    maske yerine, cercevenin disini kaplayan 4 ayri dikdortgen. */}
+                <View pointerEvents="none" style={[styles.cropDim, { left: 0, top: 0, width: areaSize.width, height: cropRect.y }]} />
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.cropDim,
+                    { left: 0, top: cropRect.y + cropRect.height, width: areaSize.width, height: areaSize.height - cropRect.y - cropRect.height },
+                  ]}
+                />
+                <View pointerEvents="none" style={[styles.cropDim, { left: 0, top: cropRect.y, width: cropRect.x, height: cropRect.height }]} />
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.cropDim,
+                    { left: cropRect.x + cropRect.width, top: cropRect.y, width: areaSize.width - cropRect.x - cropRect.width, height: cropRect.height },
+                  ]}
+                />
+                {/* Cercevenin KENDISI - suruklenince TASIR (kose tutamaclari HARIC). */}
+                <View
+                  style={[styles.cropFrame, { left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }]}
+                  {...cropMoveResponder.panHandlers}
+                >
+                  <View style={[styles.cropGridLine, { left: "33.333%", top: 0, bottom: 0, width: 1 }]} />
+                  <View style={[styles.cropGridLine, { left: "66.666%", top: 0, bottom: 0, width: 1 }]} />
+                  <View style={[styles.cropGridLine, { top: "33.333%", left: 0, right: 0, height: 1 }]} />
+                  <View style={[styles.cropGridLine, { top: "66.666%", left: 0, right: 0, height: 1 }]} />
+                </View>
+                {([
+                  ["tl", cropRect.x, cropRect.y],
+                  ["tr", cropRect.x + cropRect.width, cropRect.y],
+                  ["bl", cropRect.x, cropRect.y + cropRect.height],
+                  ["br", cropRect.x + cropRect.width, cropRect.y + cropRect.height],
+                ] as const).map(([corner, cx, cy]) => {
+                  // Cercevenin disina tasip shotArea'nin (overflow:hidden)
+                  // kenarinda KIRPILMAMASI icin parantez kollari HER ZAMAN
+                  // kose noktasindan cercevenin ICINE dogru uzaniyor - disari
+                  // degil (bkz. asagidaki isTop/isLeft'e gore left/top 0|16).
+                  const isTop = corner === "tl" || corner === "tr";
+                  const isLeft = corner === "tl" || corner === "bl";
+                  return (
+                    <View key={corner} style={[styles.cropHandle, { left: cx - 16, top: cy - 16 }]} {...makeCropCornerResponder(corner).panHandlers}>
+                      <View style={[styles.cropBracketH, { top: 14 }, isLeft ? { left: 16 } : { left: 0 }]} />
+                      <View style={[styles.cropBracketV, { left: 14 }, isTop ? { top: 16 } : { top: 0 }]} />
+                    </View>
+                  );
+                })}
+              </>
+            )}
             {busy && (
               <View style={styles.busyOverlay}>
                 <ActivityIndicator color="#FFFFFF" />
@@ -614,52 +964,111 @@ export default function SendMediaSheet({
           )}
         </View>
 
-        {!drawing && selectedStickerId && edits.stickers.some((s) => s.id === selectedStickerId) && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stickerToolsScroll} contentContainerStyle={styles.stickerToolsRow}>
-            {STICKER_COLORS.map((c) => {
-              const activeSticker = edits.stickers.find((s) => s.id === selectedStickerId);
-              return (
-                <TouchableOpacity
-                  key={c}
-                  testID={`sticker-color-${c}`}
-                  style={[styles.colorDot, { backgroundColor: c }, activeSticker?.color === c && styles.colorDotActive]}
-                  onPress={() => changeStickerColor(selectedStickerId, c)}
+        {!drawing && !cropping && selectedStickerId && edits.stickers.some((s) => s.id === selectedStickerId) && (
+          <>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stickerToolsScroll} contentContainerStyle={styles.stickerToolsRow}>
+              {STICKER_COLORS.map((c) => {
+                return (
+                  <TouchableOpacity
+                    key={c}
+                    testID={`sticker-color-${c}`}
+                    style={[styles.colorDot, { backgroundColor: c, borderColor: c === "#FFFFFF" ? "#000000" : "#FFFFFF" }]}
+                    onPress={() => changeStickerColor(selectedStickerId, c)}
+                  />
+                );
+              })}
+              <TouchableOpacity
+                testID="sticker-color-rainbow"
+                onPress={() => {
+                  const activeSticker = edits.stickers.find((s) => s.id === selectedStickerId);
+                  const [h, s, v] = hexToHsv(activeSticker?.color ?? "#FF0000");
+                  setPickerHue(h);
+                  setPickerSat(s);
+                  setPickerVal(v);
+                  setPickerHexText((activeSticker?.color ?? "#FF0000").toUpperCase());
+                  setColorPickerTarget("sticker");
+                  setColorPaletteOpen(true);
+                }}
+                style={[styles.colorDot, { borderColor: "#FFFFFF" }]}
+              >
+                <LinearGradient
+                  colors={["#FF3B30", "#FFD60A", "#34C759", "#0A84FF", "#BF5AF2", "#FF2D55"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
                 />
-              );
-            })}
-            <View style={styles.stickerToolsDivider} />
-            {STICKER_FONTS.map((f) => {
-              const activeSticker = edits.stickers.find((s) => s.id === selectedStickerId);
-              return (
-                <TouchableOpacity
-                  key={f.id}
-                  testID={`sticker-font-${f.id}`}
-                  style={[styles.fontChip, activeSticker?.font === f.family && styles.fontChipActive]}
-                  onPress={() => changeStickerFont(selectedStickerId, f.family)}
-                >
-                  <Text style={[styles.fontChipText, f.family ? { fontFamily: f.family } : null]}>{f.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+              </TouchableOpacity>
+            </ScrollView>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stickerToolsScroll} contentContainerStyle={styles.stickerToolsRow}>
+              {STICKER_FONTS.map((f) => {
+                const activeSticker = edits.stickers.find((s) => s.id === selectedStickerId);
+                return (
+                  <TouchableOpacity
+                    key={f.id}
+                    testID={`sticker-font-${f.id}`}
+                    style={[styles.fontChip, activeSticker?.font === f.family && styles.fontChipActive]}
+                    onPress={() => changeStickerFont(selectedStickerId, f.family)}
+                  >
+                    <Text style={[styles.fontChipText, f.family ? { fontFamily: f.family } : null]}>{f.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </>
         )}
 
         {drawing && (
-          <View style={styles.drawToolsRow}>
-            {DRAW_COLORS.map((c) => (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stickerToolsScroll} contentContainerStyle={styles.stickerToolsRow}>
+            {STICKER_COLORS.map((c) => (
               <TouchableOpacity
                 key={c}
-                style={[styles.colorDot, { backgroundColor: c }, drawColor === c && styles.colorDotActive]}
+                testID={`draw-color-${c}`}
+                style={[styles.colorDot, { backgroundColor: c, borderColor: c === "#FFFFFF" ? "#000000" : "#FFFFFF" }]}
                 onPress={() => setDrawColor(c)}
               />
             ))}
-            <TouchableOpacity style={styles.iconTouch} onPress={undoLastStroke} disabled={edits.paths.length === 0} hitSlop={6}>
-              <Undo2 size={20} color={edits.paths.length === 0 ? "rgba(255,255,255,0.3)" : theme.text} />
+            <TouchableOpacity
+              testID="draw-color-rainbow"
+              onPress={() => {
+                const [h, s, v] = hexToHsv(drawColor);
+                setPickerHue(h);
+                setPickerSat(s);
+                setPickerVal(v);
+                setPickerHexText(drawColor.toUpperCase());
+                setColorPickerTarget("draw");
+                setColorPaletteOpen(true);
+              }}
+              style={[styles.colorDot, { borderColor: "#FFFFFF" }]}
+            >
+              <LinearGradient
+                colors={["#FF3B30", "#FFD60A", "#34C759", "#0A84FF", "#BF5AF2", "#FF2D55"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </TouchableOpacity>
+          </ScrollView>
+        )}
+
+        {cropping && (
+          <View style={styles.cropToolsRow}>
+            <TouchableOpacity testID="crop-cancel" style={styles.cropActionBtn} onPress={cancelCropMode} disabled={busy} hitSlop={8}>
+              <X size={20} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={styles.cropHintText}>{t("sendMedia.cropHint")}</Text>
+            <TouchableOpacity
+              testID="crop-confirm"
+              style={[styles.cropActionBtn, styles.cropActionBtnConfirm]}
+              onPress={confirmCrop}
+              disabled={busy}
+              hitSlop={8}
+            >
+              <Check size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         )}
 
-        {images.length > 1 && (
+        {images.length > 1 && !cropping && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbStripScroll} contentContainerStyle={styles.thumbStrip}>
             {images.map((uri, i) => (
               <TouchableOpacity key={`${uri}-${i}`} style={[styles.thumbCell, i === activeIndex && styles.thumbCellActive]} onPress={() => goToIndex(i)}>
@@ -675,7 +1084,7 @@ export default function SendMediaSheet({
           </ScrollView>
         )}
 
-        {emojiOpen && (
+        {emojiOpen && !cropping && (
           <View style={styles.emojiGrid}>
             {EMOJI_QUICK.map((e) => (
               <TouchableOpacity key={e} style={styles.emojiCell} onPress={() => setCaption((prev) => prev + e)}>
@@ -685,26 +1094,104 @@ export default function SendMediaSheet({
           </View>
         )}
 
-        <View style={styles.composerRow}>
-          <TouchableOpacity style={styles.emojiToggle} onPress={() => setEmojiOpen((o) => !o)} hitSlop={6}>
-            <FaceGrinning size={22} color={theme.textMuted} />
-          </TouchableOpacity>
-          <View style={styles.captionBox}>
-            <TextInput
-              style={styles.captionInput}
-              value={caption}
-              onChangeText={setCaption}
-              placeholder={t("sendMedia.captionPlaceholder")}
-              placeholderTextColor="rgba(245,245,247,0.45)"
-              editable={!uploading}
-              multiline
-              maxLength={1000}
-            />
+        {!cropping && (
+          <View style={styles.composerRow}>
+            <View style={styles.captionBox}>
+              <TouchableOpacity onPress={() => setEmojiOpen((o) => !o)} hitSlop={6}>
+                <FaceGrinning size={22} color="#9A8F80" />
+              </TouchableOpacity>
+              <TextInput
+                style={styles.captionInput}
+                value={caption}
+                onChangeText={setCaption}
+                placeholder={t("sendMedia.captionPlaceholder")}
+                placeholderTextColor="#9A8F80"
+                editable={!uploading}
+                maxLength={1000}
+              />
+            </View>
+            <TouchableOpacity style={styles.sendCircle} onPress={handleSend} disabled={uploading || images.length === 0} hitSlop={6}>
+              {uploading ? (
+                <Text style={styles.sendProgressText}>{uploadProgress}%</Text>
+              ) : caption.trim() ? (
+                <Send size={20} color="#141210" />
+              ) : (
+                <MicrophoneIcon size={22.5} color="#141210" strokeWidth={2} />
+              )}
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.sendCircle} onPress={handleSend} disabled={uploading || images.length === 0} hitSlop={6}>
-            {uploading ? <Text style={styles.sendProgressText}>{uploadProgress}%</Text> : <Icon name="send" size={20} color="#FFFFFF" />}
+        )}
+
+        <Modal visible={colorPaletteOpen} transparent animationType="slide" onRequestClose={() => setColorPaletteOpen(false)} statusBarTranslucent>
+          <TouchableOpacity style={styles.paletteOverlay} activeOpacity={1} onPress={() => setColorPaletteOpen(false)}>
+            <TouchableOpacity activeOpacity={1} style={styles.paletteCard}>
+              <View style={styles.sheetHandleTop} />
+
+              {/* Doygunluk (sat) / parlaklik (val) karesi - saf ton rengi
+                  uzerine beyaz->seffaf (yatay) ve seffaf->siyah (dikey) iki
+                  gradyan bindirilerek klasik HSV karesi elde ediliyor. */}
+              <View
+                style={styles.svSquare}
+                onLayout={(e) => setSvSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+                {...svResponder.panHandlers}
+              >
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: rgbToHex(...hsvToRgb(pickerHue, 1, 1)) }]} />
+                <LinearGradient colors={["#FFFFFF", "rgba(255,255,255,0)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                <LinearGradient colors={["rgba(0,0,0,0)", "#000000"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} />
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.svThumb,
+                    { left: pickerSat * svSize.width - 10, top: (1 - pickerVal) * svSize.height - 10, backgroundColor: pickerHexText },
+                  ]}
+                />
+              </View>
+
+              {/* Ton (hue) cubugu - tam renk spektrumu */}
+              <View style={styles.hueBar} onLayout={(e) => setHueBarWidth(e.nativeEvent.layout.width)} {...hueResponder.panHandlers}>
+                <LinearGradient
+                  colors={["#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF", "#FF0000"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View pointerEvents="none" style={[styles.hueThumb, { left: (pickerHue / 360) * hueBarWidth - 11 }]} />
+              </View>
+
+              {/* Canli onizleme + hex girisi - istenilen rengi dogrudan da yazabiliyoruz */}
+              <View style={styles.hexRow}>
+                <View style={[styles.hexPreview, { backgroundColor: pickerHexText }]} />
+                <TextInput
+                  style={styles.hexInput}
+                  value={pickerHexText}
+                  onChangeText={applyPickerHex}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  maxLength={7}
+                  placeholder="#FFFFFF"
+                  placeholderTextColor="#6B7280"
+                />
+              </View>
+
+              <View style={styles.paletteQuickRow}>
+                {STICKER_COLORS.map((c) => (
+                  <TouchableOpacity
+                    key={c}
+                    testID={`palette-color-${c}`}
+                    style={[styles.paletteSwatch, { backgroundColor: c, borderColor: c === "#FFFFFF" ? "#000000" : "#FFFFFF" }]}
+                    onPress={() => applyPickerHsv(...hexToHsv(c))}
+                  />
+                ))}
+              </View>
+
+              <LinearGradient colors={["#FFFFFF", "#38BDF8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.paletteDoneGradientBorder}>
+                <TouchableOpacity style={styles.paletteDoneBtnDark} onPress={() => setColorPaletteOpen(false)}>
+                  <Text style={styles.paletteDoneBtnDarkText}>{t("sendMedia.colorPaletteDone")}</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </TouchableOpacity>
           </TouchableOpacity>
-        </View>
+        </Modal>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -712,6 +1199,10 @@ export default function SendMediaSheet({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#000000" },
+  // Kullanici: "Alttaki alanda gri olmalı" - gri artik previewWrap'a degil
+  // KOKTEKI screen'e uygulaniyor, boylece hem onizlemenin kenarlari HEM DE
+  // alttaki iptal/onay satirinin ARKA PLANI ayni gri.
+  screenCropping: { backgroundColor: "#2C2C2E" },
   header: { paddingTop: 50, paddingHorizontal: 14, paddingBottom: 8, flexDirection: "row", alignItems: "center", gap: 6 },
   iconTouch: { width: 36, height: 36, alignItems: "center", justifyContent: "center", borderRadius: 18 },
   iconTouchActive: { backgroundColor: "rgba(255,255,255,0.18)" },
@@ -719,8 +1210,41 @@ const styles = StyleSheet.create({
   toolbarRow: { flexDirection: "row", marginLeft: "auto", gap: 2 },
   previewWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   shotArea: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  // Kullanici: "ekran içinde ekrandan biraz küçük bir çerçeve olmalı ve
+  // fotoğraf onun içine sığmalı" - shotArea'nin KENDISI bu sabit cerceve;
+  // fotograf "contain" ile KENDI oranini koruyarak bu cercevenin ICINE
+  // kuculup sigiyor (cerceve fotografin sekline gore DEGISMIYOR, tam tersi).
+  // "Çerçeveyi biraz küçültürmüsün" - 92%'den 86%'ya kucultuldu. Kullanici
+  // "alttaki alan gri olmali" derken EKRANIN ALT KISMINI (cropToolsRow'un
+  // arka plani, bkz. screenCropping) kastetti - cercevenin KENDI ICI
+  // (fotografin oturdugu "sahne") SIYAH kalmaya devam ediyor.
+  shotAreaCropped: { width: "86%", height: "86%", backgroundColor: "#000000" },
   preview: { width: "100%", height: "100%" },
   busyOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.35)" },
+  // Elle kirpma cercevesi - disini karartan 4 dikdortgen, cercevenin
+  // kendisi (suruklenince tasir) + ic izgara, ve 4 kose tutamaci.
+  cropDim: { position: "absolute", backgroundColor: "rgba(0,0,0,0.55)" },
+  cropFrame: { position: "absolute", borderWidth: 2, borderColor: "#FFFFFF" },
+  cropGridLine: { position: "absolute", backgroundColor: "rgba(255,255,255,0.35)" },
+  // Kullanici: "kenarları kalın olsa şeklini korusa" - yuvarlak nokta
+  // yerine kalin "L" seklinde kose parantezleri (klasik kirpma UI dili),
+  // her biri kendi koordinatindaki (top/bottom + left/right) iki kalin
+  // cubuktan olusuyor.
+  cropHandle: { position: "absolute", width: 32, height: 32 },
+  cropBracketH: { position: "absolute", width: 16, height: 4, backgroundColor: "#FFFFFF", borderRadius: 2 },
+  cropBracketV: { position: "absolute", width: 4, height: 16, backgroundColor: "#FFFFFF", borderRadius: 2 },
+  cropToolsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingBottom: 10, gap: 10 },
+  cropActionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    transform: [{ translateY: -15 }],
+  },
+  cropActionBtnConfirm: { backgroundColor: theme.accent },
+  cropHintText: { color: "#FFFFFF", fontSize: 12.5, flex: 1, textAlign: "center", transform: [{ translateY: -15 }] },
   stickerWrap: { position: "absolute" },
   stickerText: { color: "#FFFFFF", fontSize: 20, fontWeight: "800", textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 4, textShadowOffset: { width: 0, height: 1 } },
   // Kullanici: "Altındaki beyaz çizgiyi kaldırsak" - alt cizgi KALDIRILDI.
@@ -747,12 +1271,15 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.15)",
   },
   trashButtonHot: { backgroundColor: "#FF3B30", borderColor: "#FF3B30", transform: [{ scale: 1.15 }] },
-  drawToolsRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18, paddingBottom: 10 },
-  colorDot: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: "transparent" },
-  colorDotActive: { borderColor: "#FFFFFF" },
+  // Kullanici: "hepsinin beyaz çerçevesi olsun beyaz olanında siyah" - her
+  // rengin KENDI varsayilan cercevesi artik beyaz (beyaz rengin kendisi
+  // SIYAH, yoksa fark edilmez); secili olan ise accent renginde, daha
+  // kalin bir cerceveyle ayirt ediliyor (bkz. kullanim yerlerindeki
+  // borderColor hesaplamasi).
+  colorDot: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, overflow: "hidden" },
+  colorDotActive: { borderColor: theme.accent, borderWidth: 3 },
   stickerToolsScroll: { maxHeight: 48, marginBottom: 6 },
   stickerToolsRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18 },
-  stickerToolsDivider: { width: 1, height: 22, backgroundColor: "rgba(255,255,255,0.2)" },
   fontChip: {
     minWidth: 36,
     height: 32,
@@ -776,18 +1303,92 @@ const styles = StyleSheet.create({
   emojiGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 14, paddingBottom: 6, gap: 2 },
   emojiCell: { width: "12.5%", aspectRatio: 1, alignItems: "center", justifyContent: "center" },
   emojiCellText: { fontSize: 22 },
-  composerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingBottom: 24, paddingTop: 8 },
-  emojiToggle: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  captionBox: { flex: 1, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 6, maxHeight: 70, justifyContent: "center" },
+  composerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingBottom: 24, paddingTop: 8 },
+  // Ana DM ekranindaki mesaj cubuguyla (inputPill) AYNI stil - koyu lacivert
+  // hap, emoji ikonu icerde solda, metin yaninda (bkz. DMScreen.tsx).
+  captionBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#15202B",
+    borderRadius: 27.5,
+    height: 55,
+    paddingLeft: 14,
+    paddingRight: 10,
+  },
   captionInput: {
+    flex: 1,
     color: theme.text,
     fontSize: 14,
-    paddingVertical: 0,
-    includeFontPadding: false,
-    textAlignVertical: "center",
+    paddingTop: 7,
+    paddingBottom: 6,
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  sendCircle: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: theme.accent },
-  sendProgressText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
+  sendCircle: { width: 55, height: 55, borderRadius: 27.5, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFF" },
+  sendProgressText: { color: "#141210", fontSize: 11, fontWeight: "800" },
+  // Gokkusagi dugmesiyle acilan tam renk paleti - DM ekranindaki sheet
+  // diliyle (sheetOverlay/sheetCard) AYNI stil.
+  paletteOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  paletteCard: {
+    backgroundColor: "#15202B",
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingTop: 18,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    alignItems: "stretch",
+  },
+  sheetHandleTop: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#3A4C5E", marginBottom: 18, alignSelf: "center" },
+  paletteSwatch: { width: 36, height: 36, borderRadius: 18, borderWidth: 2 },
+  // HSV secici: doygunluk/parlaklik karesi - onizleme icindeki thumb'in
+  // kendi borderWidth'i (beyaz halka) icindeki renk dolgusu CANLI secimi gosterir.
+  svSquare: { width: "100%", height: 180, borderRadius: 14, overflow: "hidden", marginBottom: 14 },
+  svThumb: {
+    position: "absolute",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  hueBar: { width: "100%", height: 24, borderRadius: 12, overflow: "hidden", marginBottom: 16 },
+  hueThumb: {
+    position: "absolute",
+    top: 1,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  hexRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 18 },
+  hexPreview: { width: 36, height: 36, borderRadius: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  hexInput: {
+    flex: 1,
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: "700",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
+  paletteQuickRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 20 },
+  // Sikayet formundaki gonder dugmesiyle (DMScreen.tsx reportSubmitGradientBorder)
+  // AYNI stil - mavi-beyaz gradyan cerceve, icinde siyah dolgu.
+  paletteDoneGradientBorder: { borderRadius: 10, padding: 2 },
+  paletteDoneBtnDark: { backgroundColor: "#000000", borderRadius: 8, paddingVertical: 14, alignItems: "center" },
+  paletteDoneBtnDarkText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800", letterSpacing: 0.2, textTransform: "uppercase" },
 });

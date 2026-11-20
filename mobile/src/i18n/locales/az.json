@@ -567,7 +567,10 @@
   "sendMedia": {
     "send": "Göndər",
     "captionPlaceholder": "Mesaj əlavə et...",
-    "stickerDefaultText": "Mətn"
+    "stickerDefaultText": "Mətn",
+    "colorPaletteTitle": "Rəng Palitrası",
+    "colorPaletteDone": "Tamam",
+    "cropHint": "Kəsmə alanını sürüşdürərək tənzimləyin"
   },
   "tabs": {
     "discover": "Kəşf",

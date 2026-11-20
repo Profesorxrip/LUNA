@@ -567,7 +567,10 @@
   "sendMedia": {
     "send": "Αποστολή",
     "captionPlaceholder": "Προσθήκη μηνύματος...",
-    "stickerDefaultText": "Κείμενο"
+    "stickerDefaultText": "Κείμενο",
+    "colorPaletteTitle": "Παλέτα Χρωμάτων",
+    "colorPaletteDone": "Τέλος",
+    "cropHint": "Σύρετε για να προσαρμόσετε την περιοχή περικοπής"
   },
   "tabs": {
     "discover": "Ανακάλυψη",

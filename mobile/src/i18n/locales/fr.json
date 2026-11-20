@@ -567,7 +567,10 @@
   "sendMedia": {
     "send": "Envoyer",
     "captionPlaceholder": "Ajouter un message...",
-    "stickerDefaultText": "Texte"
+    "stickerDefaultText": "Texte",
+    "colorPaletteTitle": "Palette de couleurs",
+    "colorPaletteDone": "Terminé",
+    "cropHint": "Faites glisser pour ajuster la zone de recadrage"
   },
   "tabs": {
     "discover": "Découvrir",

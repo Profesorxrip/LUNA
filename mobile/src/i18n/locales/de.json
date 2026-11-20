@@ -567,7 +567,10 @@
   "sendMedia": {
     "send": "Senden",
     "captionPlaceholder": "Nachricht hinzufügen...",
-    "stickerDefaultText": "Text"
+    "stickerDefaultText": "Text",
+    "colorPaletteTitle": "Farbpalette",
+    "colorPaletteDone": "Fertig",
+    "cropHint": "Zum Anpassen des Zuschnitts ziehen"
   },
   "tabs": {
     "discover": "Entdecken",
