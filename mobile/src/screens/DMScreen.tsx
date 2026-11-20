@@ -992,7 +992,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       handleDeleteForMe(message);
       return;
     }
-    showAlert(t("dm.deleteChooseTitle"), undefined, [
+    showAlert(t("dm.deleteChooseTitle"), t("dm.deleteChooseBody"), [
       { text: t("common.cancel"), style: "cancel" },
       { text: t("dm.actionDeleteForMe"), style: "destructive", onPress: () => handleDeleteForMe(message) },
       { text: t("dm.actionDeleteForEveryone"), style: "destructive", onPress: () => handleDeleteForEveryone(message) },

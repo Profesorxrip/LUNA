@@ -262,7 +262,8 @@
     "pinnedListTitle": "Mensajes Fijados",
     "copiedToast": "Copiado",
     "selectedCount": "{{count}} seleccionado(s)",
-    "deleteChooseTitle": "Eliminar mensaje"
+    "deleteChooseTitle": "Eliminar mensaje",
+    "deleteChooseBody": "¿Cómo quieres eliminar este mensaje?"
   },
   "userProfile": {
     "defaultName": "Usuario",

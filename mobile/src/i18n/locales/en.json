@@ -262,7 +262,8 @@
     "pinnedListTitle": "Pinned Messages",
     "copiedToast": "Copied",
     "selectedCount": "{{count}} selected",
-    "deleteChooseTitle": "Delete message"
+    "deleteChooseTitle": "Delete message",
+    "deleteChooseBody": "How would you like to delete this message?"
   },
   "userProfile": {
     "defaultName": "User",

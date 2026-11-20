@@ -262,7 +262,8 @@
     "pinnedListTitle": "Καρφιτσωμένα Μηνύματα",
     "copiedToast": "Αντιγράφηκε",
     "selectedCount": "{{count}} επιλεγμένα",
-    "deleteChooseTitle": "Διαγραφή μηνύματος"
+    "deleteChooseTitle": "Διαγραφή μηνύματος",
+    "deleteChooseBody": "Πώς θέλετε να διαγράψετε αυτό το μήνυμα;"
   },
   "userProfile": {
     "defaultName": "Χρήστης",

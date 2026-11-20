@@ -262,7 +262,8 @@
     "pinnedListTitle": "Angeheftete Nachrichten",
     "copiedToast": "Kopiert",
     "selectedCount": "{{count}} ausgewählt",
-    "deleteChooseTitle": "Nachricht löschen"
+    "deleteChooseTitle": "Nachricht löschen",
+    "deleteChooseBody": "Wie möchten Sie diese Nachricht löschen?"
   },
   "userProfile": {
     "defaultName": "Nutzer",

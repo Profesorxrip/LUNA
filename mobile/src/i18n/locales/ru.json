@@ -262,7 +262,8 @@
     "pinnedListTitle": "Закреплённые сообщения",
     "copiedToast": "Скопировано",
     "selectedCount": "Выбрано: {{count}}",
-    "deleteChooseTitle": "Удалить сообщение"
+    "deleteChooseTitle": "Удалить сообщение",
+    "deleteChooseBody": "Как вы хотите удалить это сообщение?"
   },
   "userProfile": {
     "defaultName": "Пользователь",

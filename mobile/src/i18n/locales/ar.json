@@ -262,7 +262,8 @@
     "pinnedListTitle": "الرسائل المثبتة",
     "copiedToast": "تم النسخ",
     "selectedCount": "تم تحديد {{count}}",
-    "deleteChooseTitle": "حذف الرسالة"
+    "deleteChooseTitle": "حذف الرسالة",
+    "deleteChooseBody": "كيف تريد حذف هذه الرسالة؟"
   },
   "userProfile": {
     "defaultName": "مستخدم",

@@ -262,7 +262,8 @@
     "pinnedListTitle": "Sabitlenmiş Mesajlar",
     "copiedToast": "Kopyalandı",
     "selectedCount": "{{count}} mesaj seçildi",
-    "deleteChooseTitle": "Mesajı sil"
+    "deleteChooseTitle": "Mesajı sil",
+    "deleteChooseBody": "Bu mesajı nasıl silmek istiyorsunuz?"
   },
   "userProfile": {
     "defaultName": "Kullanıcı",

@@ -262,7 +262,8 @@
     "pinnedListTitle": "Peyamên Pêvekirî",
     "copiedToast": "Hat kopîkirin",
     "selectedCount": "{{count}} hatin hilbijartin",
-    "deleteChooseTitle": "Peyamê jê bibe"
+    "deleteChooseTitle": "Peyamê jê bibe",
+    "deleteChooseBody": "Hûn dixwazin vî peyamî çawa jê bibin?"
   },
   "userProfile": {
     "defaultName": "Bikarhêner",
