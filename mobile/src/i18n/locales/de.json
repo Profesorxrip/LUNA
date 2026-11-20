@@ -267,7 +267,8 @@
     "recordSlideToCancel": "Zum Abbrechen ziehen",
     "recordPause": "Pausieren",
     "recordResume": "Fortsetzen",
-    "voiceOnceConsumed": "Diese Sprachnachricht wurde abgespielt"
+    "voiceOnceConsumed": "Diese Sprachnachricht wurde abgespielt",
+    "mediaOnceConsumed": "Dieses Medium wurde bereits angesehen"
   },
   "userProfile": {
     "defaultName": "Nutzer",
@@ -571,6 +572,10 @@
     "colorPaletteTitle": "Farbpalette",
     "colorPaletteDone": "Fertig",
     "cropHint": "Zum Anpassen des Zuschnitts ziehen"
+  },
+  "sendVideo": {
+    "muted": "Stumm",
+    "sound": "Ton"
   },
   "tabs": {
     "discover": "Entdecken",

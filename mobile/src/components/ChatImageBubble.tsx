@@ -23,6 +23,10 @@ interface Props {
   // Props aciklamalari (sadece verilirse ilgili buton gosterilir).
   onShowInChat?: () => void;
   onReport?: () => void;
+  // Tek-gorunumluk fotograf ilk kez TAM EKRAN acildiginda cagrilir - bkz.
+  // DMScreen.tsx'teki onConsumeMediaOnce kullanimi (VoiceMessageBubble'daki
+  // onPlay ile AYNI mantik).
+  onOpen?: () => void;
 }
 
 /** Chat/DM'de gonderilen fotograf - "+18 icerik" isaretliyse varsayilan
@@ -31,7 +35,7 @@ interface Props {
  * yok, her acilista yeniden karar verilir). Bulanik degilken (ya da bir kez
  * acildiktan sonra) dokununca PhotoViewerModal ile tam ekran acilir - profil
  * galerisi/avatar ile AYNI bilesen. */
-export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius = 12, senderName, sentAt, onReply, onShowInChat, onReport }: Props) {
+export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius = 12, senderName, sentAt, onReply, onShowInChat, onReport, onOpen }: Props) {
   const [revealed, setRevealed] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const blurred = isAdult && !revealed;
@@ -41,7 +45,14 @@ export default function ChatImageBubble({ uri, isAdult, size = 200, borderRadius
     <>
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => (blurred ? setRevealed(true) : setViewerOpen(true))}
+        onPress={() => {
+          if (blurred) {
+            setRevealed(true);
+            return;
+          }
+          setViewerOpen(true);
+          onOpen?.();
+        }}
         style={[styles.wrap, { width: size, height: size, borderRadius }]}
       >
         <Image source={{ uri }} style={styles.image} resizeMode="cover" />

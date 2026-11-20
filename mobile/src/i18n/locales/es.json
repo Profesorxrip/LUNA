@@ -267,7 +267,8 @@
     "recordSlideToCancel": "Desliza para cancelar",
     "recordPause": "Pausar",
     "recordResume": "Reanudar",
-    "voiceOnceConsumed": "Este mensaje de voz ya se reprodujo"
+    "voiceOnceConsumed": "Este mensaje de voz ya se reprodujo",
+    "mediaOnceConsumed": "Este contenido ya se visualizó"
   },
   "userProfile": {
     "defaultName": "Usuario",
@@ -571,6 +572,10 @@
     "colorPaletteTitle": "Paleta de colores",
     "colorPaletteDone": "Listo",
     "cropHint": "Arrastra para ajustar el área de recorte"
+  },
+  "sendVideo": {
+    "muted": "Silenciado",
+    "sound": "Sonido"
   },
   "tabs": {
     "discover": "Descubrir",

@@ -61,6 +61,7 @@ import {
   sendImageMessage,
   sendVoiceMessage,
   consumeVoiceOnce,
+  consumeMediaOnce,
   sendVideoMessage,
   sendLocationMessage,
   sendFileMessage,
@@ -1025,11 +1026,15 @@ io.on("connection", (socket: Socket) => {
   // siniflandirmaya dayanir (bkz. nsfwDetector.ts).
   socket.on(
     "dm:sendImage",
-    async ({ toUserId, mediaUrl, caption }: { toUserId: string; mediaUrl: string; caption?: string }, ack) => {
+    async (
+      { toUserId, mediaUrl, caption, viewOnce }: { toUserId: string; mediaUrl: string; caption?: string; viewOnce?: boolean },
+      ack
+    ) => {
       if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isNonEmptyString(mediaUrl, 2000)) {
         return ack?.({ ok: false });
       }
       if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
+      if (viewOnce !== undefined && typeof viewOnce !== "boolean") return ack?.({ ok: false });
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
       let isAdult = false;
       try {
@@ -1039,7 +1044,7 @@ io.on("connection", (socket: Socket) => {
       } catch (err) {
         console.error("DM fotografi indirilemedi, +18 tespiti atlaniyor:", err);
       }
-      const result = await sendImageMessage(myDb!, toUserId, mediaUrl, isAdult, caption?.trim() || undefined);
+      const result = await sendImageMessage(myDb!, toUserId, mediaUrl, isAdult, caption?.trim() || undefined, viewOnce);
       if (!result.ok || !result.message) {
         return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
       }
@@ -1094,12 +1099,36 @@ io.on("connection", (socket: Socket) => {
     }
   );
 
+  // Tek-gorunumluk foto/video mesajini ALICI acip gorunce cagirir - yukaridaki
+  // dm:consumeVoiceOnce ile AYNI desen, sadece ucunu de kapsayan genel
+  // consume_dm_media_once RPC'sini (bkz. 0039_dm_media_view_once.sql) kullanir.
+  socket.on(
+    "dm:consumeMediaOnce",
+    async ({ withUserId, messageId }: { withUserId: string; messageId: string }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(withUserId, 200) || !isNonEmptyString(messageId, 200)) {
+        return ack?.({ ok: false });
+      }
+      const result = await consumeMediaOnce(myDb!, messageId);
+      if (!result.ok) return ack?.({ ok: false });
+      ack?.({ ok: true });
+      const peerSocketId = getSocketIdForUser(withUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message:mediaOnceConsumed", { messageId });
+      socket.emit("dm:message:mediaOnceConsumed", { messageId });
+    }
+  );
+
   // DM'de video mesaji - foto ile AYNI desen (client "chat-media" bucket'ina
   // kendisi yukler), ek olarak sesli mesaj gibi bir sure (durationMs) tasir.
   socket.on(
     "dm:sendVideo",
     async (
-      { toUserId, mediaUrl, durationMs, caption }: { toUserId: string; mediaUrl: string; durationMs?: number; caption?: string },
+      {
+        toUserId,
+        mediaUrl,
+        durationMs,
+        caption,
+        viewOnce,
+      }: { toUserId: string; mediaUrl: string; durationMs?: number; caption?: string; viewOnce?: boolean },
       ack
     ) => {
       if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isNonEmptyString(mediaUrl, 2000)) {
@@ -1107,8 +1136,9 @@ io.on("connection", (socket: Socket) => {
       }
       if (durationMs !== undefined && !isFiniteNumber(durationMs, 0, 24 * 60 * 60 * 1000)) return ack?.({ ok: false });
       if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
+      if (viewOnce !== undefined && typeof viewOnce !== "boolean") return ack?.({ ok: false });
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
-      const result = await sendVideoMessage(myDb!, toUserId, mediaUrl, durationMs, caption?.trim() || undefined);
+      const result = await sendVideoMessage(myDb!, toUserId, mediaUrl, durationMs, caption?.trim() || undefined, viewOnce);
       if (!result.ok || !result.message) {
         return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
       }

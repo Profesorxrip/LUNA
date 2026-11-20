@@ -267,7 +267,8 @@
     "recordSlideToCancel": "Kaydırarak iptal et",
     "recordPause": "Duraklat",
     "recordResume": "Devam et",
-    "voiceOnceConsumed": "Bu sesli mesaj dinlendi"
+    "voiceOnceConsumed": "Bu sesli mesaj dinlendi",
+    "mediaOnceConsumed": "Bu medya görüntülendi"
   },
   "userProfile": {
     "defaultName": "Kullanıcı",
@@ -626,6 +627,10 @@
     "colorPaletteTitle": "Renk Paleti",
     "colorPaletteDone": "Tamam",
     "cropHint": "Kırpma alanını sürükleyip ayarlayın"
+  },
+  "sendVideo": {
+    "muted": "Sessiz",
+    "sound": "Ses"
   },
   "tabs": {
     "discover": "Keşif",

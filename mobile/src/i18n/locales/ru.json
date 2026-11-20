@@ -267,7 +267,8 @@
     "recordSlideToCancel": "Проведите, чтобы отменить",
     "recordPause": "Пауза",
     "recordResume": "Продолжить",
-    "voiceOnceConsumed": "Это голосовое сообщение уже прослушано"
+    "voiceOnceConsumed": "Это голосовое сообщение уже прослушано",
+    "mediaOnceConsumed": "Этот файл уже просмотрен"
   },
   "userProfile": {
     "defaultName": "Пользователь",
@@ -571,6 +572,10 @@
     "colorPaletteTitle": "Палитра цветов",
     "colorPaletteDone": "Готово",
     "cropHint": "Перетащите, чтобы настроить область обрезки"
+  },
+  "sendVideo": {
+    "muted": "Без звука",
+    "sound": "Звук"
   },
   "tabs": {
     "discover": "Обзор",

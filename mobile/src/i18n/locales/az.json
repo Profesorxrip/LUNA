@@ -267,7 +267,8 @@
     "recordSlideToCancel": "Ləğv etmək üçün sürüşdür",
     "recordPause": "Fasilə ver",
     "recordResume": "Davam et",
-    "voiceOnceConsumed": "Bu səsli mesaj artıq dinlənilib"
+    "voiceOnceConsumed": "Bu səsli mesaj artıq dinlənilib",
+    "mediaOnceConsumed": "Bu media artıq görüntülənib"
   },
   "userProfile": {
     "defaultName": "İstifadəçi",
@@ -571,6 +572,10 @@
     "colorPaletteTitle": "Rəng Palitrası",
     "colorPaletteDone": "Tamam",
     "cropHint": "Kəsmə alanını sürüşdürərək tənzimləyin"
+  },
+  "sendVideo": {
+    "muted": "Səssiz",
+    "sound": "Səs"
   },
   "tabs": {
     "discover": "Kəşf",

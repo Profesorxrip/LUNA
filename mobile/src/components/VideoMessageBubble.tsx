@@ -13,6 +13,9 @@ interface Props {
   onReply?: () => void;
   onShowInChat?: () => void;
   onReport?: () => void;
+  // Tek-gorunumluk video ilk kez TAM EKRAN acildiginda cagrilir - bkz.
+  // ChatImageBubble.tsx'teki AYNI isimli prop.
+  onOpen?: () => void;
 }
 
 /** Chat/DM'de gonderilen video - fotograf balonuyla AYNI boyut/kenar
@@ -20,7 +23,7 @@ interface Props {
  * dugmesi var (kullanicinin istegi). Kucuk resim kendisi, videonun ILK
  * karesinde DURDURULMUS expo-video oynaticisi - ayri bir thumbnail
  * uretmeye gerek yok. Dokununca VideoViewerModal ile tam ekran acilir. */
-export default function VideoMessageBubble({ uri, size = 280, borderRadius = 8, senderName, sentAt, onReply, onShowInChat, onReport }: Props) {
+export default function VideoMessageBubble({ uri, size = 280, borderRadius = 8, senderName, sentAt, onReply, onShowInChat, onReport, onOpen }: Props) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const player = useVideoPlayer(uri, (p) => {
     p.muted = true;
@@ -29,7 +32,14 @@ export default function VideoMessageBubble({ uri, size = 280, borderRadius = 8, 
 
   return (
     <>
-      <TouchableOpacity activeOpacity={0.85} onPress={() => setViewerOpen(true)} style={[styles.wrap, { width: size, height: size, borderRadius }]}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => {
+          setViewerOpen(true);
+          onOpen?.();
+        }}
+        style={[styles.wrap, { width: size, height: size, borderRadius }]}
+      >
         <VideoView style={styles.video} player={player} nativeControls={false} contentFit="cover" pointerEvents="none" />
         <View style={styles.playBadge}>
           <Play size={26} color="#0F172A" fill="#0F172A" />

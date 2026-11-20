@@ -267,7 +267,8 @@
     "recordSlideToCancel": "Σύρετε για ακύρωση",
     "recordPause": "Παύση",
     "recordResume": "Συνέχεια",
-    "voiceOnceConsumed": "Αυτό το φωνητικό μήνυμα έχει ήδη ακουστεί"
+    "voiceOnceConsumed": "Αυτό το φωνητικό μήνυμα έχει ήδη ακουστεί",
+    "mediaOnceConsumed": "Αυτό το αρχείο έχει ήδη προβληθεί"
   },
   "userProfile": {
     "defaultName": "Χρήστης",
@@ -571,6 +572,10 @@
     "colorPaletteTitle": "Παλέτα Χρωμάτων",
     "colorPaletteDone": "Τέλος",
     "cropHint": "Σύρετε για να προσαρμόσετε την περιοχή περικοπής"
+  },
+  "sendVideo": {
+    "muted": "Σίγαση",
+    "sound": "Ήχος"
   },
   "tabs": {
     "discover": "Ανακάλυψη",

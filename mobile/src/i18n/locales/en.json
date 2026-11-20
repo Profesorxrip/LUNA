@@ -267,7 +267,8 @@
     "recordSlideToCancel": "Slide to cancel",
     "recordPause": "Pause",
     "recordResume": "Resume",
-    "voiceOnceConsumed": "This voice message has been played"
+    "voiceOnceConsumed": "This voice message has been played",
+    "mediaOnceConsumed": "This media has been viewed"
   },
   "userProfile": {
     "defaultName": "User",
@@ -626,6 +627,10 @@
     "colorPaletteTitle": "Color Palette",
     "colorPaletteDone": "Done",
     "cropHint": "Drag to adjust the crop area"
+  },
+  "sendVideo": {
+    "muted": "Muted",
+    "sound": "Sound"
   },
   "tabs": {
     "discover": "Discover",

@@ -176,13 +176,15 @@ export async function sendImageMessage(
   toUserId: string,
   mediaUrl: string,
   isAdult: boolean,
-  caption?: string
+  caption?: string,
+  viewOnce?: boolean
 ): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
   const { data, error } = await db.rpc("send_dm_image", {
     to_user: toUserId,
     media_url: mediaUrl,
     is_adult: isAdult,
     caption: caption ?? null,
+    view_once: viewOnce ?? false,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
@@ -227,17 +229,33 @@ export async function sendVideoMessage(
   toUserId: string,
   mediaUrl: string,
   durationMs?: number,
-  caption?: string
+  caption?: string,
+  viewOnce?: boolean
 ): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
   const { data, error } = await db.rpc("send_dm_video", {
     to_user: toUserId,
     media_url: mediaUrl,
     duration_ms: durationMs ?? null,
     caption: caption ?? null,
+    view_once: viewOnce ?? false,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
   }
+  return { ok: true, message: mapRow(data) };
+}
+
+/** Tek-gorunumluk bir foto/video/sesli mesaji "tuketir" - consumeVoiceOnce
+ * (sadece voice, bkz. yukarida) ile AYNI mantik ama ucunu de kapsayan GENEL
+ * RPC'yi (consume_dm_media_once, bkz. 0039_dm_media_view_once.sql) cagirir.
+ * Basarili olursa donen mesajin mediaUrl'i ARTIK null'dur - cagiran taraf
+ * bunu her iki soket ucuna da yayinlamali. */
+export async function consumeMediaOnce(
+  db: SupabaseClient,
+  messageId: string
+): Promise<{ ok: boolean; message?: DMMessage }> {
+  const { data, error } = await db.rpc("consume_dm_media_once", { message_id: messageId });
+  if (error || !data) return { ok: false };
   return { ok: true, message: mapRow(data) };
 }
 

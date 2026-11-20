@@ -35,6 +35,7 @@ import ReplyPreviewContent from "../components/ReplyPreviewContent";
 import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import SendMediaSheet from "../components/SendMediaSheet";
+import SendVideoSheet from "../components/SendVideoSheet";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
 import { formatMessageTime } from "../utils/time";
@@ -184,13 +185,16 @@ interface DMBubbleRowProps {
   // Tek-gorunumluk sesli mesaj ilk kez oynatilmaya baslandiginda cagirilir -
   // bkz. asagidaki VoiceMessageBubble onPlay kullanimi.
   onConsumeVoiceOnce?: (messageId: string) => void;
+  // Tek-gorunumluk foto/video ilk kez TAM EKRAN acildiginda cagirilir - bkz.
+  // asagidaki ChatImageBubble/VideoMessageBubble onOpen kullanimi.
+  onConsumeMediaOnce?: (messageId: string) => void;
 }
 
 // Oda sohbetindeki (RoomScreen.tsx -> ChatBubbleRow) ile AYNI mantik: kendi
 // mesajimizi SAGDAN SOLA, karsidakinin mesajini SOLDAN SAGA kaydirinca
 // yanitlama (reply) tetikleniyor. Satir translateX ile kaydirilirken
 // kenarda bir "reply" ikonu belirip bosalan tarafi gosteriyor.
-function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport, onLongPress, onConsumeVoiceOnce }: DMBubbleRowProps) {
+function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport, onLongPress, onConsumeVoiceOnce, onConsumeMediaOnce }: DMBubbleRowProps) {
   const { t, i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   // Sesli mesajin sure etiketi - VoiceMessageBubble artik kendi icinde cizmiyor,
@@ -294,6 +298,11 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 fileSize={item.fileSize}
                 mimeType={item.mimeType}
               />
+            ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
+              <View style={styles.deletedRow}>
+                <CameraIcon size={14} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} strokeWidth={1.8} />
+                <Text style={[styles.deletedText, { color: isMine ? "rgba(255,255,255,0.6)" : MUTED }]}>{t("dm.mediaOnceConsumed")}</Text>
+              </View>
             ) : item.kind === "video" && item.mediaUrl ? (
               <VideoMessageBubble
                 uri={item.mediaUrl}
@@ -303,9 +312,15 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 sentAt={item.createdAt}
                 onReply={onReply}
                 onReport={onReport}
+                onOpen={item.viewOnce ? () => onConsumeMediaOnce?.(item.id) : undefined}
               />
             ) : item.kind === "call" ? (
               <CallMessageBubble isVideo={!!item.callIsVideo} status={item.callStatus || "completed"} durationMs={item.durationMs ?? null} />
+            ) : item.kind === "photo" && item.viewOnce && item.viewOnceConsumed ? (
+              <View style={styles.deletedRow}>
+                <ImageIcon size={14} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} strokeWidth={1.8} />
+                <Text style={[styles.deletedText, { color: isMine ? "rgba(255,255,255,0.6)" : MUTED }]}>{t("dm.mediaOnceConsumed")}</Text>
+              </View>
             ) : item.mediaUrl ? (
               <ChatImageBubble
                 uri={item.mediaUrl}
@@ -316,6 +331,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 sentAt={item.createdAt}
                 onReply={onReply}
                 onReport={onReport}
+                onOpen={item.viewOnce ? () => onConsumeMediaOnce?.(item.id) : undefined}
               />
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
@@ -393,6 +409,9 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [videoQueue, setVideoQueue] = useState<{ uri: string; mimeType?: string | null }[]>([]);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const [quickCaptureActive, setQuickCaptureActive] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -632,6 +651,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     function handleVoiceOnceConsumed({ messageId }: { messageId: string }) {
       setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, viewOnceConsumed: true, mediaUrl: undefined } : m)));
     }
+    // handleVoiceOnceConsumed ile AYNI mantik, sadece foto/video icin -
+    // bkz. consume_dm_media_once RPC (0039_dm_media_view_once.sql).
+    function handleMediaOnceConsumed({ messageId }: { messageId: string }) {
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, viewOnceConsumed: true, mediaUrl: undefined } : m)));
+    }
     socket.on("dm:message", handleMessage);
     socket.on("dm:message:self", handleOwnMessage);
     socket.on("dm:seen", handleSeen);
@@ -641,6 +665,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     socket.on("dm:message:pinned", handlePinned);
     socket.on("dm:message:unpinned", handleUnpinned);
     socket.on("dm:message:voiceOnceConsumed", handleVoiceOnceConsumed);
+    socket.on("dm:message:mediaOnceConsumed", handleMediaOnceConsumed);
     return () => {
       socket.off("dm:message", handleMessage);
       socket.off("dm:message:self", handleOwnMessage);
@@ -651,6 +676,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       socket.off("dm:message:pinned", handlePinned);
       socket.off("dm:message:unpinned", handleUnpinned);
       socket.off("dm:message:voiceOnceConsumed", handleVoiceOnceConsumed);
+      socket.off("dm:message:mediaOnceConsumed", handleMediaOnceConsumed);
     };
   }, [peer.userId]);
 
@@ -723,7 +749,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     const videos = result.assets.filter((a) => a.type === "video");
     const images = result.assets.filter((a) => a.type !== "video");
     if (images.length) setPendingImages((prev) => [...prev, ...images.map((a) => a.uri)]);
-    videos.forEach((a) => sendPickedVideo(a.uri, a.mimeType));
+    if (videos.length) setVideoQueue((prev) => [...prev, ...videos.map((a) => ({ uri: a.uri, mimeType: a.mimeType }))]);
   }
 
   // Kullanici: "...basınca kamerayı açsa nasıl olur" -> "expo-camera ekle,
@@ -789,7 +815,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // yukleme yuzdesini hesaplar (bkz. utils/uploadWithProgress.ts), ardindan
   // her biri icin "dm:sendImage" emit eder - yazi (caption) sadece SON
   // fotografa ekleniyor.
-  async function sendPickedImage(caption: string) {
+  async function sendPickedImage(caption: string, viewOnce: boolean) {
     if (!pendingImages.length || !myUserId) return;
     setUploadingImage(true);
     setUploadProgress(0);
@@ -810,7 +836,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         await new Promise<void>((resolve, reject) => {
           socket.emit(
             "dm:sendImage",
-            { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, caption: isLast ? caption || undefined : undefined },
+            { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, caption: isLast ? caption || undefined : undefined, viewOnce },
             (res: any) => {
               if (res?.ok) {
                 setMessages((prev) => [...prev, res.message]);
@@ -829,25 +855,65 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     }
   }
 
-  // Video - fotografin AKSINE SendMediaSheet'teki (kirpma/cizim/sticker)
-  // editorden GECMIYOR (o editor sadece resim icin) - secilir secilmez
-  // dogrudan yuklenip gonderiliyor.
-  async function sendPickedVideo(uri: string, mimeType?: string | null) {
+  // Video - SendVideoSheet'te onizlenip (kirpma/sessize alma/hiz secenekleri
+  // AYARLANDIKTAN sonra) gonderiliyor. Gercek dosya kesme/transcode YOK
+  // (ffmpeg gibi bir kutuphane bu projede yok) - trim/mute/speed, mesajla
+  // birlikte METADATA olarak gonderiliyor; oynatma tarafinda (alici/izleyici)
+  // uygulanmasi ayri bir backend/oynatici guncellemesi gerektiriyor.
+  async function sendPickedVideo(
+    uri: string,
+    mimeType: string | null | undefined,
+    caption: string,
+    meta: {
+      muted: boolean;
+      speed: number;
+      trimStartMs: number;
+      trimEndMs: number;
+      rotationDeg: number;
+      cropRegion: { x: number; y: number; width: number; height: number } | null;
+      viewOnce: boolean;
+    }
+  ) {
     if (!myUserId) return;
+    setUploadingVideo(true);
+    setVideoUploadProgress(0);
     try {
       const arrayBuffer = await uriToArrayBuffer(uri);
       const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "mp4";
       const contentType = mimeType || (ext === "mov" ? "video/quicktime" : "video/mp4");
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const path = `${myUserId}/${fileName}`;
-      await uploadWithProgress("chat-media", path, arrayBuffer, contentType, () => {});
+      await uploadWithProgress("chat-media", path, arrayBuffer, contentType, (pct) => setVideoUploadProgress(pct));
       const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
-      socket.emit("dm:sendVideo", { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl }, (res: any) => {
-        if (res?.ok) setMessages((prev) => [...prev, res.message]);
-        else showAlert(t("dm.sendFailedTitle"), res?.error || "Video gönderilemedi.");
+      await new Promise<void>((resolve, reject) => {
+        socket.emit(
+          "dm:sendVideo",
+          {
+            toUserId: peer.userId,
+            mediaUrl: publicUrlData.publicUrl,
+            caption: caption || undefined,
+            muted: meta.muted,
+            speed: meta.speed,
+            trimStartMs: meta.trimStartMs,
+            trimEndMs: meta.trimEndMs,
+            rotationDeg: meta.rotationDeg,
+            cropRegion: meta.cropRegion,
+            viewOnce: meta.viewOnce,
+          },
+          (res: any) => {
+            if (res?.ok) {
+              setMessages((prev) => [...prev, res.message]);
+              resolve();
+            } else reject(new Error(res?.error || "Video gönderilemedi."));
+          }
+        );
       });
+      setVideoQueue((prev) => prev.slice(1));
     } catch (err: any) {
       showAlert(t("dm.sendFailedTitle"), err?.message || "Video gönderilirken bir hata oluştu.");
+    } finally {
+      setUploadingVideo(false);
+      setVideoUploadProgress(0);
     }
   }
 
@@ -990,6 +1056,18 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     if (consumedOnceRef.current.has(messageId)) return;
     consumedOnceRef.current.add(messageId);
     socket.emit("dm:consumeVoiceOnce", { withUserId: peer.userId, messageId }, (res: any) => {
+      if (!res?.ok) consumedOnceRef.current.delete(messageId);
+    });
+  }
+
+  // handleConsumeVoiceOnce ile AYNI mantik (ayni consumedOnceRef'i paylasir -
+  // mesaj id'leri zaten tum turler arasinda benzersiz), sadece foto/video
+  // ilk kez TAM EKRAN acildiginda (bkz. ChatImageBubble/VideoMessageBubble
+  // onOpen) cagirilir.
+  function handleConsumeMediaOnce(messageId: string) {
+    if (consumedOnceRef.current.has(messageId)) return;
+    consumedOnceRef.current.add(messageId);
+    socket.emit("dm:consumeMediaOnce", { withUserId: peer.userId, messageId }, (res: any) => {
       if (!res?.ok) consumedOnceRef.current.delete(messageId);
     });
   }
@@ -1444,6 +1522,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               onReport={() => setReportVisible(true)}
               onLongPress={() => openActionMenu(item)}
               onConsumeVoiceOnce={handleConsumeVoiceOnce}
+              onConsumeMediaOnce={handleConsumeMediaOnce}
             />
           );
         }}
@@ -1764,6 +1843,15 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         onAddMore={pickImage}
         onReplaceImage={replacePendingImage}
         onSend={sendPickedImage}
+      />
+
+      <SendVideoSheet
+        visible={videoQueue.length > 0}
+        uri={videoQueue[0]?.uri || null}
+        uploading={uploadingVideo}
+        uploadProgress={videoUploadProgress}
+        onCancel={() => setVideoQueue((prev) => prev.slice(1))}
+        onSend={(caption, meta) => sendPickedVideo(videoQueue[0].uri, videoQueue[0].mimeType, caption, meta)}
       />
     </KeyboardAvoidingView>
   );

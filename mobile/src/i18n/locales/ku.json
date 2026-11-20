@@ -267,7 +267,8 @@
     "recordSlideToCancel": "Ji bo betalkirinê bisirîne",
     "recordPause": "Rawestîne",
     "recordResume": "Berdewam bike",
-    "voiceOnceConsumed": "Ev peyama dengî berê hatiye guhdarîkirin"
+    "voiceOnceConsumed": "Ev peyama dengî berê hatiye guhdarîkirin",
+    "mediaOnceConsumed": "Ev medya berê hatiye dîtin"
   },
   "userProfile": {
     "defaultName": "Bikarhêner",
@@ -571,6 +572,10 @@
     "colorPaletteTitle": "Palêta Rengan",
     "colorPaletteDone": "Temam",
     "cropHint": "Ji bo sererastkirina qada birrînê bikişîne"
+  },
+  "sendVideo": {
+    "muted": "Bêdeng",
+    "sound": "Deng"
   },
   "tabs": {
     "discover": "Vedîtin",

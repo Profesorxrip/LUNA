@@ -267,7 +267,8 @@
     "recordSlideToCancel": "Glisser pour annuler",
     "recordPause": "Pause",
     "recordResume": "Reprendre",
-    "voiceOnceConsumed": "Ce message vocal a déjà été écouté"
+    "voiceOnceConsumed": "Ce message vocal a déjà été écouté",
+    "mediaOnceConsumed": "Ce média a déjà été consulté"
   },
   "userProfile": {
     "defaultName": "Utilisateur",
@@ -571,6 +572,10 @@
     "colorPaletteTitle": "Palette de couleurs",
     "colorPaletteDone": "Terminé",
     "cropHint": "Faites glisser pour ajuster la zone de recadrage"
+  },
+  "sendVideo": {
+    "muted": "Muet",
+    "sound": "Son"
   },
   "tabs": {
     "discover": "Découvrir",

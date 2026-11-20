@@ -267,7 +267,8 @@
     "recordSlideToCancel": "اسحب للإلغاء",
     "recordPause": "إيقاف مؤقت",
     "recordResume": "استئناف",
-    "voiceOnceConsumed": "تم تشغيل هذه الرسالة الصوتية بالفعل"
+    "voiceOnceConsumed": "تم تشغيل هذه الرسالة الصوتية بالفعل",
+    "mediaOnceConsumed": "تم عرض هذا الوسائط بالفعل"
   },
   "userProfile": {
     "defaultName": "مستخدم",
@@ -571,6 +572,10 @@
     "colorPaletteTitle": "لوحة الألوان",
     "colorPaletteDone": "تم",
     "cropHint": "اسحب لضبط منطقة القص"
+  },
+  "sendVideo": {
+    "muted": "صامت",
+    "sound": "صوت"
   },
   "tabs": {
     "discover": "استكشاف",
