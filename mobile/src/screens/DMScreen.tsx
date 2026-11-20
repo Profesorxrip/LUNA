@@ -663,6 +663,24 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     if (messages.length) listRef.current?.scrollToEnd({ animated: true });
   }, [messages.length]);
 
+  // Kilitli kayit cubugu acilinca (85px'ten 150px'e buyudugu icin) son
+  // mesaj onun ALTINDA kalabiliyordu. IKI AYRI SORUN vardi: (1) cubuk
+  // BUYUDUGU anda hemen kaydirinca layout henuz yeni yukseklige gore
+  // yeniden olculmemis oluyordu, (2) scrollToEnd() - GERCEK olcumle
+  // dogrulandi - contentContainerStyle'daki paddingBottom'u (5) HESABA
+  // KATMIYOR, her zaman tam o kadar KISA kaliyor (son mesaj kutunun degil,
+  // padding'in bitimine kadar kayiyor - yani bosluk hep "gorunmuyormus"
+  // gibi kaliyordu). scrollToOffset'e COK BUYUK bir deger vermek, FlatList'i
+  // kendi GERCEK (padding dahil) max kaydirma miktarina kirpmaya zorluyor.
+  useEffect(() => {
+    if (!recordingLocked) return;
+    const delays = [0, 16, 50, 120, 250];
+    const timeouts = delays.map((ms) =>
+      setTimeout(() => listRef.current?.scrollToOffset({ offset: 999999, animated: false }), ms)
+    );
+    return () => timeouts.forEach(clearTimeout);
+  }, [recordingLocked]);
+
   // Suresi dolan mesajlar ("Sure sonu" ayari) ekranda da zamanla kaybolsun
   // diye periyodik olarak "simdi"yi tazeliyoruz - filtreleme render sirasinda yapiliyor.
   useEffect(() => {
@@ -1332,7 +1350,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         ref={listRef}
         data={displayItems}
         keyExtractor={(d) => (d.type === "single" ? d.message.id : d.id)}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, recordingLocked && styles.listContentLocked]}
         onScrollToIndexFailed={(info) => {
           listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
           const id = pendingScrollMessageId.current;
@@ -1487,8 +1505,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                 <Trash2 size={20} color="#FFFFFF" />
               </TouchableOpacity>
               <TouchableOpacity onPress={pauseResumeRecording} hitSlop={8} style={styles.recordPausePill}>
-                {recordingPaused ? <Play size={16} color={TEXT} /> : <Pause size={16} color={TEXT} />}
-                <Text style={styles.recordPausePillText}>{recordingPaused ? t("dm.recordResume") : t("dm.recordPause")}</Text>
+                {recordingPaused ? <Play size={20} color={TEXT} /> : <Pause size={20} color={TEXT} />}
+                <Text style={[styles.recordPausePillText, { transform: [{ translateY: 1 }] }]}>
+                  {recordingPaused ? t("dm.recordResume") : t("dm.recordPause")}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.inputRoundBtn} onPress={sendVoiceRecording} disabled={sendingVoice} hitSlop={8}>
                 {sendingVoice ? <ActivityIndicator size="small" color="#141210" /> : <Send size={20} color="#141210" />}
@@ -1784,6 +1804,9 @@ const styles = StyleSheet.create({
   // istegi (once 26/20/10/5 denendi - hepsi COK fazla geldi, kullanicinin
   // istegi).
   listContent: { padding: 16, paddingBottom: 1, gap: 4 },
+  // Kilitli kayit cubugu acikken son mesaj kutunun 1px yerine 5px ustunde
+  // dursun istendi - SADECE bu durumda uygulanir, normal 1px'i etkilemez.
+  listContentLocked: { paddingBottom: 5 },
   // "flex-start" (en ustten hizali) - "flex-end" iken fotograf gibi uzun
   // balonlarda gonderici avatari balonun ALT ucuna kayiyordu, oysa UST ucuyla
   // hizali olmali (bkz. RoomScreen.tsx messageRow'daki AYNI tercih).
@@ -1976,7 +1999,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 24,
-    backgroundColor: "#3A3A3E",
+    // Profil ekranindaki kutularla AYNI koyu lacivert - bkz. yukarida
+    // ayni renk kullanan actionSquare/encryptionNotice.
+    backgroundColor: "#15202B",
   },
   // Ust satir: kirmizi nokta + sure solda, tek-gonderimlik rozeti sagda.
   recordLockedTopRow: { flexDirection: "row", alignItems: "center", gap: 10 },
