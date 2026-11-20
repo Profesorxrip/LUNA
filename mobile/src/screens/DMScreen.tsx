@@ -23,7 +23,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, Lock, ChevronUp, Pause, Play } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
@@ -1459,8 +1459,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         {voiceRecording && !recordingLocked && (
           <Animated.View pointerEvents="none" style={[styles.recordLockHintWrap, { transform: [{ translateY: recordDragY }] }]}>
             <View style={{ marginTop: 5, alignItems: "center" }}>
-              <Lock size={15} color={MUTED} />
-              <ChevronUp size={13} color={MUTED} style={{ marginTop: -2 }} />
+              <LockClosedIcon size={17} color="#FFFFFF" strokeWidth={2} />
+              <ChevronUp size={15} color="#FFFFFF" style={{ marginTop: -2 }} />
             </View>
           </Animated.View>
         )}
@@ -1540,8 +1540,22 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                   <View style={styles.recordingDot} />
                   <Text style={styles.recordingTime}>{formatRecordingTime(recorderState.durationMillis)}</Text>
                   <View style={{ flex: 1 }} />
+                  {/* GERCEK sebep marginLeft degil - onceki solundaki
+                      "flex:1" bosluk dolduruyucu, bu ogeye verilen HER
+                      marginLeft'i otomatik olarak TELAFI EDIP (kendi
+                      genisligini o kadar ARTTIRIP) gorsel kaymayi iptal
+                      ediyordu. "transform: translateX" ise layout
+                      hesabina KATILMADIGI icin (sadece gorsel) bu sorunu
+                      yasamiyor - sabit kayma icin AYNI transform dizisine
+                      ikinci bir translateX ekleniyor. */}
                   <Animated.Text
-                    style={[styles.recordCancelHintText, { opacity: recordCancelHintOpacity, transform: [{ translateX: recordDragX }] }]}
+                    style={[
+                      styles.recordCancelHintText,
+                      {
+                        opacity: recordCancelHintOpacity,
+                        transform: [{ translateX: Animated.add(recordDragX, -15) }],
+                      },
+                    ]}
                     numberOfLines={1}
                   >
                     {"‹ " + t("dm.recordSlideToCancel")}
@@ -1578,11 +1592,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                       placeholderTextColor={MUTED}
                       onSubmitEditing={sendMessage}
                     />
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -40 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -33 }}>
                       <TouchableOpacity onPress={() => setAttachSheetVisible(true)} hitSlop={6}>
                         <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={19} color="#FFFFFF" /></View>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={openCamera} hitSlop={6}>
+                      <TouchableOpacity onPress={openCamera} hitSlop={6} style={{ marginLeft: 5 }}>
                         <MaterialCommunityIcons name="camera-outline" size={25} color="#FFFFFF" />
                       </TouchableOpacity>
                     </View>
@@ -2033,7 +2047,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#3A3A3E",
+    // Profil ekranindaki kutularla AYNI koyu lacivert - kilitli kayit
+    // cubuguyla (recordingLockedBar) AYNI renk, tutarlilik icin.
+    backgroundColor: "#15202B",
     borderRadius: 27.5,
     paddingLeft: 14,
     paddingRight: 10,
@@ -2051,12 +2067,13 @@ const styles = StyleSheet.create({
   // birlikte kayar (bkz. recordDragY), WhatsApp'taki "kilitle" ipucu.
   recordLockHintWrap: {
     position: "absolute",
-    right: 24.5,
+    right: 19.5,
     bottom: 84,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#3A3A3E",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    // Karsi tarafin mesaj balonuyla AYNI renk (bubbleTheirs).
+    backgroundColor: "#1E293B",
     alignItems: "center",
     justifyContent: "center",
   },
