@@ -1085,6 +1085,14 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setPendingFile(null);
   }
 
+  // Kullanici: "dosyaların gözüktüğü dosya seçtiğimiz ekranı [dedim]" -
+  // onizlemedeyken geri ok artik dogrudan TUM ekrani KAPATMIYOR, once
+  // Dahili Depolama/Son Dosyalar LISTESINE donuyor (iki asamali geri).
+  function backToFileList() {
+    if (sendingFile) return;
+    setPendingFile(null);
+  }
+
   async function confirmSendFile() {
     if (!pendingFile || !myUserId || sendingFile) return;
     const asset = pendingFile;
@@ -2079,6 +2087,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         recentFiles={recentFiles}
         onSelectRecent={selectRecentFile}
         onPickFile={pickFile}
+        onBackToList={backToFileList}
         onCancel={cancelPendingFile}
         onSend={confirmSendFile}
       />

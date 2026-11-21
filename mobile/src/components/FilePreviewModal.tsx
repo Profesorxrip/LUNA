@@ -16,6 +16,7 @@ interface Props {
   recentFiles: RecentFileEntry[];
   onSelectRecent: (file: RecentFileEntry) => void;
   onPickFile: () => void;
+  onBackToList: () => void;
   onCancel: () => void;
   onSend: () => void;
 }
@@ -40,6 +41,7 @@ export default function FilePreviewModal({
   recentFiles,
   onSelectRecent,
   onPickFile,
+  onBackToList,
   onCancel,
   onSend,
 }: Props) {
@@ -50,10 +52,10 @@ export default function FilePreviewModal({
   const ext = hasFile ? fileName!.split(".").pop()?.toUpperCase() || "" : "";
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
+    <Modal visible={visible} animationType="slide" onRequestClose={hasFile ? onBackToList : onCancel} statusBarTranslucent>
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
-          <TouchableOpacity style={styles.headerBtn} onPress={onCancel} disabled={uploading} hitSlop={10}>
+          <TouchableOpacity style={styles.headerBtn} onPress={hasFile ? onBackToList : onCancel} disabled={uploading} hitSlop={10}>
             <View style={{ transform: [{ rotate: "90deg" }] }}>
               <CircleArrowDown size={22} color="#FFFFFF" />
             </View>
