@@ -54,6 +54,7 @@ import LocationMessageBubble from "../components/LocationMessageBubble";
 import FileMessageBubble from "../components/FileMessageBubble";
 import ContactMessageBubble from "../components/ContactMessageBubble";
 import PollComposerModal from "../components/PollComposerModal";
+import EmojiKeyboardPanel from "../components/EmojiKeyboardPanel";
 import PollMessageBubble from "../components/PollMessageBubble";
 import MusicMessageBubble from "../components/MusicMessageBubble";
 import CallMessageBubble from "../components/CallMessageBubble";
@@ -458,6 +459,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
+  const [emojiPanelVisible, setEmojiPanelVisible] = useState(false);
   const [galleryPickerVisible, setGalleryPickerVisible] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [quickCaptureActive, setQuickCaptureActive] = useState(false);
@@ -1472,8 +1474,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     });
   }
 
-  function insertMention() {
-    setInput((prev) => (prev.endsWith("@") || prev.length === 0 ? prev + "@" : prev + " @"));
+  function insertEmoji(emoji: string) {
+    setInput((prev) => prev + emoji);
   }
 
   function startReply(message: DMMessage) {
@@ -2154,7 +2156,14 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                     </View>
                   )}
                   <View style={styles.inputIconsRow}>
-                    <TouchableOpacity onPress={insertMention} hitSlop={6}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setAttachSheetVisible(false);
+                        setEmojiPanelVisible((v) => !v);
+                      }}
+                      hitSlop={6}
+                    >
                       <Laugh size={25} color="#9CA3AF" />
                     </TouchableOpacity>
                     <TextInput
@@ -2164,12 +2173,16 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                       placeholder={t("dm.messagePlaceholder")}
                       placeholderTextColor={MUTED}
                       onSubmitEditing={sendMessage}
-                      onFocus={() => setAttachSheetVisible(false)}
+                      onFocus={() => {
+                        setAttachSheetVisible(false);
+                        setEmojiPanelVisible(false);
+                      }}
                     />
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -33 }}>
                       <TouchableOpacity
                         onPress={() => {
                           Keyboard.dismiss();
+                          setEmojiPanelVisible(false);
                           setAttachSheetVisible((v) => !v);
                         }}
                         hitSlop={6}
@@ -2245,6 +2258,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
           </View>
         </View>
       )}
+
+      {emojiPanelVisible && <EmojiKeyboardPanel onSelect={insertEmoji} />}
 
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
