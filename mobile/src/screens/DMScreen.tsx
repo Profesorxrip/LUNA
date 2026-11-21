@@ -12,6 +12,7 @@ import {
   Animated,
   PanResponder,
   ActivityIndicator,
+  Keyboard,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
@@ -2163,9 +2164,16 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                       placeholder={t("dm.messagePlaceholder")}
                       placeholderTextColor={MUTED}
                       onSubmitEditing={sendMessage}
+                      onFocus={() => setAttachSheetVisible(false)}
                     />
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -33 }}>
-                      <TouchableOpacity onPress={() => setAttachSheetVisible(true)} hitSlop={6}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          setAttachSheetVisible((v) => !v);
+                        }}
+                        hitSlop={6}
+                      >
                         <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={23} color="#9CA3AF" strokeWidth={1.7} /></View>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={startQuickCapture} hitSlop={6} style={{ marginLeft: 5 }}>
@@ -2188,6 +2196,55 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
           </>
         )}
       </View>
+
+      {/* Kullanici: "ataç ikonuna basınca açılan kutu klavye gibi
+          davranıyor ya üstünde mesaj ve sesli mesaj butonlarının olması
+          gerekmiyorki" - artik TAM EKRAN bir Modal DEGIL, klavyenin
+          kapladigi alani alan INLINE bir panel: composer (mesaj yazma
+          kutusu + sesli mesaj/gonder dugmesi) YUKARIDA SABIT kalip, bu
+          panel onun ALTINDA (klavyenin yerinde) aciliyor. */}
+      {attachSheetVisible && (
+        <View style={styles.attachSheet}>
+          <View style={styles.attachGrid}>
+            <TouchableOpacity style={styles.attachGridItem} onPress={pickImage}>
+              <View style={styles.attachIconWrap}>
+                <ImageIcon size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachGallery")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openLocationPicker}>
+              <View style={styles.attachIconWrap}>
+                <MapPin size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachLocation")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openFilePreview}>
+              <View style={styles.attachIconWrap}>
+                <FileTextIcon size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachFile")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openPollComposer}>
+              <View style={styles.attachIconWrap}>
+                <BarChart2 size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachPoll")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openMusicPicker}>
+              <View style={styles.attachIconWrap}>
+                <Music size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachMusic")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openContactPicker}>
+              <View style={styles.attachIconWrap}>
+                <UserIcon size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachContact")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
@@ -2293,52 +2350,6 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                 <Text style={styles.reportSubmitBtnDarkText}>{t("dm.reportSend")}</Text>
               </TouchableOpacity>
             </LinearGradient>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
-      <Modal visible={attachSheetVisible} transparent animationType="slide" onRequestClose={() => setAttachSheetVisible(false)} statusBarTranslucent>
-        <TouchableOpacity style={styles.attachSheetOverlay} activeOpacity={1} onPress={() => setAttachSheetVisible(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.attachSheet}>
-            <View style={styles.sheetHandleTop} />
-            <View style={styles.attachGrid}>
-              <TouchableOpacity style={styles.attachGridItem} onPress={pickImage}>
-                <View style={styles.attachIconWrap}>
-                  <ImageIcon size={26} color="#FFFFFF" />
-                </View>
-                <Text style={styles.attachGridText}>{t("dm.attachGallery")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={openLocationPicker}>
-                <View style={styles.attachIconWrap}>
-                  <MapPin size={26} color="#FFFFFF" />
-                </View>
-                <Text style={styles.attachGridText}>{t("dm.attachLocation")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={openFilePreview}>
-                <View style={styles.attachIconWrap}>
-                  <FileTextIcon size={26} color="#FFFFFF" />
-                </View>
-                <Text style={styles.attachGridText}>{t("dm.attachFile")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={openPollComposer}>
-                <View style={styles.attachIconWrap}>
-                  <BarChart2 size={26} color="#FFFFFF" />
-                </View>
-                <Text style={styles.attachGridText}>{t("dm.attachPoll")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={openMusicPicker}>
-                <View style={styles.attachIconWrap}>
-                  <Music size={26} color="#FFFFFF" />
-                </View>
-                <Text style={styles.attachGridText}>{t("dm.attachMusic")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={openContactPicker}>
-                <View style={styles.attachIconWrap}>
-                  <UserIcon size={26} color="#FFFFFF" />
-                </View>
-                <Text style={styles.attachGridText}>{t("dm.attachContact")}</Text>
-              </TouchableOpacity>
-            </View>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -3039,9 +3050,6 @@ const styles = StyleSheet.create({
   deletedRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
   deletedText: { fontSize: 14, fontStyle: "italic" },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  // Klavyenin YERINE gecen bir panel gibi gorunmesi icin - diger
-  // sheet'lerin aksine arkada KARARTMA YOK (klavye de sohbeti karartmaz).
-  attachSheetOverlay: { flex: 1, backgroundColor: "transparent", justifyContent: "flex-end" },
   // Profil ekranindaki kutularla AYNI koyu lacivert (#15202B) - eskiden
   // siyaha yakin kahverengiydi (#141210).
   sheetCard: {
