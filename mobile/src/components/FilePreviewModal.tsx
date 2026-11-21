@@ -11,7 +11,6 @@ interface Props {
   files: PickedFileAsset[];
   uploading: boolean;
   uploadProgress: number;
-  uploadIndex: number;
   recentFiles: RecentFileEntry[];
   selectionMode: boolean;
   selectedUris: string[];
@@ -38,15 +37,16 @@ interface Props {
  * yollayabilelim" - GalleryPickerModal ile AYNI desen: Son Dosyalar
  * satirina TEK dokunus o dosyayi DOGRUDAN onizlemeye gotursun, UZUN
  * basis coklu SECIM modunu acip o satiri isaretler (secim modu
- * acikken normal dokunus da isaretler/kaldirir). Secili dosyalar
- * basliktaki gonder okuyla onizlemeye tasinir, oradan topluca
- * gonderilir. */
+ * acikken normal dokunus da isaretler/kaldirir).
+ *
+ * Kullanici: "Önizleme olmadan direkt gönder" - secim modunda gonder
+ * okuna basinca secili dosyalar bu onizleme ekranina HIC UGRAMADAN
+ * (bkz. DMScreen.tsx sendFilesDirect) dogrudan yuklenip gonderilir. */
 export default function FilePreviewModal({
   visible,
   files,
   uploading,
   uploadProgress,
-  uploadIndex,
   recentFiles,
   selectionMode,
   selectedUris,
@@ -99,61 +99,23 @@ export default function FilePreviewModal({
           </TouchableOpacity>
         </View>
 
-        {hasFiles ? (
-          single ? (
-            <View style={styles.body}>
-              <View style={styles.iconWrap}>{SingleIcon && <SingleIcon size={44} color="#FFFFFF" />}</View>
-              <Text style={styles.fileName} numberOfLines={3}>
-                {single.name}
-              </Text>
-              <Text style={styles.fileMeta}>{[singleExt, formatFileSize(single.size)].filter(Boolean).join(" · ")}</Text>
+        {hasFiles && single ? (
+          <View style={styles.body}>
+            <View style={styles.iconWrap}>{SingleIcon && <SingleIcon size={44} color="#FFFFFF" />}</View>
+            <Text style={styles.fileName} numberOfLines={3}>
+              {single.name}
+            </Text>
+            <Text style={styles.fileMeta}>{[singleExt, formatFileSize(single.size)].filter(Boolean).join(" · ")}</Text>
 
-              {uploading && (
-                <View style={styles.progressWrap}>
-                  <View style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
-                  </View>
-                  <Text style={styles.progressText}>{uploadProgress}%</Text>
+            {uploading && (
+              <View style={styles.progressWrap}>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
                 </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.listScreen}>
-              <Text style={styles.sectionLabel}>{t("dm.fileSelectedCount", { count: files.length })}</Text>
-              <FlatList
-                data={files}
-                keyExtractor={(item) => item.uri}
-                contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
-                renderItem={({ item }) => {
-                  const RowIcon = fileIconFor(item.mimeType, item.name);
-                  const rowExt = item.name.split(".").pop()?.toUpperCase() || "";
-                  return (
-                    <View style={styles.recentRow}>
-                      <View style={styles.recentIconWrap}>
-                        <RowIcon size={18} color="#FFFFFF" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.recentName} numberOfLines={1}>
-                          {item.name}
-                        </Text>
-                        <Text style={styles.recentMeta}>{[rowExt, formatFileSize(item.size)].filter(Boolean).join(" · ")}</Text>
-                      </View>
-                    </View>
-                  );
-                }}
-              />
-              {uploading && (
-                <View style={styles.progressWrap}>
-                  <View style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
-                  </View>
-                  <Text style={styles.progressText}>
-                    {uploadIndex}/{files.length} · {uploadProgress}%
-                  </Text>
-                </View>
-              )}
-            </View>
-          )
+                <Text style={styles.progressText}>{uploadProgress}%</Text>
+              </View>
+            )}
+          </View>
         ) : (
           <View style={styles.listScreen}>
             {!selectionMode && (
