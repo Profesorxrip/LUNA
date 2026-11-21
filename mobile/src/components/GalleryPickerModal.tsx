@@ -3,7 +3,7 @@ import { Modal, View, Text, Image, TouchableOpacity, FlatList, ScrollView, Style
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as MediaLibrary from "expo-media-library/legacy";
-import { CircleArrowDown, ChevronDown, Check, Play } from "lucide-react-native";
+import { CircleArrowDown, ChevronDown, Play } from "lucide-react-native";
 import { formatDuration } from "../utils/format";
 import { theme } from "../theme";
 
@@ -211,21 +211,23 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
 
         <Modal visible={albumMenuOpen} transparent animationType="fade" onRequestClose={() => setAlbumMenuOpen(false)}>
           <TouchableOpacity style={styles.albumMenuOverlay} activeOpacity={1} onPress={() => setAlbumMenuOpen(false)}>
-            <View style={[styles.albumMenuCard, { marginTop: insets.top + 40 + 44 }]}>
+            <View style={[styles.albumMenuCard, { marginTop: insets.top + 40 + 44 + 10 }]}>
               <ScrollView style={{ maxHeight: 420 }}>
-                <TouchableOpacity style={styles.albumRow} onPress={() => selectAlbum(null)}>
+                <TouchableOpacity style={[styles.albumRow, !selectedAlbum && styles.albumRowSelected]} onPress={() => selectAlbum(null)}>
                   <Text style={styles.albumRowText}>{t("dm.galleryTitle")}</Text>
-                  {!selectedAlbum && <Check size={18} color={theme.accent} />}
                 </TouchableOpacity>
                 {albums.map((album) => (
-                  <TouchableOpacity key={album.id} style={styles.albumRow} onPress={() => selectAlbum(album)}>
+                  <TouchableOpacity
+                    key={album.id}
+                    style={[styles.albumRow, selectedAlbum?.id === album.id && styles.albumRowSelected]}
+                    onPress={() => selectAlbum(album)}
+                  >
                     <View style={{ flex: 1 }}>
                       <Text style={styles.albumRowText} numberOfLines={1}>
                         {album.title}
                       </Text>
                       <Text style={styles.albumRowCount}>{album.assetCount}</Text>
                     </View>
-                    {selectedAlbum?.id === album.id && <Check size={18} color={theme.accent} />}
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -266,6 +268,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 10,
   },
+  albumRowSelected: { backgroundColor: theme.accent },
   albumRowText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
   albumRowCount: { color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 },
   centerFill: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
