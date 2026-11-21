@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { User as UserIcon } from "lucide-react-native";
 import Avatar from "./Avatar";
 
 interface Props {
@@ -27,7 +26,6 @@ export default function ContactMessageBubble({ name, handle, avatarUrl }: Props)
           </Text>
         )}
       </View>
-      <UserIcon size={18} color="rgba(255,255,255,0.5)" />
     </View>
   );
 }
