@@ -1118,6 +1118,15 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
           }
         );
       });
+      // Kullanici: "gif yapıp gönderdiğimiz şeylerde o emoji alanındaki
+      // giflere kaydolsun" - video onizlemesinde "GIF" acilip gonderilince,
+      // "Çıkartma oluştur"/"GIF oluştur" ile eklenen kisisel GIF'lerle
+      // (bkz. ../utils/customGifs.ts) AYNI kisisel listeye otomatik eklenir,
+      // boylece emoji panelinin GIF sekmesinde tekrar tekrar gonderilebilir.
+      if (meta.isGif) {
+        const next = await addCustomGif(publicUrlData.publicUrl);
+        setCustomGifs(next);
+      }
       setVideoQueue((prev) => prev.slice(1));
     } catch (err: any) {
       showAlert(t("dm.sendFailedTitle"), err?.message || "Video gönderilirken bir hata oluştu.");

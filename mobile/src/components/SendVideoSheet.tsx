@@ -869,7 +869,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.5)",
     alignItems: "center",
     justifyContent: "center",
-    transform: [{ translateY: -2 }],
+    transform: [{ translateY: -4 }],
   },
   gifToggleActive: { backgroundColor: "#FFFFFF", borderColor: "#FFFFFF" },
   gifToggleText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
