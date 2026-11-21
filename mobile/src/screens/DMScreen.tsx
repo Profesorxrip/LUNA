@@ -802,6 +802,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setQuickCameraFacing((f) => (f === "back" ? "front" : "back"));
   }
 
+  function handleQuickGalleryPress() {
+    setQuickCaptureActive(false);
+    pickImage();
+  }
+
   function toggleQuickCameraFlash() {
     setQuickCameraFlash((f) => (f === "off" ? "on" : "off"));
   }
@@ -1862,6 +1867,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             </TouchableOpacity>
           </View>
           <View style={styles.quickCameraBottomBar}>
+            {/* Deklansor SOL kenari X butonuyla AYNI hizada (kullanicinin
+                istegi) - bkz. ust bardaki AYNI left:16. */}
             <TouchableOpacity
               style={styles.quickCameraShutterOuter}
               onPress={handleQuickShutterPress}
@@ -1870,10 +1877,14 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             >
               <View style={[styles.quickCameraShutterInner, capturingQuickPhoto && styles.quickCameraShutterInnerActive]} />
             </TouchableOpacity>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={handleQuickGalleryPress} hitSlop={10}>
+              <ImageIcon size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+            {/* Kamera cevirme SAG kenari flas butonuyla AYNI hizada. */}
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
+              <MaterialCommunityIcons name="camera-flip-outline" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.quickCameraFlipBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
-            <MaterialCommunityIcons name="camera-flip-outline" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
         </View>
       )}
 
@@ -2099,27 +2110,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Flas ikonuyla AYNI "right" (ayni sutun) ve deklansor dugmesiyle AYNI
-  // dikey merkez (ayni satir/hiza) - kullanicinin istegi.
-  quickCameraFlipBtn: {
-    position: "absolute",
-    right: 16,
-    bottom: 104,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  // Deklansorun SOL kenari X butonuyla, kamera cevirmenin SAG kenari flas
+  // butonuyla AYNI hizada (left:16/right:16 - ust barla AYNI) - kullanicinin
+  // istegi. Galeri ikonu ortada, diger ucuyle AYNI cerceveli.
   quickCameraBottomBar: {
     position: "absolute",
     bottom: 86,
-    left: 0,
-    right: 0,
+    left: 16,
+    right: 16,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
   },
   quickCameraShutterOuter: {
     width: 72,
