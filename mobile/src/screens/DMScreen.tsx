@@ -51,6 +51,9 @@ import VoiceMessageBubble from "../components/VoiceMessageBubble";
 import LocationMessageBubble from "../components/LocationMessageBubble";
 import FileMessageBubble from "../components/FileMessageBubble";
 import ContactMessageBubble from "../components/ContactMessageBubble";
+import PollComposerModal from "../components/PollComposerModal";
+import PollMessageBubble from "../components/PollMessageBubble";
+import MusicMessageBubble from "../components/MusicMessageBubble";
 import CallMessageBubble from "../components/CallMessageBubble";
 import FriendsScreen from "./FriendsScreen";
 import Avatar from "../components/Avatar";
@@ -194,13 +197,16 @@ interface DMBubbleRowProps {
   // Tek-gorunumluk foto/video ilk kez TAM EKRAN acildiginda cagirilir - bkz.
   // asagidaki ChatImageBubble/VideoMessageBubble onOpen kullanimi.
   onConsumeMediaOnce?: (messageId: string) => void;
+  // Anket balonunda bir secenege dokununca (bkz. asagidaki PollMessageBubble
+  // onVote kullanimi) - DMScreen.tsx votePoll'a yonlendirir.
+  onVotePoll?: (messageId: string, optionIndex: number) => void;
 }
 
 // Oda sohbetindeki (RoomScreen.tsx -> ChatBubbleRow) ile AYNI mantik: kendi
 // mesajimizi SAGDAN SOLA, karsidakinin mesajini SOLDAN SAGA kaydirinca
 // yanitlama (reply) tetikleniyor. Satir translateX ile kaydirilirken
 // kenarda bir "reply" ikonu belirip bosalan tarafi gosteriyor.
-function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport, onLongPress, onConsumeVoiceOnce, onConsumeMediaOnce }: DMBubbleRowProps) {
+function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport, onLongPress, onConsumeVoiceOnce, onConsumeMediaOnce, onVotePoll }: DMBubbleRowProps) {
   const { t, i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   // Sesli mesajin sure etiketi - VoiceMessageBubble artik kendi icinde cizmiyor,
@@ -306,6 +312,16 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               />
             ) : item.kind === "contact" && item.sharedUserName ? (
               <ContactMessageBubble name={item.sharedUserName} handle={item.sharedUserHandle} avatarUrl={item.sharedUserAvatarUrl} />
+            ) : item.kind === "poll" && item.pollQuestion && item.pollOptions ? (
+              <PollMessageBubble
+                question={item.pollQuestion}
+                options={item.pollOptions}
+                votes={item.pollVotes ?? new Array(item.pollOptions.length).fill(0)}
+                myVote={item.myPollVote ?? null}
+                onVote={(optionIndex) => onVotePoll?.(item.id, optionIndex)}
+              />
+            ) : item.kind === "music" && item.mediaUrl ? (
+              <MusicMessageBubble uri={item.mediaUrl} title={item.fileName || item.text} />
             ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
               <View style={styles.deletedRow}>
                 <CameraIcon size={14} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} strokeWidth={1.8} />
@@ -578,6 +594,12 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [pinnedCursor, setPinnedCursor] = useState(0);
   const [forwardTarget, setForwardTarget] = useState<DMMessage | null>(null);
   const [contactPickerVisible, setContactPickerVisible] = useState(false);
+  const [pollComposerVisible, setPollComposerVisible] = useState(false);
+  // "Dosya" (document picker, genel dosya) ile "Müzik" (document picker,
+  // sadece ses) AYNI FilePreviewModal'i (onizleme + mesaj kutusu) paylasir -
+  // confirmSendFile'in hangi RPC'yi ("dm:sendFile" / "dm:sendMusic")
+  // cagiracagini bu belirler (bkz. openFilePreview/openMusicPicker).
+  const [pendingAttachKind, setPendingAttachKind] = useState<"file" | "music">("file");
 
   // Sabitlenen mesaj SAYISI degistikce (yeni sabitleme/kaldirma) gosterge
   // en yeniye (son indekse) sifirlanir.
@@ -687,6 +709,12 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     function handleMediaOnceConsumed({ messageId }: { messageId: string }) {
       setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, viewOnceConsumed: true, mediaUrl: undefined } : m)));
     }
+    // Karsi taraf (ya da kendi baska bir cihazimiz) ankete oy verince/
+    // degistirince - GUNCEL oy sayilarini GERCEK ZAMANLI yansitir (bkz.
+    // server/src/index.ts "dm:votePoll").
+    function handlePollVote({ messageId, votes }: { messageId: string; votes: number[] }) {
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, pollVotes: votes } : m)));
+    }
     socket.on("dm:message", handleMessage);
     socket.on("dm:message:self", handleOwnMessage);
     socket.on("dm:seen", handleSeen);
@@ -697,6 +725,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     socket.on("dm:message:unpinned", handleUnpinned);
     socket.on("dm:message:voiceOnceConsumed", handleVoiceOnceConsumed);
     socket.on("dm:message:mediaOnceConsumed", handleMediaOnceConsumed);
+    socket.on("dm:pollVote", handlePollVote);
     return () => {
       socket.off("dm:message", handleMessage);
       socket.off("dm:message:self", handleOwnMessage);
@@ -707,6 +736,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       socket.off("dm:message:pinned", handlePinned);
       socket.off("dm:message:unpinned", handleUnpinned);
       socket.off("dm:message:voiceOnceConsumed", handleVoiceOnceConsumed);
+      socket.off("dm:pollVote", handlePollVote);
       socket.off("dm:message:mediaOnceConsumed", handleMediaOnceConsumed);
     };
   }, [peer.userId]);
@@ -1073,11 +1103,28 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // gonder oku secilenleri onizlemeye tasir, oradan TOPLU gonderilir.
   function openFilePreview() {
     setAttachSheetVisible(false);
+    setPendingAttachKind("file");
     setPendingFiles([]);
     setRecentSelectionMode(false);
     setSelectedRecentUris([]);
     setFilePreviewVisible(true);
     getRecentFiles().then(setRecentFiles);
+  }
+
+  // "Müzik" ek menusu - Dosya'daki Dahili Depolama/Son Dosyalar listesine HIC
+  // UGRAMADAN, dogrudan cihazin ses dosyasi secicisini acar; secilen dosya
+  // AYNI onizleme+mesaj kutusu ekranina (FilePreviewModal) duser, sadece
+  // gonderirken "dm:sendMusic" kullanilir (bkz. confirmSendFile).
+  function openMusicPicker() {
+    setAttachSheetVisible(false);
+    DocumentPicker.getDocumentAsync({ type: "audio/*", multiple: false }).then((result) => {
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      setPendingAttachKind("music");
+      setPendingFiles([{ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }]);
+      setFileCaption("");
+      setFilePreviewVisible(true);
+    });
   }
 
   function pickFile() {
@@ -1192,7 +1239,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", setFileUploadProgress);
       const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
       socket.emit(
-        "dm:sendFile",
+        pendingAttachKind === "music" ? "dm:sendMusic" : "dm:sendFile",
         {
           toUserId: peer.userId,
           mediaUrl: publicUrlData.publicUrl,
@@ -1208,6 +1255,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       );
       setPendingFiles([]);
       setFileCaption("");
+      setPendingAttachKind("file");
       setFilePreviewVisible(false);
     } catch (err: any) {
       showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
@@ -1410,6 +1458,42 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
         else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
       });
+    });
+  }
+
+  // "Anket" ek menusu.
+  function openPollComposer() {
+    setAttachSheetVisible(false);
+    setPollComposerVisible(true);
+  }
+  function sendPoll(question: string, options: string[]) {
+    socket.emit("dm:sendPoll", { toUserId: peer.userId, question, options }, (res: any) => {
+      if (res?.ok && res.message) {
+        setMessages((prev) => [...prev, res.message]);
+        setPollComposerVisible(false);
+      } else if (!res?.ok) {
+        showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+      }
+    });
+  }
+  // Bir anket secenegine dokununca - KENDI ekranimizi iyimser (optimistic)
+  // guncelliyoruz, sunucudan gelen ack'teki GERCEK sayilarla (digerinin
+  // ayni anda verdigi oyu da yansitir) ustune yaziyoruz; karsi tarafa
+  // "dm:pollVote" ile GERCEK ZAMANLI iletilir (bkz. yukaridaki handlePollVote).
+  function votePoll(messageId: string, optionIndex: number) {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== messageId || !m.pollOptions) return m;
+        const prevVote = m.myPollVote;
+        if (prevVote === optionIndex) return m;
+        const votes = [...(m.pollVotes ?? new Array(m.pollOptions.length).fill(0))];
+        if (prevVote != null) votes[prevVote] = Math.max(0, votes[prevVote] - 1);
+        votes[optionIndex] = (votes[optionIndex] ?? 0) + 1;
+        return { ...m, myPollVote: optionIndex, pollVotes: votes };
+      })
+    );
+    socket.emit("dm:votePoll", { withUserId: peer.userId, messageId, optionIndex }, (res: any) => {
+      if (res?.ok && res.votes) setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, pollVotes: res.votes } : m)));
     });
   }
 
@@ -1783,6 +1867,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               onLongPress={() => openActionMenu(item)}
               onConsumeVoiceOnce={handleConsumeVoiceOnce}
               onConsumeMediaOnce={handleConsumeMediaOnce}
+              onVotePoll={votePoll}
             />
           );
         }}
@@ -2009,6 +2094,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         />
       </Modal>
 
+      <PollComposerModal visible={pollComposerVisible} onCancel={() => setPollComposerVisible(false)} onSend={sendPoll} />
+
       <Modal visible={expiryVisible} transparent animationType="slide" onRequestClose={() => setExpiryVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setExpiryVisible(false)}>
           <View style={styles.sheetCard}>
@@ -2080,13 +2167,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachFile")}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholder(t("dm.attachPoll"))}>
+              <TouchableOpacity style={styles.attachGridItem} onPress={openPollComposer}>
                 <View style={styles.attachIconWrap}>
                   <BarChart2 size={26} color="#FFFFFF" />
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachPoll")}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholder(t("dm.attachMusic"))}>
+              <TouchableOpacity style={styles.attachGridItem} onPress={openMusicPicker}>
                 <View style={styles.attachIconWrap}>
                   <Music size={26} color="#FFFFFF" />
                 </View>
@@ -2209,6 +2296,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
 
       <FilePreviewModal
         visible={filePreviewVisible}
+        title={pendingAttachKind === "music" ? t("dm.musicPreviewTitle") : undefined}
         files={pendingFiles}
         caption={fileCaption}
         onChangeCaption={setFileCaption}

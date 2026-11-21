@@ -66,6 +66,9 @@ import {
   sendLocationMessage,
   sendFileMessage,
   sendContactMessage,
+  sendPollMessage,
+  voteDmPoll,
+  sendMusicMessage,
   sendCallMessage,
   setExpiryMs,
   markSeen,
@@ -1233,6 +1236,94 @@ io.on("connection", (socket: Socket) => {
       const peerSocketId = getSocketIdForUser(toUserId);
       if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
       notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "👤 Kişi paylaştı").catch(() => {});
+    }
+  );
+
+  // DM'de anket olusturma ("Anket" ek menusu) - en az 2, en fazla 10 secenek.
+  socket.on(
+    "dm:sendPoll",
+    async ({ toUserId, question, options }: { toUserId: string; question: string; options: string[] }, ack) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(toUserId, 200) ||
+        !isNonEmptyString(question, 300) ||
+        !Array.isArray(options) ||
+        options.length < 2 ||
+        options.length > 10 ||
+        !options.every((o) => isNonEmptyString(o, 100))
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendPollMessage(myDb!, toUserId, question, options);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      const peerSocketId = getSocketIdForUser(toUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+      notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "📊 Anket gönderdi").catch(() => {});
+    }
+  );
+
+  // Ankette oy verme/degistirme - DM SADECE iki kisi oldugu icin guncel oy
+  // sayilarini hem cagirana (ack) hem KARSI TARAFA (online ise, "dm:pollVote")
+  // GERCEK ZAMANLI iletir.
+  socket.on(
+    "dm:votePoll",
+    async ({ withUserId, messageId, optionIndex }: { withUserId: string; messageId: string; optionIndex: number }, ack) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(withUserId, 200) ||
+        !isNonEmptyString(messageId, 100) ||
+        !isFiniteNumber(optionIndex, 0, 9)
+      ) {
+        return ack?.({ ok: false });
+      }
+      const result = await voteDmPoll(myDb!, messageId, optionIndex);
+      if (!result.ok) return ack?.({ ok: false });
+      ack?.({ ok: true, votes: result.votes });
+      const peerSocketId = getSocketIdForUser(withUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:pollVote", { messageId, votes: result.votes, voterUserId: myUserId });
+    }
+  );
+
+  // DM'de muzik paylasma ("Müzik" ek menusu) - client "chat-media" bucket'ina
+  // kendisi yukler (dosya ile AYNI desen), buraya sadece ortaya cikan public
+  // URL + dosya bilgisi gelir.
+  socket.on(
+    "dm:sendMusic",
+    async (
+      {
+        toUserId,
+        mediaUrl,
+        fileName,
+        fileSize,
+        mimeType,
+        caption,
+      }: { toUserId: string; mediaUrl: string; fileName: string; fileSize?: number; mimeType?: string; caption?: string },
+      ack
+    ) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(toUserId, 200) ||
+        !isNonEmptyString(mediaUrl, 2000) ||
+        !isNonEmptyString(fileName, 255)
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (fileSize !== undefined && !isFiniteNumber(fileSize, 0, 500 * 1024 * 1024)) return ack?.({ ok: false });
+      if (mimeType !== undefined && !isOptionalString(mimeType, 150)) return ack?.({ ok: false });
+      if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendMusicMessage(myDb!, toUserId, mediaUrl, fileName, fileSize, mimeType, caption?.trim() || undefined);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      const peerSocketId = getSocketIdForUser(toUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+      notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, `🎵 ${fileName}`).catch(() => {});
     }
   );
 

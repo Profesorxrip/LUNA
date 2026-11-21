@@ -1,10 +1,13 @@
-import { FileText, Image as ImageIcon, FileArchive, File as FileIcon } from "lucide-react-native";
+import { FileText, Image as ImageIcon, FileArchive, File as FileIcon, Music } from "lucide-react-native";
+
+const AUDIO_EXTS = ["mp3", "wav", "m4a", "aac", "flac", "ogg", "wma"];
 
 /** Dosya mesaji ikonu (mimeType/uzantiya gore) - FileMessageBubble ve
  * DmInfoScreen'deki "Dosyalar" satiri AYNI secimi kullanir. */
 export function fileIconFor(mimeType?: string | null, fileName?: string) {
   const ext = fileName?.split(".").pop()?.toLowerCase();
   if (mimeType?.startsWith("image/")) return ImageIcon;
+  if (mimeType?.startsWith("audio/") || (ext && AUDIO_EXTS.includes(ext))) return Music;
   if (ext === "zip" || ext === "rar" || ext === "7z") return FileArchive;
   if (mimeType === "application/pdf" || ext === "pdf" || ext === "doc" || ext === "docx" || ext === "txt") return FileText;
   return FileIcon;

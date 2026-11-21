@@ -314,7 +314,7 @@ export interface DMMessage {
   // disinda) mediaUrl varligina bakilarak "photo" kabul edilir (bkz.
   // DMScreen.tsx render dallanmasi) - eski, bu alani hic tasimayan
   // kayitlarla geriye uyumluluk icin.
-  kind?: "text" | "photo" | "voice" | "location" | "file" | "video" | "call" | "contact";
+  kind?: "text" | "photo" | "voice" | "location" | "file" | "video" | "call" | "contact" | "poll" | "music";
   durationMs?: number | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -326,6 +326,13 @@ export interface DMMessage {
   sharedUserName?: string | null;
   sharedUserHandle?: string | null;
   sharedUserAvatarUrl?: string | null;
+  // Sadece kind==="poll" oldugunda dolu - bkz. 0042_dm_polls.sql. pollVotes[i]
+  // = i. secenegin oy sayisi, myPollVote = kendi secimim (henuz oy
+  // vermemişsem null) - "dm:pollVote" ile GERCEK ZAMANLI guncellenir.
+  pollQuestion?: string | null;
+  pollOptions?: string[] | null;
+  pollVotes?: number[] | null;
+  myPollVote?: number | null;
   // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
   callIsVideo?: boolean | null;
   callStatus?: "completed" | "missed" | null;

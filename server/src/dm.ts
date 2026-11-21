@@ -24,7 +24,7 @@ export interface DMMessage {
   // geriye donuk isaretleme), "voice", "location", "file", "video", "call" -
   // bkz. 0033_dm_message_kinds.sql / 0034_dm_video_messages.sql /
   // 0035_dm_call_messages.sql.
-  kind: "text" | "photo" | "voice" | "location" | "file" | "video" | "call" | "contact";
+  kind: "text" | "photo" | "voice" | "location" | "file" | "video" | "call" | "contact" | "poll" | "music";
   durationMs: number | null;
   latitude: number | null;
   longitude: number | null;
@@ -38,6 +38,15 @@ export interface DMMessage {
   sharedUserName: string | null;
   sharedUserHandle: string | null;
   sharedUserAvatarUrl: string | null;
+  // Sadece kind==="poll" oldugunda dolu - bkz. 0042_dm_polls.sql. pollVotes/
+  // myPollVote dm_messages'ta DEGIL, ayri dm_poll_votes tablosunda tutulur -
+  // mapRow bunlari HESAPLAYAMAZ (null birakir), openConversation sonrasinda
+  // attachPollExtras ile VEYA yeni gonderilen/iletilen bir anket icin
+  // sifirla (0 oy) doldurulur.
+  pollQuestion: string | null;
+  pollOptions: string[] | null;
+  pollVotes: number[] | null;
+  myPollVote: number | null;
   // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
   callIsVideo: boolean | null;
   callStatus: "completed" | "missed" | null;
@@ -102,6 +111,10 @@ function mapRow(row: any): DMMessage {
     sharedUserName: row.shared_user_name ?? null,
     sharedUserHandle: row.shared_user_handle ?? null,
     sharedUserAvatarUrl: row.shared_user_avatar_url ?? null,
+    pollQuestion: row.poll_question ?? null,
+    pollOptions: row.poll_options ?? null,
+    pollVotes: null,
+    myPollVote: null,
     callIsVideo: row.call_is_video ?? null,
     callStatus: row.call_status ?? null,
     deletedForEveryone: row.deleted_for_everyone === true,
@@ -115,6 +128,34 @@ function mapRow(row: any): DMMessage {
  * varsa) tamamen eler - bkz. delete_dm_message_for_me. */
 function visibleToMe(row: any, myUserId: string): boolean {
   return !Array.isArray(row.deleted_for) || !row.deleted_for.includes(myUserId);
+}
+
+/** Bir mesaj listesindeki "poll" turundeki mesajlara GUNCEL oy sayilarini
+ * (pollVotes) ve cagiranin KENDI oyunu (myPollVote) ekler - bunlar
+ * dm_messages'ta DEGIL, ayri dm_poll_votes tablosunda tutuldugu icin mapRow
+ * tek basina hesaplayamaz. DM SADECE iki kisi oldugu icin bir ankette en
+ * fazla 2 oy satiri olur - tum oylari tek sorguda cekip JS'te topluyoruz. */
+async function attachPollExtras(db: SupabaseClient, myUserId: string, messages: DMMessage[]): Promise<DMMessage[]> {
+  const pollIds = messages.filter((m) => m.kind === "poll").map((m) => m.id);
+  if (!pollIds.length) return messages;
+  const { data: voteRows } = await db.from("dm_poll_votes").select("message_id, user_id, option_index").in("message_id", pollIds);
+  const byMessage = new Map<string, { user_id: string; option_index: number }[]>();
+  for (const r of voteRows || []) {
+    const arr = byMessage.get(r.message_id) || [];
+    arr.push({ user_id: r.user_id, option_index: r.option_index });
+    byMessage.set(r.message_id, arr);
+  }
+  return messages.map((m) => {
+    if (m.kind !== "poll") return m;
+    const rows = byMessage.get(m.id) || [];
+    const n = m.pollOptions?.length ?? 0;
+    const tally = new Array(n).fill(0);
+    for (const r of rows) {
+      if (r.option_index >= 0 && r.option_index < n) tally[r.option_index]++;
+    }
+    const mine = rows.find((r) => r.user_id === myUserId);
+    return { ...m, pollVotes: tally, myPollVote: mine ? mine.option_index : null };
+  });
 }
 
 /** Konusmayi (yoksa olusturarak) acar, gorulmus olarak isaretler ve mesaj
@@ -133,8 +174,14 @@ export async function openConversation(
     db.from("dm_pinned_messages").select("*, dm_messages(*)").eq("conversation_id", convoId).order("pinned_at", { ascending: true }),
   ]);
 
+  const messages = await attachPollExtras(
+    db,
+    myUserId,
+    (rows || []).filter((r: any) => visibleToMe(r, myUserId)).map(mapRow)
+  );
+
   return {
-    messages: (rows || []).filter((r: any) => visibleToMe(r, myUserId)).map(mapRow),
+    messages,
     expiresAfterMs: convoRow?.expires_after_ms ?? null,
     pinned: (pinnedRows || [])
       .filter((r: any) => r.dm_messages)
@@ -349,6 +396,67 @@ export async function sendContactMessage(
   return { ok: true, message: mapRow(data) };
 }
 
+export async function sendPollMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  question: string,
+  options: string[]
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_dm_poll", {
+    to_user: toUserId,
+    question,
+    options,
+  });
+  if (error) {
+    return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  const message = mapRow(data);
+  // Yeni gonderilen bir anket HER ZAMAN 0 oyla baslar - attachPollExtras'a
+  // (henuz bu mesaj dm_poll_votes'ta hic yok) gerek kalmadan dogrudan
+  // dolduruyoruz.
+  message.pollVotes = new Array(message.pollOptions?.length ?? 0).fill(0);
+  message.myPollVote = null;
+  return { ok: true, message };
+}
+
+export async function voteDmPoll(
+  db: SupabaseClient,
+  messageId: string,
+  optionIndex: number
+): Promise<{ ok: boolean; votes?: number[]; error?: string }> {
+  const { data, error } = await db.rpc("vote_dm_poll", {
+    message_id: messageId,
+    option_index: optionIndex,
+  });
+  if (error) {
+    return { ok: false, error: "failed" };
+  }
+  return { ok: true, votes: (data?.votes as number[]) ?? [] };
+}
+
+export async function sendMusicMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  mediaUrl: string,
+  fileName: string,
+  fileSize?: number,
+  mimeType?: string,
+  caption?: string
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_dm_music", {
+    to_user: toUserId,
+    media_url: mediaUrl,
+    file_name: fileName,
+    file_size: fileSize ?? null,
+    mime_type: mimeType ?? null,
+    caption: caption ?? null,
+  });
+  if (error) {
+    return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  return { ok: true, message: mapRow(data) };
+}
+
 export interface DMConversationSummary {
   conversationId: string;
   peerId: string;
@@ -520,9 +628,17 @@ export async function forwardMessage(
     shared_user_name: original.sharedUserName,
     shared_user_handle: original.sharedUserHandle,
     shared_user_avatar_url: original.sharedUserAvatarUrl,
+    poll_question: original.pollQuestion,
+    poll_options: original.pollOptions,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
   }
-  return { ok: true, message: mapRow(data) };
+  const message = mapRow(data);
+  // Iletilen bir anket KENDI oylarini TASIMAZ - yeni mesaj 0 oyla baslar.
+  if (message.kind === "poll") {
+    message.pollVotes = new Array(message.pollOptions?.length ?? 0).fill(0);
+    message.myPollVote = null;
+  }
+  return { ok: true, message };
 }

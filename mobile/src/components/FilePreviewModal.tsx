@@ -10,6 +10,9 @@ const EMOJI_QUICK = ["😀", "😂", "😍", "😎", "🥳", "😢", "😮", "�
 
 interface Props {
   visible: boolean;
+  // "Müzik" ek menusu de (sadece ses secimi filtreli) AYNI onizleme+mesaj
+  // kutusu ekranini paylasir - verilmezse varsayilan "Dosya Gönder" kalir.
+  title?: string;
   files: PickedFileAsset[];
   caption: string;
   onChangeCaption: (text: string) => void;
@@ -50,6 +53,7 @@ interface Props {
  * dosyalik akis (Son Dosyalar'a tek dokunus / Dahili Depolama) icin. */
 export default function FilePreviewModal({
   visible,
+  title,
   files,
   caption,
   onChangeCaption,
@@ -99,7 +103,7 @@ export default function FilePreviewModal({
             </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {selectionMode && !hasFiles ? t("dm.fileSelectedCount", { count: selectedUris.length }) : t("dm.filePreviewTitle")}
+            {selectionMode && !hasFiles ? t("dm.fileSelectedCount", { count: selectedUris.length }) : title ?? t("dm.filePreviewTitle")}
           </Text>
           {hasFiles ? (
             <View style={styles.headerBtn} />
