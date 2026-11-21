@@ -5,31 +5,26 @@ import { findSticker } from "../data/stickerPacks";
 interface Props {
   stickerId?: string | null;
   mediaUrl?: string | null;
+  size?: number;
+  borderRadius?: number;
 }
 
-const FRAME_WIDTH = 220;
-// Kullanicinin kendi yukledigi (custom) GIF'lerin GERCEK en-boy orani
-// bilinmiyor (bkz. gifPacks.ts'teki bundled width/height - customGifs.ts'te
-// yok) - makul bir yatay varsayilan kullanilir.
-const DEFAULT_RATIO = 4 / 3;
-
-/** Kullanici: "Gif çıkartma gibi duruyor ama gif video gibi durmalı" -
- * StickerMessageBubble'in (serbest/saydam, cercevesiz) AKSINE, GIF mesajlari
- * VideoMessageBubble ile AYNI "cerceveli kutu" dilini (koyu arka plan,
- * yuvarlak kose) kullanir - FARK: video balonunun aksine SABIT KARE DEGIL,
- * GIF'in kendi (bundled ise GERCEK, custom ise varsayilan) en-boy oraniyla
- * (bkz. "GIF'i gerçekten farklı hissettirecek şekilde yeniden tasarlayalım"
- * - yatay/video gibi oran kararindan BOZULMASIN diye kirpilmiyor/karelestirilmiyor),
- * kosede kucuk bir "GIF" rozeti ile.
+/** Kullanici: "Gif çıkartma gibi duruyor ama gif video gibi durmalı" ->
+ * sonra: "O fotoğraf gibi video gibi mesaj balonunun içinde değil o
+ * büyüklüklerde değil" - GIF, StickerMessageBubble'in (serbest/saydam,
+ * cercevesiz, mesaj balonu DISINDA) AKSINE, ChatImageBubble/
+ * VideoMessageBubble ile TAMAMEN AYNI kurali izler: normal mesaj balonunun
+ * (renk/dolgu/kuyruk - bkz. DMScreen.tsx isGifSticker) ICINDE, AYNI SABIT
+ * KARE boyut (varsayilan 280, borderRadius 8) ve "cover" kirpma. Tek fark:
+ * kosede kucuk bir "GIF" rozeti - aksi halde video mesajindan ayirt
+ * edilemezdi.
  */
-export default function GifMessageBubble({ stickerId, mediaUrl }: Props) {
+export default function GifMessageBubble({ stickerId, mediaUrl, size = 280, borderRadius = 8 }: Props) {
   const bundled = findSticker(stickerId);
   const source = bundled ? bundled.source : mediaUrl ? { uri: mediaUrl } : null;
   if (!source) return null;
-  const ratio = bundled?.width && bundled?.height ? bundled.width / bundled.height : DEFAULT_RATIO;
-  const height = FRAME_WIDTH / ratio;
   return (
-    <View style={[styles.frame, { width: FRAME_WIDTH, height }]}>
+    <View style={[styles.frame, { width: size, height: size, borderRadius }]}>
       <Image source={source} style={styles.image} resizeMode="cover" />
       <View style={styles.badge}>
         <Text style={styles.badgeText}>GIF</Text>
@@ -39,7 +34,7 @@ export default function GifMessageBubble({ stickerId, mediaUrl }: Props) {
 }
 
 const styles = StyleSheet.create({
-  frame: { overflow: "hidden", borderRadius: 8, backgroundColor: "#000000" },
+  frame: { overflow: "hidden", backgroundColor: "#000000" },
   image: { width: "100%", height: "100%" },
   badge: {
     position: "absolute",

@@ -244,6 +244,13 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
     extrapolate: "clamp",
   });
 
+  // Kullanici: "O fotoğraf gibi video gibi mesaj balonunun içinde değil o
+  // büyüklüklerde değil" - GIF, cikartmanin AKSINE sade bir "sticker" degil,
+  // foto/video ile AYNI mesaj balonu (renk/dolgu/kuyruk) ve AYNI boyut
+  // (280, borderRadius 8) icinde gosterilmeli - bkz. asagidaki bubble
+  // stilleri ve GifMessageBubble.
+  const isGifSticker = item.kind === "sticker" && !!item.stickerId?.startsWith("gif-");
+
   return (
     <Animated.View
       style={[
@@ -272,21 +279,26 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               item.kind === "call" && styles.bubbleCallPad,
               item.kind === "poll" && styles.bubblePollPad,
               item.kind === "contact" && styles.bubbleContactPad,
-              item.kind !== "voice" &&
+              (item.kind !== "voice" &&
                 item.kind !== "location" &&
                 item.kind !== "file" &&
                 item.kind !== "poll" &&
-                item.kind !== "sticker" &&
+                (item.kind !== "sticker" || isGifSticker) &&
                 item.mediaUrl &&
-                styles.bubblePhotoPad,
+                styles.bubblePhotoPad),
               // Kullanici: "WhatsApp/Telegram'daki gibi" cikartmalar - GERCEK
               // bir mesaj balonu renk/kenarligi OLMADAN serbest/saydam
               // gorunmeli, bu yuzden digerlerinin aksine bubbleMine/
               // bubbleTheirs arka plani buradan SONRA ezilerek kaldiriliyor.
-              item.kind === "sticker" && styles.bubbleStickerNoBg,
+              // GIF'ler (kullanicinin "foto/video gibi mesaj balonunun
+              // içinde olmalı" istegiyle) bu kaldirmadan MUAF - normal
+              // balon rengini/dolgusunu/kuyrugunu KORUR.
+              item.kind === "sticker" && !isGifSticker && styles.bubbleStickerNoBg,
             ]}
           >
-            {!groupedWithPrev && item.kind !== "sticker" && <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />}
+            {!groupedWithPrev && (item.kind !== "sticker" || isGifSticker) && (
+              <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />
+            )}
             {item.isForwarded && !item.deletedForEveryone && (
               <View style={styles.forwardedRow}>
                 <Forward size={11} color={isMine ? "rgba(255,255,255,0.75)" : MUTED} />
@@ -401,18 +413,18 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               style={[
                 styles.metaRow,
                 item.kind === "voice" && styles.metaRowVoice,
-                item.kind !== "voice" &&
+                (item.kind !== "voice" &&
                   item.kind !== "location" &&
                   item.kind !== "file" &&
                   item.kind !== "music" &&
-                  item.kind !== "sticker" &&
+                  (item.kind !== "sticker" || isGifSticker) &&
                   item.mediaUrl &&
-                  styles.metaRowPhotoOverlay,
+                  styles.metaRowPhotoOverlay),
                 item.kind === "call" && styles.metaRowCallOverlay,
                 item.kind === "music" && styles.metaRowMusicOverlay,
                 item.kind === "poll" && styles.metaRowPollOverlay,
                 item.kind === "contact" && styles.metaRowContactOverlay,
-                item.kind === "sticker" && styles.metaRowStickerOverlay,
+                item.kind === "sticker" && !isGifSticker && styles.metaRowStickerOverlay,
               ]}
             >
               {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
