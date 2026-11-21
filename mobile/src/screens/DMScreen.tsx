@@ -1085,10 +1085,6 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setPendingFile(null);
   }
 
-  function changeSelectedFile() {
-    setPendingFile(null);
-  }
-
   async function confirmSendFile() {
     if (!pendingFile || !myUserId || sendingFile) return;
     const asset = pendingFile;
@@ -2083,7 +2079,6 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         recentFiles={recentFiles}
         onSelectRecent={selectRecentFile}
         onPickFile={pickFile}
-        onChangeFile={changeSelectedFile}
         onCancel={cancelPendingFile}
         onSend={confirmSendFile}
       />

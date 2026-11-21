@@ -16,7 +16,6 @@ interface Props {
   recentFiles: RecentFileEntry[];
   onSelectRecent: (file: RecentFileEntry) => void;
   onPickFile: () => void;
-  onChangeFile: () => void;
   onCancel: () => void;
   onSend: () => void;
 }
@@ -41,7 +40,6 @@ export default function FilePreviewModal({
   recentFiles,
   onSelectRecent,
   onPickFile,
-  onChangeFile,
   onCancel,
   onSend,
 }: Props) {
@@ -70,21 +68,13 @@ export default function FilePreviewModal({
 
         {hasFile ? (
           <View style={styles.body}>
-            <View style={styles.previewCard}>
-              <View style={styles.iconWrap}>
-                {PreviewIcon && <PreviewIcon size={44} color="#FFFFFF" />}
-              </View>
-              <Text style={styles.fileName} numberOfLines={3}>
-                {fileName}
-              </Text>
-              <Text style={styles.fileMeta}>{[ext, formatFileSize(fileSize)].filter(Boolean).join(" · ")}</Text>
+            <View style={styles.iconWrap}>
+              {PreviewIcon && <PreviewIcon size={44} color="#FFFFFF" />}
             </View>
-
-            {!uploading && (
-              <TouchableOpacity onPress={onChangeFile} hitSlop={8}>
-                <Text style={styles.changeFileText}>{t("dm.filePickChange")}</Text>
-              </TouchableOpacity>
-            )}
+            <Text style={styles.fileName} numberOfLines={3}>
+              {fileName}
+            </Text>
+            <Text style={styles.fileMeta}>{[ext, formatFileSize(fileSize)].filter(Boolean).join(" · ")}</Text>
 
             {uploading && (
               <View style={styles.progressWrap}>
@@ -184,15 +174,6 @@ const styles = StyleSheet.create({
   recentMeta: { color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 },
 
   body: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
-  previewCard: {
-    width: "100%",
-    paddingVertical: 36,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(14,165,233,0.35)",
-    alignItems: "center",
-  },
   iconWrap: {
     width: 96,
     height: 96,
@@ -204,7 +185,6 @@ const styles = StyleSheet.create({
   },
   fileName: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", textAlign: "center" },
   fileMeta: { color: "rgba(255,255,255,0.55)", fontSize: 13, marginTop: 6 },
-  changeFileText: { color: "#0EA5E9", fontSize: 14, fontWeight: "600", marginTop: 18 },
   progressWrap: { width: "100%", marginTop: 28, alignItems: "center", gap: 8 },
   progressTrack: { width: "100%", height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.12)", overflow: "hidden" },
   progressFill: { height: "100%", backgroundColor: "#0EA5E9", borderRadius: 3 },
