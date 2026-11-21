@@ -40,6 +40,7 @@ import GalleryPickerModal, { type GalleryPickedAsset } from "../components/Galle
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
 import { formatMessageTime } from "../utils/time";
+import { formatDuration } from "../utils/format";
 import ChatImageBubble from "../components/ChatImageBubble";
 import PhotoGridBubble from "../components/PhotoGridBubble";
 import VideoMessageBubble from "../components/VideoMessageBubble";
@@ -428,6 +429,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // recordAsync HIC YOK - sadece native'de calisir, bkz. ExpoCamera.web.tsx).
   const [quickCameraMode, setQuickCameraMode] = useState<"photo" | "video">("photo");
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [recordingElapsedSec, setRecordingElapsedSec] = useState(0);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cameraReadyRef = useRef(false);
   const cameraRef = useRef<CameraView>(null);
   // Dosya (pdf/zip/vb.) gonderme - foto ile AYNI "chat-media" bucket'ina
@@ -820,6 +823,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setCapturingQuickPhoto(false);
     setQuickCameraMode("photo");
     setIsRecordingVideo(false);
+    setRecordingElapsedSec(0);
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
     setAttachSheetVisible(false);
     setQuickCaptureActive(true);
   }
@@ -884,6 +892,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       return;
     }
     setIsRecordingVideo(true);
+    setRecordingElapsedSec(0);
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    recordingIntervalRef.current = setInterval(() => {
+      setRecordingElapsedSec((s) => s + 1);
+    }, 1000);
     try {
       const video = await cameraRef.current?.recordAsync({ maxDuration: 60 });
       if (video?.uri) {
@@ -894,6 +907,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     } catch {
       // kayit basarisiz/iptal - ekran acik kalir, kullanici tekrar deneyebilir
     } finally {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
       setIsRecordingVideo(false);
     }
   }
@@ -1931,6 +1948,18 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               <Ionicons name={quickCameraFlash === "on" ? "flash-outline" : "flash-off-outline"} size={26} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
+
+          {/* Kullanici: "Video moduna aldığında yukarıda süre çubuğu
+              olmalı çektiğim süreyi gösteren" - kayit SIRASINDA ust barla
+              AYNI hizada, ortada kirmizi nokta + gecen sure rozeti. */}
+          {isRecordingVideo && (
+            <View style={styles.quickCameraRecTimerWrap} pointerEvents="none">
+              <View style={styles.quickCameraRecTimerPill}>
+                <View style={styles.quickCameraRecDot} />
+                <Text style={styles.quickCameraRecTimerText}>{formatDuration(recordingElapsedSec)}</Text>
+              </View>
+            </View>
+          )}
           <View style={styles.quickCameraBottomBar}>
             {/* Galeri SOL kenari X butonuyla AYNI hizada (kullanicinin
                 istegi) - bkz. ust bardaki AYNI left:16. */}
@@ -2202,6 +2231,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  quickCameraRecTimerWrap: {
+    position: "absolute",
+    top: 70,
+    left: 0,
+    right: 0,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickCameraRecTimerPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  quickCameraRecDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FF3B30" },
+  quickCameraRecTimerText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700", fontVariant: ["tabular-nums"] },
   quickCameraTopBtn: {
     width: 48,
     height: 48,
