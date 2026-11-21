@@ -212,6 +212,7 @@
     "filePickAreaTitle": "Выбрать файл",
     "fileRecentSection": "Недавние файлы",
     "fileInternalStorage": "Внутреннее хранилище",
+    "fileSelectedCount": "Выбрано файлов: {{count}}",
     "filePickAreaHint": "Нажмите, чтобы выбрать файл для отправки",
     "filePickChange": "Изменить файл",
     "attachPoll": "Опрос",

@@ -212,6 +212,7 @@
     "filePickAreaTitle": "Fayl Seç",
     "fileRecentSection": "Son Fayllar",
     "fileInternalStorage": "Daxili Yaddaş",
+    "fileSelectedCount": "{{count}} fayl seçildi",
     "filePickAreaHint": "Göndərmək üçün bir fayla toxun",
     "filePickChange": "Faylı Dəyiş",
     "attachPoll": "Sorğu",

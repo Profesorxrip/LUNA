@@ -212,6 +212,7 @@
     "filePickAreaTitle": "Dosya Seç",
     "fileRecentSection": "Son Dosyalar",
     "fileInternalStorage": "Dahili Depolama",
+    "fileSelectedCount": "{{count}} dosya seçildi",
     "filePickAreaHint": "Göndermek için bir dosyaya dokun",
     "filePickChange": "Dosyayı Değiştir",
     "attachPoll": "Anket",

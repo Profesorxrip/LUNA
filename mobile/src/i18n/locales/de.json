@@ -212,6 +212,7 @@
     "filePickAreaTitle": "Datei auswählen",
     "fileRecentSection": "Letzte Dateien",
     "fileInternalStorage": "Interner Speicher",
+    "fileSelectedCount": "{{count}} Dateien ausgewählt",
     "filePickAreaHint": "Tippe, um eine Datei zum Senden auszuwählen",
     "filePickChange": "Datei ändern",
     "attachPoll": "Umfrage",

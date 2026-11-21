@@ -212,6 +212,7 @@
     "filePickAreaTitle": "Choisir un fichier",
     "fileRecentSection": "Fichiers récents",
     "fileInternalStorage": "Stockage interne",
+    "fileSelectedCount": "{{count}} fichiers sélectionnés",
     "filePickAreaHint": "Appuyez pour choisir un fichier à envoyer",
     "filePickChange": "Changer de fichier",
     "attachPoll": "Sondage",

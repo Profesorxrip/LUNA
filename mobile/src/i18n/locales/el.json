@@ -212,6 +212,7 @@
     "filePickAreaTitle": "Επιλογή αρχείου",
     "fileRecentSection": "Πρόσφατα αρχεία",
     "fileInternalStorage": "Εσωτερική αποθήκευση",
+    "fileSelectedCount": "Επιλέχθηκαν {{count}} αρχεία",
     "filePickAreaHint": "Πατήστε για να επιλέξετε ένα αρχείο προς αποστολή",
     "filePickChange": "Αλλαγή αρχείου",
     "attachPoll": "Δημοσκόπηση",

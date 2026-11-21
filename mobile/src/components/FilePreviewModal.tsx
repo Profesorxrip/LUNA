@@ -2,19 +2,23 @@ import React from "react";
 import { Modal, View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { CircleArrowDown, HardDrive } from "lucide-react-native";
+import { CircleArrowDown, HardDrive, Check } from "lucide-react-native";
 import { fileIconFor, formatFileSize } from "../utils/format";
-import type { RecentFileEntry } from "../utils/recentFiles";
+import type { PickedFileAsset, RecentFileEntry } from "../utils/recentFiles";
 
 interface Props {
   visible: boolean;
-  fileName: string | null;
-  fileSize?: number | null;
-  mimeType?: string | null;
+  files: PickedFileAsset[];
   uploading: boolean;
   uploadProgress: number;
+  uploadIndex: number;
   recentFiles: RecentFileEntry[];
-  onSelectRecent: (file: RecentFileEntry) => void;
+  selectionMode: boolean;
+  selectedUris: string[];
+  onPressRecent: (file: RecentFileEntry) => void;
+  onLongPressRecent: (file: RecentFileEntry) => void;
+  onExitSelection: () => void;
+  onConfirmSelection: () => void;
   onPickFile: () => void;
   onBackToList: () => void;
   onCancel: () => void;
@@ -26,20 +30,30 @@ interface Props {
  * ustte, gonder oku sag ustte) paylasan bir sayfa.
  *
  * Kullanici: "dosyalarımız gözüksün altalta birde dahili depolama tuşu
- * olsun" - henuz dosya secilmemisse BOS bir kutu yerine: (1) "Dahili
- * Depolama" butonu - cihazin GERCEK sistem dosya tarayicisini acar,
- * (2) altinda bu cihazda DAHA ONCE secilmis dosyalarin listesi (Son
- * Dosyalar) - birine dokununca tekrar aramaya GEREK KALMADAN dogrudan
- * secilir. Dosya secildikten sonra AYNI ekran onizleme karta donusur. */
+ * olsun" - henuz dosya secilmemisse (1) "Dahili Depolama" butonu -
+ * cihazin GERCEK sistem dosya tarayicisini acar, (2) altinda bu
+ * cihazda DAHA ONCE secilmis dosyalarin listesi (Son Dosyalar).
+ *
+ * Kullanici: "Basılı tutunca seçsin galerideki gibi... toplu
+ * yollayabilelim" - GalleryPickerModal ile AYNI desen: Son Dosyalar
+ * satirina TEK dokunus o dosyayi DOGRUDAN onizlemeye gotursun, UZUN
+ * basis coklu SECIM modunu acip o satiri isaretler (secim modu
+ * acikken normal dokunus da isaretler/kaldirir). Secili dosyalar
+ * basliktaki gonder okuyla onizlemeye tasinir, oradan topluca
+ * gonderilir. */
 export default function FilePreviewModal({
   visible,
-  fileName,
-  fileSize,
-  mimeType,
+  files,
   uploading,
   uploadProgress,
+  uploadIndex,
   recentFiles,
-  onSelectRecent,
+  selectionMode,
+  selectedUris,
+  onPressRecent,
+  onLongPressRecent,
+  onExitSelection,
+  onConfirmSelection,
   onPickFile,
   onBackToList,
   onCancel,
@@ -47,54 +61,109 @@ export default function FilePreviewModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const hasFile = !!fileName;
-  const PreviewIcon = hasFile ? fileIconFor(mimeType, fileName!) : null;
-  const ext = hasFile ? fileName!.split(".").pop()?.toUpperCase() || "" : "";
+  const hasFiles = files.length > 0;
+  const single = files.length === 1 ? files[0] : null;
+  const SingleIcon = single ? fileIconFor(single.mimeType, single.name) : null;
+  const singleExt = single ? single.name.split(".").pop()?.toUpperCase() || "" : "";
+  const canConfirmSelection = selectionMode && selectedUris.length > 0;
+
+  function handleBack() {
+    if (hasFiles) onBackToList();
+    else if (selectionMode) onExitSelection();
+    else onCancel();
+  }
+
+  function handleHeaderSend() {
+    if (hasFiles) onSend();
+    else if (canConfirmSelection) onConfirmSelection();
+  }
+
+  const headerSendActive = !uploading && (hasFiles || canConfirmSelection);
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={hasFile ? onBackToList : onCancel} statusBarTranslucent>
+    <Modal visible={visible} animationType="slide" onRequestClose={handleBack} statusBarTranslucent>
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
-          <TouchableOpacity style={styles.headerBtn} onPress={hasFile ? onBackToList : onCancel} disabled={uploading} hitSlop={10}>
+          <TouchableOpacity style={styles.headerBtn} onPress={handleBack} disabled={uploading} hitSlop={10}>
             <View style={{ transform: [{ rotate: "90deg" }] }}>
               <CircleArrowDown size={22} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t("dm.filePreviewTitle")}</Text>
-          <TouchableOpacity style={styles.headerBtn} onPress={onSend} disabled={uploading || !hasFile} hitSlop={10}>
+          <Text style={styles.headerTitle}>
+            {selectionMode && !hasFiles ? t("dm.fileSelectedCount", { count: selectedUris.length }) : t("dm.filePreviewTitle")}
+          </Text>
+          <TouchableOpacity style={styles.headerBtn} onPress={handleHeaderSend} disabled={!headerSendActive} hitSlop={10}>
             <View style={{ transform: [{ rotate: "180deg" }] }}>
-              <CircleArrowDown size={22} color={uploading || !hasFile ? "rgba(255,255,255,0.4)" : "#FFFFFF"} />
+              <CircleArrowDown size={22} color={headerSendActive ? "#FFFFFF" : "rgba(255,255,255,0.4)"} />
             </View>
           </TouchableOpacity>
         </View>
 
-        {hasFile ? (
-          <View style={styles.body}>
-            <View style={styles.iconWrap}>
-              {PreviewIcon && <PreviewIcon size={44} color="#FFFFFF" />}
-            </View>
-            <Text style={styles.fileName} numberOfLines={3}>
-              {fileName}
-            </Text>
-            <Text style={styles.fileMeta}>{[ext, formatFileSize(fileSize)].filter(Boolean).join(" · ")}</Text>
+        {hasFiles ? (
+          single ? (
+            <View style={styles.body}>
+              <View style={styles.iconWrap}>{SingleIcon && <SingleIcon size={44} color="#FFFFFF" />}</View>
+              <Text style={styles.fileName} numberOfLines={3}>
+                {single.name}
+              </Text>
+              <Text style={styles.fileMeta}>{[singleExt, formatFileSize(single.size)].filter(Boolean).join(" · ")}</Text>
 
-            {uploading && (
-              <View style={styles.progressWrap}>
-                <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
+              {uploading && (
+                <View style={styles.progressWrap}>
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
+                  </View>
+                  <Text style={styles.progressText}>{uploadProgress}%</Text>
                 </View>
-                <Text style={styles.progressText}>{uploadProgress}%</Text>
-              </View>
-            )}
-          </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.listScreen}>
+              <Text style={styles.sectionLabel}>{t("dm.fileSelectedCount", { count: files.length })}</Text>
+              <FlatList
+                data={files}
+                keyExtractor={(item) => item.uri}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+                renderItem={({ item }) => {
+                  const RowIcon = fileIconFor(item.mimeType, item.name);
+                  const rowExt = item.name.split(".").pop()?.toUpperCase() || "";
+                  return (
+                    <View style={styles.recentRow}>
+                      <View style={styles.recentIconWrap}>
+                        <RowIcon size={18} color="#FFFFFF" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.recentName} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <Text style={styles.recentMeta}>{[rowExt, formatFileSize(item.size)].filter(Boolean).join(" · ")}</Text>
+                      </View>
+                    </View>
+                  );
+                }}
+              />
+              {uploading && (
+                <View style={styles.progressWrap}>
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
+                  </View>
+                  <Text style={styles.progressText}>
+                    {uploadIndex}/{files.length} · {uploadProgress}%
+                  </Text>
+                </View>
+              )}
+            </View>
+          )
         ) : (
           <View style={styles.listScreen}>
-            <TouchableOpacity style={styles.storageBtn} onPress={onPickFile} activeOpacity={0.85}>
-              <View style={styles.storageIconWrap}>
-                <HardDrive size={20} color="#FFFFFF" />
-              </View>
-              <Text style={styles.storageBtnText}>{t("dm.fileInternalStorage")}</Text>
-            </TouchableOpacity>
+            {!selectionMode && (
+              <TouchableOpacity style={styles.storageBtn} onPress={onPickFile} activeOpacity={0.85}>
+                <View style={styles.storageIconWrap}>
+                  <HardDrive size={20} color="#FFFFFF" />
+                </View>
+                <Text style={styles.storageBtnText}>{t("dm.fileInternalStorage")}</Text>
+              </TouchableOpacity>
+            )}
 
             {recentFiles.length > 0 && (
               <>
@@ -106,8 +175,14 @@ export default function FilePreviewModal({
                   renderItem={({ item }) => {
                     const RowIcon = fileIconFor(item.mimeType, item.name);
                     const rowExt = item.name.split(".").pop()?.toUpperCase() || "";
+                    const selected = selectedUris.includes(item.uri);
                     return (
-                      <TouchableOpacity style={styles.recentRow} onPress={() => onSelectRecent(item)}>
+                      <TouchableOpacity
+                        style={styles.recentRow}
+                        onPress={() => onPressRecent(item)}
+                        onLongPress={() => onLongPressRecent(item)}
+                        delayLongPress={350}
+                      >
                         <View style={styles.recentIconWrap}>
                           <RowIcon size={18} color="#FFFFFF" />
                         </View>
@@ -117,6 +192,11 @@ export default function FilePreviewModal({
                           </Text>
                           <Text style={styles.recentMeta}>{[rowExt, formatFileSize(item.size)].filter(Boolean).join(" · ")}</Text>
                         </View>
+                        {selectionMode && (
+                          <View style={[styles.selectBadge, selected && styles.selectBadgeActive]}>
+                            {selected && <Check size={13} color="#000000" strokeWidth={3} />}
+                          </View>
+                        )}
                       </TouchableOpacity>
                     );
                   }}
@@ -174,6 +254,17 @@ const styles = StyleSheet.create({
   },
   recentName: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
   recentMeta: { color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 },
+  selectBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+  selectBadgeActive: { backgroundColor: "#FFFFFF", borderColor: "#FFFFFF" },
 
   body: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
   iconWrap: {

@@ -441,10 +441,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // yukleme deseni, ama kendi onizleme/caption ekrani yok, secilince
   // DOGRUDAN gonderilir.
   const [sendingFile, setSendingFile] = useState(false);
-  const [pendingFile, setPendingFile] = useState<PickedFileAsset | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<PickedFileAsset[]>([]);
   const [filePreviewVisible, setFilePreviewVisible] = useState(false);
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
+  const [fileUploadIndex, setFileUploadIndex] = useState(0);
   const [recentFiles, setRecentFiles] = useState<RecentFileEntry[]>([]);
+  const [recentSelectionMode, setRecentSelectionMode] = useState(false);
+  const [selectedRecentUris, setSelectedRecentUris] = useState<string[]>([]);
   // Sesli mesaj kaydi - expo-audio'nun kendi "ne kadar surdu" sayacini
   // (useAudioRecorderState) kullaniyoruz, kendi zamanlayicimizi KURMUYORUZ.
   // isMeteringEnabled: kilitli kayit cubugundaki ses dalgasi ARTIK SAHTE
@@ -1054,14 +1057,21 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   }
 
   // Kullanici: "dosyalarımız gözüksün altalta birde dahili depolama tuşu
-  // olsun" - "Dosya" ekrani artik iki secenek sunuyor: (1) bu cihazda daha
-  // once secilmis dosyalarin yerel listesi (Son Dosyalar - recentFiles.ts,
-  // AsyncStorage'da saklanir), listeden birine dokununca TEKRAR SECMEYE
-  // GEREK KALMADAN dogrudan onizlemeye gecer; (2) "Dahili Depolama" butonu
-  // - cihazin GERCEK sistem dosya tarayicisini (DocumentPicker) acar.
+  // olsun" - "Dosya" ekrani iki secenek sunuyor: (1) bu cihazda daha once
+  // secilmis dosyalarin yerel listesi (Son Dosyalar - recentFiles.ts,
+  // AsyncStorage'da saklanir); (2) "Dahili Depolama" butonu - cihazin
+  // GERCEK sistem dosya tarayicisini (DocumentPicker) acar.
+  //
+  // Kullanici: "Basılı tutunca seçsin galerideki gibi... toplu
+  // yollayabilelim" - GalleryPickerModal ile AYNI desen: Son Dosyalar
+  // satirina TEK dokunus o dosyayi DOGRUDAN onizlemeye gotursun (eskisi
+  // gibi), UZUN basis coklu SECIM modunu acip isaretler; basliktaki
+  // gonder oku secilenleri onizlemeye tasir, oradan TOPLU gonderilir.
   function openFilePreview() {
     setAttachSheetVisible(false);
-    setPendingFile(null);
+    setPendingFiles([]);
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
     setFilePreviewVisible(true);
     getRecentFiles().then(setRecentFiles);
   }
@@ -1070,19 +1080,51 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     DocumentPicker.getDocumentAsync({ multiple: false }).then((result) => {
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
-      setPendingFile(asset);
+      setPendingFiles([{ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }]);
       addRecentFile({ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }).then(setRecentFiles);
     });
   }
 
-  function selectRecentFile(file: RecentFileEntry) {
-    setPendingFile({ uri: file.uri, name: file.name, size: file.size, mimeType: file.mimeType });
+  function toggleRecentSelection(uri: string) {
+    setSelectedRecentUris((prev) => {
+      const next = prev.includes(uri) ? prev.filter((u) => u !== uri) : [...prev, uri];
+      if (next.length === 0) setRecentSelectionMode(false);
+      return next;
+    });
+  }
+
+  function handlePressRecent(file: RecentFileEntry) {
+    if (recentSelectionMode) {
+      toggleRecentSelection(file.uri);
+      return;
+    }
+    setPendingFiles([{ uri: file.uri, name: file.name, size: file.size, mimeType: file.mimeType }]);
+  }
+
+  function handleLongPressRecent(file: RecentFileEntry) {
+    if (!recentSelectionMode) setRecentSelectionMode(true);
+    toggleRecentSelection(file.uri);
+  }
+
+  function exitRecentSelection() {
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
+  }
+
+  function confirmRecentSelection() {
+    const chosen = recentFiles
+      .filter((f) => selectedRecentUris.includes(f.uri))
+      .map((f) => ({ uri: f.uri, name: f.name, size: f.size, mimeType: f.mimeType }));
+    if (!chosen.length) return;
+    setPendingFiles(chosen);
   }
 
   function cancelPendingFile() {
     if (sendingFile) return;
     setFilePreviewVisible(false);
-    setPendingFile(null);
+    setPendingFiles([]);
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
   }
 
   // Kullanici: "dosyaların gözüktüğü dosya seçtiğimiz ekranı [dedim]" -
@@ -1090,29 +1132,37 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // Dahili Depolama/Son Dosyalar LISTESINE donuyor (iki asamali geri).
   function backToFileList() {
     if (sendingFile) return;
-    setPendingFile(null);
+    setPendingFiles([]);
   }
 
   async function confirmSendFile() {
-    if (!pendingFile || !myUserId || sendingFile) return;
-    const asset = pendingFile;
+    if (!pendingFiles.length || !myUserId || sendingFile) return;
     setSendingFile(true);
-    setFileUploadProgress(0);
     try {
-      const arrayBuffer = await uriToArrayBuffer(asset.uri);
-      const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
-      const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", setFileUploadProgress);
-      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
-      socket.emit(
-        "dm:sendFile",
-        { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType },
-        (res: any) => {
-          if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
-          else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
-        }
-      );
-      setPendingFile(null);
+      for (let i = 0; i < pendingFiles.length; i++) {
+        const asset = pendingFiles[i];
+        setFileUploadIndex(i + 1);
+        setFileUploadProgress(0);
+        const arrayBuffer = await uriToArrayBuffer(asset.uri);
+        const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
+        const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", setFileUploadProgress);
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        await new Promise<void>((resolve) => {
+          socket.emit(
+            "dm:sendFile",
+            { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType },
+            (res: any) => {
+              if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+              else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+              resolve();
+            }
+          );
+        });
+      }
+      setPendingFiles([]);
+      setRecentSelectionMode(false);
+      setSelectedRecentUris([]);
       setFilePreviewVisible(false);
     } catch (err: any) {
       showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
@@ -2079,13 +2129,17 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
 
       <FilePreviewModal
         visible={filePreviewVisible}
-        fileName={pendingFile?.name ?? null}
-        fileSize={pendingFile?.size}
-        mimeType={pendingFile?.mimeType}
+        files={pendingFiles}
         uploading={sendingFile}
         uploadProgress={fileUploadProgress}
+        uploadIndex={fileUploadIndex}
         recentFiles={recentFiles}
-        onSelectRecent={selectRecentFile}
+        selectionMode={recentSelectionMode}
+        selectedUris={selectedRecentUris}
+        onPressRecent={handlePressRecent}
+        onLongPressRecent={handleLongPressRecent}
+        onExitSelection={exitRecentSelection}
+        onConfirmSelection={confirmRecentSelection}
         onPickFile={pickFile}
         onBackToList={backToFileList}
         onCancel={cancelPendingFile}

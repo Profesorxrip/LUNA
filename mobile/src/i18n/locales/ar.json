@@ -212,6 +212,7 @@
     "filePickAreaTitle": "اختر ملفًا",
     "fileRecentSection": "الملفات الأخيرة",
     "fileInternalStorage": "التخزين الداخلي",
+    "fileSelectedCount": "تم تحديد {{count}} ملف",
     "filePickAreaHint": "اضغط لاختيار ملف لإرساله",
     "filePickChange": "تغيير الملف",
     "attachPoll": "استطلاع",
