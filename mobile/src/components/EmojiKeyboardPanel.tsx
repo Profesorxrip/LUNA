@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
-import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView, ActivityIndicator, PanResponder } from "react-native";
 import { Search, X, Smile, Clapperboard, Plus } from "lucide-react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -57,6 +57,28 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<Tab>("emoji");
   const [stickerPackIndex, setStickerPackIndex] = useState(0);
+
+  // Kullanici: "bu üçünün üstüne birde sürükleme hapı koysak mevcut
+  // büyüklüğünün iki katına kadar büyütebilsek" - panel klavyenin yerini
+  // alan bir alan oldugu icin (bkz. DMScreen attachSheet/emojiPanelVisible)
+  // YUKARI surukleme paneli BUYUTUR (panelin UST kenarini yukari tasir).
+  const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT);
+  const heightRef = useRef(PANEL_HEIGHT);
+  const dragStartHeightRef = useRef(PANEL_HEIGHT);
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_evt, gesture) => Math.abs(gesture.dy) > 2,
+      onPanResponderGrant: () => {
+        dragStartHeightRef.current = heightRef.current;
+      },
+      onPanResponderMove: (_evt, gesture) => {
+        const next = Math.max(PANEL_HEIGHT, Math.min(PANEL_HEIGHT * 2, dragStartHeightRef.current - gesture.dy));
+        heightRef.current = next;
+        setPanelHeight(next);
+      },
+    })
+  ).current;
   const emojiListRef = useRef<FlatList<ListItem>>(null);
   const [query, setQuery] = useState("");
   const searching = query.trim().length > 0;
@@ -82,7 +104,10 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
   }
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, { height: panelHeight }]}>
+      <View style={styles.dragHandleWrap} {...panResponder.panHandlers}>
+        <View style={styles.dragHandle} />
+      </View>
       <View style={styles.mainTabsRow}>
         <TouchableOpacity
           style={[styles.mainTabButton, tab === "emoji" && styles.mainTabButtonActive]}
@@ -268,7 +293,9 @@ function buildLayout(categories: { key: string; label: string; emojis: string[] 
 }
 
 const styles = StyleSheet.create({
-  panel: { height: PANEL_HEIGHT, backgroundColor: "#15202B" },
+  panel: { backgroundColor: "#15202B" },
+  dragHandleWrap: { height: 18, alignItems: "center", justifyContent: "center" },
+  dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   mainTabsRow: { flexDirection: "row", paddingHorizontal: 14, paddingTop: 8, gap: 8 },
   mainTabButton: {
     flex: 1,
