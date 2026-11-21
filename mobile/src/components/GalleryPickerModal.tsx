@@ -165,7 +165,7 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
             <ChevronDown
               size={16}
               color="#FFFFFF"
-              style={{ transform: [{ translateY: 2 }, { rotate: albumMenuOpen ? "180deg" : "0deg" }] }}
+              style={{ transform: [{ translateY: 1 }, { rotate: albumMenuOpen ? "180deg" : "0deg" }] }}
             />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerBtn} onPress={handleConfirm} disabled={!selectedIds.length} hitSlop={10}>
