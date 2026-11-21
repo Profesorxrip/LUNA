@@ -93,7 +93,6 @@ export default function LocationPickerModal({ visible, onClose, onConfirm }: Pro
   const [mapReady, setMapReady] = useState(false);
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [address, setAddress] = useState<string | null>(null);
-  const [resolvingAddress, setResolvingAddress] = useState(false);
   const [locatingMe, setLocatingMe] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -143,7 +142,6 @@ export default function LocationPickerModal({ visible, onClose, onConfirm }: Pro
 
   function scheduleReverseGeocode(point: { lat: number; lng: number }) {
     if (reverseGeocodeTimer.current) clearTimeout(reverseGeocodeTimer.current);
-    setResolvingAddress(true);
     reverseGeocodeTimer.current = setTimeout(async () => {
       try {
         const res = await fetch(
@@ -154,8 +152,6 @@ export default function LocationPickerModal({ visible, onClose, onConfirm }: Pro
         setAddress(data?.display_name ?? null);
       } catch {
         setAddress(null);
-      } finally {
-        setResolvingAddress(false);
       }
     }, 600);
   }
@@ -203,14 +199,18 @@ export default function LocationPickerModal({ visible, onClose, onConfirm }: Pro
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.screen}>
-        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
           <TouchableOpacity style={styles.headerBtn} onPress={onClose} hitSlop={10}>
             <View style={{ transform: [{ rotate: "90deg" }] }}>
               <CircleArrowDown size={22} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t("dm.locationPickerTitle")}</Text>
-          <View style={styles.headerBtn} />
+          <TouchableOpacity style={styles.headerBtn} onPress={handleConfirm} hitSlop={10}>
+            <View style={{ transform: [{ rotate: "180deg" }] }}>
+              <CircleArrowDown size={22} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.mapWrap}>
@@ -269,20 +269,6 @@ export default function LocationPickerModal({ visible, onClose, onConfirm }: Pro
 
           <TouchableOpacity style={styles.recenterBtn} onPress={locateMe} hitSlop={8}>
             {locatingMe ? <ActivityIndicator size="small" color="#FFFFFF" /> : <LocateFixed size={20} color="#FFFFFF" />}
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
-          <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} activeOpacity={0.85}>
-            <View style={styles.confirmIconWrap}>
-              <MapPin size={18} color="#FFFFFF" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.confirmTitle}>{t("dm.locationSendButton")}</Text>
-              <Text style={styles.confirmSubtitle} numberOfLines={1}>
-                {resolvingAddress ? t("dm.locationResolvingAddress") : address ?? `${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`}
-              </Text>
-            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -375,24 +361,4 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
-  bottomBar: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: "#15202B" },
-  confirmBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: "#0EA5E9",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  confirmIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  confirmTitle: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
-  confirmSubtitle: { color: "rgba(255,255,255,0.85)", fontSize: 12, marginTop: 2 },
 });
