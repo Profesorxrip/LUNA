@@ -219,6 +219,8 @@
     "attachPoll": "Anket",
     "attachMusic": "Müzik",
     "musicPreviewTitle": "Müzik Gönder",
+    "musicRecentSection": "Son Müzikler",
+    "musicSelectedCount": "{{count}} parça seçildi",
     "pollComposerTitle": "Anket Oluştur",
     "pollQuestionPlaceholder": "Soru sor...",
     "pollOptionsLabel": "Seçenekler",

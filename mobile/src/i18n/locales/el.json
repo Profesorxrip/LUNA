@@ -219,6 +219,8 @@
     "attachPoll": "Δημοσκόπηση",
     "attachMusic": "Μουσική",
     "musicPreviewTitle": "Αποστολή Μουσικής",
+    "musicRecentSection": "Πρόσφατη Μουσική",
+    "musicSelectedCount": "{{count}} κομμάτια επιλέχθηκαν",
     "pollComposerTitle": "Δημιουργία Ψηφοφορίας",
     "pollQuestionPlaceholder": "Κάνε μια ερώτηση...",
     "pollOptionsLabel": "Επιλογές",

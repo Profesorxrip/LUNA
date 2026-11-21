@@ -219,6 +219,8 @@
     "attachPoll": "Rapirsî",
     "attachMusic": "Muzîk",
     "musicPreviewTitle": "Muzîkê Bişîne",
+    "musicRecentSection": "Muzîkên Dawî",
+    "musicSelectedCount": "{{count}} stran hatin hilbijartin",
     "pollComposerTitle": "Anketê Biafirîne",
     "pollQuestionPlaceholder": "Pirsek bike...",
     "pollOptionsLabel": "Vebijark",

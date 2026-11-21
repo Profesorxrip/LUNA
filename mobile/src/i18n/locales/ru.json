@@ -219,6 +219,8 @@
     "attachPoll": "Опрос",
     "attachMusic": "Музыка",
     "musicPreviewTitle": "Отправить музыку",
+    "musicRecentSection": "Недавняя музыка",
+    "musicSelectedCount": "Выбрано треков: {{count}}",
     "pollComposerTitle": "Создать опрос",
     "pollQuestionPlaceholder": "Задайте вопрос...",
     "pollOptionsLabel": "Варианты",

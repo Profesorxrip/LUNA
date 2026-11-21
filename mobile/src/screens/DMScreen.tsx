@@ -39,6 +39,7 @@ import GalleryPickerModal, { type GalleryPickedAsset } from "../components/Galle
 import LocationPickerModal, { type PickedLocation } from "../components/LocationPickerModal";
 import FilePreviewModal from "../components/FilePreviewModal";
 import { getRecentFiles, addRecentFile, type PickedFileAsset, type RecentFileEntry } from "../utils/recentFiles";
+import { getRecentMusic, addRecentMusic } from "../utils/recentMusic";
 import CameraFilmstrip, { type FilmstripPickedAsset } from "../components/CameraFilmstrip";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
@@ -467,6 +468,12 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [recentFiles, setRecentFiles] = useState<RecentFileEntry[]>([]);
   const [recentSelectionMode, setRecentSelectionMode] = useState(false);
   const [selectedRecentUris, setSelectedRecentUris] = useState<string[]>([]);
+  // "Müzik" ek menusu - Dosya'daki (recentFiles/recentSelectionMode/
+  // selectedRecentUris) ile AYNI desen, ama KENDI "Son Müzikler" listesinde
+  // (bkz. recentMusic.ts - dosya recents'iyla KARISMASIN diye ayri).
+  const [recentMusic, setRecentMusic] = useState<RecentFileEntry[]>([]);
+  const [musicSelectionMode, setMusicSelectionMode] = useState(false);
+  const [selectedMusicUris, setSelectedMusicUris] = useState<string[]>([]);
   // Sesli mesaj kaydi - expo-audio'nun kendi "ne kadar surdu" sayacini
   // (useAudioRecorderState) kullaniyoruz, kendi zamanlayicimizi KURMUYORUZ.
   // isMeteringEnabled: kilitli kayit cubugundaki ses dalgasi ARTIK SAHTE
@@ -1111,20 +1118,19 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     getRecentFiles().then(setRecentFiles);
   }
 
-  // "Müzik" ek menusu - Dosya'daki Dahili Depolama/Son Dosyalar listesine HIC
-  // UGRAMADAN, dogrudan cihazin ses dosyasi secicisini acar; secilen dosya
-  // AYNI onizleme+mesaj kutusu ekranina (FilePreviewModal) duser, sadece
-  // gonderirken "dm:sendMusic" kullanilir (bkz. confirmSendFile).
+  // Kullanici: "Müzik için müzik seçme ekranıda yapalım aynı dosya ekranı
+  // gibi çalışsın" - "Müzik" ek menusu artik Dosya ile BIREBIR AYNI akis:
+  // Dahili Depolama (ses dosyasi filtreli) + Son Müzikler listesi, uzun
+  // basis coklu secim + dogrudan gonderim (bkz. asagidaki pickMusicFile/
+  // handlePressRecentMusic/confirmMusicSelection).
   function openMusicPicker() {
     setAttachSheetVisible(false);
-    DocumentPicker.getDocumentAsync({ type: "audio/*", multiple: false }).then((result) => {
-      if (result.canceled || !result.assets?.[0]) return;
-      const asset = result.assets[0];
-      setPendingAttachKind("music");
-      setPendingFiles([{ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }]);
-      setFileCaption("");
-      setFilePreviewVisible(true);
-    });
+    setPendingAttachKind("music");
+    setPendingFiles([]);
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+    setFilePreviewVisible(true);
+    getRecentMusic().then(setRecentMusic);
   }
 
   function pickFile() {
@@ -1134,6 +1140,16 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       setPendingFiles([{ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }]);
       setFileCaption("");
       addRecentFile({ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }).then(setRecentFiles);
+    });
+  }
+
+  function pickMusicFile() {
+    DocumentPicker.getDocumentAsync({ type: "audio/*", multiple: false }).then((result) => {
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      setPendingFiles([{ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }]);
+      setFileCaption("");
+      addRecentMusic({ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }).then(setRecentMusic);
     });
   }
 
@@ -1209,6 +1225,77 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     }
   }
 
+  function toggleMusicSelection(uri: string) {
+    setSelectedMusicUris((prev) => {
+      const next = prev.includes(uri) ? prev.filter((u) => u !== uri) : [...prev, uri];
+      if (next.length === 0) setMusicSelectionMode(false);
+      return next;
+    });
+  }
+
+  function handlePressRecentMusic(file: RecentFileEntry) {
+    if (musicSelectionMode) {
+      toggleMusicSelection(file.uri);
+      return;
+    }
+    setPendingFiles([{ uri: file.uri, name: file.name, size: file.size, mimeType: file.mimeType }]);
+    setFileCaption("");
+  }
+
+  function handleLongPressRecentMusic(file: RecentFileEntry) {
+    if (!musicSelectionMode) setMusicSelectionMode(true);
+    toggleMusicSelection(file.uri);
+  }
+
+  function exitMusicSelection() {
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+  }
+
+  // Dosya'daki confirmRecentSelection/sendFilesDirect ile AYNI mantik -
+  // secili parcalar onizlemeye UGRAMADAN dogrudan yuklenip gonderilir,
+  // sadece "dm:sendMusic" kullanilir.
+  function confirmMusicSelection() {
+    const chosen = recentMusic
+      .filter((f) => selectedMusicUris.includes(f.uri))
+      .map((f) => ({ uri: f.uri, name: f.name, size: f.size, mimeType: f.mimeType }));
+    if (!chosen.length) return;
+    sendMusicFilesDirect(chosen);
+  }
+
+  async function sendMusicFilesDirect(filesToSend: PickedFileAsset[]) {
+    if (!filesToSend.length || !myUserId || sendingFile) return;
+    setFilePreviewVisible(false);
+    setPendingFiles([]);
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+    setSendingFile(true);
+    try {
+      for (const asset of filesToSend) {
+        const arrayBuffer = await uriToArrayBuffer(asset.uri);
+        const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
+        const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", () => {});
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        await new Promise<void>((resolve) => {
+          socket.emit(
+            "dm:sendMusic",
+            { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType },
+            (res: any) => {
+              if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+              else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+              resolve();
+            }
+          );
+        });
+      }
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingFile(false);
+    }
+  }
+
   function cancelPendingFile() {
     if (sendingFile) return;
     setFilePreviewVisible(false);
@@ -1216,6 +1303,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setFileCaption("");
     setRecentSelectionMode(false);
     setSelectedRecentUris([]);
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
   }
 
   // Kullanici: "dosyaların gözüktüğü dosya seçtiğimiz ekranı [dedim]" -
@@ -2297,19 +2386,21 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       <FilePreviewModal
         visible={filePreviewVisible}
         title={pendingAttachKind === "music" ? t("dm.musicPreviewTitle") : undefined}
+        recentSectionLabel={pendingAttachKind === "music" ? t("dm.musicRecentSection") : undefined}
+        selectedCountLabel={pendingAttachKind === "music" ? t("dm.musicSelectedCount", { count: selectedMusicUris.length }) : undefined}
         files={pendingFiles}
         caption={fileCaption}
         onChangeCaption={setFileCaption}
         uploading={sendingFile}
         uploadProgress={fileUploadProgress}
-        recentFiles={recentFiles}
-        selectionMode={recentSelectionMode}
-        selectedUris={selectedRecentUris}
-        onPressRecent={handlePressRecent}
-        onLongPressRecent={handleLongPressRecent}
-        onExitSelection={exitRecentSelection}
-        onConfirmSelection={confirmRecentSelection}
-        onPickFile={pickFile}
+        recentFiles={pendingAttachKind === "music" ? recentMusic : recentFiles}
+        selectionMode={pendingAttachKind === "music" ? musicSelectionMode : recentSelectionMode}
+        selectedUris={pendingAttachKind === "music" ? selectedMusicUris : selectedRecentUris}
+        onPressRecent={pendingAttachKind === "music" ? handlePressRecentMusic : handlePressRecent}
+        onLongPressRecent={pendingAttachKind === "music" ? handleLongPressRecentMusic : handleLongPressRecent}
+        onExitSelection={pendingAttachKind === "music" ? exitMusicSelection : exitRecentSelection}
+        onConfirmSelection={pendingAttachKind === "music" ? confirmMusicSelection : confirmRecentSelection}
+        onPickFile={pendingAttachKind === "music" ? pickMusicFile : pickFile}
         onBackToList={backToFileList}
         onCancel={cancelPendingFile}
         onSend={confirmSendFile}

@@ -219,6 +219,8 @@
     "attachPoll": "استطلاع",
     "attachMusic": "موسيقى",
     "musicPreviewTitle": "إرسال موسيقى",
+    "musicRecentSection": "الموسيقى الأخيرة",
+    "musicSelectedCount": "تم تحديد {{count}} مقطع",
     "pollComposerTitle": "إنشاء استطلاع",
     "pollQuestionPlaceholder": "اطرح سؤالاً...",
     "pollOptionsLabel": "الخيارات",

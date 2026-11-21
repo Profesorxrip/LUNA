@@ -219,6 +219,8 @@
     "attachPoll": "Poll",
     "attachMusic": "Music",
     "musicPreviewTitle": "Send Music",
+    "musicRecentSection": "Recent Music",
+    "musicSelectedCount": "{{count}} tracks selected",
     "pollComposerTitle": "Create Poll",
     "pollQuestionPlaceholder": "Ask a question...",
     "pollOptionsLabel": "Options",

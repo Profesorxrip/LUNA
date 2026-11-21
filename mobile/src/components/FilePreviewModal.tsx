@@ -10,9 +10,12 @@ const EMOJI_QUICK = ["😀", "😂", "😍", "😎", "🥳", "😢", "😮", "�
 
 interface Props {
   visible: boolean;
-  // "Müzik" ek menusu de (sadece ses secimi filtreli) AYNI onizleme+mesaj
-  // kutusu ekranini paylasir - verilmezse varsayilan "Dosya Gönder" kalir.
+  // "Müzik" ek menusu de (sadece ses secimi filtreli, kendi Son Müzikler
+  // listesiyle) AYNI onizleme+liste ekranini paylasir - verilmezse
+  // varsayilan "Dosya Gönder"/"Son Dosyalar"/"N dosya seçildi" kalir.
   title?: string;
+  recentSectionLabel?: string;
+  selectedCountLabel?: string;
   files: PickedFileAsset[];
   caption: string;
   onChangeCaption: (text: string) => void;
@@ -50,10 +53,19 @@ interface Props {
  * yolluyordu ne güzel" - secim modunda gonder okuna basinca secili
  * dosyalar bu onizleme ekranina HIC UGRAMADAN dogrudan yuklenip
  * gonderilir (bkz. DMScreen.tsx sendFilesDirect). Bu ekran SADECE tek
- * dosyalik akis (Son Dosyalar'a tek dokunus / Dahili Depolama) icin. */
+ * dosyalik akis (Son Dosyalar'a tek dokunus / Dahili Depolama) icin.
+ *
+ * Kullanici: "Müzik için müzik seçme ekranıda yapalım aynı dosya ekranı
+ * gibi çalışsın" - "Müzik" ek menusu de AYNI bu bileseni, SADECE kendi
+ * (ses dosyalarina ozel) "Son Müzikler" listesi + "dm:sendMusic"
+ * gonderimiyle kullanir (bkz. DMScreen.tsx openMusicPicker/pickMusicFile/
+ * recentMusic.ts) - title/recentSectionLabel/selectedCountLabel bunun
+ * icin Dosya'nin varsayilanlarini override eder. */
 export default function FilePreviewModal({
   visible,
   title,
+  recentSectionLabel,
+  selectedCountLabel,
   files,
   caption,
   onChangeCaption,
@@ -103,7 +115,9 @@ export default function FilePreviewModal({
             </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {selectionMode && !hasFiles ? t("dm.fileSelectedCount", { count: selectedUris.length }) : title ?? t("dm.filePreviewTitle")}
+            {selectionMode && !hasFiles
+              ? selectedCountLabel ?? t("dm.fileSelectedCount", { count: selectedUris.length })
+              : title ?? t("dm.filePreviewTitle")}
           </Text>
           {hasFiles ? (
             <View style={styles.headerBtn} />
@@ -180,7 +194,7 @@ export default function FilePreviewModal({
 
             {recentFiles.length > 0 && (
               <>
-                <Text style={styles.sectionLabel}>{t("dm.fileRecentSection")}</Text>
+                <Text style={styles.sectionLabel}>{recentSectionLabel ?? t("dm.fileRecentSection")}</Text>
                 <FlatList
                   data={recentFiles}
                   keyExtractor={(item) => item.uri}

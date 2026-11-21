@@ -219,6 +219,8 @@
     "attachPoll": "Umfrage",
     "attachMusic": "Musik",
     "musicPreviewTitle": "Musik senden",
+    "musicRecentSection": "Letzte Musik",
+    "musicSelectedCount": "{{count}} Titel ausgewählt",
     "pollComposerTitle": "Umfrage erstellen",
     "pollQuestionPlaceholder": "Stelle eine Frage...",
     "pollOptionsLabel": "Optionen",
