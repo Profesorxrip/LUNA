@@ -116,7 +116,7 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.screen}>
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
           <TouchableOpacity style={styles.headerBtn} onPress={onClose} hitSlop={10}>
             <X size={22} color={theme.text} />
           </TouchableOpacity>
