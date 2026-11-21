@@ -4,15 +4,21 @@
 // ~25 ifade/reaksiyon PNG'si tek bir varsayilan paket olarak bundle edildi
 // (bkz. assets/stickers/openmoji/CREDITS.md). "packs" dizisi SONRADAN yeni
 // paketler eklenebilsin diye coklu-paket yapisinda tutuluyor.
+import type { ImageSourcePropType } from "react-native";
+
+// Bundle edilmis hazir paketlerde require() sonucu (number), kullanicinin
+// "Çıkartma oluştur" ile ekledigi kisisel pakette ise uzak bir URL
+// ({uri: string}) olur (bkz. EmojiKeyboardPanel.tsx "custom" paketi) -
+// ikisi de gecerli bir ImageSourcePropType.
 export interface StickerDef {
   id: string;
-  source: number;
+  source: ImageSourcePropType;
 }
 
 export interface StickerPack {
   id: string;
   name: string;
-  icon: number;
+  icon: ImageSourcePropType;
   stickers: StickerDef[];
 }
 

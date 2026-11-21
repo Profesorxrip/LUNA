@@ -640,7 +640,9 @@
     "symbols": "Symbols",
     "flags": "Flags",
     "gifSearchPlaceholder": "SEARCH GIF",
-    "gifComingSoon": "GIF search coming soon"
+    "gifComingSoon": "GIF search coming soon",
+    "createSticker": "Create\nsticker",
+    "myStickers": "My Stickers"
   },
   "messageOptions": {
     "searchPlaceholder": "Search",

@@ -585,7 +585,9 @@
     "symbols": "Σύμβολα",
     "flags": "Σημαίες",
     "gifSearchPlaceholder": "ΑΝΑΖΗΤΗΣΗ GIF",
-    "gifComingSoon": "Η αναζήτηση GIF έρχεται σύντομα"
+    "gifComingSoon": "Η αναζήτηση GIF έρχεται σύντομα",
+    "createSticker": "Δημιουργία\nαυτοκόλλητου",
+    "myStickers": "Τα αυτοκόλλητά μου"
   },
   "messageOptions": {
     "searchPlaceholder": "Αναζήτηση",

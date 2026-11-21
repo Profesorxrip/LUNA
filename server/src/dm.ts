@@ -472,11 +472,13 @@ export async function sendMusicMessage(
 export async function sendStickerMessage(
   db: SupabaseClient,
   toUserId: string,
-  stickerId: string
+  stickerId?: string,
+  mediaUrl?: string
 ): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
   const { data, error } = await db.rpc("send_dm_sticker", {
     to_user: toUserId,
-    sticker_id: stickerId,
+    sticker_id: stickerId ?? null,
+    media_url: mediaUrl ?? null,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };

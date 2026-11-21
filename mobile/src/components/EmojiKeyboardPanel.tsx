@@ -1,13 +1,13 @@
 import React, { useMemo, useRef, useState } from "react";
-import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView } from "react-native";
-import { Search, X, Smile, Sticker as StickerIcon, Clapperboard } from "lucide-react-native";
+import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView, ActivityIndicator } from "react-native";
+import { Search, X, Smile, Sticker as StickerIcon, Clapperboard, Plus } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { getEmojiCategories } from "../data/emojiCategories";
 import { searchEmojis } from "../data/emojiSearch";
-import { STICKER_PACKS, StickerDef } from "../data/stickerPacks";
+import { STICKER_PACKS, StickerPack } from "../data/stickerPacks";
+import { CustomSticker } from "../utils/customStickers";
 
 const COLS = 7;
-const STICKER_COLS = 4;
 const HEADER_HEIGHT = 30;
 const ROW_HEIGHT = 44;
 const PANEL_HEIGHT = 300;
@@ -23,7 +23,15 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 interface Props {
   onSelect: (emoji: string) => void;
-  onSendSticker: (stickerId: string) => void;
+  // Bundle edilmis hazir paketten (stickerId) YA DA kullanicinin kendi
+  // yukledigi bir cikartmadan (mediaUrl) biri dolu olur, digeri null.
+  onSendSticker: (stickerId: string | null, mediaUrl: string | null) => void;
+  // "Çıkartma oluştur" ile eklenen kisisel cikartmalar - bkz.
+  // ../utils/customStickers.ts (AsyncStorage'da tutulur, yuklemeyi/kaydetmeyi
+  // DMScreen yapar, bu panel sadece GOSTERIR).
+  customStickers: CustomSticker[];
+  onCreateSticker: () => void;
+  creatingSticker?: boolean;
 }
 
 /** Gulen yuz ikonuna basinca ataç paneliyle AYNI yerde (klavyenin yerini
@@ -39,11 +47,12 @@ interface Props {
  *   gorsel cikartmalar (bkz. ../data/stickerPacks.ts - acik lisansli/ucretsiz
  *   OpenMoji seti). Bir cikartmaya basmak metne EKLEMEZ, WhatsApp/Telegram'daki
  *   gibi ANINDA kendi basina bir mesaj olarak GONDERILIR (bkz. DMScreen
- *   sendSticker), panel kapanir.
+ *   sendSticker), panel kapanir. "Çıkartma oluştur" hucresi her paketin
+ *   basinda SABIT durur (bkz. STICKER_PACKS ile ayni grid).
  * - GIF sekmesi: su an sadece arayuz iskeleti (gercek bir GIF API'si HENUZ
  *   baglanmadi - kullanicinin "şimdilik sadece arayüz/sekme iskeleti" kararı).
  */
-export default function EmojiKeyboardPanel({ onSelect, onSendSticker }: Props) {
+export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStickers, onCreateSticker, creatingSticker }: Props) {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<Tab>("emoji");
   const [stickerPackIndex, setStickerPackIndex] = useState(0);
@@ -54,8 +63,18 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker }: Props) {
   const emojiCategories = useMemo(() => getEmojiCategories(), [i18n.language]);
 
   const emojiLayout = useMemo(() => buildLayout(emojiCategories, COLS, ROW_HEIGHT), [emojiCategories]);
-  const stickerPack = STICKER_PACKS[stickerPackIndex];
-  const stickerRows = useMemo(() => chunk(stickerPack.stickers, STICKER_COLS), [stickerPack]);
+
+  const allStickerPacks: StickerPack[] = useMemo(() => {
+    if (!customStickers.length) return STICKER_PACKS;
+    const customPack: StickerPack = {
+      id: "custom",
+      name: t("emoji.myStickers"),
+      icon: { uri: customStickers[0].url },
+      stickers: customStickers.map((c) => ({ id: c.id, source: { uri: c.url } })),
+    };
+    return [...STICKER_PACKS, customPack];
+  }, [customStickers, t]);
+  const stickerPack = allStickerPacks[Math.min(stickerPackIndex, allStickerPacks.length - 1)];
 
   function jumpToCategory(categoryIndex: number) {
     emojiListRef.current?.scrollToIndex({ index: emojiLayout.sectionStartIndex[categoryIndex], animated: true });
@@ -102,14 +121,14 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker }: Props) {
         </View>
       ) : tab === "sticker" ? (
         <View style={styles.stickerWrap}>
-          {STICKER_PACKS.length > 1 && (
+          {allStickerPacks.length > 1 && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.tabsRow}
               contentContainerStyle={styles.tabsRowContent}
             >
-              {STICKER_PACKS.map((pack, i) => (
+              {allStickerPacks.map((pack, i) => (
                 <TouchableOpacity
                   key={pack.id}
                   style={[styles.packTabButton, i === stickerPackIndex && styles.packTabButtonActive]}
@@ -120,20 +139,33 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker }: Props) {
               ))}
             </ScrollView>
           )}
-          <FlatList
-            data={stickerRows}
-            keyExtractor={(_row, index) => `sticker-row-${index}`}
-            renderItem={({ item: row }: { item: StickerDef[] }) => (
-              <View style={styles.stickerRow}>
-                {row.map((sticker) => (
-                  <TouchableOpacity key={sticker.id} style={styles.stickerCell} onPress={() => onSendSticker(sticker.id)}>
-                    <Image source={sticker.source} style={styles.stickerImage} resizeMode="contain" />
-                  </TouchableOpacity>
-                ))}
+          <ScrollView contentContainerStyle={styles.stickerGrid}>
+            <TouchableOpacity style={styles.createStickerCell} onPress={onCreateSticker} disabled={creatingSticker}>
+              <View style={styles.createStickerInner}>
+                {creatingSticker ? (
+                  <ActivityIndicator color="#0EA5E9" />
+                ) : (
+                  <>
+                    <Plus size={22} color="#0EA5E9" />
+                    <Text style={styles.createStickerText}>{t("emoji.createSticker")}</Text>
+                  </>
+                )}
               </View>
-            )}
-            contentContainerStyle={styles.listContent}
-          />
+            </TouchableOpacity>
+            {stickerPack.stickers.map((sticker) => {
+              const isCustom = stickerPack.id === "custom";
+              const customUrl = isCustom ? customStickers.find((c) => c.id === sticker.id)?.url ?? null : null;
+              return (
+                <TouchableOpacity
+                  key={sticker.id}
+                  style={styles.stickerGridCell}
+                  onPress={() => onSendSticker(isCustom ? null : sticker.id, customUrl)}
+                >
+                  <Image source={sticker.source} style={styles.stickerImage} resizeMode="contain" />
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
       ) : (
         <>
@@ -305,13 +337,29 @@ const styles = StyleSheet.create({
   },
   packTabButtonActive: { backgroundColor: "rgba(14,165,233,0.16)" },
   packTabIcon: { width: 24, height: 24 },
-  stickerRow: { flexDirection: "row" },
-  stickerCell: {
-    flex: 1,
+  stickerGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 6, paddingTop: 4, paddingBottom: 12 },
+  stickerGridCell: { width: "25%", aspectRatio: 1, justifyContent: "center", alignItems: "center" },
+  stickerImage: { width: "72%", height: "72%" },
+  // "Çıkartma oluştur" - PollComposerModal'daki secenek fotografi ekleme
+  // dugmesiyle AYNI kesikli-cerceve dili (bkz. optionImageButton).
+  createStickerCell: {
+    width: "25%",
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
-    margin: 4,
+    gap: 4,
+    padding: 8,
   },
-  stickerImage: { width: "72%", height: "72%" },
+  createStickerInner: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: "rgba(14,165,233,0.4)",
+    borderRadius: 14,
+  },
+  createStickerText: { color: "#0EA5E9", fontSize: 10, fontWeight: "700", textAlign: "center" },
 });

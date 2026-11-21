@@ -335,6 +335,9 @@ export interface DMMessage {
   pollVotes?: number[] | null;
   myPollVote?: number | null;
   // Sadece kind==="sticker" oldugunda dolu - bkz. 0045_dm_sticker_messages.sql.
+  // YA stickerId (bundle edilmis hazir paket) YA DA mediaUrl (kullanicinin
+  // "Çıkartma oluştur" ile kendi yukledigi - bkz. 0046_dm_custom_stickers.sql)
+  // dolu olur.
   stickerId?: string | null;
   // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
   callIsVideo?: boolean | null;

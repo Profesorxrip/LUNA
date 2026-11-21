@@ -585,7 +585,9 @@
     "symbols": "Sembol",
     "flags": "Ala",
     "gifSearchPlaceholder": "GIFÊ BIGERE",
-    "gifComingSoon": "Gerîna GIF ê zûtirîn tê"
+    "gifComingSoon": "Gerîna GIF ê zûtirîn tê",
+    "createSticker": "Çapik\ndirust bike",
+    "myStickers": "Çapikên Min"
   },
   "messageOptions": {
     "searchPlaceholder": "Lêgerîn",

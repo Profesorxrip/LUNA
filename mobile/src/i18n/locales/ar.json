@@ -585,7 +585,9 @@
     "symbols": "الرموز",
     "flags": "الأعلام",
     "gifSearchPlaceholder": "ابحث عن GIF",
-    "gifComingSoon": "البحث عن GIF قريبًا"
+    "gifComingSoon": "البحث عن GIF قريبًا",
+    "createSticker": "إنشاء\nملصق",
+    "myStickers": "ملصقاتي"
   },
   "messageOptions": {
     "searchPlaceholder": "بحث",

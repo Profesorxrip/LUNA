@@ -585,7 +585,9 @@
     "symbols": "Simvollar",
     "flags": "Bayraqlar",
     "gifSearchPlaceholder": "GIF AXTAR",
-    "gifComingSoon": "GIF axtarışı tezliklə gəlir"
+    "gifComingSoon": "GIF axtarışı tezliklə gəlir",
+    "createSticker": "Nalıqça\nyarat",
+    "myStickers": "Mənim Nalıqçalarım"
   },
   "messageOptions": {
     "searchPlaceholder": "Axtar",

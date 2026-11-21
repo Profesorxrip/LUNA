@@ -55,6 +55,7 @@ import FileMessageBubble from "../components/FileMessageBubble";
 import ContactMessageBubble from "../components/ContactMessageBubble";
 import PollComposerModal from "../components/PollComposerModal";
 import EmojiKeyboardPanel from "../components/EmojiKeyboardPanel";
+import { getCustomStickers, addCustomSticker, CustomSticker } from "../utils/customStickers";
 import PollMessageBubble from "../components/PollMessageBubble";
 import MusicMessageBubble from "../components/MusicMessageBubble";
 import StickerMessageBubble from "../components/StickerMessageBubble";
@@ -75,7 +76,7 @@ function formatRecordingTime(ms: number): string {
 // mesajlar burada gruplanir (ayni gonderen, sesli/konum/dosya DEGIL, medyasi
 // var).
 function isPlainPhotoMessage(m: DMMessage): boolean {
-  return m.kind !== "voice" && m.kind !== "location" && m.kind !== "file" && m.kind !== "video" && !!m.mediaUrl;
+  return m.kind !== "voice" && m.kind !== "location" && m.kind !== "file" && m.kind !== "video" && m.kind !== "sticker" && !!m.mediaUrl;
 }
 
 type DMDisplayItem = { type: "single"; message: DMMessage } | { type: "photoGroup"; id: string; fromUserId: string; createdAt: number; photos: DMMessage[] };
@@ -273,6 +274,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 item.kind !== "location" &&
                 item.kind !== "file" &&
                 item.kind !== "poll" &&
+                item.kind !== "sticker" &&
                 item.mediaUrl &&
                 styles.bubblePhotoPad,
               // Kullanici: "WhatsApp/Telegram'daki gibi" cikartmalar - GERCEK
@@ -340,7 +342,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
             ) : item.kind === "music" && item.mediaUrl ? (
               <MusicMessageBubble uri={item.mediaUrl} title={item.fileName || item.text} />
             ) : item.kind === "sticker" ? (
-              <StickerMessageBubble stickerId={item.stickerId ?? null} />
+              <StickerMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
             ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
               <View style={styles.deletedRow}>
                 <CameraIcon size={14} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} strokeWidth={1.8} />
@@ -384,6 +386,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               item.kind !== "location" &&
               item.kind !== "music" &&
               item.kind !== "video" &&
+              item.kind !== "sticker" &&
               item.mediaUrl &&
               item.text &&
               item.text !== "📷 Fotoğraf" &&
@@ -398,6 +401,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                   item.kind !== "location" &&
                   item.kind !== "file" &&
                   item.kind !== "music" &&
+                  item.kind !== "sticker" &&
                   item.mediaUrl &&
                   styles.metaRowPhotoOverlay,
                 item.kind === "call" && styles.metaRowCallOverlay,
@@ -469,6 +473,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const [emojiPanelVisible, setEmojiPanelVisible] = useState(false);
+  const [customStickers, setCustomStickers] = useState<CustomSticker[]>([]);
+  const [creatingSticker, setCreatingSticker] = useState(false);
   const [galleryPickerVisible, setGalleryPickerVisible] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [quickCaptureActive, setQuickCaptureActive] = useState(false);
@@ -645,6 +651,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   useEffect(() => {
     setPinnedCursor(Math.max(0, pinnedMessages.length - 1));
   }, [pinnedMessages.length]);
+
+  useEffect(() => {
+    getCustomStickers().then(setCustomStickers);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1489,16 +1499,51 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
 
   // Etiket (cikartma/sticker) sekmesi - WhatsApp/Telegram'daki gibi birine
   // basmak metne EKLEMEZ, dogrudan kendi basina bir mesaj olarak GONDERIR.
-  // Cikartma bundle edilmis sabit bir dosya oldugu icin (bkz.
-  // ../data/stickerPacks.ts) yuklenecek bir medya YOK, sadece stickerId
-  // tasinir - alici kendi bundle'indaki ayni id'li dosyayi gosterir.
-  function sendSticker(stickerId: string) {
+  // Bundle edilmis hazir paket cikartmalari icin yuklenecek bir medya YOK,
+  // sadece stickerId tasinir (bkz. ../data/stickerPacks.ts). "Çıkartma
+  // oluştur" ile eklenmis kisisel bir cikartma ise zaten DAHA ONCE
+  // yuklenip gercek bir URL kazandigi icin (bkz. createSticker) mediaUrl
+  // olarak gonderilir.
+  function sendSticker(stickerId: string | null, mediaUrl: string | null) {
     if (!myUserId) return;
     setEmojiPanelVisible(false);
-    socket.emit("dm:sendSticker", { toUserId: peer.userId, stickerId }, (res: any) => {
+    socket.emit("dm:sendSticker", { toUserId: peer.userId, stickerId: stickerId ?? undefined, mediaUrl: mediaUrl ?? undefined }, (res: any) => {
       if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
       else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
     });
+  }
+
+  // "Çıkartma oluştur" - kullanicinin KENDI yukledigi bir gorsel, bundle
+  // edilmis hazir paketlerin aksine HER istemcide mevcut DEGILDIR, bu
+  // yuzden fotograf/dosya gondermedeki (bkz. confirmSendFile) AYNI sekilde
+  // chat-media bucket'ina yuklenip GERCEK bir public URL kazanir - boylece
+  // karsi taraf da gorebilir. Yuklendikten sonra kisisel "Benim
+  // Çıkartmalarım" listesine (bkz. ../utils/customStickers.ts) eklenir,
+  // tekrar tekrar gonderilebilsin diye tekrar yuklenmesi GEREKMEZ.
+  async function createSticker() {
+    if (!myUserId || creatingSticker) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.9 });
+    if (result.canceled || !result.assets?.[0]) return;
+    setCreatingSticker(true);
+    try {
+      const uri = result.assets[0].uri;
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "png";
+      const path = `${myUserId}/${Date.now()}-sticker-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, ext === "png" ? "image/png" : "image/jpeg", () => {});
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      const next = await addCustomSticker(publicUrlData.publicUrl);
+      setCustomStickers(next);
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setCreatingSticker(false);
+    }
   }
 
   function startReply(message: DMMessage) {
@@ -1714,7 +1759,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       ? notExpired.filter((m) => m.text.toLowerCase().includes(searchQuery.trim().toLowerCase()))
       : notExpired;
   const displayItems = groupConsecutivePhotos(visibleMessages);
-  const mediaMessages = notExpired.filter((m) => !!m.mediaUrl && m.kind !== "voice" && m.kind !== "file");
+  const mediaMessages = notExpired.filter((m) => !!m.mediaUrl && m.kind !== "voice" && m.kind !== "file" && m.kind !== "sticker");
   // Uye bilgisi ekranindaki ataç ikonunun actigi "Dosyalar" sekmesi icin -
   // bkz. DmInfoOpenParams.fileMessages.
   const fileMessages = notExpired.filter((m) => m.kind === "voice" || m.kind === "location" || m.kind === "file");
@@ -2282,7 +2327,15 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         </View>
       )}
 
-      {emojiPanelVisible && <EmojiKeyboardPanel onSelect={insertEmoji} onSendSticker={sendSticker} />}
+      {emojiPanelVisible && (
+        <EmojiKeyboardPanel
+          onSelect={insertEmoji}
+          onSendSticker={sendSticker}
+          customStickers={customStickers}
+          onCreateSticker={createSticker}
+          creatingSticker={creatingSticker}
+        />
+      )}
 
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>

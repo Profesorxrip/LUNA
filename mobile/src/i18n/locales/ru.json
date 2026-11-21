@@ -585,7 +585,9 @@
     "symbols": "Символы",
     "flags": "Флаги",
     "gifSearchPlaceholder": "ПОИСК GIF",
-    "gifComingSoon": "Поиск GIF скоро появится"
+    "gifComingSoon": "Поиск GIF скоро появится",
+    "createSticker": "Создать\nстикер",
+    "myStickers": "Мои стикеры"
   },
   "messageOptions": {
     "searchPlaceholder": "Поиск",

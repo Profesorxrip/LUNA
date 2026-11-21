@@ -640,7 +640,9 @@
     "symbols": "Semboller",
     "flags": "Bayraklar",
     "gifSearchPlaceholder": "GIF ARA",
-    "gifComingSoon": "GIF araması yakında geliyor"
+    "gifComingSoon": "GIF araması yakında geliyor",
+    "createSticker": "Çıkartma\noluştur",
+    "myStickers": "Benim Çıkartmalarım"
   },
   "messageOptions": {
     "searchPlaceholder": "Ara",

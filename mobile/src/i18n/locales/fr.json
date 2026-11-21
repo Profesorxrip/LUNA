@@ -585,7 +585,9 @@
     "symbols": "Symboles",
     "flags": "Drapeaux",
     "gifSearchPlaceholder": "RECHERCHER UN GIF",
-    "gifComingSoon": "La recherche de GIF arrive bientôt"
+    "gifComingSoon": "La recherche de GIF arrive bientôt",
+    "createSticker": "Créer un\nautocollant",
+    "myStickers": "Mes autocollants"
   },
   "messageOptions": {
     "searchPlaceholder": "Rechercher",
