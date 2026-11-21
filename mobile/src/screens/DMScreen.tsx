@@ -2082,7 +2082,7 @@ const styles = StyleSheet.create({
   },
   attachRowText: { color: TEXT, fontSize: 15, fontWeight: "600" },
   quickCameraOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#000000" },
-  quickCameraView: { flex: 1 },
+  quickCameraView: { flex: 1, marginTop: 30, marginBottom: 30 },
   quickCameraTopBar: {
     position: "absolute",
     top: 50,
