@@ -187,7 +187,7 @@ export default function EmojiKeyboardPanel({
           style={[styles.mainTabButton, tab === "sticker" && styles.mainTabButtonActive]}
           onPress={() => setTab("sticker")}
         >
-          <MaterialCommunityIcons name="sticker-emoji" size={20} color={tab === "sticker" ? "#0EA5E9" : "rgba(255,255,255,0.55)"} />
+          <MaterialCommunityIcons name="sticker-emoji" size={20} color={tab === "sticker" ? "#FFFFFF" : "rgba(255,255,255,0.55)"} />
         </TouchableOpacity>
       </View>
 
