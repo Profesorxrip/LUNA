@@ -270,7 +270,8 @@
     "voiceOnceConsumed": "Este mensaje de voz ya se reprodujo",
     "mediaOnceConsumed": "Este contenido ya se visualizó",
     "gallerySend": "Enviar",
-    "galleryPermissionDenied": "Se denegó el acceso a la galería. Concede el permiso en ajustes e inténtalo de nuevo."
+    "galleryPermissionDenied": "Se denegó el acceso a la galería. Concede el permiso en ajustes e inténtalo de nuevo.",
+    "galleryTitle": "Galería"
   },
   "userProfile": {
     "defaultName": "Usuario",

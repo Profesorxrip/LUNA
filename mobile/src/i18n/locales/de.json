@@ -270,7 +270,8 @@
     "voiceOnceConsumed": "Diese Sprachnachricht wurde abgespielt",
     "mediaOnceConsumed": "Dieses Medium wurde bereits angesehen",
     "gallerySend": "Senden",
-    "galleryPermissionDenied": "Der Zugriff auf die Galerie wurde verweigert. Erteile die Berechtigung in den Einstellungen und versuche es erneut."
+    "galleryPermissionDenied": "Der Zugriff auf die Galerie wurde verweigert. Erteile die Berechtigung in den Einstellungen und versuche es erneut.",
+    "galleryTitle": "Galerie"
   },
   "userProfile": {
     "defaultName": "Nutzer",

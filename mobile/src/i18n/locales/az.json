@@ -270,7 +270,8 @@
     "voiceOnceConsumed": "Bu səsli mesaj artıq dinlənilib",
     "mediaOnceConsumed": "Bu media artıq görüntülənib",
     "gallerySend": "Göndər",
-    "galleryPermissionDenied": "Qalereyaya giriş icazəsi verilmədi. Ayarlardan icazə verib yenidən cəhd et."
+    "galleryPermissionDenied": "Qalereyaya giriş icazəsi verilmədi. Ayarlardan icazə verib yenidən cəhd et.",
+    "galleryTitle": "Qalereya"
   },
   "userProfile": {
     "defaultName": "İstifadəçi",

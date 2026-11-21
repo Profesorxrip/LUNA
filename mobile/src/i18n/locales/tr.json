@@ -270,7 +270,8 @@
     "voiceOnceConsumed": "Bu sesli mesaj dinlendi",
     "mediaOnceConsumed": "Bu medya görüntülendi",
     "gallerySend": "Gönder",
-    "galleryPermissionDenied": "Galeriye erişim izni verilmedi. Ayarlardan izin verip tekrar dene."
+    "galleryPermissionDenied": "Galeriye erişim izni verilmedi. Ayarlardan izin verip tekrar dene.",
+    "galleryTitle": "Galeri"
   },
   "userProfile": {
     "defaultName": "Kullanıcı",

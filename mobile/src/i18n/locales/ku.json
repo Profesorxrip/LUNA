@@ -270,7 +270,8 @@
     "voiceOnceConsumed": "Ev peyama dengî berê hatiye guhdarîkirin",
     "mediaOnceConsumed": "Ev medya berê hatiye dîtin",
     "gallerySend": "Bişîne",
-    "galleryPermissionDenied": "Destûra gihîştina galeriyê nehat dayîn. Ji mîhengan destûrê bide û dîsa biceribîne."
+    "galleryPermissionDenied": "Destûra gihîştina galeriyê nehat dayîn. Ji mîhengan destûrê bide û dîsa biceribîne.",
+    "galleryTitle": "Galerî"
   },
   "userProfile": {
     "defaultName": "Bikarhêner",

@@ -270,7 +270,8 @@
     "voiceOnceConsumed": "تم تشغيل هذه الرسالة الصوتية بالفعل",
     "mediaOnceConsumed": "تم عرض هذا الوسائط بالفعل",
     "gallerySend": "إرسال",
-    "galleryPermissionDenied": "تم رفض الوصول إلى المعرض. امنح الإذن من الإعدادات وحاول مرة أخرى."
+    "galleryPermissionDenied": "تم رفض الوصول إلى المعرض. امنح الإذن من الإعدادات وحاول مرة أخرى.",
+    "galleryTitle": "المعرض"
   },
   "userProfile": {
     "defaultName": "مستخدم",

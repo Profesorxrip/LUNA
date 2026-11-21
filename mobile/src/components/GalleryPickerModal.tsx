@@ -122,7 +122,7 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
               <CircleArrowDown size={22} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t("dm.attachGallery")}</Text>
+          <Text style={styles.headerTitle}>{t("dm.galleryTitle")}</Text>
           <TouchableOpacity style={styles.headerBtn} onPress={handleConfirm} disabled={!selectedIds.length} hitSlop={10}>
             <View style={{ transform: [{ rotate: "180deg" }] }}>
               <CircleArrowDown size={22} color={selectedIds.length ? "#FFFFFF" : theme.textMuted} />
