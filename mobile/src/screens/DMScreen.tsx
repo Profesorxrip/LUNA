@@ -38,6 +38,7 @@ import SendVideoSheet from "../components/SendVideoSheet";
 import GalleryPickerModal, { type GalleryPickedAsset } from "../components/GalleryPickerModal";
 import LocationPickerModal, { type PickedLocation } from "../components/LocationPickerModal";
 import FilePreviewModal from "../components/FilePreviewModal";
+import { getRecentFiles, addRecentFile, type PickedFileAsset, type RecentFileEntry } from "../utils/recentFiles";
 import CameraFilmstrip, { type FilmstripPickedAsset } from "../components/CameraFilmstrip";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
@@ -440,9 +441,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // yukleme deseni, ama kendi onizleme/caption ekrani yok, secilince
   // DOGRUDAN gonderilir.
   const [sendingFile, setSendingFile] = useState(false);
-  const [pendingFile, setPendingFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [pendingFile, setPendingFile] = useState<PickedFileAsset | null>(null);
   const [filePreviewVisible, setFilePreviewVisible] = useState(false);
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
+  const [recentFiles, setRecentFiles] = useState<RecentFileEntry[]>([]);
   // Sesli mesaj kaydi - expo-audio'nun kendi "ne kadar surdu" sayacini
   // (useAudioRecorderState) kullaniyoruz, kendi zamanlayicimizi KURMUYORUZ.
   // isMeteringEnabled: kilitli kayit cubugundaki ses dalgasi ARTIK SAHTE
@@ -1051,29 +1053,39 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     );
   }
 
-  // Kullanici: "dosya seçme alanını oluştursana" - "Dosya" satiri artik
-  // dogrudan OS dosya secicisini ACMIYOR, once FilePreviewModal'i (bos/
-  // "Dosya Seç" durumunda) aciyor; GERCEK secim o ekranin ICINDEKI "Dosya
-  // Seç" alanina basinca (pickFile, modal'a prop olarak geciliyor) olur.
-  // Gercek yukleme/gonderim ise onizlemeyi gorup gonder okuna basinca
-  // (confirmSendFile) - Galeriden Sec/Konum Gonder ile AYNI "once gorup
-  // sonra onayla" akisi.
+  // Kullanici: "dosyalarımız gözüksün altalta birde dahili depolama tuşu
+  // olsun" - "Dosya" ekrani artik iki secenek sunuyor: (1) bu cihazda daha
+  // once secilmis dosyalarin yerel listesi (Son Dosyalar - recentFiles.ts,
+  // AsyncStorage'da saklanir), listeden birine dokununca TEKRAR SECMEYE
+  // GEREK KALMADAN dogrudan onizlemeye gecer; (2) "Dahili Depolama" butonu
+  // - cihazin GERCEK sistem dosya tarayicisini (DocumentPicker) acar.
   function openFilePreview() {
     setAttachSheetVisible(false);
     setPendingFile(null);
     setFilePreviewVisible(true);
+    getRecentFiles().then(setRecentFiles);
   }
 
   function pickFile() {
     DocumentPicker.getDocumentAsync({ multiple: false }).then((result) => {
       if (result.canceled || !result.assets?.[0]) return;
-      setPendingFile(result.assets[0]);
+      const asset = result.assets[0];
+      setPendingFile(asset);
+      addRecentFile({ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }).then(setRecentFiles);
     });
+  }
+
+  function selectRecentFile(file: RecentFileEntry) {
+    setPendingFile({ uri: file.uri, name: file.name, size: file.size, mimeType: file.mimeType });
   }
 
   function cancelPendingFile() {
     if (sendingFile) return;
     setFilePreviewVisible(false);
+    setPendingFile(null);
+  }
+
+  function changeSelectedFile() {
     setPendingFile(null);
   }
 
@@ -2068,7 +2080,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         mimeType={pendingFile?.mimeType}
         uploading={sendingFile}
         uploadProgress={fileUploadProgress}
+        recentFiles={recentFiles}
+        onSelectRecent={selectRecentFile}
         onPickFile={pickFile}
+        onChangeFile={changeSelectedFile}
         onCancel={cancelPendingFile}
         onSend={confirmSendFile}
       />

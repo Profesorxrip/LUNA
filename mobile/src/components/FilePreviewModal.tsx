@@ -1,9 +1,10 @@
 import React from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Modal, View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { CircleArrowDown, Upload } from "lucide-react-native";
+import { CircleArrowDown, HardDrive } from "lucide-react-native";
 import { fileIconFor, formatFileSize } from "../utils/format";
+import type { RecentFileEntry } from "../utils/recentFiles";
 
 interface Props {
   visible: boolean;
@@ -12,7 +13,10 @@ interface Props {
   mimeType?: string | null;
   uploading: boolean;
   uploadProgress: number;
+  recentFiles: RecentFileEntry[];
+  onSelectRecent: (file: RecentFileEntry) => void;
   onPickFile: () => void;
+  onChangeFile: () => void;
   onCancel: () => void;
   onSend: () => void;
 }
@@ -21,12 +25,12 @@ interface Props {
  * AYNI tam ekranli, lacivert temali, ayni baslik dilini (geri ok sol
  * ustte, gonder oku sag ustte) paylasan bir sayfa.
  *
- * Kullanici: "dosya seçme alanını oluştursana" - secim artik ataç
- * menusunden DOGRUDAN OS dosya secicisini acarak degil, bu ekranin
- * ICINDEKI "Dosya Seç" alanina basarak yapiliyor (henuz dosya
- * secilmemisse buyuk, kesikli cerceveli bir alan; secildikten sonra
- * AYNI alan dosyanin kendi onizlemesine donusuyor, tekrar basilinca
- * baska bir dosya ile DEGISTIRILEBILIYOR). */
+ * Kullanici: "dosyalarımız gözüksün altalta birde dahili depolama tuşu
+ * olsun" - henuz dosya secilmemisse BOS bir kutu yerine: (1) "Dahili
+ * Depolama" butonu - cihazin GERCEK sistem dosya tarayicisini acar,
+ * (2) altinda bu cihazda DAHA ONCE secilmis dosyalarin listesi (Son
+ * Dosyalar) - birine dokununca tekrar aramaya GEREK KALMADAN dogrudan
+ * secilir. Dosya secildikten sonra AYNI ekran onizleme karta donusur. */
 export default function FilePreviewModal({
   visible,
   fileName,
@@ -34,14 +38,17 @@ export default function FilePreviewModal({
   mimeType,
   uploading,
   uploadProgress,
+  recentFiles,
+  onSelectRecent,
   onPickFile,
+  onChangeFile,
   onCancel,
   onSend,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const hasFile = !!fileName;
-  const Icon = hasFile ? fileIconFor(mimeType, fileName!) : Upload;
+  const PreviewIcon = hasFile ? fileIconFor(mimeType, fileName!) : null;
   const ext = hasFile ? fileName!.split(".").pop()?.toUpperCase() || "" : "";
 
   return (
@@ -61,46 +68,71 @@ export default function FilePreviewModal({
           </TouchableOpacity>
         </View>
 
-        <View style={styles.body}>
-          <TouchableOpacity
-            style={[styles.pickArea, hasFile && styles.pickAreaFilled]}
-            onPress={onPickFile}
-            disabled={uploading}
-            activeOpacity={0.8}
-          >
-            <View style={styles.iconWrap}>
-              <Icon size={hasFile ? 44 : 36} color="#FFFFFF" />
+        {hasFile ? (
+          <View style={styles.body}>
+            <View style={styles.previewCard}>
+              <View style={styles.iconWrap}>
+                {PreviewIcon && <PreviewIcon size={44} color="#FFFFFF" />}
+              </View>
+              <Text style={styles.fileName} numberOfLines={3}>
+                {fileName}
+              </Text>
+              <Text style={styles.fileMeta}>{[ext, formatFileSize(fileSize)].filter(Boolean).join(" · ")}</Text>
             </View>
-            {hasFile ? (
+
+            {!uploading && (
+              <TouchableOpacity onPress={onChangeFile} hitSlop={8}>
+                <Text style={styles.changeFileText}>{t("dm.filePickChange")}</Text>
+              </TouchableOpacity>
+            )}
+
+            {uploading && (
+              <View style={styles.progressWrap}>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
+                </View>
+                <Text style={styles.progressText}>{uploadProgress}%</Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.listScreen}>
+            <TouchableOpacity style={styles.storageBtn} onPress={onPickFile} activeOpacity={0.85}>
+              <View style={styles.storageIconWrap}>
+                <HardDrive size={20} color="#FFFFFF" />
+              </View>
+              <Text style={styles.storageBtnText}>{t("dm.fileInternalStorage")}</Text>
+            </TouchableOpacity>
+
+            {recentFiles.length > 0 && (
               <>
-                <Text style={styles.fileName} numberOfLines={3}>
-                  {fileName}
-                </Text>
-                <Text style={styles.fileMeta}>{[ext, formatFileSize(fileSize)].filter(Boolean).join(" · ")}</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.pickTitle}>{t("dm.filePickAreaTitle")}</Text>
-                <Text style={styles.pickHint}>{t("dm.filePickAreaHint")}</Text>
+                <Text style={styles.sectionLabel}>{t("dm.fileRecentSection")}</Text>
+                <FlatList
+                  data={recentFiles}
+                  keyExtractor={(item) => item.uri}
+                  contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+                  renderItem={({ item }) => {
+                    const RowIcon = fileIconFor(item.mimeType, item.name);
+                    const rowExt = item.name.split(".").pop()?.toUpperCase() || "";
+                    return (
+                      <TouchableOpacity style={styles.recentRow} onPress={() => onSelectRecent(item)}>
+                        <View style={styles.recentIconWrap}>
+                          <RowIcon size={18} color="#FFFFFF" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.recentName} numberOfLines={1}>
+                            {item.name}
+                          </Text>
+                          <Text style={styles.recentMeta}>{[rowExt, formatFileSize(item.size)].filter(Boolean).join(" · ")}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
               </>
             )}
-          </TouchableOpacity>
-
-          {hasFile && !uploading && (
-            <TouchableOpacity onPress={onPickFile} hitSlop={8}>
-              <Text style={styles.changeFileText}>{t("dm.filePickChange")}</Text>
-            </TouchableOpacity>
-          )}
-
-          {uploading && (
-            <View style={styles.progressWrap}>
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
-              </View>
-              <Text style={styles.progressText}>{uploadProgress}%</Text>
-            </View>
-          )}
-        </View>
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -117,18 +149,50 @@ const styles = StyleSheet.create({
   },
   headerBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   headerTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+
+  listScreen: { flex: 1, paddingHorizontal: 16 },
+  storageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    backgroundColor: "rgba(14,165,233,0.14)",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+  },
+  storageIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#0EA5E9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storageBtnText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  sectionLabel: { color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 },
+  recentRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
+  recentIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recentName: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+  recentMeta: { color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 },
+
   body: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
-  pickArea: {
+  previewCard: {
     width: "100%",
     paddingVertical: 36,
     paddingHorizontal: 20,
     borderRadius: 20,
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderColor: "rgba(255,255,255,0.25)",
+    borderWidth: 1,
+    borderColor: "rgba(14,165,233,0.35)",
     alignItems: "center",
   },
-  pickAreaFilled: { borderStyle: "solid", borderColor: "rgba(14,165,233,0.35)" },
   iconWrap: {
     width: 96,
     height: 96,
@@ -138,8 +202,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 20,
   },
-  pickTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
-  pickHint: { color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 6, textAlign: "center" },
   fileName: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", textAlign: "center" },
   fileMeta: { color: "rgba(255,255,255,0.55)", fontSize: 13, marginTop: 6 },
   changeFileText: { color: "#0EA5E9", fontSize: 14, fontWeight: "600", marginTop: 18 },

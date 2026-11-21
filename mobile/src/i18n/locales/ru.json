@@ -210,6 +210,8 @@
     "attachFile": "Файл",
     "filePreviewTitle": "Отправить файл",
     "filePickAreaTitle": "Выбрать файл",
+    "fileRecentSection": "Недавние файлы",
+    "fileInternalStorage": "Внутреннее хранилище",
     "filePickAreaHint": "Нажмите, чтобы выбрать файл для отправки",
     "filePickChange": "Изменить файл",
     "attachPoll": "Опрос",

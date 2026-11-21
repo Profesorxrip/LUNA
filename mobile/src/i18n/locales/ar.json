@@ -210,6 +210,8 @@
     "attachFile": "ملف",
     "filePreviewTitle": "إرسال ملف",
     "filePickAreaTitle": "اختر ملفًا",
+    "fileRecentSection": "الملفات الأخيرة",
+    "fileInternalStorage": "التخزين الداخلي",
     "filePickAreaHint": "اضغط لاختيار ملف لإرساله",
     "filePickChange": "تغيير الملف",
     "attachPoll": "استطلاع",

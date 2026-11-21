@@ -210,6 +210,8 @@
     "attachFile": "Dosya",
     "filePreviewTitle": "Dosya Gönder",
     "filePickAreaTitle": "Dosya Seç",
+    "fileRecentSection": "Son Dosyalar",
+    "fileInternalStorage": "Dahili Depolama",
     "filePickAreaHint": "Göndermek için bir dosyaya dokun",
     "filePickChange": "Dosyayı Değiştir",
     "attachPoll": "Anket",

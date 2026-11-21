@@ -210,6 +210,8 @@
     "attachFile": "Archivo",
     "filePreviewTitle": "Enviar archivo",
     "filePickAreaTitle": "Elegir un archivo",
+    "fileRecentSection": "Archivos recientes",
+    "fileInternalStorage": "Almacenamiento interno",
     "filePickAreaHint": "Toca para elegir un archivo para enviar",
     "filePickChange": "Cambiar archivo",
     "attachPoll": "Encuesta",

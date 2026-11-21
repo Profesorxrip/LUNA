@@ -210,6 +210,8 @@
     "attachFile": "Fayl",
     "filePreviewTitle": "Fayl Göndər",
     "filePickAreaTitle": "Fayl Seç",
+    "fileRecentSection": "Son Fayllar",
+    "fileInternalStorage": "Daxili Yaddaş",
     "filePickAreaHint": "Göndərmək üçün bir fayla toxun",
     "filePickChange": "Faylı Dəyiş",
     "attachPoll": "Sorğu",

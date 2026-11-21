@@ -210,6 +210,8 @@
     "attachFile": "Datei",
     "filePreviewTitle": "Datei senden",
     "filePickAreaTitle": "Datei auswählen",
+    "fileRecentSection": "Letzte Dateien",
+    "fileInternalStorage": "Interner Speicher",
     "filePickAreaHint": "Tippe, um eine Datei zum Senden auszuwählen",
     "filePickChange": "Datei ändern",
     "attachPoll": "Umfrage",
