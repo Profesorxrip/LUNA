@@ -12,13 +12,17 @@ export const GIF_PACKS: StickerPack[] = [
     id: "luna-gifs-default",
     name: "GIF",
     icon: require("../../assets/gifs/confetti.gif"),
+    // Kullanici: "GIF'i gerçekten farklı hissettirecek şekilde yeniden
+    // tasarlayalım" -> yatay/video gibi oran secildi (cikartmanin kare/ikon
+    // hissinden tamamen ayrilsin diye). width/height, uretilen GERCEK GIF
+    // piksel boyutlari (bkz. masonry grid - EmojiKeyboardPanel.tsx).
     stickers: [
-      { id: "gif-confetti", source: require("../../assets/gifs/confetti.gif") },
-      { id: "gif-fire", source: require("../../assets/gifs/fire.gif") },
-      { id: "gif-heart_burst", source: require("../../assets/gifs/heart_burst.gif") },
-      { id: "gif-clap", source: require("../../assets/gifs/clap.gif") },
-      { id: "gif-thumbs_up", source: require("../../assets/gifs/thumbs_up.gif") },
-      { id: "gif-star_sparkle", source: require("../../assets/gifs/star_sparkle.gif") },
+      { id: "gif-confetti", source: require("../../assets/gifs/confetti.gif"), width: 200, height: 124 },
+      { id: "gif-fire", source: require("../../assets/gifs/fire.gif"), width: 190, height: 120 },
+      { id: "gif-heart_burst", source: require("../../assets/gifs/heart_burst.gif"), width: 180, height: 130 },
+      { id: "gif-clap", source: require("../../assets/gifs/clap.gif"), width: 210, height: 120 },
+      { id: "gif-thumbs_up", source: require("../../assets/gifs/thumbs_up.gif"), width: 170, height: 130 },
+      { id: "gif-star_sparkle", source: require("../../assets/gifs/star_sparkle.gif"), width: 200, height: 120 },
     ],
   },
 ];

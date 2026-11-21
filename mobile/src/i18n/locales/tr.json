@@ -641,8 +641,7 @@
     "flags": "Bayraklar",
     "createSticker": "Çıkartma\noluştur",
     "myStickers": "Benim Çıkartmalarım",
-    "createGif": "GIF\noluştur",
-    "myGifs": "Benim GIF'lerim"
+    "addGif": "Kendi GIF'ini ekle"
   },
   "messageOptions": {
     "searchPlaceholder": "Ara",

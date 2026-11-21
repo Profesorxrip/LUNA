@@ -586,8 +586,7 @@
     "flags": "Drapeaux",
     "createSticker": "Créer un\nautocollant",
     "myStickers": "Mes autocollants",
-    "createGif": "Créer un\nGIF",
-    "myGifs": "Mes GIFs"
+    "addGif": "Ajoute ton propre GIF"
   },
   "messageOptions": {
     "searchPlaceholder": "Rechercher",

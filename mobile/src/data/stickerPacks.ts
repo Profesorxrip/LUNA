@@ -14,6 +14,12 @@ import { GIF_PACKS } from "./gifPacks";
 export interface StickerDef {
   id: string;
   source: ImageSourcePropType;
+  // Sadece GIF'ler icin (bkz. gifPacks.ts) - cikartmalar HER ZAMAN kare
+  // (1:1) gosterildigi icin bu alanlara ihtiyac duymaz. GIF masonry
+  // grid'inin (bkz. EmojiKeyboardPanel.tsx) her hucreyi GERCEK en-boy
+  // oraniyla (video klibi gibi yatay) gosterebilmesi icin kullanilir.
+  width?: number;
+  height?: number;
 }
 
 export interface StickerPack {

@@ -586,8 +586,7 @@
     "flags": "Banderas",
     "createSticker": "Crear\npegatina",
     "myStickers": "Mis pegatinas",
-    "createGif": "Crear\nGIF",
-    "myGifs": "Mis GIFs"
+    "addGif": "Añade tu propio GIF"
   },
   "messageOptions": {
     "searchPlaceholder": "Buscar",

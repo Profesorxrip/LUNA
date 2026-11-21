@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView, ActivityIndicator, PanResponder } from "react-native";
+import type { ImageSourcePropType } from "react-native";
 import { Search, X, Smile, Plus } from "lucide-react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -20,6 +21,29 @@ export const PANEL_HEIGHT = 300;
 
 type ListItem = { type: "row"; emojis: string[] };
 type Tab = "emoji" | "gif" | "sticker";
+// Bundle edilmis (isCustom: false, stickerId ile gonderilir) YA DA
+// kullanicinin kendi yukledigi (isCustom: true, url/mediaUrl ile gonderilir)
+// bir GIF - bkz. GifMasonryGrid.
+type GifItem = { id: string; source: ImageSourcePropType; width: number; height: number; isCustom: boolean; url?: string };
+
+// Esit genislikte N sutuna, HER SUTUNUN TOPLAM (goreli) yuksekligini
+// dengelemeye calisarak dagitir - duzensiz (masonry) GIF akisi icin
+// (bkz. GifMasonryGrid). Gercek piksel genisligi bilinmedigi icin
+// goreli yukseklik olarak sadece en-boy oranı (height/width) kullanilir.
+function splitMasonryColumns(items: GifItem[], numColumns: number): GifItem[][] {
+  const columns: GifItem[][] = Array.from({ length: numColumns }, () => []);
+  const heights = new Array(numColumns).fill(0);
+  for (const item of items) {
+    const relHeight = item.height / item.width;
+    let shortest = 0;
+    for (let i = 1; i < numColumns; i++) {
+      if (heights[i] < heights[shortest]) shortest = i;
+    }
+    columns[shortest].push(item);
+    heights[shortest] += relHeight;
+  }
+  return columns;
+}
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const rows: T[][] = [];
@@ -54,11 +78,15 @@ interface Props {
  *   (gercek bir klavye gibi ard arda secilebilir). Kategoriler/arama
  *   EmojiPickerSheet (Hizli Tepki secimi) ile AYNI veri kaynagini
  *   (emojiCategories/emojiSearch) kullanir.
- * - GIF sekmesi: kullanici "kendi gıf kütüphanemiz olsun" dedi (Tenor/
- *   GIPHY'ye BAGLANMADAN) - bkz. ../data/gifPacks.ts: ozgun/telifsiz, Python/
- *   Pillow ile uretilmis soyut reaksiyon GIF'leri. Etiket sekmesiyle AYNI
- *   PackSwitcherAndGrid bileseni kullanilir, "Kendi GIF'ini ekle" ile
- *   kullanicinin kendi GIF'leri de eklenebilir (bkz. ../utils/customGifs.ts).
+ * - GIF sekmesi: kullanici "Bu gif değil çıkartma paketi oldu" diyerek
+ *   itiraz etti, "GIF'i gerçekten farklı hissettirecek şekilde yeniden
+ *   tasarlayalım" dedi - bu yuzden Etiket sekmesinden BILINCLI olarak
+ *   FARKLI: paket seçici YOK (bkz. GifMasonryGrid), yatay/video gibi
+ *   oranli (bkz. ../data/gifPacks.ts width/height) duzensiz (masonry) iki
+ *   sutunlu bir akis. Kendi gıf kütüphanemiz (Tenor/GIPHY'ye BAGLANMADAN,
+ *   ozgun/telifsiz, Python/Pillow ile uretilmis) + "Kendi GIF'ini ekle" ile
+ *   kullanicinin kendi GIF'leri AYNI akışa (paket ayrımı olmadan) karışır
+ *   (bkz. ../utils/customGifs.ts).
  * - Etiket sekmesi: Kullanici "Etiket değil çıkartmaymış... whatsapp/
  *   telegram'daki gibi minik etiketler" dedi - buyuk emoji DEGIL, GERCEK
  *   gorsel cikartmalar (bkz. ../data/stickerPacks.ts - acik lisansli/ucretsiz
@@ -81,7 +109,6 @@ export default function EmojiKeyboardPanel({
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<Tab>("emoji");
   const [stickerPackIndex, setStickerPackIndex] = useState(0);
-  const [gifPackIndex, setGifPackIndex] = useState(0);
 
   // Kullanici: "bu üçünün üstüne birde sürükleme hapı koysak mevcut
   // büyüklüğünün iki katına kadar büyütebilsek" - panel klavyenin yerini
@@ -123,16 +150,16 @@ export default function EmojiKeyboardPanel({
     return [...STICKER_PACKS, customPack];
   }, [customStickers, t]);
 
-  const allGifPacks: StickerPack[] = useMemo(() => {
-    if (!customGifs.length) return GIF_PACKS;
-    const customPack: StickerPack = {
-      id: "custom-gif",
-      name: t("emoji.myGifs"),
-      icon: { uri: customGifs[0].url },
-      stickers: customGifs.map((c) => ({ id: c.id, source: { uri: c.url } })),
-    };
-    return [...GIF_PACKS, customPack];
-  }, [customGifs, t]);
+  // Etiket paketlerinin aksine GIF'lerde "paket" ayrimi YOK (kullanicinin
+  // kendi GIF'leri de bundle edilmis olanlarla AYNI tek akışa karışır) -
+  // bkz. GifMasonryGrid.
+  const allGifItems: GifItem[] = useMemo(() => {
+    const bundled: GifItem[] = GIF_PACKS.flatMap((p) =>
+      p.stickers.map((s) => ({ id: s.id, source: s.source, width: s.width ?? 160, height: s.height ?? 120, isCustom: false }))
+    );
+    const custom: GifItem[] = customGifs.map((c) => ({ id: c.id, source: { uri: c.url }, width: 160, height: 120, isCustom: true, url: c.url }));
+    return [...bundled, ...custom];
+  }, [customGifs]);
 
   function jumpToCategory(categoryIndex: number) {
     emojiListRef.current?.scrollToIndex({ index: emojiLayout.sectionStartIndex[categoryIndex], animated: true });
@@ -177,17 +204,7 @@ export default function EmojiKeyboardPanel({
           createLabel={t("emoji.createSticker")}
         />
       ) : tab === "gif" ? (
-        <PackSwitcherAndGrid
-          packs={allGifPacks}
-          packIndex={gifPackIndex}
-          onPackIndexChange={setGifPackIndex}
-          customPackId="custom-gif"
-          customItems={customGifs}
-          onSend={onSendSticker}
-          onCreate={onCreateGif}
-          creating={creatingGif}
-          createLabel={t("emoji.createGif")}
-        />
+        <GifMasonryGrid items={allGifItems} onSend={onSendSticker} onCreate={onCreateGif} creating={creatingGif} />
       ) : (
         <>
           <View style={styles.searchBar}>
@@ -259,9 +276,8 @@ export default function EmojiKeyboardPanel({
   );
 }
 
-// Etiket VE GIF sekmeleri AYNI yapidadir (paket seciciti + "olustur/ekle"
-// hucresi + grid) - tek fark veri kaynagi (stickerPacks.ts/gifPacks.ts) ve
-// kisisel liste (customStickers/customGifs) oldugu icin ortak bilesen.
+// SADECE Etiket sekmesi icin - bkz. GifMasonryGrid'in GIF icin NEDEN farkli
+// (paket seciçisiz, masonry) bir bilesen oldugunun aciklamasi.
 function PackSwitcherAndGrid({
   packs,
   packIndex,
@@ -331,6 +347,54 @@ function PackSwitcherAndGrid({
         })}
       </ScrollView>
     </View>
+  );
+}
+
+// GIF sekmesi - Etiket sekmesinden BILINCLI olarak farkli: paket seçici YOK,
+// her hucre kendi GERCEK en-boy oraniyla (video klibi gibi yatay) iki
+// sutunlu duzensiz (masonry) bir akista. "Kendi GIF'ini ekle" artik kare
+// bir grid hucresi degil, akisin USTUNDE tam genislikte bir dugme.
+function GifMasonryGrid({
+  items,
+  onSend,
+  onCreate,
+  creating,
+}: {
+  items: GifItem[];
+  onSend: (stickerId: string | null, mediaUrl: string | null) => void;
+  onCreate: () => void;
+  creating?: boolean;
+}) {
+  const { t } = useTranslation();
+  const columns = useMemo(() => splitMasonryColumns(items, 2), [items]);
+  return (
+    <ScrollView style={styles.gifWrap} contentContainerStyle={styles.gifScrollContent}>
+      <TouchableOpacity style={styles.gifAddButton} onPress={onCreate} disabled={creating}>
+        {creating ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <>
+            <Plus size={16} color="#FFFFFF" />
+            <Text style={styles.gifAddButtonText}>{t("emoji.addGif")}</Text>
+          </>
+        )}
+      </TouchableOpacity>
+      <View style={styles.gifColumns}>
+        {columns.map((col, ci) => (
+          <View key={ci} style={styles.gifColumn}>
+            {col.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.gifTile, { aspectRatio: item.width / item.height }]}
+                onPress={() => onSend(item.isCustom ? null : item.id, item.isCustom ? item.url ?? null : null)}
+              >
+                <Image source={item.source} style={styles.gifTileImage} resizeMode="cover" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -453,4 +517,25 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   createStickerText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700", textAlign: "center" },
+  // GIF masonry akisi - Etiket grid'inden (sabit kare hucreler) BILINCLI
+  // olarak farkli: her hucre kendi GERCEK en-boy oraniyla (bkz. gifPacks.ts
+  // width/height) gosterilir.
+  gifWrap: { flex: 1 },
+  gifScrollContent: { paddingHorizontal: 10, paddingTop: 8, paddingBottom: 16, gap: 10 },
+  gifAddButton: {
+    flexDirection: "row",
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: "rgba(255,255,255,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  gifAddButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  gifColumns: { flexDirection: "row", gap: 8 },
+  gifColumn: { flex: 1, gap: 8 },
+  gifTile: { width: "100%", borderRadius: 12, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.04)" },
+  gifTileImage: { width: "100%", height: "100%" },
 });

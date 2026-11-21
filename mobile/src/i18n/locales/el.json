@@ -586,8 +586,7 @@
     "flags": "Σημαίες",
     "createSticker": "Δημιουργία\nαυτοκόλλητου",
     "myStickers": "Τα αυτοκόλλητά μου",
-    "createGif": "Δημιουργία\nGIF",
-    "myGifs": "Τα GIF μου"
+    "addGif": "Προσθήκη δικού σου GIF"
   },
   "messageOptions": {
     "searchPlaceholder": "Αναζήτηση",

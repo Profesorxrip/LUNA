@@ -586,8 +586,7 @@
     "flags": "Bayraqlar",
     "createSticker": "Nalıqça\nyarat",
     "myStickers": "Mənim Nalıqçalarım",
-    "createGif": "GIF\nyarat",
-    "myGifs": "Mənim GIF-lərim"
+    "addGif": "Öz GIF-ini əlavə et"
   },
   "messageOptions": {
     "searchPlaceholder": "Axtar",

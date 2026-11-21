@@ -586,8 +586,7 @@
     "flags": "Flaggen",
     "createSticker": "Sticker\nerstellen",
     "myStickers": "Meine Sticker",
-    "createGif": "GIF\nerstellen",
-    "myGifs": "Meine GIFs"
+    "addGif": "Eigenes GIF hinzufügen"
   },
   "messageOptions": {
     "searchPlaceholder": "Suchen",

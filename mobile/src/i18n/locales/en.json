@@ -641,8 +641,7 @@
     "flags": "Flags",
     "createSticker": "Create\nsticker",
     "myStickers": "My Stickers",
-    "createGif": "Create\nGIF",
-    "myGifs": "My GIFs"
+    "addGif": "Add your own GIF"
   },
   "messageOptions": {
     "searchPlaceholder": "Search",

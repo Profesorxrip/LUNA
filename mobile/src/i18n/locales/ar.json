@@ -586,8 +586,7 @@
     "flags": "الأعلام",
     "createSticker": "إنشاء\nملصق",
     "myStickers": "ملصقاتي",
-    "createGif": "إنشاء\nGIF",
-    "myGifs": "GIFs الخاصة بي"
+    "addGif": "أضف GIF الخاص بك"
   },
   "messageOptions": {
     "searchPlaceholder": "بحث",

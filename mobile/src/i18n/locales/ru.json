@@ -586,8 +586,7 @@
     "flags": "Флаги",
     "createSticker": "Создать\nстикер",
     "myStickers": "Мои стикеры",
-    "createGif": "Создать\nGIF",
-    "myGifs": "Мои GIF"
+    "addGif": "Добавить свой GIF"
   },
   "messageOptions": {
     "searchPlaceholder": "Поиск",
