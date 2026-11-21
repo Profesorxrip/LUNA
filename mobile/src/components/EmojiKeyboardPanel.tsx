@@ -88,7 +88,7 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
           style={[styles.mainTabButton, tab === "emoji" && styles.mainTabButtonActive]}
           onPress={() => setTab("emoji")}
         >
-          <Smile size={20} color={tab === "emoji" ? "#0EA5E9" : "rgba(255,255,255,0.55)"} />
+          <Smile size={20} color={tab === "emoji" ? "#FFFFFF" : "rgba(255,255,255,0.55)"} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.mainTabButton, tab === "gif" && styles.mainTabButtonActive]}
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   },
   mainTabButtonActive: { backgroundColor: "rgba(14,165,233,0.16)" },
   gifTabText: { color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: "800", letterSpacing: 0.5 },
-  gifTabTextActive: { color: "#0EA5E9" },
+  gifTabTextActive: { color: "#FFFFFF" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
