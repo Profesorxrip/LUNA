@@ -340,11 +340,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
   },
-  packTabButtonActive: { backgroundColor: "rgba(14,165,233,0.16)" },
+  // Kullanici: "çerçevesi tam şeffaf olsun hiç gözükmesin" - kutu arka plani
+  // KALDIRILDI, secili paket artik alttaki ince accent cizgiyle belli oluyor.
+  packTabButtonActive: { borderBottomWidth: 2, borderBottomColor: "#0EA5E9" },
   packTabIcon: { width: "100%", height: "100%", borderRadius: 10 },
   stickerGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 6, paddingTop: 4, paddingBottom: 12 },
   stickerGridCell: { width: "20%", aspectRatio: 1, justifyContent: "center", alignItems: "center" },
