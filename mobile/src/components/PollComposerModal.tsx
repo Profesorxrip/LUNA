@@ -33,19 +33,27 @@ const MUTED = "#9A8F80";
  * Kullanici: "Ama o ankette fotoğraf ekleme özelliğide vardı" - gonderi
  * anketindeki (composerPollOptionImages) ile AYNI sekilde her secenegin
  * KENDI (opsiyonel) fotografi olabilir - kutucuga basinca Fotoğraf Çek/Seç
- * secenekleri sunan bir uyari (bkz. showAlert) acilir. */
+ * secenekleri sunan KENDI kucuk sheet'i (imageSheetTarget) acilir - "aralardaki
+ * çizgiyi kaldır" istegiyle paylasilan showAlert'ten (satirlari cizgiyle ayiran,
+ * TUM uygulamada kullanilan ortak bilesen) BILINCLI olarak AYRI tutuldu. */
 export default function PollComposerModal({ visible, sending = false, onCancel, onSend }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [images, setImages] = useState<(string | null)[]>([null, null]);
+  // "Fotoğraf Ekle" kutucugu - kullanicinin "aralardaki çizgiyi kaldır"
+  // istegiyle paylasilan showAlert YERINE (o her yerde kullanilan bir
+  // bilesen, oradaki cizgileri kaldirmak TUM uygulamadaki uyarilari
+  // etkilerdi) KENDI, satirlar arasinda cizgisiz kucuk sheet'i.
+  const [imageSheetTarget, setImageSheetTarget] = useState<number | null>(null);
 
   useEffect(() => {
     if (!visible) {
       setQuestion("");
       setOptions(["", ""]);
       setImages([null, null]);
+      setImageSheetTarget(null);
     }
   }, [visible]);
 
@@ -91,11 +99,20 @@ export default function PollComposerModal({ visible, sending = false, onCancel, 
     setOptionImage(index, result.assets[0].uri);
   }
   function pickOptionImage(index: number) {
-    showAlert(t("dm.pollOptionImageTitle"), undefined, [
-      { text: t("userProfile.takePhoto"), onPress: () => takePhoto(index) },
-      { text: t("userProfile.bannerPhotoPick"), onPress: () => pickFromGallery(index) },
-      { text: t("common.cancel"), style: "cancel" },
-    ]);
+    setImageSheetTarget(index);
+  }
+  function closeImageSheet() {
+    setImageSheetTarget(null);
+  }
+  function handleImageSheetTakePhoto() {
+    const index = imageSheetTarget;
+    setImageSheetTarget(null);
+    if (index !== null) takePhoto(index);
+  }
+  function handleImageSheetPickFromGallery() {
+    const index = imageSheetTarget;
+    setImageSheetTarget(null);
+    if (index !== null) pickFromGallery(index);
   }
   function handleSend() {
     if (!canSend) return;
@@ -168,6 +185,23 @@ export default function PollComposerModal({ visible, sending = false, onCancel, 
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={imageSheetTarget !== null} transparent animationType="fade" onRequestClose={closeImageSheet} statusBarTranslucent>
+        <TouchableOpacity style={styles.imageSheetOverlay} activeOpacity={1} onPress={closeImageSheet}>
+          <View style={styles.imageSheetCard}>
+            <Text style={styles.imageSheetTitle}>{t("dm.pollOptionImageTitle")}</Text>
+            <TouchableOpacity style={styles.imageSheetRow} onPress={handleImageSheetTakePhoto} activeOpacity={0.7}>
+              <Text style={styles.imageSheetRowText}>{t("userProfile.takePhoto")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.imageSheetRow} onPress={handleImageSheetPickFromGallery} activeOpacity={0.7}>
+              <Text style={styles.imageSheetRowText}>{t("userProfile.bannerPhotoPick")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.imageSheetRow} onPress={closeImageSheet} activeOpacity={0.7}>
+              <Text style={[styles.imageSheetRowText, styles.imageSheetCancelText]}>{t("common.cancel")}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </Modal>
   );
 }
@@ -244,4 +278,10 @@ const styles = StyleSheet.create({
   removeBtnText: { color: TEXT, fontSize: 13, lineHeight: 14, fontWeight: "700" },
   addOptionBtn: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginTop: 2, marginBottom: 18 },
   addOptionText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  imageSheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: 32 },
+  imageSheetCard: { width: "100%", maxWidth: 320, backgroundColor: "#15202B", borderRadius: 18, paddingVertical: 8 },
+  imageSheetTitle: { color: TEXT, fontSize: 15, fontWeight: "700", textAlign: "center", paddingTop: 14, paddingBottom: 10, paddingHorizontal: 20 },
+  imageSheetRow: { paddingVertical: 14, alignItems: "center", justifyContent: "center" },
+  imageSheetRowText: { color: "#0EA5E9", fontSize: 15, fontWeight: "600" },
+  imageSheetCancelText: { color: MUTED, fontWeight: "500" },
 });
