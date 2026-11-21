@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { CircleArrowDown, Plus, X } from "lucide-react-native";
+import { CircleArrowDown, Plus } from "lucide-react-native";
 
 interface Props {
   visible: boolean;
@@ -11,13 +11,19 @@ interface Props {
 }
 
 const MAX_OPTIONS = 10;
+const TEXT = "#F5F0E6";
+const MUTED = "#9A8F80";
 
-/** "Anket" ek menusunden acilan ekran - Konum/Dosya Gönder ile AYNI tam
- * ekranli, lacivert temali, ayni baslik dilini (geri ok sol ustte, gonder
- * oku sag ustte - en az 2 dolu secenek + soru yazilinca aktif olur)
- * paylasan bir sayfa. Soru + en az 2 (en fazla 10) secenek yazilir, "Seçenek
- * Ekle" ile yeni satir eklenir, bir secenegin "x" ikonuna basinca (en az 2
- * kalacak sekilde) kaldirilir. */
+/** "Anket" ek menusunden acilan ekran - ust bar Konum/Dosya Gönder ile AYNI
+ * (geri ok sol ustte, gonder oku sag ustte - en az 2 dolu secenek + soru
+ * yazilinca aktif olur); altindaki soru/secenek kutulari ise kullanicinin
+ * "gönderi oluşturma ekranındaki anket ekranıyla aynı olsa" istegiyle
+ * UserProfileScreen.tsx'teki gonderi anketi (pollQuestionInput/
+ * pollOptionInput/composerImageRemoveText/pollAddOptionButton) ile BIREBIR
+ * AYNI gorunumde (siyaha yakin #0A0F14 dolgu, beyaz ince cerceve). Soru +
+ * en az 2 (en fazla 10) secenek yazilir, "Seçenek Ekle" ile yeni satir
+ * eklenir, bir secenegin "×" ikonuna basinca (en az 2 kalacak sekilde)
+ * kaldirilir. */
 export default function PollComposerModal({ visible, onCancel, onSend }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -73,12 +79,11 @@ export default function PollComposerModal({ visible, onCancel, onSend }: Props) 
             value={question}
             onChangeText={setQuestion}
             placeholder={t("dm.pollQuestionPlaceholder")}
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor={MUTED}
             multiline
             maxLength={300}
           />
 
-          <Text style={styles.sectionLabel}>{t("dm.pollOptionsLabel")}</Text>
           {options.map((opt, i) => (
             <View key={i} style={styles.optionRow}>
               <TextInput
@@ -86,12 +91,12 @@ export default function PollComposerModal({ visible, onCancel, onSend }: Props) 
                 value={opt}
                 onChangeText={(text) => changeOption(i, text)}
                 placeholder={t("dm.pollOptionPlaceholder", { number: i + 1 })}
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={MUTED}
                 maxLength={100}
               />
               {options.length > 2 && (
                 <TouchableOpacity style={styles.removeBtn} onPress={() => removeOption(i)} hitSlop={8}>
-                  <X size={16} color="rgba(255,255,255,0.6)" />
+                  <Text style={styles.removeBtnText}>×</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -99,7 +104,7 @@ export default function PollComposerModal({ visible, onCancel, onSend }: Props) 
 
           {options.length < MAX_OPTIONS && (
             <TouchableOpacity style={styles.addOptionBtn} onPress={addOption} activeOpacity={0.8}>
-              <Plus size={16} color="#0EA5E9" />
+              <Plus size={16} color="#FFFFFF" />
               <Text style={styles.addOptionText}>{t("dm.pollAddOption")}</Text>
             </TouchableOpacity>
           )}
@@ -122,40 +127,37 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   body: { flex: 1, paddingHorizontal: 16 },
   questionInput: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    backgroundColor: "#1E2A36",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    minHeight: 70,
+    color: TEXT,
+    fontSize: 15,
+    fontWeight: "600",
+    backgroundColor: "#0A0F14",
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     marginTop: 16,
+    marginBottom: 14,
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  sectionLabel: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginTop: 24,
-    marginBottom: 10,
-  },
-  optionRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
+  optionRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
   optionInput: {
     flex: 1,
-    color: "#FFFFFF",
+    color: TEXT,
     fontSize: 14,
-    backgroundColor: "#1E2A36",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    fontWeight: "600",
+    backgroundColor: "#0A0F14",
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  removeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  addOptionBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
-  addOptionText: { color: "#0EA5E9", fontSize: 14, fontWeight: "700" },
+  removeBtn: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
+  removeBtnText: { color: TEXT, fontSize: 13, lineHeight: 14, fontWeight: "700" },
+  addOptionBtn: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginTop: 2, marginBottom: 18 },
+  addOptionText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
 });
