@@ -23,7 +23,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play, Zap, ZapOff } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
@@ -1863,7 +1863,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               <Icon name="close" size={28} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFlash} hitSlop={10}>
-              {quickCameraFlash === "on" ? <Zap size={26} color="#FFFFFF" fill="#FFFFFF" /> : <ZapOff size={26} color="#FFFFFF" />}
+              <MaterialCommunityIcons name={quickCameraFlash === "on" ? "flash-outline" : "flash-off-outline"} size={26} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
           <View style={styles.quickCameraBottomBar}>
