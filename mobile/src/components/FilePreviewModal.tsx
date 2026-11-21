@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Modal, View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { CircleArrowDown, HardDrive, FaceGrinning } from "lucide-react-native";
+import { CircleArrowDown, HardDrive, FaceGrinning, Send } from "lucide-react-native";
 import { fileIconFor, formatFileSize } from "../utils/format";
 import type { PickedFileAsset, RecentFileEntry } from "../utils/recentFiles";
 
@@ -139,18 +139,20 @@ export default function FilePreviewModal({
             <View style={[styles.composerRow, { paddingBottom: insets.bottom + 12 }]}>
               <View style={styles.captionBox}>
                 <TouchableOpacity onPress={() => setEmojiOpen((v) => !v)} hitSlop={6}>
-                  <FaceGrinning size={22} color="rgba(255,255,255,0.6)" />
+                  <FaceGrinning size={22} color="#9A8F80" />
                 </TouchableOpacity>
                 <TextInput
                   style={styles.captionInput}
                   value={caption}
                   onChangeText={onChangeCaption}
                   placeholder={t("dm.fileCaptionPlaceholder")}
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  multiline
+                  placeholderTextColor="#9A8F80"
                   maxLength={1000}
                 />
               </View>
+              <TouchableOpacity style={styles.sendCircle} onPress={onSend} hitSlop={6}>
+                <Send size={20} color="#141210" />
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -283,10 +285,9 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: "#1E2A36",
     borderRadius: 27.5,
-    minHeight: 55,
+    height: 55,
     paddingLeft: 14,
     paddingRight: 10,
-    paddingVertical: 6,
   },
   captionInput: {
     flex: 1,
@@ -294,7 +295,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingTop: 7,
     paddingBottom: 6,
-    maxHeight: 100,
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
@@ -307,6 +307,7 @@ const styles = StyleSheet.create({
   },
   emojiCell: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   emojiChar: { fontSize: 22 },
+  sendCircle: { width: 55, height: 55, borderRadius: 27.5, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFF" },
   progressWrap: { width: "100%", marginTop: 28, alignItems: "center", gap: 8 },
   progressTrack: { width: "100%", height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.12)", overflow: "hidden" },
   progressFill: { height: "100%", backgroundColor: "#0EA5E9", borderRadius: 3 },
