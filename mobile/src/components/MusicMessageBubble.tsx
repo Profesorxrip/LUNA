@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Music, Play, Pause } from "lucide-react-native";
+import { Play, Pause } from "lucide-react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { formatDuration } from "../utils/format";
 
@@ -13,7 +13,11 @@ const MUSIC_COLOR = "#C084FC";
 
 /** Sohbette paylasilan muzik balonu - FileMessageBubble ile AYNI kart
  * olcusu/dolgusu, ama indirme yerine expo-audio ile DOGRUDAN (VoiceMessageBubble
- * ile ayni oynatma motoru) calar - sagdaki ikon play/pause olarak degisir. */
+ * ile ayni oynatma motoru) calar - sagdaki ikon play/pause olarak degisir.
+ * Kullanici: "Müzik kartındaki ikon bir işe yarıyormu" - soldaki nota ikonu
+ * sadece SUSLEME idi (kendi basina tiklanabilir degildi, tum karta
+ * basmakla AYNI handlePress'i zaten tetikliyordu) - kafa karistirmasin
+ * diye KALDIRILDI. */
 export default function MusicMessageBubble({ uri, title }: Props) {
   const player = useAudioPlayer(uri);
   const status = useAudioPlayerStatus(player);
@@ -32,9 +36,6 @@ export default function MusicMessageBubble({ uri, title }: Props) {
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={handlePress}>
-      <View style={styles.iconWrap}>
-        <Music size={22} color={MUSIC_COLOR} />
-      </View>
       <View style={styles.textCol}>
         <Text style={styles.name} numberOfLines={1}>
           {displayTitle}
@@ -58,14 +59,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: 8,
     padding: 12,
-  },
-  iconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: "rgba(192,132,252,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
   },
   textCol: { flex: 1, minWidth: 0 },
   name: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },

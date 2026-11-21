@@ -372,12 +372,14 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
             {!item.deletedForEveryone &&
               item.kind !== "voice" &&
               item.kind !== "location" &&
-              item.kind !== "file" &&
               item.kind !== "music" &&
               item.kind !== "video" &&
               item.mediaUrl &&
               item.text &&
-              item.text !== "📷 Fotoğraf" && <Text style={styles.mediaCaption}>{item.text}</Text>}
+              item.text !== "📷 Fotoğraf" &&
+              !(item.kind === "file" && item.text === `📎 ${item.fileName}`) && (
+                <Text style={styles.mediaCaption}>{item.text}</Text>
+              )}
             <View
               style={[
                 styles.metaRow,
@@ -1936,6 +1938,14 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
           if (displayItem.type === "photoGroup") {
             const isMine = displayItem.fromUserId === myUserId;
             const grouped = !!prevFromUserId && prevFromUserId === displayItem.fromUserId;
+            let groupCaption: string | null = null;
+            for (let k = displayItem.photos.length - 1; k >= 0; k--) {
+              const p = displayItem.photos[k];
+              if (p.text && p.text !== "📷 Fotoğraf") {
+                groupCaption = p.text;
+                break;
+              }
+            }
             return (
               <View
                 style={[
@@ -1967,6 +1977,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                       onReply={() => startReply(displayItem.photos[displayItem.photos.length - 1])}
                       onReport={() => setReportVisible(true)}
                     />
+                    {!!groupCaption && <Text style={styles.mediaCaption}>{groupCaption}</Text>}
                     <View style={[styles.metaRow, styles.metaRowPhotoOverlay]}>
                       <View style={styles.metaRowRight}>
                         <Text style={styles.metaTime}>{formatMessageTime(displayItem.createdAt, i18n.language)}</Text>
