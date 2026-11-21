@@ -1796,7 +1796,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                       <TouchableOpacity onPress={() => setAttachSheetVisible(true)} hitSlop={6}>
                         <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={19} color="#9CA3AF" /></View>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={openCamera} hitSlop={6} style={{ marginLeft: 5 }}>
+                      <TouchableOpacity onPress={startQuickCapture} hitSlop={6} style={{ marginLeft: 5 }}>
                         <MaterialCommunityIcons name="camera-outline" size={25} color="#9CA3AF" />
                       </TouchableOpacity>
                     </View>
