@@ -1113,50 +1113,20 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setSelectedRecentUris([]);
   }
 
-  // Kullanici: "Onizleme olmadan direkt gönder" - secim modunda gonder
-  // okuna basinca, pendingFiles/onizleme ekranina HIC UGRAMADAN secilen
-  // dosyalar DOGRUDAN yuklenip gonderilir, ekran hemen kapanir (bkz.
-  // sendFilesDirect). Bu, tek dosyalik akistan (confirmSendFile, orada
-  // onizleme + ilerleme cubugu KALICI) BILINCLI olarak farkli.
+  // Kullanici: "Çoklu seçim yaptığımızda da bu ekrana yönlendirsen" -
+  // secim modunda gonder okuna basinca secili dosyalar artik tek dosyalik
+  // akisla AYNI onizleme ekranina (mesaj kutusu dahil) gelir, dogrudan
+  // yuklenip gonderilmez (bkz. confirmSendFile - artik tek VEYA coklu
+  // pendingFiles'i donguyle yolluyor).
   function confirmRecentSelection() {
     const chosen = recentFiles
       .filter((f) => selectedRecentUris.includes(f.uri))
       .map((f) => ({ uri: f.uri, name: f.name, size: f.size, mimeType: f.mimeType }));
     if (!chosen.length) return;
-    sendFilesDirect(chosen);
-  }
-
-  async function sendFilesDirect(filesToSend: PickedFileAsset[]) {
-    if (!filesToSend.length || !myUserId || sendingFile) return;
-    setFilePreviewVisible(false);
-    setPendingFiles([]);
+    setPendingFiles(chosen);
+    setFileCaption("");
     setRecentSelectionMode(false);
     setSelectedRecentUris([]);
-    setSendingFile(true);
-    try {
-      for (const asset of filesToSend) {
-        const arrayBuffer = await uriToArrayBuffer(asset.uri);
-        const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
-        const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", () => {});
-        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
-        await new Promise<void>((resolve) => {
-          socket.emit(
-            "dm:sendFile",
-            { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType },
-            (res: any) => {
-              if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
-              else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
-              resolve();
-            }
-          );
-        });
-      }
-    } catch (err: any) {
-      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
-    } finally {
-      setSendingFile(false);
-    }
   }
 
   function cancelPendingFile() {
@@ -1178,31 +1148,36 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   }
 
   async function confirmSendFile() {
-    const asset = pendingFiles[0];
-    if (!asset || !myUserId || sendingFile) return;
+    if (!pendingFiles.length || !myUserId || sendingFile) return;
     setSendingFile(true);
     setFileUploadProgress(0);
+    const caption = fileCaption.trim() || undefined;
     try {
-      const arrayBuffer = await uriToArrayBuffer(asset.uri);
-      const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
-      const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", setFileUploadProgress);
-      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
-      socket.emit(
-        "dm:sendFile",
-        {
-          toUserId: peer.userId,
-          mediaUrl: publicUrlData.publicUrl,
-          fileName: asset.name,
-          fileSize: asset.size,
-          mimeType: asset.mimeType,
-          caption: fileCaption.trim() || undefined,
-        },
-        (res: any) => {
-          if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
-          else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
-        }
-      );
+      for (const asset of pendingFiles) {
+        const arrayBuffer = await uriToArrayBuffer(asset.uri);
+        const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
+        const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", setFileUploadProgress);
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        await new Promise<void>((resolve) => {
+          socket.emit(
+            "dm:sendFile",
+            {
+              toUserId: peer.userId,
+              mediaUrl: publicUrlData.publicUrl,
+              fileName: asset.name,
+              fileSize: asset.size,
+              mimeType: asset.mimeType,
+              caption,
+            },
+            (res: any) => {
+              if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+              else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+              resolve();
+            }
+          );
+        });
+      }
       setPendingFiles([]);
       setFileCaption("");
       setFilePreviewVisible(false);
