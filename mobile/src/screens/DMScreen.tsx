@@ -37,6 +37,7 @@ import SendMediaSheet from "../components/SendMediaSheet";
 import SendVideoSheet from "../components/SendVideoSheet";
 import GalleryPickerModal, { type GalleryPickedAsset } from "../components/GalleryPickerModal";
 import LocationPickerModal, { type PickedLocation } from "../components/LocationPickerModal";
+import FilePreviewModal from "../components/FilePreviewModal";
 import CameraFilmstrip, { type FilmstripPickedAsset } from "../components/CameraFilmstrip";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
@@ -439,6 +440,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // yukleme deseni, ama kendi onizleme/caption ekrani yok, secilince
   // DOGRUDAN gonderilir.
   const [sendingFile, setSendingFile] = useState(false);
+  const [pendingFile, setPendingFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [fileUploadProgress, setFileUploadProgress] = useState(0);
   // Sesli mesaj kaydi - expo-audio'nun kendi "ne kadar surdu" sayacini
   // (useAudioRecorderState) kullaniyoruz, kendi zamanlayicimizi KURMUYORUZ.
   // isMeteringEnabled: kilitli kayit cubugundaki ses dalgasi ARTIK SAHTE
@@ -1048,29 +1051,43 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   }
 
   // Kullanici: "dosya gönderme özelliği ekle" - ataç menüsundeki "Dosya"
-  // satiri. Fotograf akisindaki (sendPickedImage) ile AYNI "chat-media"
-  // yukleme deseni, ama kendi onizleme/caption ekrani yok - secilince
-  // DOGRUDAN gonderilir.
-  async function pickAndSendFile() {
-    const result = await DocumentPicker.getDocumentAsync({ multiple: false });
-    if (result.canceled || !result.assets?.[0] || !myUserId) return;
-    setAttachSheetVisible(false);
-    const asset = result.assets[0];
+  // satiri. Once sadece dosyayi SECER (pendingFile), gercek yukleme/gonderim
+  // kullanici FilePreviewModal'daki onizlemeyi gorup gonder okuna basinca
+  // (confirmSendFile) olur - Galeriden Sec/Konum Gonder ile AYNI "once
+  // gorup sonra onayla" akisi.
+  function pickFile() {
+    DocumentPicker.getDocumentAsync({ multiple: false }).then((result) => {
+      if (result.canceled || !result.assets?.[0]) return;
+      setAttachSheetVisible(false);
+      setPendingFile(result.assets[0]);
+    });
+  }
+
+  function cancelPendingFile() {
+    if (sendingFile) return;
+    setPendingFile(null);
+  }
+
+  async function confirmSendFile() {
+    if (!pendingFile || !myUserId || sendingFile) return;
+    const asset = pendingFile;
     setSendingFile(true);
+    setFileUploadProgress(0);
     try {
       const arrayBuffer = await uriToArrayBuffer(asset.uri);
       const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
       const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", () => {});
+      await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", setFileUploadProgress);
       const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
       socket.emit(
         "dm:sendFile",
         { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType },
         (res: any) => {
-          if (res?.ok) setMessages((prev) => [...prev, res.message]);
-          else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+          if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+          else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
         }
       );
+      setPendingFile(null);
     } catch (err: any) {
       showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
     } finally {
@@ -1901,9 +1918,9 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachLocation")}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={pickAndSendFile} disabled={sendingFile}>
+              <TouchableOpacity style={styles.attachGridItem} onPress={pickFile}>
                 <View style={styles.attachIconWrap}>
-                  {sendingFile ? <ActivityIndicator size="small" color="#FFFFFF" /> : <FileTextIcon size={26} color="#FFFFFF" />}
+                  <FileTextIcon size={26} color="#FFFFFF" />
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachFile")}</Text>
               </TouchableOpacity>
@@ -2032,6 +2049,17 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         visible={locationPickerVisible}
         onClose={() => setLocationPickerVisible(false)}
         onConfirm={handleLocationPickerConfirm}
+      />
+
+      <FilePreviewModal
+        visible={!!pendingFile}
+        fileName={pendingFile?.name ?? ""}
+        fileSize={pendingFile?.size}
+        mimeType={pendingFile?.mimeType}
+        uploading={sendingFile}
+        uploadProgress={fileUploadProgress}
+        onCancel={cancelPendingFile}
+        onSend={confirmSendFile}
       />
 
       <SendMediaSheet

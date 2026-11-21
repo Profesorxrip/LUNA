@@ -226,7 +226,7 @@ export default function LocationPickerModal({ visible, onClose, onConfirm }: Pro
 
           {/* Haritanin TAM ORTASINDA sabit pin - harita bunun ALTINDA kayar */}
           <View style={styles.pinWrap} pointerEvents="none">
-            <MapPin size={38} color="#EF4444" fill="#EF4444" strokeWidth={1.5} />
+            <MapPin size={38} color="#4A7E96" fill="#4A7E96" strokeWidth={1.5} />
             <View style={styles.pinShadow} />
           </View>
 

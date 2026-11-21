@@ -208,6 +208,7 @@
     "locationSendButton": "Send This Location",
     "locationResolvingAddress": "Finding address...",
     "attachFile": "File",
+    "filePreviewTitle": "Send File",
     "attachPoll": "Poll",
     "attachMusic": "Music",
     "attachContact": "Contact",
