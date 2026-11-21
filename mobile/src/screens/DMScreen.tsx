@@ -2942,7 +2942,7 @@ const styles = StyleSheet.create({
   // bubblePhotoPad width:286), alt yazi da AYNI genislige (280) yayilmali -
   // 220 ile gorselden daha dar kalip sag tarafta bos/carpik bir bosluk
   // birakiyordu.
-  mediaCaption: { color: TEXT, fontSize: 15, marginTop: 5, width: 280 },
+  mediaCaption: { color: TEXT, fontSize: 15, marginTop: 5, maxWidth: 280 },
   attachSheet: {
     backgroundColor: "#15202B",
     height: 300,
