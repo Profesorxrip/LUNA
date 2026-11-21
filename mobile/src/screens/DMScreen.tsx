@@ -479,6 +479,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [customGifs, setCustomGifs] = useState<CustomGif[]>([]);
   const [creatingGif, setCreatingGif] = useState(false);
   const [galleryPickerVisible, setGalleryPickerVisible] = useState(false);
+  // Kullanici: "Cihazın galerisi niye açılsın galeriden seç sayfamız var
+  // bizim" - "Çıkartma oluştur"/"Kendi GIF'ini ekle" de ("Galeriden Seç"
+  // ile AYNI sekilde) OS'in kendi galerisi yerine uygulama ICI
+  // GalleryPickerModal'i acmali (bkz. asagida createSticker/createGif).
+  // Bu alan, tek bir GalleryPickerModal'in SONUCUNU (handleGalleryPickerConfirm)
+  // hangi akisa (normal ekleme/cikartma/gif) yonlendirecegini belirler.
+  const [galleryPickerMode, setGalleryPickerMode] = useState<"default" | "sticker" | "gif">("default");
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [quickCaptureActive, setQuickCaptureActive] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -880,6 +887,16 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
 
   function handleGalleryPickerConfirm(picked: GalleryPickedAsset[]) {
     setGalleryPickerVisible(false);
+    if (galleryPickerMode === "sticker") {
+      setGalleryPickerMode("default");
+      if (picked[0]) uploadCustomSticker(picked[0].uri);
+      return;
+    }
+    if (galleryPickerMode === "gif") {
+      setGalleryPickerMode("default");
+      if (picked[0]) uploadCustomGif(picked[0].uri);
+      return;
+    }
     const videos = picked.filter((a) => a.type === "video");
     const images = picked.filter((a) => a.type === "image");
     if (images.length) setPendingImages((prev) => [...prev, ...images.map((a) => a.uri)]);
@@ -1541,18 +1558,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // karsi taraf da gorebilir. Yuklendikten sonra kisisel "Benim
   // Çıkartmalarım" listesine (bkz. ../utils/customStickers.ts) eklenir,
   // tekrar tekrar gonderilebilsin diye tekrar yuklenmesi GEREKMEZ.
-  async function createSticker() {
-    if (!myUserId || creatingSticker) return;
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.9 });
-    if (result.canceled || !result.assets?.[0]) return;
+  async function uploadCustomSticker(uri: string) {
+    if (!myUserId) return;
     setCreatingSticker(true);
     try {
-      const uri = result.assets[0].uri;
       const arrayBuffer = await uriToArrayBuffer(uri);
       const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "png";
       const path = `${myUserId}/${Date.now()}-sticker-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -1567,22 +1576,38 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     }
   }
 
-  // "Kendi GIF'ini ekle" - createSticker ile AYNI akis, tek fark: kalite
-  // SIKISTIRMA UYGULANMAZ (quality: 1, allowsEditing yok) - JPEG/PNG'nin
-  // aksine bir GIF'in kare kare animasyonu sikistirma/yeniden kodlama
-  // sirasinda bozulabilir, bu yuzden dosya oldugu gibi yuklenir.
-  async function createGif() {
-    if (!myUserId || creatingGif) return;
+  // Kullanici: "Cihazın galerisi niye açılsın galeriden seç sayfamız var
+  // bizim" - "Galeriden Seç" (pickImage) ile AYNI platform ayrimi:
+  // native'de uygulama ICI GalleryPickerModal'i acar (bkz. galleryPickerMode
+  // + handleGalleryPickerConfirm), web'de GalleryPickerModal GERCEK foto
+  // listeleyemedigi icin (bkz. GalleryPickerModal.tsx ustundeki not) eski
+  // ImagePicker.launchImageLibraryAsync akisina duser.
+  async function createSticker() {
+    if (!myUserId || creatingSticker) return;
+    if (Platform.OS !== "web") {
+      setGalleryPickerMode("sticker");
+      setGalleryPickerVisible(true);
+      return;
+    }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.9 });
     if (result.canceled || !result.assets?.[0]) return;
+    uploadCustomSticker(result.assets[0].uri);
+  }
+
+  // "Kendi GIF'ini ekle" - createSticker ile AYNI akis (uygulama ICI
+  // GalleryPickerModal, bkz. yukarisi), tek fark: kalite SIKISTIRMA
+  // UYGULANMAZ (quality: 1, allowsEditing yok) - JPEG/PNG'nin aksine bir
+  // GIF'in kare kare animasyonu sikistirma/yeniden kodlama sirasinda
+  // bozulabilir, bu yuzden dosya oldugu gibi yuklenir.
+  async function uploadCustomGif(uri: string) {
+    if (!myUserId) return;
     setCreatingGif(true);
     try {
-      const uri = result.assets[0].uri;
       const arrayBuffer = await uriToArrayBuffer(uri);
       const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "gif";
       const path = `${myUserId}/${Date.now()}-gif-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -1595,6 +1620,23 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     } finally {
       setCreatingGif(false);
     }
+  }
+
+  async function createGif() {
+    if (!myUserId || creatingGif) return;
+    if (Platform.OS !== "web") {
+      setGalleryPickerMode("gif");
+      setGalleryPickerVisible(true);
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
+    if (result.canceled || !result.assets?.[0]) return;
+    uploadCustomGif(result.assets[0].uri);
   }
 
   function startReply(message: DMMessage) {
