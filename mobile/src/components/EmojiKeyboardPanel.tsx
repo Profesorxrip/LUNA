@@ -381,7 +381,10 @@ function GifMasonryGrid({
       </TouchableOpacity>
       <View style={styles.gifColumns}>
         {columns.map((col, ci) => (
-          <View key={ci} style={styles.gifColumn}>
+          <View key={ci} style={[styles.gifColumn, ci % 2 === 1 && styles.gifColumnOffset]}>
+            {/* Kullanici: "belli belirsiz bir düzende olmalılar" - ikinci
+                sutun hafifce asagi kaydirilarak (bkz. gifColumnOffset) hizali
+                bir grid DEGIL, gevsek/organik bir duvar hissi verilir. */}
             {col.map((item) => (
               <TouchableOpacity
                 key={item.id}
@@ -534,8 +537,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   gifAddButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
-  gifColumns: { flexDirection: "row", gap: 8 },
-  gifColumn: { flex: 1, gap: 8 },
-  gifTile: { width: "100%", borderRadius: 12, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.04)" },
+  // Kullanici: "aralarındaki boşlukta 3 px olmalı" + "kenarları daha sivri
+  // olmalı" - masonry grid'inin kare Etiket grid'inden (12px/8px) BILINCLI
+  // olarak keskin/sik bir "video klibi" hissine cekilmesi.
+  gifColumns: { flexDirection: "row", gap: 3 },
+  gifColumn: { flex: 1, gap: 3 },
+  gifColumnOffset: { marginTop: 22 },
+  gifTile: { width: "100%", borderRadius: 3, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.04)" },
   gifTileImage: { width: "100%", height: "100%" },
 });
