@@ -1857,12 +1857,16 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             <TouchableOpacity style={styles.quickCameraTopBtn} onPress={() => setQuickCaptureActive(false)} hitSlop={10}>
               <Icon name="close" size={22} color="#FFFFFF" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFlash} hitSlop={10}>
-              {quickCameraFlash === "on" ? <Zap size={20} color="#FFFFFF" fill="#FFFFFF" /> : <ZapOff size={20} color="#FFFFFF" />}
-            </TouchableOpacity>
+            <View style={styles.quickCameraTopRightGroup}>
+              <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
+                <MaterialCommunityIcons name="camera-flip-outline" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFlash} hitSlop={10}>
+                {quickCameraFlash === "on" ? <Zap size={20} color="#FFFFFF" fill="#FFFFFF" /> : <ZapOff size={20} color="#FFFFFF" />}
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.quickCameraBottomBar}>
-            <View style={styles.quickCameraSideBtn} />
             <TouchableOpacity
               style={styles.quickCameraShutterOuter}
               onPress={handleQuickShutterPress}
@@ -1870,9 +1874,6 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               hitSlop={8}
             >
               <View style={[styles.quickCameraShutterInner, capturingQuickPhoto && styles.quickCameraShutterInnerActive]} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickCameraSideBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
-              <MaterialCommunityIcons name="camera-flip-outline" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -2100,19 +2101,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  quickCameraTopRightGroup: { flexDirection: "row", alignItems: "center", gap: 10 },
   quickCameraBottomBar: {
     position: "absolute",
     bottom: 86,
     left: 0,
     right: 0,
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 40,
-  },
-  quickCameraSideBtn: {
-    width: 44,
-    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
