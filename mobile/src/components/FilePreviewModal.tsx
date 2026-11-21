@@ -99,11 +99,15 @@ export default function FilePreviewModal({
           <Text style={styles.headerTitle}>
             {selectionMode && !hasFiles ? t("dm.fileSelectedCount", { count: selectedUris.length }) : t("dm.filePreviewTitle")}
           </Text>
-          <TouchableOpacity style={styles.headerBtn} onPress={handleHeaderSend} disabled={!headerSendActive} hitSlop={10}>
-            <View style={{ transform: [{ rotate: "180deg" }] }}>
-              <CircleArrowDown size={22} color={headerSendActive ? "#FFFFFF" : "rgba(255,255,255,0.4)"} />
-            </View>
-          </TouchableOpacity>
+          {hasFiles ? (
+            <View style={styles.headerBtn} />
+          ) : (
+            <TouchableOpacity style={styles.headerBtn} onPress={handleHeaderSend} disabled={!headerSendActive} hitSlop={10}>
+              <View style={{ transform: [{ rotate: "180deg" }] }}>
+                <CircleArrowDown size={22} color={headerSendActive ? "#FFFFFF" : "rgba(255,255,255,0.4)"} />
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
 
         {hasFiles && single ? (
