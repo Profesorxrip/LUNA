@@ -37,6 +37,7 @@ import LoadingView from "../components/LoadingView";
 import SendMediaSheet from "../components/SendMediaSheet";
 import SendVideoSheet from "../components/SendVideoSheet";
 import GalleryPickerModal, { type GalleryPickedAsset } from "../components/GalleryPickerModal";
+import CameraFilmstrip, { type FilmstripPickedAsset } from "../components/CameraFilmstrip";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
 import { formatMessageTime } from "../utils/time";
@@ -844,6 +845,14 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   function handleQuickGalleryPress() {
     setQuickCaptureActive(false);
     pickImage();
+  }
+
+  // Kamera ekranindaki son fotograf/video seridinde (CameraFilmstrip) bir
+  // kucuk resme dokununca - GalleryPickerModal'daki tek tiklama ile AYNI
+  // davranis, o TEK ogeyi dogrudan duzenleme/gonderme ekranina gotursun.
+  function handleFilmstripPickAsset(asset: FilmstripPickedAsset) {
+    setQuickCaptureActive(false);
+    handleGalleryPickerConfirm([{ uri: asset.uri, type: asset.type, mimeType: asset.type === "video" ? "video/mp4" : "image/jpeg" }]);
   }
 
   function toggleQuickCameraFlash() {
@@ -1960,6 +1969,18 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               </View>
             </View>
           )}
+          {/* Kullanici: "...son fotoğraflarımın ve videolarımın gözüktüğü
+              bi alan yapsak deklanşörün üstüne..." - deklansorun USTUNDE,
+              ekran genisligini kaplayan kaydirmali son medya seridi;
+              hap isaretini asagi kaydirinca gizlenir, yukari kaydirinca
+              GERCEK galeri ekrani acilir. */}
+          <View style={styles.quickCameraFilmstripWrap} pointerEvents="box-none">
+            <CameraFilmstrip
+              visible={quickCaptureActive}
+              onOpenGallery={handleQuickGalleryPress}
+              onPickAsset={handleFilmstripPickAsset}
+            />
+          </View>
           <View style={styles.quickCameraBottomBar}>
             {/* Galeri SOL kenari X butonuyla AYNI hizada (kullanicinin
                 istegi) - bkz. ust bardaki AYNI left:16. */}
@@ -2262,6 +2283,12 @@ const styles = StyleSheet.create({
   // Deklansorun SOL kenari X butonuyla, kamera cevirmenin SAG kenari flas
   // butonuyla AYNI hizada (left:16/right:16 - ust barla AYNI) - kullanicinin
   // istegi. Galeri ikonu ortada, diger ucuyle AYNI cerceveli.
+  quickCameraFilmstripWrap: {
+    position: "absolute",
+    bottom: 168,
+    left: 0,
+    right: 0,
+  },
   quickCameraBottomBar: {
     position: "absolute",
     bottom: 86,
