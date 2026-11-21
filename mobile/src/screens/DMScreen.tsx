@@ -381,8 +381,14 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               style={[
                 styles.metaRow,
                 item.kind === "voice" && styles.metaRowVoice,
-                item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.mediaUrl && styles.metaRowPhotoOverlay,
+                item.kind !== "voice" &&
+                  item.kind !== "location" &&
+                  item.kind !== "file" &&
+                  item.kind !== "music" &&
+                  item.mediaUrl &&
+                  styles.metaRowPhotoOverlay,
                 item.kind === "call" && styles.metaRowCallOverlay,
+                item.kind === "music" && styles.metaRowMusicOverlay,
               ]}
             >
               {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
@@ -2577,6 +2583,15 @@ const styles = StyleSheet.create({
   metaRowCallOverlay: {
     position: "absolute",
     bottom: 8,
+    right: 10,
+    marginTop: 0,
+  },
+  // Kullanici: "Müzik kısmındaki saati 2 px aşşağı kaydır saat çerçevesinide
+  // kaldır" - metaRowCallOverlay ile AYNI mantik (cerceve/arka plan YOK),
+  // sadece 2px daha asagida (bottom: 8 -> 6).
+  metaRowMusicOverlay: {
+    position: "absolute",
+    bottom: 6,
     right: 10,
     marginTop: 0,
   },
