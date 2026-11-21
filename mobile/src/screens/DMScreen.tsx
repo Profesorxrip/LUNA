@@ -2950,13 +2950,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 15,
-    // Kullanici: "Yükselttiğimiz zaman mesaj kutusu ile şey yükselmemeli" -
-    // composer artik emoji panelinin (bkz. EmojiKeyboardPanel "panel" -
-    // mutlak konumlu, zIndex:10) GERCEK yuksekligiyle degil SABIT bir
-    // bosluk (bkz. asagidaki emojiPanelVisible spacer) kadar yukari kayiyor,
-    // panel cok buyutulurse composer'in ALTINA (geometrik olarak) girebilir
-    // - composer HER ZAMAN ustte/gorunur kalsin diye zIndex daha yuksek.
-    zIndex: 20,
   },
   inputBarWithReply: { alignItems: "flex-end" },
   // Kilitli kayit modunda inputBar'in kendi dolgusu (sag/sol/alt) iptal
