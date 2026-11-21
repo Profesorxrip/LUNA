@@ -584,10 +584,10 @@
     "objects": "Objets",
     "symbols": "Symboles",
     "flags": "Drapeaux",
-    "gifSearchPlaceholder": "RECHERCHER UN GIF",
-    "gifComingSoon": "La recherche de GIF arrive bientôt",
     "createSticker": "Créer un\nautocollant",
-    "myStickers": "Mes autocollants"
+    "myStickers": "Mes autocollants",
+    "createGif": "Créer un\nGIF",
+    "myGifs": "Mes GIFs"
   },
   "messageOptions": {
     "searchPlaceholder": "Rechercher",

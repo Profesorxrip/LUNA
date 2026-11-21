@@ -5,6 +5,7 @@
 // (bkz. assets/stickers/openmoji/CREDITS.md). "packs" dizisi SONRADAN yeni
 // paketler eklenebilsin diye coklu-paket yapisinda tutuluyor.
 import type { ImageSourcePropType } from "react-native";
+import { GIF_PACKS } from "./gifPacks";
 
 // Bundle edilmis hazir paketlerde require() sonucu (number), kullanicinin
 // "Çıkartma oluştur" ile ekledigi kisisel pakette ise uzak bir URL
@@ -57,9 +58,11 @@ export const STICKER_PACKS: StickerPack[] = [
   },
 ];
 
+// Cikartma VE gif gonderme ayni pipeline'i (sendSticker/StickerMessageBubble)
+// paylastigi icin burada ikisi birden aranir (bkz. gifPacks.ts).
 export function findSticker(stickerId: string | null | undefined): StickerDef | null {
   if (!stickerId) return null;
-  for (const pack of STICKER_PACKS) {
+  for (const pack of [...STICKER_PACKS, ...GIF_PACKS]) {
     const found = pack.stickers.find((s) => s.id === stickerId);
     if (found) return found;
   }

@@ -584,10 +584,10 @@
     "objects": "Əşyalar",
     "symbols": "Simvollar",
     "flags": "Bayraqlar",
-    "gifSearchPlaceholder": "GIF AXTAR",
-    "gifComingSoon": "GIF axtarışı tezliklə gəlir",
     "createSticker": "Nalıqça\nyarat",
-    "myStickers": "Mənim Nalıqçalarım"
+    "myStickers": "Mənim Nalıqçalarım",
+    "createGif": "GIF\nyarat",
+    "myGifs": "Mənim GIF-lərim"
   },
   "messageOptions": {
     "searchPlaceholder": "Axtar",

@@ -584,10 +584,10 @@
     "objects": "الأشياء",
     "symbols": "الرموز",
     "flags": "الأعلام",
-    "gifSearchPlaceholder": "ابحث عن GIF",
-    "gifComingSoon": "البحث عن GIF قريبًا",
     "createSticker": "إنشاء\nملصق",
-    "myStickers": "ملصقاتي"
+    "myStickers": "ملصقاتي",
+    "createGif": "إنشاء\nGIF",
+    "myGifs": "GIFs الخاصة بي"
   },
   "messageOptions": {
     "searchPlaceholder": "بحث",

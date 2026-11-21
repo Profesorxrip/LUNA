@@ -584,10 +584,10 @@
     "objects": "Αντικείμενα",
     "symbols": "Σύμβολα",
     "flags": "Σημαίες",
-    "gifSearchPlaceholder": "ΑΝΑΖΗΤΗΣΗ GIF",
-    "gifComingSoon": "Η αναζήτηση GIF έρχεται σύντομα",
     "createSticker": "Δημιουργία\nαυτοκόλλητου",
-    "myStickers": "Τα αυτοκόλλητά μου"
+    "myStickers": "Τα αυτοκόλλητά μου",
+    "createGif": "Δημιουργία\nGIF",
+    "myGifs": "Τα GIF μου"
   },
   "messageOptions": {
     "searchPlaceholder": "Αναζήτηση",

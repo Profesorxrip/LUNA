@@ -639,10 +639,10 @@
     "objects": "Nesneler",
     "symbols": "Semboller",
     "flags": "Bayraklar",
-    "gifSearchPlaceholder": "GIF ARA",
-    "gifComingSoon": "GIF araması yakında geliyor",
     "createSticker": "Çıkartma\noluştur",
-    "myStickers": "Benim Çıkartmalarım"
+    "myStickers": "Benim Çıkartmalarım",
+    "createGif": "GIF\noluştur",
+    "myGifs": "Benim GIF'lerim"
   },
   "messageOptions": {
     "searchPlaceholder": "Ara",

@@ -56,6 +56,7 @@ import ContactMessageBubble from "../components/ContactMessageBubble";
 import PollComposerModal from "../components/PollComposerModal";
 import EmojiKeyboardPanel, { PANEL_HEIGHT as EMOJI_PANEL_BASE_HEIGHT } from "../components/EmojiKeyboardPanel";
 import { getCustomStickers, addCustomSticker, CustomSticker } from "../utils/customStickers";
+import { getCustomGifs, addCustomGif, CustomGif } from "../utils/customGifs";
 import PollMessageBubble from "../components/PollMessageBubble";
 import MusicMessageBubble from "../components/MusicMessageBubble";
 import StickerMessageBubble from "../components/StickerMessageBubble";
@@ -475,6 +476,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [emojiPanelVisible, setEmojiPanelVisible] = useState(false);
   const [customStickers, setCustomStickers] = useState<CustomSticker[]>([]);
   const [creatingSticker, setCreatingSticker] = useState(false);
+  const [customGifs, setCustomGifs] = useState<CustomGif[]>([]);
+  const [creatingGif, setCreatingGif] = useState(false);
   const [galleryPickerVisible, setGalleryPickerVisible] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [quickCaptureActive, setQuickCaptureActive] = useState(false);
@@ -654,6 +657,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
 
   useEffect(() => {
     getCustomStickers().then(setCustomStickers);
+    getCustomGifs().then(setCustomGifs);
   }, []);
 
   useEffect(() => {
@@ -1546,6 +1550,36 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     }
   }
 
+  // "Kendi GIF'ini ekle" - createSticker ile AYNI akis, tek fark: kalite
+  // SIKISTIRMA UYGULANMAZ (quality: 1, allowsEditing yok) - JPEG/PNG'nin
+  // aksine bir GIF'in kare kare animasyonu sikistirma/yeniden kodlama
+  // sirasinda bozulabilir, bu yuzden dosya oldugu gibi yuklenir.
+  async function createGif() {
+    if (!myUserId || creatingGif) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
+    if (result.canceled || !result.assets?.[0]) return;
+    setCreatingGif(true);
+    try {
+      const uri = result.assets[0].uri;
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "gif";
+      const path = `${myUserId}/${Date.now()}-gif-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, "image/gif", () => {});
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      const next = await addCustomGif(publicUrlData.publicUrl);
+      setCustomGifs(next);
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setCreatingGif(false);
+    }
+  }
+
   function startReply(message: DMMessage) {
     setReplyingTo({
       text: message.text,
@@ -2341,6 +2375,9 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
           customStickers={customStickers}
           onCreateSticker={createSticker}
           creatingSticker={creatingSticker}
+          customGifs={customGifs}
+          onCreateGif={createGif}
+          creatingGif={creatingGif}
         />
       )}
 

@@ -1,12 +1,14 @@
 import React, { useMemo, useRef, useState } from "react";
 import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView, ActivityIndicator, PanResponder } from "react-native";
-import { Search, X, Smile, Clapperboard, Plus } from "lucide-react-native";
+import { Search, X, Smile, Plus } from "lucide-react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { getEmojiCategories } from "../data/emojiCategories";
 import { searchEmojis } from "../data/emojiSearch";
 import { STICKER_PACKS, StickerPack } from "../data/stickerPacks";
+import { GIF_PACKS } from "../data/gifPacks";
 import { CustomSticker } from "../utils/customStickers";
+import { CustomGif } from "../utils/customGifs";
 import AnimatedEmoji from "./AnimatedEmoji";
 
 const COLS = 7;
@@ -36,6 +38,12 @@ interface Props {
   customStickers: CustomSticker[];
   onCreateSticker: () => void;
   creatingSticker?: boolean;
+  // GIF sekmesi icin AYNI gonderme pipeline'i (onSendSticker) kullanilir -
+  // bkz. ../data/gifPacks.ts (Tenor/GIPHY gibi harici bir API'ye BAGLANMADAN,
+  // kendi ozgun GIF'lerimiz) ve ../utils/customGifs.ts.
+  customGifs: CustomGif[];
+  onCreateGif: () => void;
+  creatingGif?: boolean;
 }
 
 /** Gulen yuz ikonuna basinca ataç paneliyle AYNI yerde (klavyenin yerini
@@ -46,20 +54,34 @@ interface Props {
  *   (gercek bir klavye gibi ard arda secilebilir). Kategoriler/arama
  *   EmojiPickerSheet (Hizli Tepki secimi) ile AYNI veri kaynagini
  *   (emojiCategories/emojiSearch) kullanir.
+ * - GIF sekmesi: kullanici "kendi gıf kütüphanemiz olsun" dedi (Tenor/
+ *   GIPHY'ye BAGLANMADAN) - bkz. ../data/gifPacks.ts: ozgun/telifsiz, Python/
+ *   Pillow ile uretilmis soyut reaksiyon GIF'leri. Etiket sekmesiyle AYNI
+ *   PackSwitcherAndGrid bileseni kullanilir, "Kendi GIF'ini ekle" ile
+ *   kullanicinin kendi GIF'leri de eklenebilir (bkz. ../utils/customGifs.ts).
  * - Etiket sekmesi: Kullanici "Etiket değil çıkartmaymış... whatsapp/
  *   telegram'daki gibi minik etiketler" dedi - buyuk emoji DEGIL, GERCEK
  *   gorsel cikartmalar (bkz. ../data/stickerPacks.ts - acik lisansli/ucretsiz
- *   OpenMoji seti). Bir cikartmaya basmak metne EKLEMEZ, WhatsApp/Telegram'daki
+ *   OpenMoji seti).
+ * - Hem GIF hem Etiket: birine basmak metne EKLEMEZ, WhatsApp/Telegram'daki
  *   gibi ANINDA kendi basina bir mesaj olarak GONDERILIR (bkz. DMScreen
- *   sendSticker), panel kapanir. "Çıkartma oluştur" hucresi her paketin
- *   basinda SABIT durur (bkz. STICKER_PACKS ile ayni grid).
- * - GIF sekmesi: su an sadece arayuz iskeleti (gercek bir GIF API'si HENUZ
- *   baglanmadi - kullanicinin "şimdilik sadece arayüz/sekme iskeleti" kararı).
+ *   sendSticker - ikisi de AYNI stickerId/mediaUrl pipeline'ini kullanir),
+ *   panel kapanir. "Oluştur"/"Ekle" hucresi her paketin basinda SABIT durur.
  */
-export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStickers, onCreateSticker, creatingSticker }: Props) {
+export default function EmojiKeyboardPanel({
+  onSelect,
+  onSendSticker,
+  customStickers,
+  onCreateSticker,
+  creatingSticker,
+  customGifs,
+  onCreateGif,
+  creatingGif,
+}: Props) {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<Tab>("emoji");
   const [stickerPackIndex, setStickerPackIndex] = useState(0);
+  const [gifPackIndex, setGifPackIndex] = useState(0);
 
   // Kullanici: "bu üçünün üstüne birde sürükleme hapı koysak mevcut
   // büyüklüğünün iki katına kadar büyütebilsek" - panel klavyenin yerini
@@ -100,7 +122,17 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
     };
     return [...STICKER_PACKS, customPack];
   }, [customStickers, t]);
-  const stickerPack = allStickerPacks[Math.min(stickerPackIndex, allStickerPacks.length - 1)];
+
+  const allGifPacks: StickerPack[] = useMemo(() => {
+    if (!customGifs.length) return GIF_PACKS;
+    const customPack: StickerPack = {
+      id: "custom-gif",
+      name: t("emoji.myGifs"),
+      icon: { uri: customGifs[0].url },
+      stickers: customGifs.map((c) => ({ id: c.id, source: { uri: c.url } })),
+    };
+    return [...GIF_PACKS, customPack];
+  }, [customGifs, t]);
 
   function jumpToCategory(categoryIndex: number) {
     emojiListRef.current?.scrollToIndex({ index: emojiLayout.sectionStartIndex[categoryIndex], animated: true });
@@ -132,73 +164,30 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
         </TouchableOpacity>
       </View>
 
-      {tab === "gif" ? (
-        <View style={styles.gifWrap}>
-          <View style={styles.searchBar}>
-            <Search size={16} color="rgba(255,255,255,0.5)" />
-            <TextInput
-              placeholder={t("emoji.gifSearchPlaceholder")}
-              placeholderTextColor="rgba(186,214,235,0.45)"
-              style={styles.searchInput}
-              editable={false}
-            />
-          </View>
-          <View style={styles.gifComingSoon}>
-            <Clapperboard size={28} color="rgba(255,255,255,0.35)" />
-            <Text style={styles.noResults}>{t("emoji.gifComingSoon")}</Text>
-          </View>
-        </View>
-      ) : tab === "sticker" ? (
-        <View style={styles.stickerWrap}>
-          {/* Kullanici: "gif yazısının altında bütün çıkartma paketinin ilk
-              çıkartmalarından ... kaydırmalı seçebilmek için" - paket sayisi
-              1 bile olsa HER ZAMAN gorunur (ileride yeni paket eklenince
-              kaydirmali secici zaten hazir olsun diye). */}
-          <View style={styles.packTabsRowWrap}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.tabsRowContent}
-            >
-              {allStickerPacks.map((pack, i) => (
-                <TouchableOpacity
-                  key={pack.id}
-                  style={[styles.packTabButton, i === stickerPackIndex && styles.packTabButtonActive]}
-                  onPress={() => setStickerPackIndex(i)}
-                >
-                  <Image source={pack.icon} style={styles.packTabIcon} resizeMode="contain" />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-          <ScrollView contentContainerStyle={styles.stickerGrid}>
-            <TouchableOpacity style={styles.createStickerCell} onPress={onCreateSticker} disabled={creatingSticker}>
-              <View style={styles.createStickerInner}>
-                {creatingSticker ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Plus size={22} color="#FFFFFF" />
-                    <Text style={styles.createStickerText}>{t("emoji.createSticker")}</Text>
-                  </>
-                )}
-              </View>
-            </TouchableOpacity>
-            {stickerPack.stickers.map((sticker) => {
-              const isCustom = stickerPack.id === "custom";
-              const customUrl = isCustom ? customStickers.find((c) => c.id === sticker.id)?.url ?? null : null;
-              return (
-                <TouchableOpacity
-                  key={sticker.id}
-                  style={styles.stickerGridCell}
-                  onPress={() => onSendSticker(isCustom ? null : sticker.id, customUrl)}
-                >
-                  <Image source={sticker.source} style={styles.stickerImage} resizeMode="contain" />
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+      {tab === "sticker" ? (
+        <PackSwitcherAndGrid
+          packs={allStickerPacks}
+          packIndex={stickerPackIndex}
+          onPackIndexChange={setStickerPackIndex}
+          customPackId="custom"
+          customItems={customStickers}
+          onSend={onSendSticker}
+          onCreate={onCreateSticker}
+          creating={creatingSticker}
+          createLabel={t("emoji.createSticker")}
+        />
+      ) : tab === "gif" ? (
+        <PackSwitcherAndGrid
+          packs={allGifPacks}
+          packIndex={gifPackIndex}
+          onPackIndexChange={setGifPackIndex}
+          customPackId="custom-gif"
+          customItems={customGifs}
+          onSend={onSendSticker}
+          onCreate={onCreateGif}
+          creating={creatingGif}
+          createLabel={t("emoji.createGif")}
+        />
       ) : (
         <>
           <View style={styles.searchBar}>
@@ -270,6 +259,81 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
   );
 }
 
+// Etiket VE GIF sekmeleri AYNI yapidadir (paket seciciti + "olustur/ekle"
+// hucresi + grid) - tek fark veri kaynagi (stickerPacks.ts/gifPacks.ts) ve
+// kisisel liste (customStickers/customGifs) oldugu icin ortak bilesen.
+function PackSwitcherAndGrid({
+  packs,
+  packIndex,
+  onPackIndexChange,
+  customPackId,
+  customItems,
+  onSend,
+  onCreate,
+  creating,
+  createLabel,
+}: {
+  packs: StickerPack[];
+  packIndex: number;
+  onPackIndexChange: (i: number) => void;
+  customPackId: string;
+  customItems: { id: string; url: string }[];
+  onSend: (stickerId: string | null, mediaUrl: string | null) => void;
+  onCreate: () => void;
+  creating?: boolean;
+  createLabel: string;
+}) {
+  const pack = packs[Math.min(packIndex, packs.length - 1)];
+  const isCustomPack = pack.id === customPackId;
+  return (
+    <View style={styles.stickerWrap}>
+      {/* Kullanici: "gif yazısının altında bütün çıkartma paketinin ilk
+          çıkartmalarından ... kaydırmalı seçebilmek için" - paket sayisi
+          1 bile olsa HER ZAMAN gorunur (ileride yeni paket eklenince
+          kaydirmali secici zaten hazir olsun diye). */}
+      <View style={styles.packTabsRowWrap}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRowContent}>
+          {packs.map((p, i) => (
+            <TouchableOpacity
+              key={p.id}
+              style={[styles.packTabButton, i === packIndex && styles.packTabButtonActive]}
+              onPress={() => onPackIndexChange(i)}
+            >
+              <Image source={p.icon} style={styles.packTabIcon} resizeMode="contain" />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+      <ScrollView contentContainerStyle={styles.stickerGrid}>
+        <TouchableOpacity style={styles.createStickerCell} onPress={onCreate} disabled={creating}>
+          <View style={styles.createStickerInner}>
+            {creating ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Plus size={22} color="#FFFFFF" />
+                <Text style={styles.createStickerText}>{createLabel}</Text>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+        {pack.stickers.map((sticker) => {
+          const customUrl = isCustomPack ? customItems.find((c) => c.id === sticker.id)?.url ?? null : null;
+          return (
+            <TouchableOpacity
+              key={sticker.id}
+              style={styles.stickerGridCell}
+              onPress={() => onSend(isCustomPack ? null : sticker.id, customUrl)}
+            >
+              <Image source={sticker.source} style={styles.stickerImage} resizeMode="contain" />
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
 function buildLayout(categories: { key: string; label: string; emojis: string[] }[], cols: number, rowHeight: number) {
   const items: ListItem[] = [];
   const sectionStartIndex: number[] = [];
@@ -328,8 +392,6 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  gifWrap: { flex: 1 },
-  gifComingSoon: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
   searchGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 10, paddingTop: 8, gap: 2 },
   emojiCellWrap: { width: 40, height: 40, borderRadius: 10, justifyContent: "center", alignItems: "center" },
   noResults: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", textAlign: "center", marginTop: 30 },

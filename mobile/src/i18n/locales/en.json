@@ -639,10 +639,10 @@
     "objects": "Objects",
     "symbols": "Symbols",
     "flags": "Flags",
-    "gifSearchPlaceholder": "SEARCH GIF",
-    "gifComingSoon": "GIF search coming soon",
     "createSticker": "Create\nsticker",
-    "myStickers": "My Stickers"
+    "myStickers": "My Stickers",
+    "createGif": "Create\nGIF",
+    "myGifs": "My GIFs"
   },
   "messageOptions": {
     "searchPlaceholder": "Search",

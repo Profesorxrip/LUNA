@@ -584,10 +584,10 @@
     "objects": "Предметы",
     "symbols": "Символы",
     "flags": "Флаги",
-    "gifSearchPlaceholder": "ПОИСК GIF",
-    "gifComingSoon": "Поиск GIF скоро появится",
     "createSticker": "Создать\nстикер",
-    "myStickers": "Мои стикеры"
+    "myStickers": "Мои стикеры",
+    "createGif": "Создать\nGIF",
+    "myGifs": "Мои GIF"
   },
   "messageOptions": {
     "searchPlaceholder": "Поиск",
