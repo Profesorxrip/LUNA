@@ -2,7 +2,7 @@ import React from "react";
 import { Modal, View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { CircleArrowDown, HardDrive, Check } from "lucide-react-native";
+import { CircleArrowDown, HardDrive } from "lucide-react-native";
 import { fileIconFor, formatFileSize } from "../utils/format";
 import type { PickedFileAsset, RecentFileEntry } from "../utils/recentFiles";
 
@@ -192,11 +192,7 @@ export default function FilePreviewModal({
                           </Text>
                           <Text style={styles.recentMeta}>{[rowExt, formatFileSize(item.size)].filter(Boolean).join(" · ")}</Text>
                         </View>
-                        {selectionMode && (
-                          <View style={[styles.selectBadge, selected && styles.selectBadgeActive]}>
-                            {selected && <Check size={13} color="#000000" strokeWidth={3} />}
-                          </View>
-                        )}
+                        {selectionMode && <View style={[styles.selectBadge, selected && styles.selectBadgeActive]} />}
                       </TouchableOpacity>
                     );
                   }}
