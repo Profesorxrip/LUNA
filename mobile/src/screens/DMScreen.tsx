@@ -372,6 +372,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               item.kind !== "voice" &&
               item.kind !== "location" &&
               item.kind !== "file" &&
+              item.kind !== "music" &&
               item.kind !== "video" &&
               item.mediaUrl &&
               item.text &&
