@@ -162,7 +162,11 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
             <Text style={styles.headerTitle} numberOfLines={1}>
               {selectedAlbum?.title ?? t("dm.galleryTitle")}
             </Text>
-            <ChevronDown size={16} color="#FFFFFF" style={albumMenuOpen ? { transform: [{ rotate: "180deg" }] } : undefined} />
+            <ChevronDown
+              size={16}
+              color="#FFFFFF"
+              style={{ transform: [{ translateY: 2 }, { rotate: albumMenuOpen ? "180deg" : "0deg" }] }}
+            />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerBtn} onPress={handleConfirm} disabled={!selectedIds.length} hitSlop={10}>
             <View style={{ transform: [{ rotate: "180deg" }] }}>
