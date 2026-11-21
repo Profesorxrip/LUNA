@@ -6,8 +6,6 @@ import * as MediaLibrary from "expo-media-library/legacy";
 import { CircleArrowDown, ChevronDown, Play } from "lucide-react-native";
 import { formatDuration } from "../utils/format";
 import { theme } from "../theme";
-import PhotoViewerModal from "./PhotoViewerModal";
-import VideoViewerModal from "./VideoViewerModal";
 
 export interface GalleryPickedAsset {
   uri: string;
@@ -54,7 +52,6 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
   const [albums, setAlbums] = useState<MediaLibrary.Album[]>([]);
   const [selectedAlbum, setSelectedAlbum] = useState<MediaLibrary.Album | null>(null);
   const [albumMenuOpen, setAlbumMenuOpen] = useState(false);
-  const [previewAsset, setPreviewAsset] = useState<MediaLibrary.Asset | null>(null);
   const endCursorRef = useRef<string | undefined>(undefined);
   const hasNextPageRef = useRef(true);
   const loadingMoreRef = useRef(false);
@@ -64,7 +61,6 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
     if (!visible) return;
     setSelectedIds([]);
     setSelectionMode(false);
-    setPreviewAsset(null);
     setSelectedAlbum(null);
     selectedAlbumRef.current = null;
     setAlbumMenuOpen(false);
@@ -153,32 +149,28 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
     });
   }
 
-  // Kullanici: "Tek tıklayınca fotoğraf yada video önizlemesine alsın
-  // direk" + "Zaten vardı bi fotoğraf önizleme ekranı niye oraya
-  // bağlamadın" - secim modu kapaliyken tek dokunus, DM'de zaten
-  // kullanilan AYNI PhotoViewerModal/VideoViewerModal'i acar (zoom,
-  // indirme vb. hazir) - burada gonderme/secme eylemi YOK, sadece
-  // goruntuleme; gondermek icin uzun basip secim moduna girmek gerekiyor.
-  function handleCellPress(id: string) {
-    if (selectionMode) {
-      toggleSelect(id);
-      return;
-    }
-    const asset = assets.find((a) => a.id === id);
-    if (asset) setPreviewAsset(asset);
-  }
-
-  function handleCellLongPress(id: string) {
-    if (!selectionMode) setSelectionMode(true);
-    toggleSelect(id);
-  }
-
   function assetToPicked(a: MediaLibrary.Asset): GalleryPickedAsset {
     return {
       uri: a.uri,
       type: a.mediaType === "video" ? "video" : "image",
       mimeType: a.mediaType === "video" ? "video/mp4" : "image/jpeg",
     };
+  }
+
+  // Kullanici: "Uzun bastakiyle aynı olmalı, secim modu kapaliykende
+  // acikken sectigimizde onizleme ekranini acmali" - tek tiklama HER
+  // ZAMAN (secim modu acik ya da kapali farketmeksizin) o TEK ogeyi
+  // dogrudan duzenleme/gonderme ekranina (SendMediaSheet/SendVideoSheet)
+  // gotursun - uzun basip onay oku'na basmaya GEREK KALMADAN kisayol.
+  // Coklu secime eklemek icin HER oge UZUN basilarak eklenir.
+  function handleCellPress(id: string) {
+    const asset = assets.find((a) => a.id === id);
+    if (asset) onConfirm([assetToPicked(asset)]);
+  }
+
+  function handleCellLongPress(id: string) {
+    if (!selectionMode) setSelectionMode(true);
+    toggleSelect(id);
   }
 
   function handleConfirm() {
@@ -287,12 +279,6 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
             </View>
           </TouchableOpacity>
         </Modal>
-
-        {previewAsset?.mediaType === "video" ? (
-          <VideoViewerModal uri={previewAsset.uri} onClose={() => setPreviewAsset(null)} />
-        ) : (
-          <PhotoViewerModal uri={previewAsset?.uri ?? null} onClose={() => setPreviewAsset(null)} />
-        )}
       </View>
     </Modal>
   );
