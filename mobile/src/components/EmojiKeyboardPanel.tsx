@@ -338,12 +338,12 @@ const styles = StyleSheet.create({
   packTabButtonActive: { backgroundColor: "rgba(14,165,233,0.16)" },
   packTabIcon: { width: 24, height: 24 },
   stickerGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 6, paddingTop: 4, paddingBottom: 12 },
-  stickerGridCell: { width: "25%", aspectRatio: 1, justifyContent: "center", alignItems: "center" },
+  stickerGridCell: { width: "20%", aspectRatio: 1, justifyContent: "center", alignItems: "center" },
   stickerImage: { width: "72%", height: "72%" },
   // "Çıkartma oluştur" - PollComposerModal'daki secenek fotografi ekleme
   // dugmesiyle AYNI kesikli-cerceve dili (bkz. optionImageButton).
   createStickerCell: {
-    width: "25%",
+    width: "20%",
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
