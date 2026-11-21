@@ -271,7 +271,9 @@
     "mediaOnceConsumed": "تم عرض هذا الوسائط بالفعل",
     "gallerySend": "إرسال",
     "galleryPermissionDenied": "تم رفض الوصول إلى المعرض. امنح الإذن من الإعدادات وحاول مرة أخرى.",
-    "galleryTitle": "المعرض"
+    "galleryTitle": "المعرض",
+    "cameraModePhoto": "صورة",
+    "cameraModeVideo": "فيديو"
   },
   "userProfile": {
     "defaultName": "مستخدم",

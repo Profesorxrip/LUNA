@@ -271,7 +271,9 @@
     "mediaOnceConsumed": "Este contenido ya se visualizó",
     "gallerySend": "Enviar",
     "galleryPermissionDenied": "Se denegó el acceso a la galería. Concede el permiso en ajustes e inténtalo de nuevo.",
-    "galleryTitle": "Galería"
+    "galleryTitle": "Galería",
+    "cameraModePhoto": "Foto",
+    "cameraModeVideo": "Video"
   },
   "userProfile": {
     "defaultName": "Usuario",

@@ -271,7 +271,9 @@
     "mediaOnceConsumed": "This media has been viewed",
     "gallerySend": "Send",
     "galleryPermissionDenied": "Gallery access was denied. Grant permission in settings and try again.",
-    "galleryTitle": "Gallery"
+    "galleryTitle": "Gallery",
+    "cameraModePhoto": "Photo",
+    "cameraModeVideo": "Video"
   },
   "userProfile": {
     "defaultName": "User",

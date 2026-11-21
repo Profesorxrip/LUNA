@@ -271,7 +271,9 @@
     "mediaOnceConsumed": "Bu media artıq görüntülənib",
     "gallerySend": "Göndər",
     "galleryPermissionDenied": "Qalereyaya giriş icazəsi verilmədi. Ayarlardan icazə verib yenidən cəhd et.",
-    "galleryTitle": "Qalereya"
+    "galleryTitle": "Qalereya",
+    "cameraModePhoto": "Foto",
+    "cameraModeVideo": "Video"
   },
   "userProfile": {
     "defaultName": "İstifadəçi",

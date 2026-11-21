@@ -271,7 +271,9 @@
     "mediaOnceConsumed": "Αυτό το αρχείο έχει ήδη προβληθεί",
     "gallerySend": "Αποστολή",
     "galleryPermissionDenied": "Η πρόσβαση στη συλλογή απορρίφθηκε. Δώσε άδεια από τις ρυθμίσεις και δοκίμασε ξανά.",
-    "galleryTitle": "Συλλογή"
+    "galleryTitle": "Συλλογή",
+    "cameraModePhoto": "Φωτογραφία",
+    "cameraModeVideo": "Βίντεο"
   },
   "userProfile": {
     "defaultName": "Χρήστης",

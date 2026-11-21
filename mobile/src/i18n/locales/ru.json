@@ -271,7 +271,9 @@
     "mediaOnceConsumed": "Этот файл уже просмотрен",
     "gallerySend": "Отправить",
     "galleryPermissionDenied": "Доступ к галерее запрещён. Разрешите доступ в настройках и попробуйте снова.",
-    "galleryTitle": "Галерея"
+    "galleryTitle": "Галерея",
+    "cameraModePhoto": "Фото",
+    "cameraModeVideo": "Видео"
   },
   "userProfile": {
     "defaultName": "Пользователь",

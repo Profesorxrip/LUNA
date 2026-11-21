@@ -271,7 +271,9 @@
     "mediaOnceConsumed": "Ce média a déjà été consulté",
     "gallerySend": "Envoyer",
     "galleryPermissionDenied": "L'accès à la galerie a été refusé. Accorde l'autorisation dans les paramètres et réessaie.",
-    "galleryTitle": "Galerie"
+    "galleryTitle": "Galerie",
+    "cameraModePhoto": "Photo",
+    "cameraModeVideo": "Vidéo"
   },
   "userProfile": {
     "defaultName": "Utilisateur",

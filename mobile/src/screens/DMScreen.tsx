@@ -421,6 +421,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [quickCameraFacing, setQuickCameraFacing] = useState<"back" | "front">("back");
   const [quickCameraFlash, setQuickCameraFlash] = useState<"off" | "on">("off");
   const [capturingQuickPhoto, setCapturingQuickPhoto] = useState(false);
+  // Kullanici: "...bu fotoğraf çekme ekranı bir de video çekme ekranı
+  // ayarlasak" - alt bosluga Fotograf/Video mod secici eklendi, deklansor
+  // moda gore ya ANLIK fotograf cekiyor ya da expo-camera'nin GERCEK
+  // recordAsync/stopRecording API'siyle video kaydediyor (web'de
+  // recordAsync HIC YOK - sadece native'de calisir, bkz. ExpoCamera.web.tsx).
+  const [quickCameraMode, setQuickCameraMode] = useState<"photo" | "video">("photo");
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const cameraReadyRef = useRef(false);
   const cameraRef = useRef<CameraView>(null);
   // Dosya (pdf/zip/vb.) gonderme - foto ile AYNI "chat-media" bucket'ina
@@ -811,6 +818,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setQuickCameraFacing("back");
     setQuickCameraFlash("off");
     setCapturingQuickPhoto(false);
+    setQuickCameraMode("photo");
+    setIsRecordingVideo(false);
     setAttachSheetVisible(false);
     setQuickCaptureActive(true);
   }
@@ -833,9 +842,17 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setQuickCameraFlash((f) => (f === "off" ? "on" : "off"));
   }
 
+  function handleQuickShutterPress() {
+    if (quickCameraMode === "video") {
+      handleQuickVideoShutterPress();
+    } else {
+      handleQuickPhotoShutterPress();
+    }
+  }
+
   // expo-camera web'de "onCameraReady" ilk kareden ONCE de tetiklenebiliyor
   // ("not enough camera data" hatasi) - birkac deneme ile bekliyoruz.
-  async function handleQuickShutterPress() {
+  async function handleQuickPhotoShutterPress() {
     if (capturingQuickPhoto || !quickCameraReady) return;
     setCapturingQuickPhoto(true);
     for (let attempt = 0; attempt < 4; attempt++) {
@@ -853,6 +870,32 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       }
     }
     setCapturingQuickPhoto(false);
+  }
+
+  // Ilk basis KAYDI baslatir (recordAsync - sadece "stopRecording()"
+  // cagrildiginda ya da maxDuration'a ulasinca COZULEN bir Promise), ikinci
+  // basis kaydi durdurur. Web'de recordAsync HIC YOK (expo-camera'nin
+  // ExpoCamera.web.tsx dosyasinda tanimli degil) - bu yuzden SADECE
+  // native'de calisir.
+  async function handleQuickVideoShutterPress() {
+    if (!quickCameraReady) return;
+    if (isRecordingVideo) {
+      cameraRef.current?.stopRecording();
+      return;
+    }
+    setIsRecordingVideo(true);
+    try {
+      const video = await cameraRef.current?.recordAsync({ maxDuration: 60 });
+      if (video?.uri) {
+        setQuickCaptureActive(false);
+        setAttachSheetVisible(false);
+        setVideoQueue((prev) => [...prev, { uri: video.uri, mimeType: "video/mp4" }]);
+      }
+    } catch {
+      // kayit basarisiz/iptal - ekran acik kalir, kullanici tekrar deneyebilir
+    } finally {
+      setIsRecordingVideo(false);
+    }
   }
 
   function removePendingImage(index: number) {
@@ -1895,16 +1938,45 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               <ImageIcon size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.quickCameraShutterOuter}
+              style={[styles.quickCameraShutterOuter, quickCameraMode === "video" && styles.quickCameraShutterOuterVideo]}
               onPress={handleQuickShutterPress}
-              disabled={!quickCameraReady || capturingQuickPhoto}
+              disabled={!quickCameraReady || (quickCameraMode === "photo" && capturingQuickPhoto)}
               hitSlop={8}
             >
-              <View style={[styles.quickCameraShutterInner, capturingQuickPhoto && styles.quickCameraShutterInnerActive]} />
+              <View
+                style={[
+                  styles.quickCameraShutterInner,
+                  quickCameraMode === "video" && styles.quickCameraShutterInnerVideo,
+                  capturingQuickPhoto && styles.quickCameraShutterInnerActive,
+                  isRecordingVideo && styles.quickCameraShutterInnerRecording,
+                ]}
+              />
             </TouchableOpacity>
             {/* Kamera cevirme SAG kenari flas butonuyla AYNI hizada. */}
-            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
+            <TouchableOpacity
+              style={styles.quickCameraTopBtn}
+              onPress={toggleQuickCameraFacing}
+              disabled={isRecordingVideo}
+              hitSlop={10}
+            >
               <MaterialCommunityIcons name="camera-flip-outline" size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Kullanici: "...bu fotoğraf çekme ekranı bir de video çekme
+              ekranı ayarlasak" - alt bosluğun EN USTUNE (deklansor
+              satirinin hemen altindaki siyah serit) Fotograf/Video mod
+              secici eklendi. */}
+          <View style={styles.quickCameraModeRow}>
+            <TouchableOpacity onPress={() => !isRecordingVideo && setQuickCameraMode("photo")} hitSlop={10}>
+              <Text style={[styles.quickCameraModeText, quickCameraMode === "photo" && styles.quickCameraModeTextActive]}>
+                {t("dm.cameraModePhoto")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => !isRecordingVideo && setQuickCameraMode("video")} hitSlop={10}>
+              <Text style={[styles.quickCameraModeText, quickCameraMode === "video" && styles.quickCameraModeTextActive]}>
+                {t("dm.cameraModeVideo")}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2168,6 +2240,28 @@ const styles = StyleSheet.create({
   quickCameraShutterInnerActive: {
     backgroundColor: "rgba(255,255,255,0.5)",
   },
+  quickCameraShutterOuterVideo: { borderColor: "#FF3B30" },
+  quickCameraShutterInnerVideo: { backgroundColor: "#FF3B30" },
+  quickCameraShutterInnerRecording: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+  },
+  quickCameraModeRow: {
+    position: "absolute",
+    bottom: 55,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 24,
+  },
+  quickCameraModeText: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  quickCameraModeTextActive: { color: "#FFFFFF" },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, alignSelf: "flex-end" },
   // Sesli mesajda bu satir TUM genisligi kaplar - sure SOLDA (dalganin
   // basladigi hizada), saat+tik SAGDA kalsin diye.

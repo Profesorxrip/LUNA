@@ -271,7 +271,9 @@
     "mediaOnceConsumed": "Ev medya berê hatiye dîtin",
     "gallerySend": "Bişîne",
     "galleryPermissionDenied": "Destûra gihîştina galeriyê nehat dayîn. Ji mîhengan destûrê bide û dîsa biceribîne.",
-    "galleryTitle": "Galerî"
+    "galleryTitle": "Galerî",
+    "cameraModePhoto": "Wêne",
+    "cameraModeVideo": "Vîdyo"
   },
   "userProfile": {
     "defaultName": "Bikarhêner",

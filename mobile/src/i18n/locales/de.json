@@ -271,7 +271,9 @@
     "mediaOnceConsumed": "Dieses Medium wurde bereits angesehen",
     "gallerySend": "Senden",
     "galleryPermissionDenied": "Der Zugriff auf die Galerie wurde verweigert. Erteile die Berechtigung in den Einstellungen und versuche es erneut.",
-    "galleryTitle": "Galerie"
+    "galleryTitle": "Galerie",
+    "cameraModePhoto": "Foto",
+    "cameraModeVideo": "Video"
   },
   "userProfile": {
     "defaultName": "Nutzer",
