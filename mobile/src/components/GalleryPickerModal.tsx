@@ -3,7 +3,7 @@ import { Modal, View, Text, Image, TouchableOpacity, FlatList, StyleSheet, Activ
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as MediaLibrary from "expo-media-library/legacy";
-import { X, Play } from "lucide-react-native";
+import { CircleArrowDown, Play } from "lucide-react-native";
 import { formatDuration } from "../utils/format";
 import { theme } from "../theme";
 
@@ -118,18 +118,15 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
           <TouchableOpacity style={styles.headerBtn} onPress={onClose} hitSlop={10}>
-            <X size={22} color={theme.text} />
+            <View style={{ transform: [{ rotate: "90deg" }] }}>
+              <CircleArrowDown size={22} color="#FFFFFF" />
+            </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t("dm.attachGallery")}</Text>
-          <TouchableOpacity
-            style={[styles.sendBtn, !selectedIds.length && styles.sendBtnDisabled]}
-            onPress={handleConfirm}
-            disabled={!selectedIds.length}
-          >
-            <Text style={styles.sendBtnText}>
-              {t("dm.gallerySend")}
-              {selectedIds.length ? ` (${selectedIds.length})` : ""}
-            </Text>
+          <TouchableOpacity style={styles.headerBtn} onPress={handleConfirm} disabled={!selectedIds.length} hitSlop={10}>
+            <View style={{ transform: [{ rotate: "180deg" }] }}>
+              <CircleArrowDown size={22} color={selectedIds.length ? "#FFFFFF" : theme.textMuted} />
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -188,15 +185,6 @@ const styles = StyleSheet.create({
   },
   headerBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", transform: [{ translateY: 20 }] },
   headerTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
-  sendBtn: {
-    backgroundColor: theme.accent,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    transform: [{ translateY: 20 }],
-  },
-  sendBtnDisabled: { opacity: 0.4 },
-  sendBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   centerFill: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
   permissionText: { color: "rgba(255,255,255,0.7)", fontSize: 14, textAlign: "center" },
   cell: { width: `${CELL_SIZE_PCT}%`, aspectRatio: 1, padding: 1 },
