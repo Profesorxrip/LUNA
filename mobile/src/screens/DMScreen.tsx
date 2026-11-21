@@ -441,6 +441,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // DOGRUDAN gonderilir.
   const [sendingFile, setSendingFile] = useState(false);
   const [pendingFile, setPendingFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [filePreviewVisible, setFilePreviewVisible] = useState(false);
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
   // Sesli mesaj kaydi - expo-audio'nun kendi "ne kadar surdu" sayacini
   // (useAudioRecorderState) kullaniyoruz, kendi zamanlayicimizi KURMUYORUZ.
@@ -1050,21 +1051,29 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     );
   }
 
-  // Kullanici: "dosya gönderme özelliği ekle" - ataç menüsundeki "Dosya"
-  // satiri. Once sadece dosyayi SECER (pendingFile), gercek yukleme/gonderim
-  // kullanici FilePreviewModal'daki onizlemeyi gorup gonder okuna basinca
-  // (confirmSendFile) olur - Galeriden Sec/Konum Gonder ile AYNI "once
-  // gorup sonra onayla" akisi.
+  // Kullanici: "dosya seçme alanını oluştursana" - "Dosya" satiri artik
+  // dogrudan OS dosya secicisini ACMIYOR, once FilePreviewModal'i (bos/
+  // "Dosya Seç" durumunda) aciyor; GERCEK secim o ekranin ICINDEKI "Dosya
+  // Seç" alanina basinca (pickFile, modal'a prop olarak geciliyor) olur.
+  // Gercek yukleme/gonderim ise onizlemeyi gorup gonder okuna basinca
+  // (confirmSendFile) - Galeriden Sec/Konum Gonder ile AYNI "once gorup
+  // sonra onayla" akisi.
+  function openFilePreview() {
+    setAttachSheetVisible(false);
+    setPendingFile(null);
+    setFilePreviewVisible(true);
+  }
+
   function pickFile() {
     DocumentPicker.getDocumentAsync({ multiple: false }).then((result) => {
       if (result.canceled || !result.assets?.[0]) return;
-      setAttachSheetVisible(false);
       setPendingFile(result.assets[0]);
     });
   }
 
   function cancelPendingFile() {
     if (sendingFile) return;
+    setFilePreviewVisible(false);
     setPendingFile(null);
   }
 
@@ -1088,6 +1097,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         }
       );
       setPendingFile(null);
+      setFilePreviewVisible(false);
     } catch (err: any) {
       showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
     } finally {
@@ -1918,7 +1928,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachLocation")}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={pickFile}>
+              <TouchableOpacity style={styles.attachGridItem} onPress={openFilePreview}>
                 <View style={styles.attachIconWrap}>
                   <FileTextIcon size={26} color="#FFFFFF" />
                 </View>
@@ -2052,12 +2062,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       />
 
       <FilePreviewModal
-        visible={!!pendingFile}
-        fileName={pendingFile?.name ?? ""}
+        visible={filePreviewVisible}
+        fileName={pendingFile?.name ?? null}
         fileSize={pendingFile?.size}
         mimeType={pendingFile?.mimeType}
         uploading={sendingFile}
         uploadProgress={fileUploadProgress}
+        onPickFile={pickFile}
         onCancel={cancelPendingFile}
         onSend={confirmSendFile}
       />
