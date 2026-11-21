@@ -12,10 +12,11 @@ import {
   Animated,
   PanResponder,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
-import { MaterialCommunityIcons, MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons, Ionicons, SimpleLineIcons } from "@expo/vector-icons";
 import { LockClosedIcon, MicrophoneIcon } from "react-native-heroicons/outline";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
@@ -23,7 +24,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play, BarChart2, Music, User as UserIcon } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
@@ -787,22 +788,6 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     const images = picked.filter((a) => a.type === "image");
     if (images.length) setPendingImages((prev) => [...prev, ...images.map((a) => a.uri)]);
     if (videos.length) setVideoQueue((prev) => [...prev, ...videos.map((a) => ({ uri: a.uri, mimeType: a.mimeType }))]);
-  }
-
-  // Kullanici: "...basınca kamerayı açsa nasıl olur" -> "expo-camera ekle,
-  // gerçek anlık çekim yap" secildi. Bu, OS'in kendi kamera uygulamasini
-  // ACAN ImagePicker.launchCameraAsync akisi (tam kontroller/flash/on-arka
-  // kamera degistirme OS'in kendi arayuzunde).
-  async function openCamera() {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      showAlert(t("dm.permissionRequiredTitle"), t("dm.cameraPermissionRequiredBody"));
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
-    if (result.canceled || !result.assets?.[0]) return;
-    setAttachSheetVisible(false);
-    setPendingImages((prev) => [...prev, result.assets[0].uri]);
   }
 
   // Kullanici: "ikon dışında kutuya basınca kamerayı açsa" - bu ANLIK çekim
@@ -1794,10 +1779,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                     />
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -33 }}>
                       <TouchableOpacity onPress={() => setAttachSheetVisible(true)} hitSlop={6}>
-                        <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={19} color="#9CA3AF" /></View>
+                        <View style={{ transform: [{ rotate: "-45deg" }] }}><Paperclip size={23} color="#9CA3AF" strokeWidth={1.7} /></View>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={startQuickCapture} hitSlop={6} style={{ marginLeft: 5 }}>
-                        <MaterialCommunityIcons name="camera-outline" size={25} color="#9CA3AF" />
+                        <SimpleLineIcons name="camera" size={25} color="#9CA3AF" />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1902,21 +1887,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       </Modal>
 
       <Modal visible={attachSheetVisible} transparent animationType="slide" onRequestClose={() => setAttachSheetVisible(false)} statusBarTranslucent>
-        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setAttachSheetVisible(false)}>
+        <TouchableOpacity style={styles.attachSheetOverlay} activeOpacity={1} onPress={() => setAttachSheetVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.attachSheet}>
-            {/* Kullanici: "basınca anlık fotoğraf çekebilse ikon dışında
-                kutuya basınca kamerayı açsa" - kucuk ikon GERCEK anlik
-                cekim (expo-camera), satirin geri kalani OS'in kendi kamera
-                uygulamasini acan tam kontrollu akis. */}
-            <TouchableOpacity style={styles.attachRow} onPress={openCamera}>
-              <View style={styles.attachIconWrap}>
-                <CameraIcon size={20} color={ACCENT} />
-                <TouchableOpacity style={styles.attachQuickIcon} onPress={startQuickCapture} hitSlop={6}>
-                  <CameraIcon size={12} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.attachRowText}>{t("dm.attachCamera")}</Text>
-            </TouchableOpacity>
+            <View style={styles.sheetHandleTop} />
+            <ScrollView style={{ width: "100%" }} showsVerticalScrollIndicator={false}>
             <TouchableOpacity style={styles.attachRow} onPress={pickImage}>
               <View style={styles.attachIconWrap}>
                 <ImageIcon size={20} color={ACCENT} />
@@ -1935,7 +1909,25 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               </View>
               <Text style={styles.attachRowText}>{t("dm.attachFile")}</Text>
             </TouchableOpacity>
-            <View style={styles.sheetHandle} />
+            <TouchableOpacity style={styles.attachRow} onPress={() => placeholder(t("dm.attachPoll"))}>
+              <View style={styles.attachIconWrap}>
+                <BarChart2 size={20} color={ACCENT} />
+              </View>
+              <Text style={styles.attachRowText}>{t("dm.attachPoll")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachRow} onPress={() => placeholder(t("dm.attachMusic"))}>
+              <View style={styles.attachIconWrap}>
+                <Music size={20} color={ACCENT} />
+              </View>
+              <Text style={styles.attachRowText}>{t("dm.attachMusic")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachRow} onPress={() => placeholder(t("dm.attachContact"))}>
+              <View style={styles.attachIconWrap}>
+                <UserIcon size={20} color={ACCENT} />
+              </View>
+              <Text style={styles.attachRowText}>{t("dm.attachContact")}</Text>
+            </TouchableOpacity>
+            </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -2210,11 +2202,9 @@ const styles = StyleSheet.create({
   headerProfileTouch: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   mediaCaption: { color: TEXT, fontSize: 15, marginTop: 5, maxWidth: 220 },
   attachSheet: {
-    backgroundColor: "#141210",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    backgroundColor: "#15202B",
+    height: 300,
     paddingTop: 18,
-    paddingBottom: 30,
     paddingHorizontal: 20,
     alignItems: "center",
   },
@@ -2226,19 +2216,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(14,165,233,0.12)",
     alignItems: "center",
     justifyContent: "center",
-  },
-  attachQuickIcon: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "#141210",
   },
   attachRowText: { color: TEXT, fontSize: 15, fontWeight: "600" },
   quickCameraOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#000000" },
@@ -2589,6 +2566,9 @@ const styles = StyleSheet.create({
   deletedRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
   deletedText: { fontSize: 14, fontStyle: "italic" },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  // Klavyenin YERINE gecen bir panel gibi gorunmesi icin - diger
+  // sheet'lerin aksine arkada KARARTMA YOK (klavye de sohbeti karartmaz).
+  attachSheetOverlay: { flex: 1, backgroundColor: "transparent", justifyContent: "flex-end" },
   // Profil ekranindaki kutularla AYNI koyu lacivert (#15202B) - eskiden
   // siyaha yakin kahverengiydi (#141210).
   sheetCard: {
