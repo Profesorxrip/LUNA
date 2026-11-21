@@ -309,11 +309,9 @@ const styles = StyleSheet.create({
   stickerCell: {
     flex: 1,
     aspectRatio: 1,
-    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
     margin: 4,
-    backgroundColor: "rgba(255,255,255,0.04)",
   },
   stickerImage: { width: "72%", height: "72%" },
 });
