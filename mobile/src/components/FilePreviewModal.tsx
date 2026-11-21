@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Modal, View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { CircleArrowDown, HardDrive } from "lucide-react-native";
+import { CircleArrowDown, HardDrive, FaceGrinning } from "lucide-react-native";
 import { fileIconFor, formatFileSize } from "../utils/format";
 import type { PickedFileAsset, RecentFileEntry } from "../utils/recentFiles";
+
+const EMOJI_QUICK = ["😀", "😂", "😍", "😎", "🥳", "😢", "😮", "🔥", "❤️", "👍", "🙏", "🎉", "😡", "😴", "🤔", "👀"];
 
 interface Props {
   visible: boolean;
@@ -65,6 +67,7 @@ export default function FilePreviewModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const hasFiles = files.length > 0;
   const single = files.length === 1 ? files[0] : null;
   const SingleIcon = single ? fileIconFor(single.mimeType, single.name) : null;
@@ -123,16 +126,32 @@ export default function FilePreviewModal({
         ) : null}
 
         {hasFiles && single && !uploading && (
-          <View style={[styles.captionRow, { paddingBottom: insets.bottom + 12 }]}>
-            <TextInput
-              style={styles.captionInput}
-              value={caption}
-              onChangeText={onChangeCaption}
-              placeholder={t("dm.fileCaptionPlaceholder")}
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              multiline
-              maxLength={1000}
-            />
+          <View>
+            {emojiOpen && (
+              <View style={styles.emojiGrid}>
+                {EMOJI_QUICK.map((e) => (
+                  <TouchableOpacity key={e} style={styles.emojiCell} onPress={() => onChangeCaption(caption + e)} hitSlop={4}>
+                    <Text style={styles.emojiChar}>{e}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            <View style={[styles.composerRow, { paddingBottom: insets.bottom + 12 }]}>
+              <View style={styles.captionBox}>
+                <TouchableOpacity onPress={() => setEmojiOpen((v) => !v)} hitSlop={6}>
+                  <FaceGrinning size={22} color="rgba(255,255,255,0.6)" />
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.captionInput}
+                  value={caption}
+                  onChangeText={onChangeCaption}
+                  placeholder={t("dm.fileCaptionPlaceholder")}
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  multiline
+                  maxLength={1000}
+                />
+              </View>
+            </View>
           </View>
         )}
 
@@ -256,16 +275,38 @@ const styles = StyleSheet.create({
   },
   fileName: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", textAlign: "center" },
   fileMeta: { color: "rgba(255,255,255,0.55)", fontSize: 13, marginTop: 6 },
-  captionRow: { paddingHorizontal: 16, paddingTop: 10 },
+  composerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 8 },
+  captionBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#1E2A36",
+    borderRadius: 27.5,
+    minHeight: 55,
+    paddingLeft: 14,
+    paddingRight: 10,
+    paddingVertical: 6,
+  },
   captionInput: {
+    flex: 1,
     color: "#FFFFFF",
     fontSize: 14,
-    backgroundColor: "#1E2A36",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 7,
+    paddingBottom: 6,
     maxHeight: 100,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
+  emojiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 6,
   },
+  emojiCell: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  emojiChar: { fontSize: 22 },
   progressWrap: { width: "100%", marginTop: 28, alignItems: "center", gap: 8 },
   progressTrack: { width: "100%", height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.12)", overflow: "hidden" },
   progressFill: { height: "100%", backgroundColor: "#0EA5E9", borderRadius: 3 },
