@@ -3,6 +3,7 @@ import { Modal, View, Text, Image, TouchableOpacity, FlatList, ScrollView, Style
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as MediaLibrary from "expo-media-library/legacy";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { CircleArrowDown, ChevronDown, Play } from "lucide-react-native";
 import { formatDuration } from "../utils/format";
 import { theme } from "../theme";
@@ -21,6 +22,16 @@ interface Props {
 }
 
 const COLUMNS = 3;
+
+/** Onizlemedeki video - kendi expo-video player'i, her acilista (farkli
+ * asset = farkli "key") YENIDEN kuruluyor. */
+function PreviewVideo({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = false;
+    p.play();
+  });
+  return <VideoView style={styles.previewMedia} player={player} nativeControls contentFit="contain" />;
+}
 
 /** Uygulama ici ozel galeri izgara ekrani - paylas menusundeki "Galeriden
  * Sec" ve hizli kamera ekranindaki galeri ikonu AYNI bu ekrani acar
@@ -52,6 +63,7 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
   const [albums, setAlbums] = useState<MediaLibrary.Album[]>([]);
   const [selectedAlbum, setSelectedAlbum] = useState<MediaLibrary.Album | null>(null);
   const [albumMenuOpen, setAlbumMenuOpen] = useState(false);
+  const [previewAsset, setPreviewAsset] = useState<MediaLibrary.Asset | null>(null);
   const endCursorRef = useRef<string | undefined>(undefined);
   const hasNextPageRef = useRef(true);
   const loadingMoreRef = useRef(false);
@@ -61,6 +73,7 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
     if (!visible) return;
     setSelectedIds([]);
     setSelectionMode(false);
+    setPreviewAsset(null);
     setSelectedAlbum(null);
     selectedAlbumRef.current = null;
     setAlbumMenuOpen(false);
@@ -149,8 +162,17 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
     });
   }
 
+  // Kullanici: "Tek tıklayınca fotoğraf yada video önizlemesine alsın
+  // direk" - secim modu kapaliyken tek dokunus, o ogeyi dogrudan tam
+  // ekran onizlemeye acar (secmez); onizlemeden "gonder" ile SADECE o
+  // tek oge direkt yollanir.
   function handleCellPress(id: string) {
-    if (selectionMode) toggleSelect(id);
+    if (selectionMode) {
+      toggleSelect(id);
+      return;
+    }
+    const asset = assets.find((a) => a.id === id);
+    if (asset) setPreviewAsset(asset);
   }
 
   function handleCellLongPress(id: string) {
@@ -158,17 +180,27 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
     toggleSelect(id);
   }
 
+  function assetToPicked(a: MediaLibrary.Asset): GalleryPickedAsset {
+    return {
+      uri: a.uri,
+      type: a.mediaType === "video" ? "video" : "image",
+      mimeType: a.mediaType === "video" ? "video/mp4" : "image/jpeg",
+    };
+  }
+
   function handleConfirm() {
     const picked = selectedIds
       .map((id) => assets.find((a) => a.id === id))
       .filter((a): a is MediaLibrary.Asset => !!a)
-      .map((a) => ({
-        uri: a.uri,
-        type: a.mediaType === "video" ? ("video" as const) : ("image" as const),
-        mimeType: a.mediaType === "video" ? "video/mp4" : "image/jpeg",
-      }));
+      .map(assetToPicked);
     if (!picked.length) return;
     onConfirm(picked);
+  }
+
+  function handlePreviewSend() {
+    if (!previewAsset) return;
+    onConfirm([assetToPicked(previewAsset)]);
+    setPreviewAsset(null);
   }
 
   return (
@@ -268,6 +300,32 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
             </View>
           </TouchableOpacity>
         </Modal>
+
+        <Modal visible={!!previewAsset} animationType="fade" onRequestClose={() => setPreviewAsset(null)} statusBarTranslucent>
+          <View style={styles.previewScreen}>
+            <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
+              <TouchableOpacity style={styles.headerBtn} onPress={() => setPreviewAsset(null)} hitSlop={10}>
+                <View style={{ transform: [{ rotate: "90deg" }] }}>
+                  <CircleArrowDown size={22} color="#FFFFFF" />
+                </View>
+              </TouchableOpacity>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity style={styles.headerBtn} onPress={handlePreviewSend} hitSlop={10}>
+                <View style={{ transform: [{ rotate: "180deg" }] }}>
+                  <CircleArrowDown size={22} color="#FFFFFF" />
+                </View>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.previewBody}>
+              {previewAsset &&
+                (previewAsset.mediaType === "video" ? (
+                  <PreviewVideo key={previewAsset.id} uri={previewAsset.uri} />
+                ) : (
+                  <Image source={{ uri: previewAsset.uri }} style={styles.previewMedia} resizeMode="contain" />
+                ))}
+            </View>
+          </View>
+        </Modal>
       </View>
     </Modal>
   );
@@ -341,4 +399,7 @@ const styles = StyleSheet.create({
     bottom: 1,
     backgroundColor: "rgba(14,165,233,0.2)",
   },
+  previewScreen: { flex: 1, backgroundColor: "#000000" },
+  previewBody: { flex: 1, alignItems: "center", justifyContent: "center" },
+  previewMedia: { width: "100%", height: "100%" },
 });
