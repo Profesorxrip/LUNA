@@ -2085,7 +2085,7 @@ const styles = StyleSheet.create({
   quickCameraView: { flex: 1, marginTop: 50, marginBottom: 70 },
   quickCameraTopBar: {
     position: "absolute",
-    top: 50,
+    top: 70,
     left: 16,
     right: 16,
     flexDirection: "row",
@@ -2102,7 +2102,7 @@ const styles = StyleSheet.create({
   },
   quickCameraBottomBar: {
     position: "absolute",
-    bottom: 66,
+    bottom: 86,
     left: 0,
     right: 0,
     flexDirection: "row",
