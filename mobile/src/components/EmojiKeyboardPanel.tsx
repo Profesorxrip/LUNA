@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   // olarak farkli: her hucre kendi GERCEK en-boy oraniyla (bkz. gifPacks.ts
   // width/height) gosterilir.
   gifWrap: { flex: 1 },
-  gifScrollContent: { paddingHorizontal: 10, paddingTop: 8, paddingBottom: 16, gap: 10 },
+  gifScrollContent: { paddingHorizontal: 3, paddingTop: 8, paddingBottom: 16, gap: 10 },
   gifAddButton: {
     flexDirection: "row",
     height: 40,
