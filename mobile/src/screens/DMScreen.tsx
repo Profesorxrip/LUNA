@@ -297,6 +297,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               item.kind === "call" && styles.bubbleCallPad,
               item.kind === "poll" && styles.bubblePollPad,
               item.kind === "contact" && styles.bubbleContactPad,
+              item.kind === "music" && styles.bubbleMusicPad,
               (item.kind !== "voice" &&
                 item.kind !== "location" &&
                 item.kind !== "file" &&
@@ -2821,6 +2822,11 @@ const styles = StyleSheet.create({
   bubblePollPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   // Kisi karti icin de AYNI mantik - balonun kenarina 3px'e kadar yaklastirir.
   bubbleContactPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  // Kullanici: "Müziğin kutusu fazla genişlemiş sağda 3 pxe dayanmıyor
+  // içeri fazla kaçıyor" - muzik karti (bkz. MusicMessageBubble) digerleri
+  // (dosya/anket/kisi) gibi varsayilan 13px yatay dolgu yerine AYNI 3px'e
+  // cekildi.
+  bubbleMusicPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   // Fotograf balonu icin de AYNI mantik - ChatImageBubble'in kendi boyutu da
   // buyutuldu (bkz. asagidaki size/borderRadius prop'lari).
   // Kullanici: "üstten alttan sağdan soldan 3er px boşluk kalıcak şekilde
