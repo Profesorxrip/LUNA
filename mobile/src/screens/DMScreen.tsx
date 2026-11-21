@@ -2591,7 +2591,7 @@ const styles = StyleSheet.create({
   // sadece 2px daha asagida (bottom: 8 -> 6).
   metaRowMusicOverlay: {
     position: "absolute",
-    bottom: 6,
+    bottom: 4,
     right: 10,
     marginTop: 0,
   },
