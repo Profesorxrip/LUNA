@@ -1857,14 +1857,9 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             <TouchableOpacity style={styles.quickCameraTopBtn} onPress={() => setQuickCaptureActive(false)} hitSlop={10}>
               <Icon name="close" size={22} color="#FFFFFF" />
             </TouchableOpacity>
-            <View style={styles.quickCameraTopRightGroup}>
-              <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
-                <MaterialCommunityIcons name="camera-flip-outline" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFlash} hitSlop={10}>
-                {quickCameraFlash === "on" ? <Zap size={20} color="#FFFFFF" fill="#FFFFFF" /> : <ZapOff size={20} color="#FFFFFF" />}
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFlash} hitSlop={10}>
+              {quickCameraFlash === "on" ? <Zap size={20} color="#FFFFFF" fill="#FFFFFF" /> : <ZapOff size={20} color="#FFFFFF" />}
+            </TouchableOpacity>
           </View>
           <View style={styles.quickCameraBottomBar}>
             <TouchableOpacity
@@ -1876,6 +1871,9 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               <View style={[styles.quickCameraShutterInner, capturingQuickPhoto && styles.quickCameraShutterInnerActive]} />
             </TouchableOpacity>
           </View>
+          <TouchableOpacity style={styles.quickCameraFlipBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
+            <MaterialCommunityIcons name="camera-flip-outline" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -2101,7 +2099,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  quickCameraTopRightGroup: { flexDirection: "row", alignItems: "center", gap: 10 },
+  // Flas ikonuyla AYNI "right" (ayni sutun) ve deklansor dugmesiyle AYNI
+  // dikey merkez (ayni satir/hiza) - kullanicinin istegi.
+  quickCameraFlipBtn: {
+    position: "absolute",
+    right: 16,
+    bottom: 104,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   quickCameraBottomBar: {
     position: "absolute",
     bottom: 86,
