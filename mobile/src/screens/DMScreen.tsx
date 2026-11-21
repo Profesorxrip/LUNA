@@ -1867,8 +1867,11 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             </TouchableOpacity>
           </View>
           <View style={styles.quickCameraBottomBar}>
-            {/* Deklansor SOL kenari X butonuyla AYNI hizada (kullanicinin
+            {/* Galeri SOL kenari X butonuyla AYNI hizada (kullanicinin
                 istegi) - bkz. ust bardaki AYNI left:16. */}
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={handleQuickGalleryPress} hitSlop={10}>
+              <ImageIcon size={18} color="#FFFFFF" />
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickCameraShutterOuter}
               onPress={handleQuickShutterPress}
@@ -1876,9 +1879,6 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               hitSlop={8}
             >
               <View style={[styles.quickCameraShutterInner, capturingQuickPhoto && styles.quickCameraShutterInnerActive]} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={handleQuickGalleryPress} hitSlop={10}>
-              <ImageIcon size={18} color="#FFFFFF" />
             </TouchableOpacity>
             {/* Kamera cevirme SAG kenari flas butonuyla AYNI hizada. */}
             <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
