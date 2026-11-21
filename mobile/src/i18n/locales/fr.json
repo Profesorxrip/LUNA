@@ -268,7 +268,9 @@
     "recordPause": "Pause",
     "recordResume": "Reprendre",
     "voiceOnceConsumed": "Ce message vocal a déjà été écouté",
-    "mediaOnceConsumed": "Ce média a déjà été consulté"
+    "mediaOnceConsumed": "Ce média a déjà été consulté",
+    "gallerySend": "Envoyer",
+    "galleryPermissionDenied": "L'accès à la galerie a été refusé. Accorde l'autorisation dans les paramètres et réessaie."
   },
   "userProfile": {
     "defaultName": "Utilisateur",

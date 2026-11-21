@@ -36,6 +36,7 @@ import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import SendMediaSheet from "../components/SendMediaSheet";
 import SendVideoSheet from "../components/SendVideoSheet";
+import GalleryPickerModal, { type GalleryPickedAsset } from "../components/GalleryPickerModal";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
 import { formatMessageTime } from "../utils/time";
@@ -413,6 +414,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
+  const [galleryPickerVisible, setGalleryPickerVisible] = useState(false);
   const [quickCaptureActive, setQuickCaptureActive] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [quickCameraReady, setQuickCameraReady] = useState(false);
@@ -733,10 +735,22 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setReplyingTo(null);
   }
 
-  // Kullanici: "Mesaj yazma alanı gönderme alanı seçenekleri felan hepsini
-  // ekle profesyonel bir önizleme ekranı yap" - galeriden COKLU fotograf
-  // secilebiliyor, hepsi SendMediaSheet'te tek tek duzenlenip gonderiliyor.
-  async function pickImage() {
+  // Kullanici: "Galeri sayfası oluşturmalıyız" - uygulama ICI kendi galeri
+  // izgara ekranimiz (GalleryPickerModal) her yerde ("Galeriden Seç" ve
+  // hizli kamera ekranindaki galeri ikonu) OS'in kendi galerisi yerine
+  // acilir. expo-media-library web'de cihaz galerisini LISTELEYEMEDIGI
+  // icin (sadece native'de calisir) web'de eski ImagePicker akisina
+  // duseriz.
+  function pickImage() {
+    if (Platform.OS === "web") {
+      pickImageViaOsLibrary();
+      return;
+    }
+    setAttachSheetVisible(false);
+    setGalleryPickerVisible(true);
+  }
+
+  async function pickImageViaOsLibrary() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
@@ -752,6 +766,14 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setAttachSheetVisible(false);
     const videos = result.assets.filter((a) => a.type === "video");
     const images = result.assets.filter((a) => a.type !== "video");
+    if (images.length) setPendingImages((prev) => [...prev, ...images.map((a) => a.uri)]);
+    if (videos.length) setVideoQueue((prev) => [...prev, ...videos.map((a) => ({ uri: a.uri, mimeType: a.mimeType }))]);
+  }
+
+  function handleGalleryPickerConfirm(picked: GalleryPickedAsset[]) {
+    setGalleryPickerVisible(false);
+    const videos = picked.filter((a) => a.type === "video");
+    const images = picked.filter((a) => a.type === "image");
     if (images.length) setPendingImages((prev) => [...prev, ...images.map((a) => a.uri)]);
     if (videos.length) setVideoQueue((prev) => [...prev, ...videos.map((a) => ({ uri: a.uri, mimeType: a.mimeType }))]);
   }
@@ -1887,6 +1909,12 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
           </View>
         </View>
       )}
+
+      <GalleryPickerModal
+        visible={galleryPickerVisible}
+        onClose={() => setGalleryPickerVisible(false)}
+        onConfirm={handleGalleryPickerConfirm}
+      />
 
       <SendMediaSheet
         visible={pendingImages.length > 0}

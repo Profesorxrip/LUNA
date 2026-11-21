@@ -268,7 +268,9 @@
     "recordPause": "إيقاف مؤقت",
     "recordResume": "استئناف",
     "voiceOnceConsumed": "تم تشغيل هذه الرسالة الصوتية بالفعل",
-    "mediaOnceConsumed": "تم عرض هذا الوسائط بالفعل"
+    "mediaOnceConsumed": "تم عرض هذا الوسائط بالفعل",
+    "gallerySend": "إرسال",
+    "galleryPermissionDenied": "تم رفض الوصول إلى المعرض. امنح الإذن من الإعدادات وحاول مرة أخرى."
   },
   "userProfile": {
     "defaultName": "مستخدم",

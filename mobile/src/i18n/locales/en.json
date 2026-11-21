@@ -268,7 +268,9 @@
     "recordPause": "Pause",
     "recordResume": "Resume",
     "voiceOnceConsumed": "This voice message has been played",
-    "mediaOnceConsumed": "This media has been viewed"
+    "mediaOnceConsumed": "This media has been viewed",
+    "gallerySend": "Send",
+    "galleryPermissionDenied": "Gallery access was denied. Grant permission in settings and try again."
   },
   "userProfile": {
     "defaultName": "User",

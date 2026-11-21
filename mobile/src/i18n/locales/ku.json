@@ -268,7 +268,9 @@
     "recordPause": "Rawestîne",
     "recordResume": "Berdewam bike",
     "voiceOnceConsumed": "Ev peyama dengî berê hatiye guhdarîkirin",
-    "mediaOnceConsumed": "Ev medya berê hatiye dîtin"
+    "mediaOnceConsumed": "Ev medya berê hatiye dîtin",
+    "gallerySend": "Bişîne",
+    "galleryPermissionDenied": "Destûra gihîştina galeriyê nehat dayîn. Ji mîhengan destûrê bide û dîsa biceribîne."
   },
   "userProfile": {
     "defaultName": "Bikarhêner",
