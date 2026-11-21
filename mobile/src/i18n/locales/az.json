@@ -583,7 +583,9 @@
     "activities": "Fəaliyyətlər",
     "objects": "Əşyalar",
     "symbols": "Simvollar",
-    "flags": "Bayraqlar"
+    "flags": "Bayraqlar",
+    "gifSearchPlaceholder": "GIF AXTAR",
+    "gifComingSoon": "GIF axtarışı tezliklə gəlir"
   },
   "messageOptions": {
     "searchPlaceholder": "Axtar",

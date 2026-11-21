@@ -69,6 +69,7 @@ import {
   sendPollMessage,
   voteDmPoll,
   sendMusicMessage,
+  sendStickerMessage,
   sendCallMessage,
   setExpiryMs,
   markSeen,
@@ -1337,6 +1338,25 @@ io.on("connection", (socket: Socket) => {
       notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, `🎵 ${fileName}`).catch(() => {});
     }
   );
+
+  // DM'de cikartma (sticker) gonderme - "Etiket" ek menusu. Cikartma HER
+  // istemcide AYNI bundle edilmis dosya oldugu icin (bkz. mobile/src/data/
+  // stickerPacks.ts) burada bir dosya yuklemesi/mediaUrl YOK, sadece sabit
+  // paketteki cikartmayi tanimlayan stickerId tasinir.
+  socket.on("dm:sendSticker", async ({ toUserId, stickerId }: { toUserId: string; stickerId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isNonEmptyString(stickerId, 100)) {
+      return ack?.({ ok: false });
+    }
+    if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+    const result = await sendStickerMessage(myDb!, toUserId, stickerId);
+    if (!result.ok || !result.message) {
+      return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
+    }
+    ack?.({ ok: true, message: result.message });
+    const peerSocketId = getSocketIdForUser(toUserId);
+    if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+    notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "🏷️ Çıkartma").catch(() => {});
+  });
 
   // DM'de bir mesaja CIFT TIKLAYINCA gonderilen tepki - oda sohbetindeki
   // message:react'in aksine burada sadece 2 taraf oldugu icin sunucu hicbir

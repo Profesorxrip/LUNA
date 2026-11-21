@@ -57,6 +57,7 @@ import PollComposerModal from "../components/PollComposerModal";
 import EmojiKeyboardPanel from "../components/EmojiKeyboardPanel";
 import PollMessageBubble from "../components/PollMessageBubble";
 import MusicMessageBubble from "../components/MusicMessageBubble";
+import StickerMessageBubble from "../components/StickerMessageBubble";
 import CallMessageBubble from "../components/CallMessageBubble";
 import FriendsScreen from "./FriendsScreen";
 import Avatar from "../components/Avatar";
@@ -274,9 +275,14 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 item.kind !== "poll" &&
                 item.mediaUrl &&
                 styles.bubblePhotoPad,
+              // Kullanici: "WhatsApp/Telegram'daki gibi" cikartmalar - GERCEK
+              // bir mesaj balonu renk/kenarligi OLMADAN serbest/saydam
+              // gorunmeli, bu yuzden digerlerinin aksine bubbleMine/
+              // bubbleTheirs arka plani buradan SONRA ezilerek kaldiriliyor.
+              item.kind === "sticker" && styles.bubbleStickerNoBg,
             ]}
           >
-            {!groupedWithPrev && <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />}
+            {!groupedWithPrev && item.kind !== "sticker" && <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />}
             {item.isForwarded && !item.deletedForEveryone && (
               <View style={styles.forwardedRow}>
                 <Forward size={11} color={isMine ? "rgba(255,255,255,0.75)" : MUTED} />
@@ -333,6 +339,8 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               />
             ) : item.kind === "music" && item.mediaUrl ? (
               <MusicMessageBubble uri={item.mediaUrl} title={item.fileName || item.text} />
+            ) : item.kind === "sticker" ? (
+              <StickerMessageBubble stickerId={item.stickerId ?? null} />
             ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
               <View style={styles.deletedRow}>
                 <CameraIcon size={14} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} strokeWidth={1.8} />
@@ -396,6 +404,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 item.kind === "music" && styles.metaRowMusicOverlay,
                 item.kind === "poll" && styles.metaRowPollOverlay,
                 item.kind === "contact" && styles.metaRowContactOverlay,
+                item.kind === "sticker" && styles.metaRowStickerOverlay,
               ]}
             >
               {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
@@ -1478,6 +1487,20 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setInput((prev) => prev + emoji);
   }
 
+  // Etiket (cikartma/sticker) sekmesi - WhatsApp/Telegram'daki gibi birine
+  // basmak metne EKLEMEZ, dogrudan kendi basina bir mesaj olarak GONDERIR.
+  // Cikartma bundle edilmis sabit bir dosya oldugu icin (bkz.
+  // ../data/stickerPacks.ts) yuklenecek bir medya YOK, sadece stickerId
+  // tasinir - alici kendi bundle'indaki ayni id'li dosyayi gosterir.
+  function sendSticker(stickerId: string) {
+    if (!myUserId) return;
+    setEmojiPanelVisible(false);
+    socket.emit("dm:sendSticker", { toUserId: peer.userId, stickerId }, (res: any) => {
+      if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+      else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+    });
+  }
+
   function startReply(message: DMMessage) {
     setReplyingTo({
       text: message.text,
@@ -2259,7 +2282,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         </View>
       )}
 
-      {emojiPanelVisible && <EmojiKeyboardPanel onSelect={insertEmoji} />}
+      {emojiPanelVisible && <EmojiKeyboardPanel onSelect={insertEmoji} onSendSticker={sendSticker} />}
 
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
@@ -2607,6 +2630,9 @@ const styles = StyleSheet.create({
   // Fotograf balonu icin de AYNI mantik - ChatImageBubble'in kendi boyutu da
   // buyutuldu (bkz. asagidaki size/borderRadius prop'lari).
   bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  // Cikartma - GERCEK bir mesaj balonu DEGIL, serbest/saydam bir gorsel
+  // (bkz. StickerMessageBubble) - rengi/dolgusu/kuyrugu TAMAMEN kaldirilir.
+  bubbleStickerNoBg: { backgroundColor: "transparent", padding: 0 },
   // Saat/tik fotografin alt-sag kosesine BINDIRILIYOR (normal akistan
   // cikarilip mutlak konumlandiriliyor) - fotograf boylece balonun en
   // altina kadar (3px) buyuyebiliyor, altinda ayri bir satir kalmiyor.
@@ -2653,6 +2679,19 @@ const styles = StyleSheet.create({
     bottom: 8,
     right: 10,
     marginTop: 0,
+  },
+  // Cikartma - balonun arka plani olmadigi icin (bkz. bubbleStickerNoBg)
+  // fotografta oldugu gibi KOYU bir hap arka planla (okunurluk icin, cikartma
+  // kendi saydam/parlak renkli olabilir) sag-alt kosede gosterilir.
+  metaRowStickerOverlay: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    marginTop: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
   bubbleMine: { backgroundColor: BUBBLE_MINE_COLOR },
   // Balonun disina tasan, WhatsApp'taki gibi TEK bir bezier egrisiyle

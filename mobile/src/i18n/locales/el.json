@@ -583,7 +583,9 @@
     "activities": "Δραστηριότητες",
     "objects": "Αντικείμενα",
     "symbols": "Σύμβολα",
-    "flags": "Σημαίες"
+    "flags": "Σημαίες",
+    "gifSearchPlaceholder": "ΑΝΑΖΗΤΗΣΗ GIF",
+    "gifComingSoon": "Η αναζήτηση GIF έρχεται σύντομα"
   },
   "messageOptions": {
     "searchPlaceholder": "Αναζήτηση",

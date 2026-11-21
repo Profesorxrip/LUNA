@@ -638,7 +638,9 @@
     "activities": "Aktiviteler",
     "objects": "Nesneler",
     "symbols": "Semboller",
-    "flags": "Bayraklar"
+    "flags": "Bayraklar",
+    "gifSearchPlaceholder": "GIF ARA",
+    "gifComingSoon": "GIF araması yakında geliyor"
   },
   "messageOptions": {
     "searchPlaceholder": "Ara",

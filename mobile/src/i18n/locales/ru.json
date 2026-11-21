@@ -583,7 +583,9 @@
     "activities": "Активности",
     "objects": "Предметы",
     "symbols": "Символы",
-    "flags": "Флаги"
+    "flags": "Флаги",
+    "gifSearchPlaceholder": "ПОИСК GIF",
+    "gifComingSoon": "Поиск GIF скоро появится"
   },
   "messageOptions": {
     "searchPlaceholder": "Поиск",

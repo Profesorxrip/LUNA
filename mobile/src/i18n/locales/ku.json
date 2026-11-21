@@ -583,7 +583,9 @@
     "activities": "Çalakî",
     "objects": "Tişt",
     "symbols": "Sembol",
-    "flags": "Ala"
+    "flags": "Ala",
+    "gifSearchPlaceholder": "GIFÊ BIGERE",
+    "gifComingSoon": "Gerîna GIF ê zûtirîn tê"
   },
   "messageOptions": {
     "searchPlaceholder": "Lêgerîn",

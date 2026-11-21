@@ -583,7 +583,9 @@
     "activities": "Activités",
     "objects": "Objets",
     "symbols": "Symboles",
-    "flags": "Drapeaux"
+    "flags": "Drapeaux",
+    "gifSearchPlaceholder": "RECHERCHER UN GIF",
+    "gifComingSoon": "La recherche de GIF arrive bientôt"
   },
   "messageOptions": {
     "searchPlaceholder": "Rechercher",

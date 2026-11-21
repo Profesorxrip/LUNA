@@ -24,7 +24,7 @@ export interface DMMessage {
   // geriye donuk isaretleme), "voice", "location", "file", "video", "call" -
   // bkz. 0033_dm_message_kinds.sql / 0034_dm_video_messages.sql /
   // 0035_dm_call_messages.sql.
-  kind: "text" | "photo" | "voice" | "location" | "file" | "video" | "call" | "contact" | "poll" | "music";
+  kind: "text" | "photo" | "voice" | "location" | "file" | "video" | "call" | "contact" | "poll" | "music" | "sticker";
   durationMs: number | null;
   latitude: number | null;
   longitude: number | null;
@@ -50,6 +50,11 @@ export interface DMMessage {
   pollOptionImages: string[] | null;
   pollVotes: number[] | null;
   myPollVote: number | null;
+  // Sadece kind==="sticker" oldugunda dolu - bkz. 0045_dm_sticker_messages.sql.
+  // Bundle edilmis sabit bir paket cikartmasini tanimlar (mobile/src/data/
+  // stickerPacks.ts) - media_url YOK, her istemci kendi bundle'indaki ayni
+  // id'li dosyayi gosterir.
+  stickerId: string | null;
   // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
   callIsVideo: boolean | null;
   callStatus: "completed" | "missed" | null;
@@ -119,6 +124,7 @@ function mapRow(row: any): DMMessage {
     pollOptionImages: row.poll_option_images ?? null,
     pollVotes: null,
     myPollVote: null,
+    stickerId: row.sticker_id ?? null,
     callIsVideo: row.call_is_video ?? null,
     callStatus: row.call_status ?? null,
     deletedForEveryone: row.deleted_for_everyone === true,
@@ -463,6 +469,21 @@ export async function sendMusicMessage(
   return { ok: true, message: mapRow(data) };
 }
 
+export async function sendStickerMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  stickerId: string
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_dm_sticker", {
+    to_user: toUserId,
+    sticker_id: stickerId,
+  });
+  if (error) {
+    return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  return { ok: true, message: mapRow(data) };
+}
+
 export interface DMConversationSummary {
   conversationId: string;
   peerId: string;
@@ -637,6 +658,7 @@ export async function forwardMessage(
     poll_question: original.pollQuestion,
     poll_options: original.pollOptions,
     poll_option_images: original.pollOptionImages,
+    sticker_id: original.stickerId,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };

@@ -583,7 +583,9 @@
     "activities": "الأنشطة",
     "objects": "الأشياء",
     "symbols": "الرموز",
-    "flags": "الأعلام"
+    "flags": "الأعلام",
+    "gifSearchPlaceholder": "ابحث عن GIF",
+    "gifComingSoon": "البحث عن GIF قريبًا"
   },
   "messageOptions": {
     "searchPlaceholder": "بحث",

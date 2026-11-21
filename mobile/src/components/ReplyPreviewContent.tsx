@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Image, StyleSheet, LayoutChangeEvent } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { Image as ImageIcon, MapPin, File as FileIcon, Phone, User as UserIcon, BarChart2, Music } from "lucide-react-native";
+import { Image as ImageIcon, MapPin, File as FileIcon, Phone, User as UserIcon, BarChart2, Music, Sticker as StickerIcon } from "lucide-react-native";
 import { MicrophoneIcon } from "react-native-heroicons/outline";
 import AppIcon from "./Icon";
 import { DMMessage } from "../services/socket";
@@ -127,6 +127,9 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, ca
       iconShift = -1;
     } else if (kind === "music") {
       IconEl = <Music size={14} color={iconColor} />;
+      iconShift = -1;
+    } else if (kind === "sticker") {
+      IconEl = <StickerIcon size={14} color={iconColor} />;
       iconShift = -1;
     } else if (kind === "call") {
       // "callIsVideo" GERCEK bilgiyi tasir (bkz. DMMessage.callIsVideo) -

@@ -638,7 +638,9 @@
     "activities": "Activities",
     "objects": "Objects",
     "symbols": "Symbols",
-    "flags": "Flags"
+    "flags": "Flags",
+    "gifSearchPlaceholder": "SEARCH GIF",
+    "gifComingSoon": "GIF search coming soon"
   },
   "messageOptions": {
     "searchPlaceholder": "Search",
