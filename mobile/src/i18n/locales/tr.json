@@ -226,6 +226,7 @@
     "pollOptionsLabel": "Seçenekler",
     "pollOptionPlaceholder": "Seçenek {{number}}",
     "pollAddOption": "Seçenek Ekle",
+    "pollOptionImageTitle": "Fotoğraf Ekle",
     "pollTotalVotes": "{{count}} oy",
     "attachContact": "Kişi",
     "micPermissionRequiredBody": "Sesli mesaj göndermek için mikrofon iznine ihtiyacımız var.",

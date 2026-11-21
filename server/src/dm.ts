@@ -45,6 +45,9 @@ export interface DMMessage {
   // sifirla (0 oy) doldurulur.
   pollQuestion: string | null;
   pollOptions: string[] | null;
+  // Secenek basina opsiyonel fotograf - bkz. 0044_dm_poll_option_images.sql.
+  // pollOptions ile AYNI uzunlukta, resmi olmayan secenekte o indexte null.
+  pollOptionImages: string[] | null;
   pollVotes: number[] | null;
   myPollVote: number | null;
   // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
@@ -113,6 +116,7 @@ function mapRow(row: any): DMMessage {
     sharedUserAvatarUrl: row.shared_user_avatar_url ?? null,
     pollQuestion: row.poll_question ?? null,
     pollOptions: row.poll_options ?? null,
+    pollOptionImages: row.poll_option_images ?? null,
     pollVotes: null,
     myPollVote: null,
     callIsVideo: row.call_is_video ?? null,
@@ -400,12 +404,14 @@ export async function sendPollMessage(
   db: SupabaseClient,
   toUserId: string,
   question: string,
-  options: string[]
+  options: string[],
+  optionImages?: (string | null)[]
 ): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
   const { data, error } = await db.rpc("send_dm_poll", {
     to_user: toUserId,
     question,
     options,
+    option_images: optionImages ?? null,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
@@ -630,6 +636,7 @@ export async function forwardMessage(
     shared_user_avatar_url: original.sharedUserAvatarUrl,
     poll_question: original.pollQuestion,
     poll_options: original.pollOptions,
+    poll_option_images: original.pollOptionImages,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };

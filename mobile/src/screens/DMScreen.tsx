@@ -317,6 +317,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               <PollMessageBubble
                 question={item.pollQuestion}
                 options={item.pollOptions}
+                optionImages={item.pollOptionImages}
                 votes={item.pollVotes ?? new Array(item.pollOptions.length).fill(0)}
                 myVote={item.myPollVote ?? null}
                 onVote={(optionIndex) => onVotePoll?.(item.id, optionIndex)}
@@ -602,6 +603,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [forwardTarget, setForwardTarget] = useState<DMMessage | null>(null);
   const [contactPickerVisible, setContactPickerVisible] = useState(false);
   const [pollComposerVisible, setPollComposerVisible] = useState(false);
+  const [sendingPoll, setSendingPoll] = useState(false);
   // "Dosya" (document picker, genel dosya) ile "Müzik" (document picker,
   // sadece ses) AYNI FilePreviewModal'i (onizleme + mesaj kutusu) paylasir -
   // confirmSendFile'in hangi RPC'yi ("dm:sendFile" / "dm:sendMusic")
@@ -1555,15 +1557,45 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     setAttachSheetVisible(false);
     setPollComposerVisible(true);
   }
-  function sendPoll(question: string, options: string[]) {
-    socket.emit("dm:sendPoll", { toUserId: peer.userId, question, options }, (res: any) => {
-      if (res?.ok && res.message) {
-        setMessages((prev) => [...prev, res.message]);
-        setPollComposerVisible(false);
-      } else if (!res?.ok) {
-        showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+  // Kullanici: "Ama o ankette fotoğraf ekleme özelliğide vardı" - secenek
+  // fotograflari (varsa) gondermeden ONCE "chat-media" bucket'ina (foto
+  // mesajlariyla AYNI desen) yukleniyor, sonuc URL'leri "dm:sendPoll"a
+  // optionImages olarak gidiyor.
+  async function sendPoll(question: string, options: string[], optionImages: (string | null)[]) {
+    if (!myUserId || sendingPoll) return;
+    setSendingPoll(true);
+    try {
+      const uploadedImages: (string | null)[] = [];
+      for (const uri of optionImages) {
+        if (!uri) {
+          uploadedImages.push(null);
+          continue;
+        }
+        const arrayBuffer = await uriToArrayBuffer(uri);
+        const ext = uri.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${myUserId}/${Date.now()}-poll-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, "image/jpeg", () => {});
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        uploadedImages.push(publicUrlData.publicUrl);
       }
-    });
+      const hasImages = uploadedImages.some((u) => u !== null);
+      socket.emit(
+        "dm:sendPoll",
+        { toUserId: peer.userId, question, options, optionImages: hasImages ? uploadedImages : undefined },
+        (res: any) => {
+          if (res?.ok && res.message) {
+            setMessages((prev) => [...prev, res.message]);
+            setPollComposerVisible(false);
+          } else if (!res?.ok) {
+            showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+          }
+        }
+      );
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingPoll(false);
+    }
   }
   // Bir anket secenegine dokununca - KENDI ekranimizi iyimser (optimistic)
   // guncelliyoruz, sunucudan gelen ack'teki GERCEK sayilarla (digerinin
@@ -2183,7 +2215,12 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         />
       </Modal>
 
-      <PollComposerModal visible={pollComposerVisible} onCancel={() => setPollComposerVisible(false)} onSend={sendPoll} />
+      <PollComposerModal
+        visible={pollComposerVisible}
+        sending={sendingPoll}
+        onCancel={() => setPollComposerVisible(false)}
+        onSend={sendPoll}
+      />
 
       <Modal visible={expiryVisible} transparent animationType="slide" onRequestClose={() => setExpiryVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setExpiryVisible(false)}>

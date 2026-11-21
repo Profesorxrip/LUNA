@@ -226,6 +226,7 @@
     "pollOptionsLabel": "Варианты",
     "pollOptionPlaceholder": "Вариант {{number}}",
     "pollAddOption": "Добавить вариант",
+    "pollOptionImageTitle": "Добавить фото",
     "pollTotalVotes": "{{count}} голосов",
     "attachContact": "Контакт",
     "micPermissionRequiredBody": "Нам нужен доступ к микрофону, чтобы отправить голосовое сообщение.",

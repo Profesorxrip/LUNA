@@ -1242,7 +1242,10 @@ io.on("connection", (socket: Socket) => {
   // DM'de anket olusturma ("Anket" ek menusu) - en az 2, en fazla 10 secenek.
   socket.on(
     "dm:sendPoll",
-    async ({ toUserId, question, options }: { toUserId: string; question: string; options: string[] }, ack) => {
+    async (
+      { toUserId, question, options, optionImages }: { toUserId: string; question: string; options: string[]; optionImages?: (string | null)[] },
+      ack
+    ) => {
       if (
         !requireAuth(ack) ||
         !isNonEmptyString(toUserId, 200) ||
@@ -1254,8 +1257,16 @@ io.on("connection", (socket: Socket) => {
       ) {
         return ack?.({ ok: false });
       }
+      if (
+        optionImages !== undefined &&
+        (!Array.isArray(optionImages) ||
+          optionImages.length !== options.length ||
+          !optionImages.every((u) => u === null || isNonEmptyString(u, 2000)))
+      ) {
+        return ack?.({ ok: false });
+      }
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
-      const result = await sendPollMessage(myDb!, toUserId, question, options);
+      const result = await sendPollMessage(myDb!, toUserId, question, options, optionImages);
       if (!result.ok || !result.message) {
         return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
       }

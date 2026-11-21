@@ -226,6 +226,7 @@
     "pollOptionsLabel": "Επιλογές",
     "pollOptionPlaceholder": "Επιλογή {{number}}",
     "pollAddOption": "Προσθήκη Επιλογής",
+    "pollOptionImageTitle": "Προσθήκη Φωτογραφίας",
     "pollTotalVotes": "{{count}} ψήφοι",
     "attachContact": "Επαφή",
     "micPermissionRequiredBody": "Χρειαζόμαστε άδεια μικροφώνου για να στείλεις φωνητικό μήνυμα.",

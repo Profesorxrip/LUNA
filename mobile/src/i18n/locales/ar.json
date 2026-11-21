@@ -226,6 +226,7 @@
     "pollOptionsLabel": "الخيارات",
     "pollOptionPlaceholder": "الخيار {{number}}",
     "pollAddOption": "إضافة خيار",
+    "pollOptionImageTitle": "إضافة صورة",
     "pollTotalVotes": "{{count}} صوت",
     "attachContact": "جهة اتصال",
     "micPermissionRequiredBody": "نحتاج إلى إذن الميكروفون لإرسال رسالة صوتية.",

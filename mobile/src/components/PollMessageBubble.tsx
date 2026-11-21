@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { BarChart2, Check } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 
 interface Props {
   question: string;
   options: string[];
+  optionImages?: (string | null)[] | null;
   votes: number[];
   myVote: number | null;
   onVote: (optionIndex: number) => void;
@@ -18,7 +19,7 @@ const ACCENT = "#0EA5E9";
  * (tik + accent cerceve) gosterilir, baska bir secenege dokununca oyum
  * degisir (bkz. DMScreen.tsx votePoll - "dm:votePoll" ile sunucuya, GERCEK
  * ZAMANLI "dm:pollVote" ile karsi tarafa da yansir). */
-export default function PollMessageBubble({ question, options, votes, myVote, onVote }: Props) {
+export default function PollMessageBubble({ question, options, optionImages, votes, myVote, onVote }: Props) {
   const { t } = useTranslation();
   const totalVotes = votes.reduce((sum, v) => sum + v, 0);
 
@@ -37,6 +38,7 @@ export default function PollMessageBubble({ question, options, votes, myVote, on
             <View style={[styles.fillBar, { width: `${pct}%` }]} />
             <View style={styles.optionContent}>
               <View style={styles.optionTextRow}>
+                {!!optionImages?.[i] && <Image source={{ uri: optionImages[i]! }} style={styles.optionImage} />}
                 {isMine && <Check size={13} color="#FFFFFF" />}
                 <Text style={styles.optionText} numberOfLines={2}>
                   {opt}
@@ -85,6 +87,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   optionTextRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
+  optionImage: { width: 28, height: 28, borderRadius: 6 },
   optionText: { flex: 1, color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
   optionPct: { color: "rgba(255,255,255,0.8)", fontSize: 12, fontWeight: "700" },
   totalText: { color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 2 },

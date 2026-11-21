@@ -226,6 +226,7 @@
     "pollOptionsLabel": "Seçimlər",
     "pollOptionPlaceholder": "Seçim {{number}}",
     "pollAddOption": "Seçim Əlavə Et",
+    "pollOptionImageTitle": "Fotoşəkil Əlavə Et",
     "pollTotalVotes": "{{count}} səs",
     "attachContact": "Əlaqə",
     "micPermissionRequiredBody": "Səsli mesaj göndərmək üçün mikrofon icazəsinə ehtiyacımız var.",

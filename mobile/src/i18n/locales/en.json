@@ -226,6 +226,7 @@
     "pollOptionsLabel": "Options",
     "pollOptionPlaceholder": "Option {{number}}",
     "pollAddOption": "Add Option",
+    "pollOptionImageTitle": "Add Photo",
     "pollTotalVotes": "{{count}} votes",
     "attachContact": "Contact",
     "micPermissionRequiredBody": "We need microphone permission to send a voice message.",

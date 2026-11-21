@@ -331,6 +331,7 @@ export interface DMMessage {
   // vermemişsem null) - "dm:pollVote" ile GERCEK ZAMANLI guncellenir.
   pollQuestion?: string | null;
   pollOptions?: string[] | null;
+  pollOptionImages?: (string | null)[] | null;
   pollVotes?: number[] | null;
   myPollVote?: number | null;
   // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
