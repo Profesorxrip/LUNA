@@ -264,7 +264,13 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               item.kind === "location" && styles.bubbleLocationPad,
               item.kind === "file" && styles.bubbleFilePad,
               item.kind === "call" && styles.bubbleCallPad,
-              item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.mediaUrl && styles.bubblePhotoPad,
+              item.kind === "poll" && styles.bubblePollPad,
+              item.kind !== "voice" &&
+                item.kind !== "location" &&
+                item.kind !== "file" &&
+                item.kind !== "poll" &&
+                item.mediaUrl &&
+                styles.bubblePhotoPad,
             ]}
           >
             {!groupedWithPrev && <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />}
@@ -2544,6 +2550,10 @@ const styles = StyleSheet.create({
   // Dosya karti icin de AYNI mantik - bkz. FileMessageBubble'daki buyutme.
   bubbleFilePad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
   bubbleCallPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  // Anket karti icin de AYNI mantik (Konum/Dosya ile) - karti balonun
+  // kenarina 3px'e kadar yaklastirir, alttaki gonderim saati satiri icin
+  // paylasilan 8px alt bosluga dokunulmadi.
+  bubblePollPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
   // Fotograf balonu icin de AYNI mantik - ChatImageBubble'in kendi boyutu da
   // buyutuldu (bkz. asagidaki size/borderRadius prop'lari).
   bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },

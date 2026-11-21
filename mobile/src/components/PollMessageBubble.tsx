@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     minWidth: 230,
     maxWidth: 270,
     backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 12,
     gap: 8,
   },
