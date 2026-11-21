@@ -251,6 +251,24 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
   // stilleri ve GifMessageBubble.
   const isGifSticker = item.kind === "sticker" && !!item.stickerId?.startsWith("gif-");
 
+  // Kullanici: "medyanın altına gelen mesajlar ve mesaj süreleri çok yamuk
+  // duruyor doğal mesajdaki gibi durmuyor" - bir alt yazi (caption) VARKEN
+  // saatin GORSELIN uzerine (bkz. metaRowPhotoOverlay - position:absolute,
+  // sadece caption'SIZ foto/video/GIF icin dogru) BINMESI, alt yaziyla AYNI
+  // satira denk gelip "yamuk" gorunuyordu - caption varken saat normal
+  // metaRow (duz akis, metnin ALTINDA, duz mesajdaki gibi) kullanmali.
+  const hasMediaCaption =
+    !item.deletedForEveryone &&
+    item.kind !== "voice" &&
+    item.kind !== "location" &&
+    item.kind !== "music" &&
+    item.kind !== "video" &&
+    item.kind !== "sticker" &&
+    !!item.mediaUrl &&
+    !!item.text &&
+    item.text !== "📷 Fotoğraf" &&
+    !(item.kind === "file" && item.text === `📎 ${item.fileName}`);
+
   return (
     <Animated.View
       style={[
@@ -423,6 +441,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                   item.kind !== "music" &&
                   (item.kind !== "sticker" || isGifSticker) &&
                   (item.mediaUrl || isGifSticker) &&
+                  !hasMediaCaption &&
                   styles.metaRowPhotoOverlay),
                 item.kind === "call" && styles.metaRowCallOverlay,
                 item.kind === "music" && styles.metaRowMusicOverlay,
@@ -2161,7 +2180,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                       onReport={() => setReportVisible(true)}
                     />
                     {!!groupCaption && <Text style={styles.mediaCaption}>{groupCaption}</Text>}
-                    <View style={[styles.metaRow, styles.metaRowPhotoOverlay]}>
+                    <View style={[styles.metaRow, !groupCaption && styles.metaRowPhotoOverlay]}>
                       <View style={styles.metaRowRight}>
                         <Text style={styles.metaTime}>{formatMessageTime(displayItem.createdAt, i18n.language)}</Text>
                         {isMine && (
@@ -2919,7 +2938,11 @@ const styles = StyleSheet.create({
   },
   reactionBadgeEmoji: { fontSize: 12 },
   headerProfileTouch: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
-  mediaCaption: { color: TEXT, fontSize: 15, marginTop: 5, maxWidth: 220 },
+  // Kullanici: "yamuk duruyor" - foto/video/GIF HEP 280px genislikte (bkz.
+  // bubblePhotoPad width:286), alt yazi da AYNI genislige (280) yayilmali -
+  // 220 ile gorselden daha dar kalip sag tarafta bos/carpik bir bosluk
+  // birakiyordu.
+  mediaCaption: { color: TEXT, fontSize: 15, marginTop: 5, width: 280 },
   attachSheet: {
     backgroundColor: "#15202B",
     height: 300,
