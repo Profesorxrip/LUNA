@@ -23,7 +23,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play, SwitchCamera, Zap, ZapOff } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
@@ -415,6 +415,10 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const [quickCaptureActive, setQuickCaptureActive] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [quickCameraReady, setQuickCameraReady] = useState(false);
+  const [quickCameraFacing, setQuickCameraFacing] = useState<"back" | "front">("back");
+  const [quickCameraFlash, setQuickCameraFlash] = useState<"off" | "on">("off");
+  const [capturingQuickPhoto, setCapturingQuickPhoto] = useState(false);
   const cameraReadyRef = useRef(false);
   const cameraRef = useRef<CameraView>(null);
   // Dosya (pdf/zip/vb.) gonderme - foto ile AYNI "chat-media" bucket'ina
@@ -770,7 +774,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
 
   // Kullanici: "ikon dışında kutuya basınca kamerayı açsa" - bu ANLIK çekim
   // yolu, expo-camera'nin KENDI (OS kamera uygulamasini ACMADAN, sheet
-  // icinde) CameraView'iyla tek dokunusla fotograf cekiyor.
+  // icinde) CameraView'iyla tam kontrollu (deklansor/on-arka/flas) bir
+  // ekran acar.
   async function startQuickCapture() {
     if (!cameraPermission?.granted) {
       const res = await requestCameraPermission();
@@ -780,18 +785,38 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       }
     }
     cameraReadyRef.current = false;
+    setQuickCameraReady(false);
+    setQuickCameraFacing("back");
+    setQuickCameraFlash("off");
+    setCapturingQuickPhoto(false);
+    setAttachSheetVisible(false);
     setQuickCaptureActive(true);
+  }
+
+  function handleQuickCameraReady() {
+    cameraReadyRef.current = true;
+    setQuickCameraReady(true);
+  }
+
+  function toggleQuickCameraFacing() {
+    setQuickCameraFacing((f) => (f === "back" ? "front" : "back"));
+  }
+
+  function toggleQuickCameraFlash() {
+    setQuickCameraFlash((f) => (f === "off" ? "on" : "off"));
   }
 
   // expo-camera web'de "onCameraReady" ilk kareden ONCE de tetiklenebiliyor
   // ("not enough camera data" hatasi) - birkac deneme ile bekliyoruz.
-  async function handleQuickCameraReady() {
-    cameraReadyRef.current = true;
+  async function handleQuickShutterPress() {
+    if (capturingQuickPhoto || !quickCameraReady) return;
+    setCapturingQuickPhoto(true);
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
         const photo = await cameraRef.current?.takePictureAsync({ quality: 0.7 });
         if (photo?.uri) {
           setQuickCaptureActive(false);
+          setCapturingQuickPhoto(false);
           setAttachSheetVisible(false);
           setPendingImages((prev) => [...prev, photo.uri]);
           return;
@@ -800,7 +825,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         await new Promise((r) => setTimeout(r, 200));
       }
     }
-    setQuickCaptureActive(false);
+    setCapturingQuickPhoto(false);
   }
 
   function removePendingImage(index: number) {
@@ -1824,12 +1849,32 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
           <CameraView
             ref={cameraRef}
             style={styles.quickCameraView}
-            facing="back"
+            facing={quickCameraFacing}
+            flash={quickCameraFlash}
             onCameraReady={handleQuickCameraReady}
           />
-          <TouchableOpacity style={styles.quickCameraClose} onPress={() => setQuickCaptureActive(false)} hitSlop={10}>
-            <Icon name="close" size={22} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={styles.quickCameraTopBar}>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={() => setQuickCaptureActive(false)} hitSlop={10}>
+              <Icon name="close" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFlash} hitSlop={10}>
+              {quickCameraFlash === "on" ? <Zap size={20} color="#FFFFFF" fill="#FFFFFF" /> : <ZapOff size={20} color="#FFFFFF" />}
+            </TouchableOpacity>
+          </View>
+          <View style={styles.quickCameraBottomBar}>
+            <View style={styles.quickCameraSideBtn} />
+            <TouchableOpacity
+              style={styles.quickCameraShutterOuter}
+              onPress={handleQuickShutterPress}
+              disabled={!quickCameraReady || capturingQuickPhoto}
+              hitSlop={8}
+            >
+              <View style={[styles.quickCameraShutterInner, capturingQuickPhoto && styles.quickCameraShutterInnerActive]} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickCameraSideBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
+              <SwitchCamera size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -2038,16 +2083,56 @@ const styles = StyleSheet.create({
   attachRowText: { color: TEXT, fontSize: 15, fontWeight: "600" },
   quickCameraOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#000000" },
   quickCameraView: { flex: 1 },
-  quickCameraClose: {
+  quickCameraTopBar: {
     position: "absolute",
     top: 50,
     left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  quickCameraTopBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  quickCameraBottomBar: {
+    position: "absolute",
+    bottom: 36,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 40,
+  },
+  quickCameraSideBtn: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickCameraShutterOuter: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 4,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickCameraShutterInner: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#FFFFFF",
+  },
+  quickCameraShutterInnerActive: {
+    backgroundColor: "rgba(255,255,255,0.5)",
   },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, alignSelf: "flex-end" },
   // Sesli mesajda bu satir TUM genisligi kaplar - sure SOLDA (dalganin
