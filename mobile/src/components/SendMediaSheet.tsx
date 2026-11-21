@@ -763,7 +763,7 @@ export default function SendMediaSheet({
                 hitSlop={6}
                 style={{ transform: [{ translateX: -8 }, { translateY: 1 }] }}
               >
-                {viewOnce ? <VoiceOnceFilledIcon size={50} color={theme.accent} /> : <VoiceOnceRingIcon size={50} color="#9A8F80" />}
+                {viewOnce ? <VoiceOnceFilledIcon size={50} color="#FFFFFF" /> : <VoiceOnceRingIcon size={50} color="#9A8F80" />}
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.sendCircle} onPress={handleSend} disabled={uploading || images.length === 0} hitSlop={6}>
