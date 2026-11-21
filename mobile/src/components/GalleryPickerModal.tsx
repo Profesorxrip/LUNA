@@ -175,7 +175,7 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
 const CELL_SIZE_PCT = 100 / COLUMNS;
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#000000" },
+  screen: { flex: 1, backgroundColor: "#15202B" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
-  headerBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", transform: [{ translateY: 20 }] },
+  headerBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   headerTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   centerFill: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
   permissionText: { color: "rgba(255,255,255,0.7)", fontSize: 14, textAlign: "center" },
