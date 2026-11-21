@@ -11,7 +11,10 @@ import { CustomSticker } from "../utils/customStickers";
 const COLS = 7;
 const HEADER_HEIGHT = 30;
 const ROW_HEIGHT = 44;
-const PANEL_HEIGHT = 300;
+// DMScreen'in composer'i KAC px yukari itecegini (bos bir "spacer" ile)
+// hesaplayabilmesi icin disari aciliyor - bkz. asagidaki "position:absolute"
+// aciklamasi.
+export const PANEL_HEIGHT = 300;
 
 type ListItem = { type: "header"; title: string } | { type: "row"; emojis: string[] };
 type Tab = "emoji" | "gif" | "sticker";
@@ -293,7 +296,13 @@ function buildLayout(categories: { key: string; label: string; emojis: string[] 
 }
 
 const styles = StyleSheet.create({
-  panel: { backgroundColor: "#15202B" },
+  // Kullanici: "Yükselttiğimiz zaman mesaj kutusu ile şey yükselmemeli" -
+  // composer'in konumu artik bu panelin GERCEK (surukleyerek buyutulmus)
+  // yuksekligine BAGLI DEGIL (DMScreen sadece SABIT PANEL_HEIGHT kadar bir
+  // bosluk birakiyor, composer o kadar yukari kayip SABIT kalıyor). Panel
+  // kendi basina mutlak konumlu, altta sabitli, buyudukce composer'in
+  // UZERINE degil sohbet listesinin UZERINE (yukari dogru) biniyor.
+  panel: { position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: "#15202B", zIndex: 10 },
   dragHandleWrap: { height: 18, alignItems: "center", justifyContent: "center" },
   dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   mainTabsRow: { flexDirection: "row", paddingHorizontal: 14, paddingTop: 8, gap: 8 },

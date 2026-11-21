@@ -54,7 +54,7 @@ import LocationMessageBubble from "../components/LocationMessageBubble";
 import FileMessageBubble from "../components/FileMessageBubble";
 import ContactMessageBubble from "../components/ContactMessageBubble";
 import PollComposerModal from "../components/PollComposerModal";
-import EmojiKeyboardPanel from "../components/EmojiKeyboardPanel";
+import EmojiKeyboardPanel, { PANEL_HEIGHT as EMOJI_PANEL_BASE_HEIGHT } from "../components/EmojiKeyboardPanel";
 import { getCustomStickers, addCustomSticker, CustomSticker } from "../utils/customStickers";
 import PollMessageBubble from "../components/PollMessageBubble";
 import MusicMessageBubble from "../components/MusicMessageBubble";
@@ -2327,6 +2327,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         </View>
       )}
 
+      {/* Kullanici: "Yükselttiğimiz zaman mesaj kutusu ile şey
+          yükselmemeli" - composer SADECE bu SABIT bosluk kadar yukari
+          kayar (ataç panelindeki gibi), panelin GERCEK (surukleyerek
+          buyutulmus) yuksekligiyle ARTIK ilgisi yok - panel kendi
+          basina mutlak konumlu (bkz. EmojiKeyboardPanel "panel" stili),
+          buyudukce composer'i DEGIL sohbet listesini orter. */}
+      {emojiPanelVisible && <View style={{ height: EMOJI_PANEL_BASE_HEIGHT }} />}
       {emojiPanelVisible && (
         <EmojiKeyboardPanel
           onSelect={insertEmoji}
@@ -2943,6 +2950,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 15,
+    // Kullanici: "Yükselttiğimiz zaman mesaj kutusu ile şey yükselmemeli" -
+    // composer artik emoji panelinin (bkz. EmojiKeyboardPanel "panel" -
+    // mutlak konumlu, zIndex:10) GERCEK yuksekligiyle degil SABIT bir
+    // bosluk (bkz. asagidaki emojiPanelVisible spacer) kadar yukari kayiyor,
+    // panel cok buyutulurse composer'in ALTINA (geometrik olarak) girebilir
+    // - composer HER ZAMAN ustte/gorunur kalsin diye zIndex daha yuksek.
+    zIndex: 20,
   },
   inputBarWithReply: { alignItems: "flex-end" },
   // Kilitli kayit modunda inputBar'in kendi dolgusu (sag/sol/alt) iptal
