@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   packTabButtonActive: { backgroundColor: "rgba(14,165,233,0.16)" },
-  packTabIcon: { width: 24, height: 24 },
+  packTabIcon: { width: "100%", height: "100%", borderRadius: 10 },
   stickerGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 6, paddingTop: 4, paddingBottom: 12 },
   stickerGridCell: { width: "20%", aspectRatio: 1, justifyContent: "center", alignItems: "center" },
   stickerImage: { width: "72%", height: "72%" },
