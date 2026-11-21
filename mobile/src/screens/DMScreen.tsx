@@ -1860,17 +1860,17 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
           />
           <View style={styles.quickCameraTopBar}>
             <TouchableOpacity style={styles.quickCameraTopBtn} onPress={() => setQuickCaptureActive(false)} hitSlop={10}>
-              <Icon name="close" size={22} color="#FFFFFF" />
+              <Icon name="close" size={28} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFlash} hitSlop={10}>
-              {quickCameraFlash === "on" ? <Zap size={20} color="#FFFFFF" fill="#FFFFFF" /> : <ZapOff size={20} color="#FFFFFF" />}
+              {quickCameraFlash === "on" ? <Zap size={26} color="#FFFFFF" fill="#FFFFFF" /> : <ZapOff size={26} color="#FFFFFF" />}
             </TouchableOpacity>
           </View>
           <View style={styles.quickCameraBottomBar}>
             {/* Galeri SOL kenari X butonuyla AYNI hizada (kullanicinin
                 istegi) - bkz. ust bardaki AYNI left:16. */}
             <TouchableOpacity style={styles.quickCameraTopBtn} onPress={handleQuickGalleryPress} hitSlop={10}>
-              <ImageIcon size={18} color="#FFFFFF" />
+              <ImageIcon size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickCameraShutterOuter}
@@ -1882,7 +1882,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             </TouchableOpacity>
             {/* Kamera cevirme SAG kenari flas butonuyla AYNI hizada. */}
             <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
-              <MaterialCommunityIcons name="camera-flip-outline" size={20} color="#FFFFFF" />
+              <MaterialCommunityIcons name="camera-flip-outline" size={26} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -2103,9 +2103,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   quickCameraTopBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
