@@ -2800,7 +2800,14 @@ const styles = StyleSheet.create({
   bubbleContactPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   // Fotograf balonu icin de AYNI mantik - ChatImageBubble'in kendi boyutu da
   // buyutuldu (bkz. asagidaki size/borderRadius prop'lari).
-  bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  // Kullanici: "üstten alttan sağdan soldan 3er px boşluk kalıcak şekilde
+  // içine dolmalılardı" - foto/video/GIF balonlari HEP 280px sabit boyutta
+  // (bkz. ChatImageBubble/VideoMessageBubble/GifMessageBubble "size" prop'u)
+  // - genislik BURADA ACIKCA 280+3+3=286 olarak verilmezse, balonun "icerige
+  // gore shrink-wrap" genisligi (React Native Web'de flex-basis:auto
+  // hesaplamasi) 280px'lik sabit cocuktan birkac px DAR cikabiliyor ve
+  // gorsel sag/alt kenardan tasiyordu.
+  bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3, width: 286 },
   // Cikartma - GERCEK bir mesaj balonu DEGIL, serbest/saydam bir gorsel
   // (bkz. StickerMessageBubble) - rengi/dolgusu/kuyrugu TAMAMEN kaldirilir.
   bubbleStickerNoBg: { backgroundColor: "transparent", padding: 0 },
