@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Modal, View, Text, Image, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from "react-native";
+import { Modal, View, Text, Image, TouchableOpacity, FlatList, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as MediaLibrary from "expo-media-library/legacy";
-import { CircleArrowDown, Play } from "lucide-react-native";
+import { CircleArrowDown, ChevronDown, Check, Play } from "lucide-react-native";
 import { formatDuration } from "../utils/format";
 import { theme } from "../theme";
 
@@ -44,13 +44,20 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
   const [loading, setLoading] = useState(true);
   const [assets, setAssets] = useState<MediaLibrary.Asset[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [albums, setAlbums] = useState<MediaLibrary.Album[]>([]);
+  const [selectedAlbum, setSelectedAlbum] = useState<MediaLibrary.Album | null>(null);
+  const [albumMenuOpen, setAlbumMenuOpen] = useState(false);
   const endCursorRef = useRef<string | undefined>(undefined);
   const hasNextPageRef = useRef(true);
   const loadingMoreRef = useRef(false);
+  const selectedAlbumRef = useRef<MediaLibrary.Album | null>(null);
 
   useEffect(() => {
     if (!visible) return;
     setSelectedIds([]);
+    setSelectedAlbum(null);
+    selectedAlbumRef.current = null;
+    setAlbumMenuOpen(false);
     endCursorRef.current = undefined;
     hasNextPageRef.current = true;
     setAssets([]);
@@ -66,14 +73,18 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
       return;
     }
     setPermissionDenied(false);
-    const page = await MediaLibrary.getAssetsAsync({
-      first: 60,
-      mediaType: ["photo", "video"],
-      sortBy: ["creationTime"],
-    });
+    const [page, albumList] = await Promise.all([
+      MediaLibrary.getAssetsAsync({
+        first: 60,
+        mediaType: ["photo", "video"],
+        sortBy: ["creationTime"],
+      }),
+      MediaLibrary.getAlbumsAsync({ includeSmartAlbums: true }),
+    ]);
     setAssets(page.assets);
     endCursorRef.current = page.endCursor;
     hasNextPageRef.current = page.hasNextPage;
+    setAlbums(albumList.filter((a) => a.assetCount > 0).sort((a, b) => b.assetCount - a.assetCount));
     setLoading(false);
   }
 
@@ -83,6 +94,7 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
     const page = await MediaLibrary.getAssetsAsync({
       first: 60,
       after: endCursorRef.current,
+      album: selectedAlbumRef.current ?? undefined,
       mediaType: ["photo", "video"],
       sortBy: ["creationTime"],
     });
@@ -90,6 +102,30 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
     endCursorRef.current = page.endCursor;
     hasNextPageRef.current = page.hasNextPage;
     loadingMoreRef.current = false;
+  }
+
+  // Kullanici: "...galerinin alt şeylerinin yazdığı bir kutucuk acilsa"
+  // - WhatsApp/Telegram'daki gibi baslik ("Galeri") tiklaninca albuem
+  // (Kamera/Ekran goruntuleri/vb.) secim menusu acilir, secilen albume
+  // gore izgara YENIDEN yuklenir.
+  async function selectAlbum(album: MediaLibrary.Album | null) {
+    setAlbumMenuOpen(false);
+    setSelectedAlbum(album);
+    selectedAlbumRef.current = album;
+    setSelectedIds([]);
+    setLoading(true);
+    endCursorRef.current = undefined;
+    hasNextPageRef.current = true;
+    const page = await MediaLibrary.getAssetsAsync({
+      first: 60,
+      album: album ?? undefined,
+      mediaType: ["photo", "video"],
+      sortBy: ["creationTime"],
+    });
+    setAssets(page.assets);
+    endCursorRef.current = page.endCursor;
+    hasNextPageRef.current = page.hasNextPage;
+    setLoading(false);
   }
 
   function toggleSelect(id: string) {
@@ -122,7 +158,12 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
               <CircleArrowDown size={22} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t("dm.galleryTitle")}</Text>
+          <TouchableOpacity style={styles.titleBtn} onPress={() => setAlbumMenuOpen((v) => !v)} hitSlop={6}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {selectedAlbum?.title ?? t("dm.galleryTitle")}
+            </Text>
+            <ChevronDown size={16} color="#FFFFFF" style={albumMenuOpen ? { transform: [{ rotate: "180deg" }] } : undefined} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.headerBtn} onPress={handleConfirm} disabled={!selectedIds.length} hitSlop={10}>
             <View style={{ transform: [{ rotate: "180deg" }] }}>
               <CircleArrowDown size={22} color={selectedIds.length ? "#FFFFFF" : theme.textMuted} />
@@ -167,6 +208,30 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
             }}
           />
         )}
+
+        <Modal visible={albumMenuOpen} transparent animationType="fade" onRequestClose={() => setAlbumMenuOpen(false)}>
+          <TouchableOpacity style={styles.albumMenuOverlay} activeOpacity={1} onPress={() => setAlbumMenuOpen(false)}>
+            <View style={[styles.albumMenuCard, { marginTop: insets.top + 40 + 44 }]}>
+              <ScrollView style={{ maxHeight: 420 }}>
+                <TouchableOpacity style={styles.albumRow} onPress={() => selectAlbum(null)}>
+                  <Text style={styles.albumRowText}>{t("dm.galleryTitle")}</Text>
+                  {!selectedAlbum && <Check size={18} color={theme.accent} />}
+                </TouchableOpacity>
+                {albums.map((album) => (
+                  <TouchableOpacity key={album.id} style={styles.albumRow} onPress={() => selectAlbum(album)}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.albumRowText} numberOfLines={1}>
+                        {album.title}
+                      </Text>
+                      <Text style={styles.albumRowCount}>{album.assetCount}</Text>
+                    </View>
+                    {selectedAlbum?.id === album.id && <Check size={18} color={theme.accent} />}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </Modal>
   );
@@ -185,6 +250,24 @@ const styles = StyleSheet.create({
   },
   headerBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   headerTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  titleBtn: { flexDirection: "row", alignItems: "center", gap: 4, maxWidth: "60%" },
+  albumMenuOverlay: { flex: 1 },
+  albumMenuCard: {
+    marginHorizontal: 16,
+    backgroundColor: "#1E2A36",
+    borderRadius: 14,
+    paddingVertical: 4,
+  },
+  albumRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  albumRowText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+  albumRowCount: { color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 },
   centerFill: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
   permissionText: { color: "rgba(255,255,255,0.7)", fontSize: 14, textAlign: "center" },
   cell: { width: `${CELL_SIZE_PCT}%`, aspectRatio: 1, padding: 1 },
