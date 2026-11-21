@@ -7,6 +7,7 @@ import { getEmojiCategories } from "../data/emojiCategories";
 import { searchEmojis } from "../data/emojiSearch";
 import { STICKER_PACKS, StickerPack } from "../data/stickerPacks";
 import { CustomSticker } from "../utils/customStickers";
+import AnimatedEmoji from "./AnimatedEmoji";
 
 const COLS = 7;
 const HEADER_HEIGHT = 30;
@@ -239,7 +240,7 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
               <ScrollView contentContainerStyle={styles.searchGrid}>
                 {searchResults.map((emoji) => (
                   <TouchableOpacity key={emoji} style={styles.emojiCellWrap} onPress={() => onSelect(emoji)}>
-                    <Text style={styles.emojiText}>{emoji}</Text>
+                    <AnimatedEmoji emoji={emoji} size={26} />
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -259,7 +260,7 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
                   <View style={styles.emojiRow}>
                     {item.emojis.map((emoji) => (
                       <TouchableOpacity key={emoji} style={styles.emojiCell} onPress={() => onSelect(emoji)}>
-                        <Text style={styles.emojiText}>{emoji}</Text>
+                        <AnimatedEmoji emoji={emoji} size={24} />
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -371,7 +372,6 @@ const styles = StyleSheet.create({
   },
   emojiRow: { flexDirection: "row", height: ROW_HEIGHT, alignItems: "center" },
   emojiCell: { flex: 1, height: 36, borderRadius: 10, justifyContent: "center", alignItems: "center", marginRight: 2 },
-  emojiText: { fontSize: 22 },
   stickerWrap: { flex: 1 },
   packTabButton: {
     width: 40,
