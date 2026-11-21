@@ -146,10 +146,10 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
             <TouchableOpacity style={styles.createStickerCell} onPress={onCreateSticker} disabled={creatingSticker}>
               <View style={styles.createStickerInner}>
                 {creatingSticker ? (
-                  <ActivityIndicator color="#0EA5E9" />
+                  <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <>
-                    <Plus size={22} color="#0EA5E9" />
+                    <Plus size={22} color="#FFFFFF" />
                     <Text style={styles.createStickerText}>{t("emoji.createSticker")}</Text>
                   </>
                 )}
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   },
   // Kullanici: "çerçevesi tam şeffaf olsun hiç gözükmesin" - kutu arka plani
   // KALDIRILDI, secili paket artik alttaki ince accent cizgiyle belli oluyor.
-  packTabButtonActive: { borderBottomWidth: 2, borderBottomColor: "#0EA5E9" },
+  packTabButtonActive: { borderBottomWidth: 2, borderBottomColor: "#FFFFFF" },
   packTabIcon: { width: "100%", height: "100%", borderRadius: 10 },
   stickerGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 6, paddingTop: 4, paddingBottom: 12 },
   stickerGridCell: { width: "20%", aspectRatio: 1, justifyContent: "center", alignItems: "center" },
@@ -369,8 +369,8 @@ const styles = StyleSheet.create({
     gap: 4,
     borderWidth: 1.5,
     borderStyle: "dashed",
-    borderColor: "rgba(14,165,233,0.4)",
+    borderColor: "rgba(255,255,255,0.5)",
     borderRadius: 14,
   },
-  createStickerText: { color: "#0EA5E9", fontSize: 10, fontWeight: "700", textAlign: "center" },
+  createStickerText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700", textAlign: "center" },
 });
