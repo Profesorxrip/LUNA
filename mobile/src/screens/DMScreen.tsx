@@ -389,6 +389,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                   styles.metaRowPhotoOverlay,
                 item.kind === "call" && styles.metaRowCallOverlay,
                 item.kind === "music" && styles.metaRowMusicOverlay,
+                item.kind === "poll" && styles.metaRowPollOverlay,
               ]}
             >
               {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
@@ -2558,9 +2559,10 @@ const styles = StyleSheet.create({
   bubbleFilePad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
   bubbleCallPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   // Anket karti icin de AYNI mantik (Konum/Dosya ile) - karti balonun
-  // kenarina 3px'e kadar yaklastirir, alttaki gonderim saati satiri icin
-  // paylasilan 8px alt bosluga dokunulmadi.
-  bubblePollPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
+  // kenarina 3px'e kadar yaklastirir. Saat artik ayri bir alt satir
+  // DEGIL, kartin KENDI icine bindirildigi icin (bkz. metaRowPollOverlay)
+  // alt bosluk da diger 3 kenarla AYNI (3px) kucultuldu.
+  bubblePollPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   // Fotograf balonu icin de AYNI mantik - ChatImageBubble'in kendi boyutu da
   // buyutuldu (bkz. asagidaki size/borderRadius prop'lari).
   bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
@@ -2592,6 +2594,14 @@ const styles = StyleSheet.create({
   metaRowMusicOverlay: {
     position: "absolute",
     bottom: 4,
+    right: 10,
+    marginTop: 0,
+  },
+  // Kullanici: "Anketinde saati içinde olsun" - Arama/Müzik ile AYNI mantik,
+  // saat ayri bir alt satir yerine kartin KENDI icine (sag-alt) bindiriliyor.
+  metaRowPollOverlay: {
+    position: "absolute",
+    bottom: 8,
     right: 10,
     marginTop: 0,
   },
