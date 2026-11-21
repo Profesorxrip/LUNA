@@ -312,7 +312,7 @@ function PackSwitcherAndGrid({
           {packs.map((p, i) => (
             <TouchableOpacity
               key={p.id}
-              style={[styles.packTabButton, i === packIndex && styles.packTabButtonActive]}
+              style={styles.packTabButton}
               onPress={() => onPackIndexChange(i)}
             >
               <Image source={p.icon} style={styles.packTabIcon} resizeMode="contain" />
@@ -488,9 +488,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  // Kullanici: "çerçevesi tam şeffaf olsun hiç gözükmesin" - kutu arka plani
-  // KALDIRILDI, secili paket artik alttaki ince accent cizgiyle belli oluyor.
-  packTabButtonActive: { borderBottomWidth: 2, borderBottomColor: "#FFFFFF" },
   packTabIcon: { width: "100%", height: "100%", borderRadius: 10 },
   stickerGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 6, paddingTop: 4, paddingBottom: 12 },
   stickerGridCell: { width: "20%", aspectRatio: 1, justifyContent: "center", alignItems: "center" },
