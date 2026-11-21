@@ -1074,6 +1074,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       rotationDeg: number;
       cropRegion: { x: number; y: number; width: number; height: number } | null;
       viewOnce: boolean;
+      isGif: boolean;
     }
   ) {
     if (!myUserId) return;
@@ -1101,6 +1102,13 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             rotationDeg: meta.rotationDeg,
             cropRegion: meta.cropRegion,
             viewOnce: meta.viewOnce,
+            // Kullanici: "gife çevirerek atabilelim gönderileri" - muted/
+            // speed/trim/rotation/cropRegion ile AYNI durumda: sunucu
+            // (dm:sendVideo, server/src/index.ts) bu alanlari HENUZ
+            // OKUMUYOR/SAKLAMIYOR - tutarlilik icin burada ayni sekilde
+            // gonderiliyor, karsi tarafin GIF gibi (sessiz/dongu/otomatik)
+            // oynatmasi AYRI bir sunucu+oynatici adimi olarak kalıyor.
+            isGif: meta.isGif,
           },
           (res: any) => {
             if (res?.ok) {

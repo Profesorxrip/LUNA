@@ -25,6 +25,12 @@ export interface VideoSendMeta {
   rotationDeg: number;
   cropRegion: Rect | null;
   viewOnce: boolean;
+  // Kullanici: "en sağ altında gif tuşu olsun ... gife çevirerek
+  // atabilelim" - GERCEK bir .gif dosyasina donusturme YOK (bkz. bu
+  // dosyanin basindaki "GERCEK dosya baytlarini degistiren... native
+  // kutuphane YOK" notu) - trim/rotation/crop ile AYNI yontem: sadece
+  // "GIF gibi davransin" (sessiz, otomatik oynayan, dongude) META VERISI.
+  isGif: boolean;
 }
 
 interface Props {
@@ -65,6 +71,7 @@ export default function SendVideoSheet({ visible, uri, uploading, uploadProgress
   const [viewOnce, setViewOnce] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
+  const [isGif, setIsGif] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -115,6 +122,7 @@ export default function SendVideoSheet({ visible, uri, uploading, uploadProgress
       setViewOnce(false);
       setPlaying(false);
       setMuted(false);
+      setIsGif(false);
       setSpeed(1);
       setRotationDeg(0);
       setCropping(false);
@@ -183,6 +191,19 @@ export default function SendVideoSheet({ visible, uri, uploading, uploadProgress
     setMuted((m) => {
       player.muted = !m;
       return !m;
+    });
+  }
+
+  // GIF'ler sessiz olur - acilinca sesi otomatik kapatir (bkz. asagida
+  // mute dugmesinin isGif acikken disabled olmasi).
+  function toggleGif() {
+    setIsGif((g) => {
+      const next = !g;
+      if (next) {
+        setMuted(true);
+        player.muted = true;
+      }
+      return next;
     });
   }
 
@@ -381,13 +402,14 @@ export default function SendVideoSheet({ visible, uri, uploading, uploadProgress
 
   function handleSend() {
     onSend(caption.trim(), {
-      muted,
+      muted: isGif ? true : muted,
       speed,
       trimStartMs: Math.round(trimStart * 1000),
       trimEndMs: Math.round((trimEnd || duration) * 1000),
       rotationDeg,
       cropRegion,
       viewOnce,
+      isGif,
     });
   }
 
@@ -590,7 +612,7 @@ export default function SendVideoSheet({ visible, uri, uploading, uploadProgress
 
             <View style={styles.toolsRow}>
               <View style={styles.infoGroup}>
-                <TouchableOpacity onPress={toggleMute} hitSlop={6} style={styles.soundIconTouch}>
+                <TouchableOpacity onPress={toggleMute} disabled={isGif} hitSlop={6} style={[styles.soundIconTouch, isGif && styles.soundIconTouchDisabled]}>
                   {muted ? <Icon name="sesKapali1" size={19} color={theme.text} /> : <Icon name="sesAcik1" size={19} color={theme.text} />}
                 </TouchableOpacity>
                 <Text style={styles.infoText}>
@@ -598,6 +620,9 @@ export default function SendVideoSheet({ visible, uri, uploading, uploadProgress
                   {fileSizeBytes ? ` • ${formatFileSize(fileSizeBytes)}` : ""}
                 </Text>
               </View>
+              <TouchableOpacity style={[styles.gifToggle, isGif && styles.gifToggleActive]} onPress={toggleGif} hitSlop={6}>
+                <Text style={[styles.gifToggleText, isGif && styles.gifToggleTextActive]}>GIF</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -832,7 +857,22 @@ const styles = StyleSheet.create({
   toolsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingBottom: 14, paddingTop: 12, gap: 12 },
   infoGroup: { flexDirection: "row", alignItems: "center", gap: 8 },
   soundIconTouch: { transform: [{ translateY: -2 }] },
+  soundIconTouchDisabled: { opacity: 0.35 },
   infoText: { color: theme.textMuted, fontSize: 12.5, fontVariant: ["tabular-nums"] },
+  // Kullanici: "en sağ altında gif tuşu olsun basınca dolu gözüksün" -
+  // ses dugmesiyle AYNI satirin (toolsRow, space-between) sag ucunda.
+  gifToggle: {
+    height: 26,
+    paddingHorizontal: 10,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gifToggleActive: { backgroundColor: "#FFFFFF", borderColor: "#FFFFFF" },
+  gifToggleText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
+  gifToggleTextActive: { color: "#141210" },
   emojiGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 14, paddingBottom: 6, gap: 2 },
   emojiCell: { width: "12.5%", aspectRatio: 1, alignItems: "center", justifyContent: "center" },
   emojiCellText: { fontSize: 22 },
