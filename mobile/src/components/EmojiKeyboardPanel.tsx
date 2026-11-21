@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView, ActivityIndicator } from "react-native";
-import { Search, X, Smile, Sticker as StickerIcon, Clapperboard, Plus } from "lucide-react-native";
+import { Search, X, Smile, Clapperboard, Plus } from "lucide-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { getEmojiCategories } from "../data/emojiCategories";
 import { searchEmojis } from "../data/emojiSearch";
@@ -99,7 +100,7 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
           style={[styles.mainTabButton, tab === "sticker" && styles.mainTabButtonActive]}
           onPress={() => setTab("sticker")}
         >
-          <StickerIcon size={20} color={tab === "sticker" ? "#0EA5E9" : "rgba(255,255,255,0.55)"} />
+          <MaterialCommunityIcons name="sticker-emoji" size={20} color={tab === "sticker" ? "#0EA5E9" : "rgba(255,255,255,0.55)"} />
         </TouchableOpacity>
       </View>
 
