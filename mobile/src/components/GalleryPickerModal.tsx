@@ -44,6 +44,11 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
   const [loading, setLoading] = useState(true);
   const [assets, setAssets] = useState<MediaLibrary.Asset[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // Kullanici: "Secim rozetleri ancak bir tanesini basili tutarak
+  // sectigimizde cikmali" - WhatsApp/Fotograflar gibi, rozetler normalde
+  // GIZLI, sadece bir fotografa UZUN BASILINCA secim modu acilir ve
+  // rozetler gorunur olur; son ogeyi de kaldirinca secim modundan cikilir.
+  const [selectionMode, setSelectionMode] = useState(false);
   const [albums, setAlbums] = useState<MediaLibrary.Album[]>([]);
   const [selectedAlbum, setSelectedAlbum] = useState<MediaLibrary.Album | null>(null);
   const [albumMenuOpen, setAlbumMenuOpen] = useState(false);
@@ -55,6 +60,7 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
   useEffect(() => {
     if (!visible) return;
     setSelectedIds([]);
+    setSelectionMode(false);
     setSelectedAlbum(null);
     selectedAlbumRef.current = null;
     setAlbumMenuOpen(false);
@@ -113,6 +119,7 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
     setSelectedAlbum(album);
     selectedAlbumRef.current = album;
     setSelectedIds([]);
+    setSelectionMode(false);
     setLoading(true);
     endCursorRef.current = undefined;
     hasNextPageRef.current = true;
@@ -130,10 +137,25 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= maxSelection) return prev;
-      return [...prev, id];
+      let next: string[];
+      if (prev.includes(id)) {
+        next = prev.filter((x) => x !== id);
+      } else {
+        if (prev.length >= maxSelection) return prev;
+        next = [...prev, id];
+      }
+      if (next.length === 0) setSelectionMode(false);
+      return next;
     });
+  }
+
+  function handleCellPress(id: string) {
+    if (selectionMode) toggleSelect(id);
+  }
+
+  function handleCellLongPress(id: string) {
+    if (!selectionMode) setSelectionMode(true);
+    toggleSelect(id);
   }
 
   function handleConfirm() {
@@ -195,7 +217,13 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
               const selected = selectedIds.includes(item.id);
               const order = selectedIds.indexOf(item.id);
               return (
-                <TouchableOpacity style={styles.cell} activeOpacity={0.85} onPress={() => toggleSelect(item.id)}>
+                <TouchableOpacity
+                  style={styles.cell}
+                  activeOpacity={0.85}
+                  onPress={() => handleCellPress(item.id)}
+                  onLongPress={() => handleCellLongPress(item.id)}
+                  delayLongPress={350}
+                >
                   <Image source={{ uri: item.uri }} style={styles.cellImage} />
                   {item.mediaType === "video" && (
                     <View style={styles.videoBadge}>
@@ -203,9 +231,11 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
                       <Text style={styles.videoBadgeText}>{formatDuration(item.duration || 0)}</Text>
                     </View>
                   )}
-                  <View style={[styles.selectBadge, selected && styles.selectBadgeActive]}>
-                    {selected && <Text style={styles.selectBadgeText}>{order + 1}</Text>}
-                  </View>
+                  {selectionMode && (
+                    <View style={[styles.selectBadge, selected && styles.selectBadgeActive]}>
+                      {selected && <Text style={styles.selectBadgeText}>{order + 1}</Text>}
+                    </View>
+                  )}
                   {selected && <View style={styles.selectedOverlay} />}
                 </TouchableOpacity>
               );
