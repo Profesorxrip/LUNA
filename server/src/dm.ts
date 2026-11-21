@@ -24,13 +24,20 @@ export interface DMMessage {
   // geriye donuk isaretleme), "voice", "location", "file", "video", "call" -
   // bkz. 0033_dm_message_kinds.sql / 0034_dm_video_messages.sql /
   // 0035_dm_call_messages.sql.
-  kind: "text" | "photo" | "voice" | "location" | "file" | "video" | "call";
+  kind: "text" | "photo" | "voice" | "location" | "file" | "video" | "call" | "contact";
   durationMs: number | null;
   latitude: number | null;
   longitude: number | null;
   fileName: string | null;
   fileSize: number | null;
   mimeType: string | null;
+  // Sadece kind==="contact" oldugunda dolu - bkz. 0041_dm_contact_messages.sql.
+  // Gonderim anindaki isim/kullanici adi/avatar KOPYALANMIS halidir (paylasilan
+  // kisinin profili sonradan degisse/silinse bile eski kart bozulmaz).
+  sharedUserId: string | null;
+  sharedUserName: string | null;
+  sharedUserHandle: string | null;
+  sharedUserAvatarUrl: string | null;
   // Sadece kind==="call" oldugunda dolu - bkz. 0035_dm_call_messages.sql.
   callIsVideo: boolean | null;
   callStatus: "completed" | "missed" | null;
@@ -91,6 +98,10 @@ function mapRow(row: any): DMMessage {
     fileName: row.file_name ?? null,
     fileSize: row.file_size ?? null,
     mimeType: row.mime_type ?? null,
+    sharedUserId: row.shared_user_id ?? null,
+    sharedUserName: row.shared_user_name ?? null,
+    sharedUserHandle: row.shared_user_handle ?? null,
+    sharedUserAvatarUrl: row.shared_user_avatar_url ?? null,
     callIsVideo: row.call_is_video ?? null,
     callStatus: row.call_status ?? null,
     deletedForEveryone: row.deleted_for_everyone === true,
@@ -323,6 +334,21 @@ export async function sendFileMessage(
   return { ok: true, message: mapRow(data) };
 }
 
+export async function sendContactMessage(
+  db: SupabaseClient,
+  toUserId: string,
+  sharedUserId: string
+): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_dm_contact", {
+    to_user: toUserId,
+    shared_user_id: sharedUserId,
+  });
+  if (error) {
+    return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };
+  }
+  return { ok: true, message: mapRow(data) };
+}
+
 export interface DMConversationSummary {
   conversationId: string;
   peerId: string;
@@ -490,6 +516,10 @@ export async function forwardMessage(
     file_size: original.fileSize,
     mime_type: original.mimeType,
     is_adult: original.isAdult,
+    shared_user_id: original.sharedUserId,
+    shared_user_name: original.sharedUserName,
+    shared_user_handle: original.sharedUserHandle,
+    shared_user_avatar_url: original.sharedUserAvatarUrl,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };

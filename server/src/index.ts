@@ -65,6 +65,7 @@ import {
   sendVideoMessage,
   sendLocationMessage,
   sendFileMessage,
+  sendContactMessage,
   sendCallMessage,
   setExpiryMs,
   markSeen,
@@ -1211,6 +1212,27 @@ io.on("connection", (socket: Socket) => {
       const peerSocketId = getSocketIdForUser(toUserId);
       if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
       notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, `📎 ${fileName}`).catch(() => {});
+    }
+  );
+
+  // DM'de bir arkadasin kisi kartini paylasma ("Kişi" ek menusu) -
+  // send_dm_contact RPC paylasilan kullanicinin anlik isim/kullanici
+  // adi/avatar'ini profiles'tan okuyup satira kopyalar.
+  socket.on(
+    "dm:sendContact",
+    async ({ toUserId, sharedUserId }: { toUserId: string; sharedUserId: string }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(toUserId, 200) || !isNonEmptyString(sharedUserId, 200)) {
+        return ack?.({ ok: false });
+      }
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendContactMessage(myDb!, toUserId, sharedUserId);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      const peerSocketId = getSocketIdForUser(toUserId);
+      if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+      notifyIfOffline(myDb!, toUserId, Boolean(peerSocketId), myName, "👤 Kişi paylaştı").catch(() => {});
     }
   );
 

@@ -268,6 +268,8 @@
     "forwardSubtitle": "Wählen Sie die Empfänger aus",
     "forwardSend": "Senden",
     "forwardSendCount": "Senden ({{count}})",
+    "contactPickerTitle": "Kontakt teilen",
+    "contactShareSendCount": "Senden ({{count}})",
     "deleteForMeConfirmTitle": "Für mich löschen",
     "deleteForMeConfirmBody": "Diese Nachricht wird nur aus Ihrem Chat entfernt.",
     "deleteForEveryoneConfirmTitle": "Für alle löschen",

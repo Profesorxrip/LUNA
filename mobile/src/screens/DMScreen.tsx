@@ -50,6 +50,7 @@ import VideoMessageBubble from "../components/VideoMessageBubble";
 import VoiceMessageBubble from "../components/VoiceMessageBubble";
 import LocationMessageBubble from "../components/LocationMessageBubble";
 import FileMessageBubble from "../components/FileMessageBubble";
+import ContactMessageBubble from "../components/ContactMessageBubble";
 import CallMessageBubble from "../components/CallMessageBubble";
 import FriendsScreen from "./FriendsScreen";
 import Avatar from "../components/Avatar";
@@ -303,6 +304,8 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 fileSize={item.fileSize}
                 mimeType={item.mimeType}
               />
+            ) : item.kind === "contact" && item.sharedUserName ? (
+              <ContactMessageBubble name={item.sharedUserName} handle={item.sharedUserHandle} avatarUrl={item.sharedUserAvatarUrl} />
             ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
               <View style={styles.deletedRow}>
                 <CameraIcon size={14} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} strokeWidth={1.8} />
@@ -574,6 +577,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // sarar - kullanicinin istegi.
   const [pinnedCursor, setPinnedCursor] = useState(0);
   const [forwardTarget, setForwardTarget] = useState<DMMessage | null>(null);
+  const [contactPickerVisible, setContactPickerVisible] = useState(false);
 
   // Sabitlenen mesaj SAYISI degistikce (yeni sabitleme/kaldirma) gosterge
   // en yeniye (son indekse) sifirlanir.
@@ -1391,6 +1395,24 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     });
   }
 
+  // "Kişi" ek menusu - aramaya kisi eklerken kullanilan AYNI FriendsScreen
+  // (inviteMode + hideInviteExtras, bkz. asagidaki Modal), burada secilen
+  // HER arkadas kendi kisi karti olarak bu sohbete (peer'a) gonderilir.
+  function openContactPicker() {
+    setAttachSheetVisible(false);
+    setContactPickerVisible(true);
+  }
+  function sendContacts(userIds: string[]) {
+    if (!userIds.length) return;
+    setContactPickerVisible(false);
+    userIds.forEach((sharedUserId) => {
+      socket.emit("dm:sendContact", { toUserId: peer.userId, sharedUserId }, (res: any) => {
+        if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+        else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+      });
+    });
+  }
+
   // Medya listesinden (fotograf izleyicideki "Sohbette Göster") ana sohbette
   // o mesaja kaydirir.
   function scrollToMessage(id: string) {
@@ -1970,6 +1992,23 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         />
       </Modal>
 
+      {/* "Kişi" ek menusu - aramaya kisi eklerken kullanilan AYNI FriendsScreen
+          (inviteMode + hideInviteExtras), sadece baslik/buton metni ve
+          onSendInvites farkli (bkz. openContactPicker/sendContacts). */}
+      <Modal visible={contactPickerVisible} animationType="slide" onRequestClose={() => setContactPickerVisible(false)} statusBarTranslucent>
+        <FriendsScreen
+          onBack={() => setContactPickerVisible(false)}
+          onOpenDM={() => {}}
+          onOpenParticipant={() => {}}
+          inviteMode
+          hideInviteExtras
+          excludeUserIds={[peer.userId]}
+          headerTitle={t("dm.contactPickerTitle")}
+          confirmButtonLabel={(count) => t("dm.contactShareSendCount", { count })}
+          onSendInvites={sendContacts}
+        />
+      </Modal>
+
       <Modal visible={expiryVisible} transparent animationType="slide" onRequestClose={() => setExpiryVisible(false)} statusBarTranslucent>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setExpiryVisible(false)}>
           <View style={styles.sheetCard}>
@@ -2053,7 +2092,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachMusic")}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholder(t("dm.attachContact"))}>
+              <TouchableOpacity style={styles.attachGridItem} onPress={openContactPicker}>
                 <View style={styles.attachIconWrap}>
                   <UserIcon size={26} color="#FFFFFF" />
                 </View>
