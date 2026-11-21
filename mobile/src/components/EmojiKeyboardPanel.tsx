@@ -381,10 +381,7 @@ function GifMasonryGrid({
       </TouchableOpacity>
       <View style={styles.gifColumns}>
         {columns.map((col, ci) => (
-          <View key={ci} style={[styles.gifColumn, ci % 2 === 1 && styles.gifColumnOffset]}>
-            {/* Kullanici: "belli belirsiz bir düzende olmalılar" - ikinci
-                sutun hafifce asagi kaydirilarak (bkz. gifColumnOffset) hizali
-                bir grid DEGIL, gevsek/organik bir duvar hissi verilir. */}
+          <View key={ci} style={styles.gifColumn}>
             {col.map((item) => (
               <TouchableOpacity
                 key={item.id}
@@ -542,7 +539,6 @@ const styles = StyleSheet.create({
   // olarak keskin/sik bir "video klibi" hissine cekilmesi.
   gifColumns: { flexDirection: "row", gap: 3 },
   gifColumn: { flex: 1, gap: 3 },
-  gifColumnOffset: { marginTop: 22 },
   gifTile: { width: "100%", borderRadius: 3, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.04)" },
   gifTileImage: { width: "100%", height: "100%" },
 });
