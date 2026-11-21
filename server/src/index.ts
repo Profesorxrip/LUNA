@@ -1187,7 +1187,8 @@ io.on("connection", (socket: Socket) => {
         fileName,
         fileSize,
         mimeType,
-      }: { toUserId: string; mediaUrl: string; fileName: string; fileSize?: number; mimeType?: string },
+        caption,
+      }: { toUserId: string; mediaUrl: string; fileName: string; fileSize?: number; mimeType?: string; caption?: string },
       ack
     ) => {
       if (
@@ -1200,8 +1201,9 @@ io.on("connection", (socket: Socket) => {
       }
       if (fileSize !== undefined && !isFiniteNumber(fileSize, 0, 500 * 1024 * 1024)) return ack?.({ ok: false });
       if (mimeType !== undefined && !isOptionalString(mimeType, 150)) return ack?.({ ok: false });
+      if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
-      const result = await sendFileMessage(myDb!, toUserId, mediaUrl, fileName, fileSize, mimeType);
+      const result = await sendFileMessage(myDb!, toUserId, mediaUrl, fileName, fileSize, mimeType, caption?.trim() || undefined);
       if (!result.ok || !result.message) {
         return ack?.({ ok: false, error: result.error === "blocked" ? "Bu kullaniciya mesaj gonderemezsin." : "Mesaj gonderilemedi." });
       }

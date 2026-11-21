@@ -209,6 +209,7 @@
     "locationResolvingAddress": "جارٍ العثور على العنوان...",
     "attachFile": "ملف",
     "filePreviewTitle": "إرسال ملف",
+    "fileCaptionPlaceholder": "أضف رسالة (اختياري)",
     "filePickAreaTitle": "اختر ملفًا",
     "fileRecentSection": "الملفات الأخيرة",
     "fileInternalStorage": "التخزين الداخلي",

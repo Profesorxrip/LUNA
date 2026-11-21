@@ -209,6 +209,7 @@
     "locationResolvingAddress": "Поиск адреса...",
     "attachFile": "Файл",
     "filePreviewTitle": "Отправить файл",
+    "fileCaptionPlaceholder": "Добавить сообщение (необязательно)",
     "filePickAreaTitle": "Выбрать файл",
     "fileRecentSection": "Недавние файлы",
     "fileInternalStorage": "Внутреннее хранилище",

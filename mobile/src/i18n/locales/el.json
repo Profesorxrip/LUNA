@@ -209,6 +209,7 @@
     "locationResolvingAddress": "Εύρεση διεύθυνσης...",
     "attachFile": "Αρχείο",
     "filePreviewTitle": "Αποστολή αρχείου",
+    "fileCaptionPlaceholder": "Προσθήκη μηνύματος (προαιρετικό)",
     "filePickAreaTitle": "Επιλογή αρχείου",
     "fileRecentSection": "Πρόσφατα αρχεία",
     "fileInternalStorage": "Εσωτερική αποθήκευση",

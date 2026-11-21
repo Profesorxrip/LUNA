@@ -306,7 +306,8 @@ export async function sendFileMessage(
   mediaUrl: string,
   fileName: string,
   fileSize?: number,
-  mimeType?: string
+  mimeType?: string,
+  caption?: string
 ): Promise<{ ok: boolean; message?: DMMessage; error?: string }> {
   const { data, error } = await db.rpc("send_dm_file", {
     to_user: toUserId,
@@ -314,6 +315,7 @@ export async function sendFileMessage(
     file_name: fileName,
     file_size: fileSize ?? null,
     mime_type: mimeType ?? null,
+    caption: caption ?? null,
   });
   if (error) {
     return { ok: false, error: error.message?.includes("blocked") ? "blocked" : "failed" };

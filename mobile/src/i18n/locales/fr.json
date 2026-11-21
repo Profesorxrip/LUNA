@@ -209,6 +209,7 @@
     "locationResolvingAddress": "Recherche de l'adresse...",
     "attachFile": "Fichier",
     "filePreviewTitle": "Envoyer le fichier",
+    "fileCaptionPlaceholder": "Ajouter un message (facultatif)",
     "filePickAreaTitle": "Choisir un fichier",
     "fileRecentSection": "Fichiers récents",
     "fileInternalStorage": "Stockage interne",

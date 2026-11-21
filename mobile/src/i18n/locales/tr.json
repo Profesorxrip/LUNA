@@ -209,6 +209,7 @@
     "locationResolvingAddress": "Adres bulunuyor...",
     "attachFile": "Dosya",
     "filePreviewTitle": "Dosya Gönder",
+    "fileCaptionPlaceholder": "Mesaj ekle (opsiyonel)",
     "filePickAreaTitle": "Dosya Seç",
     "fileRecentSection": "Son Dosyalar",
     "fileInternalStorage": "Dahili Depolama",

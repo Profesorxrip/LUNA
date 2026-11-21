@@ -209,6 +209,7 @@
     "locationResolvingAddress": "Ünvan tapılır...",
     "attachFile": "Fayl",
     "filePreviewTitle": "Fayl Göndər",
+    "fileCaptionPlaceholder": "Mesaj əlavə et (isteğe bağlı)",
     "filePickAreaTitle": "Fayl Seç",
     "fileRecentSection": "Son Fayllar",
     "fileInternalStorage": "Daxili Yaddaş",

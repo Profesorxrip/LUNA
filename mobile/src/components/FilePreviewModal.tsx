@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
+import { Modal, View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { CircleArrowDown, HardDrive } from "lucide-react-native";
@@ -9,6 +9,8 @@ import type { PickedFileAsset, RecentFileEntry } from "../utils/recentFiles";
 interface Props {
   visible: boolean;
   files: PickedFileAsset[];
+  caption: string;
+  onChangeCaption: (text: string) => void;
   uploading: boolean;
   uploadProgress: number;
   recentFiles: RecentFileEntry[];
@@ -45,6 +47,8 @@ interface Props {
 export default function FilePreviewModal({
   visible,
   files,
+  caption,
+  onChangeCaption,
   uploading,
   uploadProgress,
   recentFiles,
@@ -82,7 +86,7 @@ export default function FilePreviewModal({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleBack} statusBarTranslucent>
-      <View style={styles.screen}>
+      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
           <TouchableOpacity style={styles.headerBtn} onPress={handleBack} disabled={uploading} hitSlop={10}>
             <View style={{ transform: [{ rotate: "90deg" }] }}>
@@ -116,7 +120,23 @@ export default function FilePreviewModal({
               </View>
             )}
           </View>
-        ) : (
+        ) : null}
+
+        {hasFiles && single && !uploading && (
+          <View style={[styles.captionRow, { paddingBottom: insets.bottom + 12 }]}>
+            <TextInput
+              style={styles.captionInput}
+              value={caption}
+              onChangeText={onChangeCaption}
+              placeholder={t("dm.fileCaptionPlaceholder")}
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              multiline
+              maxLength={1000}
+            />
+          </View>
+        )}
+
+        {!(hasFiles && single) && (
           <View style={styles.listScreen}>
             {!selectionMode && (
               <TouchableOpacity style={styles.storageBtn} onPress={onPickFile} activeOpacity={0.85}>
@@ -163,7 +183,7 @@ export default function FilePreviewModal({
             )}
           </View>
         )}
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -236,6 +256,16 @@ const styles = StyleSheet.create({
   },
   fileName: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", textAlign: "center" },
   fileMeta: { color: "rgba(255,255,255,0.55)", fontSize: 13, marginTop: 6 },
+  captionRow: { paddingHorizontal: 16, paddingTop: 10 },
+  captionInput: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    backgroundColor: "#1E2A36",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    maxHeight: 100,
+  },
   progressWrap: { width: "100%", marginTop: 28, alignItems: "center", gap: 8 },
   progressTrack: { width: "100%", height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.12)", overflow: "hidden" },
   progressFill: { height: "100%", backgroundColor: "#0EA5E9", borderRadius: 3 },

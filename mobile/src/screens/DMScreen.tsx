@@ -442,6 +442,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   // DOGRUDAN gonderilir.
   const [sendingFile, setSendingFile] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PickedFileAsset[]>([]);
+  const [fileCaption, setFileCaption] = useState("");
   const [filePreviewVisible, setFilePreviewVisible] = useState(false);
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
   const [recentFiles, setRecentFiles] = useState<RecentFileEntry[]>([]);
@@ -1080,6 +1081,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
       setPendingFiles([{ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }]);
+      setFileCaption("");
       addRecentFile({ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }).then(setRecentFiles);
     });
   }
@@ -1098,6 +1100,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       return;
     }
     setPendingFiles([{ uri: file.uri, name: file.name, size: file.size, mimeType: file.mimeType }]);
+    setFileCaption("");
   }
 
   function handleLongPressRecent(file: RecentFileEntry) {
@@ -1160,6 +1163,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     if (sendingFile) return;
     setFilePreviewVisible(false);
     setPendingFiles([]);
+    setFileCaption("");
     setRecentSelectionMode(false);
     setSelectedRecentUris([]);
   }
@@ -1170,6 +1174,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   function backToFileList() {
     if (sendingFile) return;
     setPendingFiles([]);
+    setFileCaption("");
   }
 
   async function confirmSendFile() {
@@ -1185,13 +1190,21 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
       socket.emit(
         "dm:sendFile",
-        { toUserId: peer.userId, mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType },
+        {
+          toUserId: peer.userId,
+          mediaUrl: publicUrlData.publicUrl,
+          fileName: asset.name,
+          fileSize: asset.size,
+          mimeType: asset.mimeType,
+          caption: fileCaption.trim() || undefined,
+        },
         (res: any) => {
           if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
           else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
         }
       );
       setPendingFiles([]);
+      setFileCaption("");
       setFilePreviewVisible(false);
     } catch (err: any) {
       showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
@@ -2159,6 +2172,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       <FilePreviewModal
         visible={filePreviewVisible}
         files={pendingFiles}
+        caption={fileCaption}
+        onChangeCaption={setFileCaption}
         uploading={sendingFile}
         uploadProgress={fileUploadProgress}
         recentFiles={recentFiles}
