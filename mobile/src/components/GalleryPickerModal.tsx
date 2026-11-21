@@ -342,8 +342,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.25)",
   },
-  selectBadgeActive: { backgroundColor: theme.accent, borderColor: theme.accent },
-  selectBadgeText: { color: "#FFFFFF", fontSize: 11, fontWeight: "700" },
+  selectBadgeActive: { backgroundColor: "#FFFFFF", borderColor: "#FFFFFF" },
+  selectBadgeText: { color: "#000000", fontSize: 11, fontWeight: "700" },
   selectedOverlay: {
     position: "absolute",
     top: 1,
