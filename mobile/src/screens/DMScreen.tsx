@@ -1968,14 +1968,14 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               satirinin hemen altindaki siyah serit) Fotograf/Video mod
               secici eklendi. */}
           <View style={styles.quickCameraModeRow}>
-            <TouchableOpacity onPress={() => !isRecordingVideo && setQuickCameraMode("photo")} hitSlop={10}>
-              <Text style={[styles.quickCameraModeText, quickCameraMode === "photo" && styles.quickCameraModeTextActive]}>
-                {t("dm.cameraModePhoto")}
-              </Text>
-            </TouchableOpacity>
             <TouchableOpacity onPress={() => !isRecordingVideo && setQuickCameraMode("video")} hitSlop={10}>
               <Text style={[styles.quickCameraModeText, quickCameraMode === "video" && styles.quickCameraModeTextActive]}>
                 {t("dm.cameraModeVideo")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => !isRecordingVideo && setQuickCameraMode("photo")} hitSlop={10}>
+              <Text style={[styles.quickCameraModeText, quickCameraMode === "photo" && styles.quickCameraModeTextActive]}>
+                {t("dm.cameraModePhoto")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -2249,7 +2249,7 @@ const styles = StyleSheet.create({
   },
   quickCameraModeRow: {
     position: "absolute",
-    bottom: 55,
+    bottom: 50,
     left: 0,
     right: 0,
     flexDirection: "row",
