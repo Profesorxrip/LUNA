@@ -3,10 +3,11 @@ import { Modal, View, Text, Image, TouchableOpacity, FlatList, ScrollView, Style
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as MediaLibrary from "expo-media-library/legacy";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { CircleArrowDown, ChevronDown, Play } from "lucide-react-native";
 import { formatDuration } from "../utils/format";
 import { theme } from "../theme";
+import PhotoViewerModal from "./PhotoViewerModal";
+import VideoViewerModal from "./VideoViewerModal";
 
 export interface GalleryPickedAsset {
   uri: string;
@@ -22,16 +23,6 @@ interface Props {
 }
 
 const COLUMNS = 3;
-
-/** Onizlemedeki video - kendi expo-video player'i, her acilista (farkli
- * asset = farkli "key") YENIDEN kuruluyor. */
-function PreviewVideo({ uri }: { uri: string }) {
-  const player = useVideoPlayer(uri, (p) => {
-    p.loop = false;
-    p.play();
-  });
-  return <VideoView style={styles.previewMedia} player={player} nativeControls contentFit="contain" />;
-}
 
 /** Uygulama ici ozel galeri izgara ekrani - paylas menusundeki "Galeriden
  * Sec" ve hizli kamera ekranindaki galeri ikonu AYNI bu ekrani acar
@@ -163,9 +154,11 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
   }
 
   // Kullanici: "Tek tıklayınca fotoğraf yada video önizlemesine alsın
-  // direk" - secim modu kapaliyken tek dokunus, o ogeyi dogrudan tam
-  // ekran onizlemeye acar (secmez); onizlemeden "gonder" ile SADECE o
-  // tek oge direkt yollanir.
+  // direk" + "Zaten vardı bi fotoğraf önizleme ekranı niye oraya
+  // bağlamadın" - secim modu kapaliyken tek dokunus, DM'de zaten
+  // kullanilan AYNI PhotoViewerModal/VideoViewerModal'i acar (zoom,
+  // indirme vb. hazir) - burada gonderme/secme eylemi YOK, sadece
+  // goruntuleme; gondermek icin uzun basip secim moduna girmek gerekiyor.
   function handleCellPress(id: string) {
     if (selectionMode) {
       toggleSelect(id);
@@ -195,12 +188,6 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
       .map(assetToPicked);
     if (!picked.length) return;
     onConfirm(picked);
-  }
-
-  function handlePreviewSend() {
-    if (!previewAsset) return;
-    onConfirm([assetToPicked(previewAsset)]);
-    setPreviewAsset(null);
   }
 
   return (
@@ -301,31 +288,11 @@ export default function GalleryPickerModal({ visible, onClose, onConfirm, maxSel
           </TouchableOpacity>
         </Modal>
 
-        <Modal visible={!!previewAsset} animationType="fade" onRequestClose={() => setPreviewAsset(null)} statusBarTranslucent>
-          <View style={styles.previewScreen}>
-            <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
-              <TouchableOpacity style={styles.headerBtn} onPress={() => setPreviewAsset(null)} hitSlop={10}>
-                <View style={{ transform: [{ rotate: "90deg" }] }}>
-                  <CircleArrowDown size={22} color="#FFFFFF" />
-                </View>
-              </TouchableOpacity>
-              <View style={{ flex: 1 }} />
-              <TouchableOpacity style={styles.headerBtn} onPress={handlePreviewSend} hitSlop={10}>
-                <View style={{ transform: [{ rotate: "180deg" }] }}>
-                  <CircleArrowDown size={22} color="#FFFFFF" />
-                </View>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.previewBody}>
-              {previewAsset &&
-                (previewAsset.mediaType === "video" ? (
-                  <PreviewVideo key={previewAsset.id} uri={previewAsset.uri} />
-                ) : (
-                  <Image source={{ uri: previewAsset.uri }} style={styles.previewMedia} resizeMode="contain" />
-                ))}
-            </View>
-          </View>
-        </Modal>
+        {previewAsset?.mediaType === "video" ? (
+          <VideoViewerModal uri={previewAsset.uri} onClose={() => setPreviewAsset(null)} />
+        ) : (
+          <PhotoViewerModal uri={previewAsset?.uri ?? null} onClose={() => setPreviewAsset(null)} />
+        )}
       </View>
     </Modal>
   );
@@ -399,7 +366,4 @@ const styles = StyleSheet.create({
     bottom: 1,
     backgroundColor: "rgba(14,165,233,0.2)",
   },
-  previewScreen: { flex: 1, backgroundColor: "#000000" },
-  previewBody: { flex: 1, alignItems: "center", justifyContent: "center" },
-  previewMedia: { width: "100%", height: "100%" },
 });
