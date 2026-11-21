@@ -9,7 +9,10 @@ interface Props {
   title: string;
 }
 
-const MUSIC_COLOR = "#C084FC";
+// Kullanici: "pembe renkli olması çok irite ediyor" - turuncu/amber'e
+// cevrildi.
+const MUSIC_COLOR = "#F59E0B";
+const MUSIC_ICON_DARK = "#2A1700";
 
 /** Sohbette paylasilan muzik balonu - FileMessageBubble ile AYNI kart
  * olcusu/dolgusu, ama indirme yerine expo-audio ile DOGRUDAN (VoiceMessageBubble
@@ -42,7 +45,7 @@ export default function MusicMessageBubble({ uri, title }: Props) {
         <Text style={styles.meta}>{timeLabel}</Text>
       </View>
       <View style={styles.playBtn}>
-        {status.playing ? <Pause size={14} color="#1B0B2E" /> : <Play size={14} color="#1B0B2E" fill="#1B0B2E" />}
+        {status.playing ? <Pause size={14} color={MUSIC_ICON_DARK} /> : <Play size={14} color={MUSIC_ICON_DARK} fill={MUSIC_ICON_DARK} />}
       </View>
     </TouchableOpacity>
   );
@@ -63,7 +66,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 12,
-    backgroundColor: "rgba(192,132,252,0.18)",
+    backgroundColor: "rgba(245,158,11,0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
