@@ -121,11 +121,14 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
         </View>
       ) : tab === "sticker" ? (
         <View style={styles.stickerWrap}>
-          {allStickerPacks.length > 1 && (
+          {/* Kullanici: "gif yazısının altında bütün çıkartma paketinin ilk
+              çıkartmalarından ... kaydırmalı seçebilmek için" - paket sayisi
+              1 bile olsa HER ZAMAN gorunur (ileride yeni paket eklenince
+              kaydirmali secici zaten hazir olsun diye). */}
+          <View style={styles.packTabsRowWrap}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={styles.tabsRow}
               contentContainerStyle={styles.tabsRowContent}
             >
               {allStickerPacks.map((pack, i) => (
@@ -138,7 +141,7 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          )}
+          </View>
           <ScrollView contentContainerStyle={styles.stickerGrid}>
             <TouchableOpacity style={styles.createStickerCell} onPress={onCreateSticker} disabled={creatingSticker}>
               <View style={styles.createStickerInner}>
@@ -303,6 +306,12 @@ const styles = StyleSheet.create({
   emojiCellWrap: { width: 40, height: 40, borderRadius: 10, justifyContent: "center", alignItems: "center" },
   noResults: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500", textAlign: "center", marginTop: 30 },
   tabsRow: { flexGrow: 0 },
+  // ScrollView'in KENDI "style" prop'una verilen yukseklik web'de etkisiz
+  // kaliyordu (paket ikonlari - 40px - kategori ikonlarindan - 34px - daha
+  // uzun oldugu icin ScrollView'in kendiliginden hesapladigi yukseklik
+  // YETERSIZ kalip ustten kesiyordu) - bunun yerine ScrollView'i SARAN,
+  // acik yukseklikli duz bir View kullaniliyor.
+  packTabsRowWrap: { height: 52 },
   tabsRowContent: { paddingHorizontal: 10, paddingVertical: 6, gap: 4 },
   tabButton: {
     width: 34,
