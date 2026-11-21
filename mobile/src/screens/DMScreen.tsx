@@ -20,7 +20,6 @@ import { LockClosedIcon, MicrophoneIcon } from "react-native-heroicons/outline";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play, BarChart2, Music, User as UserIcon } from "lucide-react-native";
@@ -37,6 +36,7 @@ import LoadingView from "../components/LoadingView";
 import SendMediaSheet from "../components/SendMediaSheet";
 import SendVideoSheet from "../components/SendVideoSheet";
 import GalleryPickerModal, { type GalleryPickedAsset } from "../components/GalleryPickerModal";
+import LocationPickerModal, { type PickedLocation } from "../components/LocationPickerModal";
 import CameraFilmstrip, { type FilmstripPickedAsset } from "../components/CameraFilmstrip";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
@@ -417,6 +417,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const [galleryPickerVisible, setGalleryPickerVisible] = useState(false);
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [quickCaptureActive, setQuickCaptureActive] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [quickCameraReady, setQuickCameraReady] = useState(false);
@@ -1022,30 +1023,28 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
     }
   }
 
-  // Kullanici: "konumda gözüksün" - ataç menüsundeki "Konum" satiri. Dosya
-  // YOK, sadece o anki konumu (tek seferlik, "canli" DEGIL) gonderiyoruz -
-  // RoomScreen'in surekli guncellenen oda haritasiyla (room:location)
-  // KARISTIRILMASIN.
-  async function sendLocation() {
+  // Kullanici: "konum için profesyonel şekilde seçebildiğimiz bir sayfa" -
+  // ataç menüsundeki "Konum" satiri artik dogrudan GPS'i gondermiyor,
+  // LocationPickerModal'i aciyor (harita uzerinde pin surukleyerek/arama
+  // yaparak konum SECILIR). Gercek gonderim, kullanici o ekranda "Bu
+  // Konumu Gönder"e basinca burasi cagrilir. RoomScreen'in surekli
+  // guncellenen oda haritasiyla (room:location) KARISTIRILMASIN - bu
+  // kalici, TEK SEFERLIK bir mesaj.
+  function openLocationPicker() {
     setAttachSheetVisible(false);
-    const perm = await Location.requestForegroundPermissionsAsync();
-    if (!perm.granted) {
-      showAlert(t("dm.permissionRequiredTitle"), t("dm.locationPermissionRequiredBody"));
-      return;
-    }
-    try {
-      const pos = await Location.getCurrentPositionAsync({});
-      socket.emit(
-        "dm:sendLocation",
-        { toUserId: peer.userId, latitude: pos.coords.latitude, longitude: pos.coords.longitude },
-        (res: any) => {
-          if (res?.ok) setMessages((prev) => [...prev, res.message]);
-          else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
-        }
-      );
-    } catch (err: any) {
-      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
-    }
+    setLocationPickerVisible(true);
+  }
+
+  function handleLocationPickerConfirm(loc: PickedLocation) {
+    setLocationPickerVisible(false);
+    socket.emit(
+      "dm:sendLocation",
+      { toUserId: peer.userId, latitude: loc.latitude, longitude: loc.longitude },
+      (res: any) => {
+        if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+        else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+      }
+    );
   }
 
   // Kullanici: "dosya gönderme özelliği ekle" - ataç menüsundeki "Dosya"
@@ -1892,37 +1891,37 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
             <View style={styles.attachGrid}>
               <TouchableOpacity style={styles.attachGridItem} onPress={pickImage}>
                 <View style={styles.attachIconWrap}>
-                  <ImageIcon size={20} color={ACCENT} />
+                  <ImageIcon size={26} color="#FFFFFF" />
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachGallery")}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.attachGridItem} onPress={sendLocation}>
+              <TouchableOpacity style={styles.attachGridItem} onPress={openLocationPicker}>
                 <View style={styles.attachIconWrap}>
-                  <MapPin size={20} color={ACCENT} />
+                  <MapPin size={26} color="#FFFFFF" />
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachLocation")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.attachGridItem} onPress={pickAndSendFile} disabled={sendingFile}>
                 <View style={styles.attachIconWrap}>
-                  {sendingFile ? <ActivityIndicator size="small" color={ACCENT} /> : <FileTextIcon size={20} color={ACCENT} />}
+                  {sendingFile ? <ActivityIndicator size="small" color="#FFFFFF" /> : <FileTextIcon size={26} color="#FFFFFF" />}
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachFile")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholder(t("dm.attachPoll"))}>
                 <View style={styles.attachIconWrap}>
-                  <BarChart2 size={20} color={ACCENT} />
+                  <BarChart2 size={26} color="#FFFFFF" />
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachPoll")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholder(t("dm.attachMusic"))}>
                 <View style={styles.attachIconWrap}>
-                  <Music size={20} color={ACCENT} />
+                  <Music size={26} color="#FFFFFF" />
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachMusic")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholder(t("dm.attachContact"))}>
                 <View style={styles.attachIconWrap}>
-                  <UserIcon size={20} color={ACCENT} />
+                  <UserIcon size={26} color="#FFFFFF" />
                 </View>
                 <Text style={styles.attachGridText}>{t("dm.attachContact")}</Text>
               </TouchableOpacity>
@@ -2027,6 +2026,12 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         visible={galleryPickerVisible}
         onClose={() => setGalleryPickerVisible(false)}
         onConfirm={handleGalleryPickerConfirm}
+      />
+
+      <LocationPickerModal
+        visible={locationPickerVisible}
+        onClose={() => setLocationPickerVisible(false)}
+        onConfirm={handleLocationPickerConfirm}
       />
 
       <SendMediaSheet
@@ -2210,9 +2215,9 @@ const styles = StyleSheet.create({
   attachGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap" },
   attachGridItem: { width: "33.33%", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
   attachIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: "rgba(14,165,233,0.12)",
     alignItems: "center",
     justifyContent: "center",
