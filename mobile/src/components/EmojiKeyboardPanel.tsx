@@ -10,14 +10,13 @@ import { CustomSticker } from "../utils/customStickers";
 import AnimatedEmoji from "./AnimatedEmoji";
 
 const COLS = 7;
-const HEADER_HEIGHT = 30;
 const ROW_HEIGHT = 44;
 // DMScreen'in composer'i KAC px yukari itecegini (bos bir "spacer" ile)
 // hesaplayabilmesi icin disari aciliyor - bkz. asagidaki "position:absolute"
 // aciklamasi.
 export const PANEL_HEIGHT = 300;
 
-type ListItem = { type: "header"; title: string } | { type: "row"; emojis: string[] };
+type ListItem = { type: "row"; emojis: string[] };
 type Tab = "emoji" | "gif" | "sticker";
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -249,23 +248,17 @@ export default function EmojiKeyboardPanel({ onSelect, onSendSticker, customStic
             <FlatList
               ref={emojiListRef}
               data={emojiLayout.items}
-              keyExtractor={(item, index) => (item.type === "header" ? `h-${index}` : `r-${index}`)}
+              keyExtractor={(_item, index) => `r-${index}`}
               getItemLayout={(_data, index) => ({ ...emojiLayout.layouts[index], index })}
-              renderItem={({ item }) =>
-                item.type === "header" ? (
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionHeaderText}>{item.title}</Text>
-                  </View>
-                ) : (
-                  <View style={styles.emojiRow}>
-                    {item.emojis.map((emoji) => (
-                      <TouchableOpacity key={emoji} style={styles.emojiCell} onPress={() => onSelect(emoji)}>
-                        <AnimatedEmoji emoji={emoji} size={24} />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )
-              }
+              renderItem={({ item }) => (
+                <View style={styles.emojiRow}>
+                  {item.emojis.map((emoji) => (
+                    <TouchableOpacity key={emoji} style={styles.emojiCell} onPress={() => onSelect(emoji)}>
+                      <AnimatedEmoji emoji={emoji} size={24} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
               initialNumToRender={24}
               windowSize={8}
               contentContainerStyle={styles.listContent}
@@ -284,9 +277,6 @@ function buildLayout(categories: { key: string; label: string; emojis: string[] 
   let offset = 0;
   categories.forEach((cat) => {
     sectionStartIndex.push(items.length);
-    items.push({ type: "header", title: cat.label });
-    layouts.push({ length: HEADER_HEIGHT, offset });
-    offset += HEADER_HEIGHT;
     chunk(cat.emojis, cols).forEach((row) => {
       items.push({ type: "row", emojis: row });
       layouts.push({ length: rowHeight, offset });
@@ -361,15 +351,6 @@ const styles = StyleSheet.create({
   },
   tabIcon: { fontSize: 17 },
   listContent: { paddingHorizontal: 10, paddingBottom: 20 },
-  sectionHeader: { justifyContent: "center", height: HEADER_HEIGHT },
-  sectionHeaderText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    opacity: 0.6,
-  },
   emojiRow: { flexDirection: "row", height: ROW_HEIGHT, alignItems: "center" },
   emojiCell: { flex: 1, height: 36, borderRadius: 10, justifyContent: "center", alignItems: "center", marginRight: 2 },
   stickerWrap: { flex: 1 },
