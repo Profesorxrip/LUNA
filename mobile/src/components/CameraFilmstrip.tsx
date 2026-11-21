@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   wrap: { width: "100%" },
   handleTouch: { alignItems: "center", paddingVertical: 6 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.6)" },
-  listContent: { paddingHorizontal: 3, gap: 3 },
+  listContent: { paddingHorizontal: 3, gap: 1 },
   thumb: { width: THUMB_SIZE, height: THUMB_SIZE, backgroundColor: "#1A1A1A" },
   thumbImage: { width: "100%", height: "100%" },
 });
