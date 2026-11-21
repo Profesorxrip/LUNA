@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 10,
   },
-  albumRowSelected: { backgroundColor: theme.accent },
+  albumRowSelected: { backgroundColor: "rgba(14,165,233,0.18)" },
   albumRowText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
   albumRowCount: { color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 },
   centerFill: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
