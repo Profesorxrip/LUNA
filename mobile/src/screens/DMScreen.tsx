@@ -2102,7 +2102,7 @@ const styles = StyleSheet.create({
   },
   quickCameraBottomBar: {
     position: "absolute",
-    bottom: 36,
+    bottom: 66,
     left: 0,
     right: 0,
     flexDirection: "row",
