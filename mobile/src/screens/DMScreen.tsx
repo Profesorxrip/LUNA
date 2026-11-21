@@ -284,7 +284,11 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 item.kind !== "file" &&
                 item.kind !== "poll" &&
                 (item.kind !== "sticker" || isGifSticker) &&
-                item.mediaUrl &&
+                // Kullanici: bundle edilmis (hazir paket) GIF'lerde mediaUrl
+                // YOK - sadece stickerId tasinir (bkz. sendSticker). isGifSticker
+                // zaten "bu mesaj kesinlikle gosterilecek bir GIF" demek, o
+                // yuzden mediaUrl sartina ALTERNATIF olarak kabul edilir.
+                (item.mediaUrl || isGifSticker) &&
                 styles.bubblePhotoPad),
               // Kullanici: "WhatsApp/Telegram'daki gibi" cikartmalar - GERCEK
               // bir mesaj balonu renk/kenarligi OLMADAN serbest/saydam
@@ -418,7 +422,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                   item.kind !== "file" &&
                   item.kind !== "music" &&
                   (item.kind !== "sticker" || isGifSticker) &&
-                  item.mediaUrl &&
+                  (item.mediaUrl || isGifSticker) &&
                   styles.metaRowPhotoOverlay),
                 item.kind === "call" && styles.metaRowCallOverlay,
                 item.kind === "music" && styles.metaRowMusicOverlay,
