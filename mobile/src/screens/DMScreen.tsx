@@ -265,6 +265,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               item.kind === "file" && styles.bubbleFilePad,
               item.kind === "call" && styles.bubbleCallPad,
               item.kind === "poll" && styles.bubblePollPad,
+              item.kind === "contact" && styles.bubbleContactPad,
               item.kind !== "voice" &&
                 item.kind !== "location" &&
                 item.kind !== "file" &&
@@ -390,6 +391,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 item.kind === "call" && styles.metaRowCallOverlay,
                 item.kind === "music" && styles.metaRowMusicOverlay,
                 item.kind === "poll" && styles.metaRowPollOverlay,
+                item.kind === "contact" && styles.metaRowContactOverlay,
               ]}
             >
               {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
@@ -2563,6 +2565,8 @@ const styles = StyleSheet.create({
   // DEGIL, kartin KENDI icine bindirildigi icin (bkz. metaRowPollOverlay)
   // alt bosluk da diger 3 kenarla AYNI (3px) kucultuldu.
   bubblePollPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  // Kisi karti icin de AYNI mantik - balonun kenarina 3px'e kadar yaklastirir.
+  bubbleContactPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   // Fotograf balonu icin de AYNI mantik - ChatImageBubble'in kendi boyutu da
   // buyutuldu (bkz. asagidaki size/borderRadius prop'lari).
   bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
@@ -2600,6 +2604,14 @@ const styles = StyleSheet.create({
   // Kullanici: "Anketinde saati içinde olsun" - Arama/Müzik ile AYNI mantik,
   // saat ayri bir alt satir yerine kartin KENDI icine (sag-alt) bindiriliyor.
   metaRowPollOverlay: {
+    position: "absolute",
+    bottom: 8,
+    right: 10,
+    marginTop: 0,
+  },
+  // Kullanici: "Kişininde saati içinde olsun" - AYNI mantik, kisi kartinin
+  // sag-alt kosesine bindirilir.
+  metaRowContactOverlay: {
     position: "absolute",
     bottom: 8,
     right: 10,
