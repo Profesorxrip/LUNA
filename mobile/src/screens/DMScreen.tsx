@@ -12,7 +12,6 @@ import {
   Animated,
   PanResponder,
   ActivityIndicator,
-  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
@@ -1890,44 +1889,44 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
         <TouchableOpacity style={styles.attachSheetOverlay} activeOpacity={1} onPress={() => setAttachSheetVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={styles.attachSheet}>
             <View style={styles.sheetHandleTop} />
-            <ScrollView style={{ width: "100%" }} showsVerticalScrollIndicator={false}>
-            <TouchableOpacity style={styles.attachRow} onPress={pickImage}>
-              <View style={styles.attachIconWrap}>
-                <ImageIcon size={20} color={ACCENT} />
-              </View>
-              <Text style={styles.attachRowText}>{t("dm.attachGallery")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.attachRow} onPress={sendLocation}>
-              <View style={styles.attachIconWrap}>
-                <MapPin size={20} color={ACCENT} />
-              </View>
-              <Text style={styles.attachRowText}>{t("dm.attachLocation")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.attachRow} onPress={pickAndSendFile} disabled={sendingFile}>
-              <View style={styles.attachIconWrap}>
-                {sendingFile ? <ActivityIndicator size="small" color={ACCENT} /> : <FileTextIcon size={20} color={ACCENT} />}
-              </View>
-              <Text style={styles.attachRowText}>{t("dm.attachFile")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.attachRow} onPress={() => placeholder(t("dm.attachPoll"))}>
-              <View style={styles.attachIconWrap}>
-                <BarChart2 size={20} color={ACCENT} />
-              </View>
-              <Text style={styles.attachRowText}>{t("dm.attachPoll")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.attachRow} onPress={() => placeholder(t("dm.attachMusic"))}>
-              <View style={styles.attachIconWrap}>
-                <Music size={20} color={ACCENT} />
-              </View>
-              <Text style={styles.attachRowText}>{t("dm.attachMusic")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.attachRow} onPress={() => placeholder(t("dm.attachContact"))}>
-              <View style={styles.attachIconWrap}>
-                <UserIcon size={20} color={ACCENT} />
-              </View>
-              <Text style={styles.attachRowText}>{t("dm.attachContact")}</Text>
-            </TouchableOpacity>
-            </ScrollView>
+            <View style={styles.attachGrid}>
+              <TouchableOpacity style={styles.attachGridItem} onPress={pickImage}>
+                <View style={styles.attachIconWrap}>
+                  <ImageIcon size={20} color={ACCENT} />
+                </View>
+                <Text style={styles.attachGridText}>{t("dm.attachGallery")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.attachGridItem} onPress={sendLocation}>
+                <View style={styles.attachIconWrap}>
+                  <MapPin size={20} color={ACCENT} />
+                </View>
+                <Text style={styles.attachGridText}>{t("dm.attachLocation")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.attachGridItem} onPress={pickAndSendFile} disabled={sendingFile}>
+                <View style={styles.attachIconWrap}>
+                  {sendingFile ? <ActivityIndicator size="small" color={ACCENT} /> : <FileTextIcon size={20} color={ACCENT} />}
+                </View>
+                <Text style={styles.attachGridText}>{t("dm.attachFile")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholder(t("dm.attachPoll"))}>
+                <View style={styles.attachIconWrap}>
+                  <BarChart2 size={20} color={ACCENT} />
+                </View>
+                <Text style={styles.attachGridText}>{t("dm.attachPoll")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholder(t("dm.attachMusic"))}>
+                <View style={styles.attachIconWrap}>
+                  <Music size={20} color={ACCENT} />
+                </View>
+                <Text style={styles.attachGridText}>{t("dm.attachMusic")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholder(t("dm.attachContact"))}>
+                <View style={styles.attachIconWrap}>
+                  <UserIcon size={20} color={ACCENT} />
+                </View>
+                <Text style={styles.attachGridText}>{t("dm.attachContact")}</Text>
+              </TouchableOpacity>
+            </View>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -2208,16 +2207,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: "center",
   },
-  attachRow: { width: "100%", flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14 },
+  attachGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap" },
+  attachGridItem: { width: "33.33%", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
   attachIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "rgba(14,165,233,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
-  attachRowText: { color: TEXT, fontSize: 15, fontWeight: "600" },
+  attachGridText: { color: TEXT, fontSize: 13, fontWeight: "600" },
   quickCameraOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#000000" },
   quickCameraView: { flex: 1, marginTop: 50, marginBottom: 70 },
   quickCameraTopBar: {
