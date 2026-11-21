@@ -386,7 +386,15 @@ function GifMasonryGrid({
               <TouchableOpacity
                 key={item.id}
                 style={[styles.gifTile, { aspectRatio: item.width / item.height }]}
-                onPress={() => onSend(item.isCustom ? null : item.id, item.isCustom ? item.url ?? null : null)}
+                onPress={() =>
+                  // Kullanici: "gif video gibi durmalı" - mesaj balonunun
+                  // StickerMessageBubble mi GifMessageBubble mi kullanacagini
+                  // (bkz. DMScreen.tsx) secebilmek icin kendi yuklenen
+                  // (custom) GIF'ler de "gif-" onekli SABIT bir stickerId
+                  // ("gif-custom") ile isaretlenir - gercek gorsel yine
+                  // mediaUrl'den gelir, bu sadece bir TUR etiketidir.
+                  onSend(item.isCustom ? "gif-custom" : item.id, item.isCustom ? item.url ?? null : null)
+                }
               >
                 <Image source={item.source} style={styles.gifTileImage} resizeMode="cover" />
               </TouchableOpacity>

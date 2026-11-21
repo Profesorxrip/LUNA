@@ -60,6 +60,7 @@ import { getCustomGifs, addCustomGif, CustomGif } from "../utils/customGifs";
 import PollMessageBubble from "../components/PollMessageBubble";
 import MusicMessageBubble from "../components/MusicMessageBubble";
 import StickerMessageBubble from "../components/StickerMessageBubble";
+import GifMessageBubble from "../components/GifMessageBubble";
 import CallMessageBubble from "../components/CallMessageBubble";
 import FriendsScreen from "./FriendsScreen";
 import Avatar from "../components/Avatar";
@@ -342,6 +343,8 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               />
             ) : item.kind === "music" && item.mediaUrl ? (
               <MusicMessageBubble uri={item.mediaUrl} title={item.fileName || item.text} />
+            ) : item.kind === "sticker" && item.stickerId?.startsWith("gif-") ? (
+              <GifMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
             ) : item.kind === "sticker" ? (
               <StickerMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
             ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
