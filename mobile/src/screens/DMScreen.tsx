@@ -23,7 +23,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play, SwitchCamera, Zap, ZapOff } from "lucide-react-native";
+import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play, Zap, ZapOff } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
@@ -1872,7 +1872,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               <View style={[styles.quickCameraShutterInner, capturingQuickPhoto && styles.quickCameraShutterInnerActive]} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickCameraSideBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
-              <SwitchCamera size={24} color="#FFFFFF" />
+              <MaterialCommunityIcons name="camera-flip-outline" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
