@@ -302,6 +302,9 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 item.kind !== "location" &&
                 item.kind !== "file" &&
                 item.kind !== "poll" &&
+                item.kind !== "contact" &&
+                item.kind !== "music" &&
+                item.kind !== "call" &&
                 (item.kind !== "sticker" || isGifSticker) &&
                 // Kullanici: bundle edilmis (hazir paket) GIF'lerde mediaUrl
                 // YOK - sadece stickerId tasinir (bkz. sendSticker). isGifSticker
