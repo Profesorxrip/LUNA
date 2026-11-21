@@ -43,11 +43,11 @@ interface Props {
  * basis coklu SECIM modunu acip o satiri isaretler (secim modu
  * acikken normal dokunus da isaretler/kaldirir).
  *
- * Kullanici: "Çoklu seçim yaptığımızda da bu ekrana yönlendirsen" -
- * secim modunda gonder okuna basinca secili TUM dosyalar (tekli akisla
- * AYNI) bu onizleme ekranina gelir - mesaj kutusuna yazilan ortak
- * baslik/aciklama her dosyayla birlikte gonderilir (bkz. DMScreen.tsx
- * confirmSendFile, artik tek VEYA coklu pendingFiles'i donguyle yollar). */
+ * Kullanici: "Hiç çoklu seçim dosyasını buraya yönlendirmeseydik direk
+ * yolluyordu ne güzel" - secim modunda gonder okuna basinca secili
+ * dosyalar bu onizleme ekranina HIC UGRAMADAN dogrudan yuklenip
+ * gonderilir (bkz. DMScreen.tsx sendFilesDirect). Bu ekran SADECE tek
+ * dosyalik akis (Son Dosyalar'a tek dokunus / Dahili Depolama) icin. */
 export default function FilePreviewModal({
   visible,
   files,
@@ -99,13 +99,7 @@ export default function FilePreviewModal({
             </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {hasFiles
-              ? files.length > 1
-                ? t("dm.fileSelectedCount", { count: files.length })
-                : t("dm.filePreviewTitle")
-              : selectionMode
-                ? t("dm.fileSelectedCount", { count: selectedUris.length })
-                : t("dm.filePreviewTitle")}
+            {selectionMode && !hasFiles ? t("dm.fileSelectedCount", { count: selectedUris.length }) : t("dm.filePreviewTitle")}
           </Text>
           {hasFiles ? (
             <View style={styles.headerBtn} />
@@ -118,37 +112,13 @@ export default function FilePreviewModal({
           )}
         </View>
 
-        {hasFiles ? (
+        {hasFiles && single ? (
           <View style={styles.body}>
-            {single ? (
-              <>
-                <View style={styles.iconWrap}>{SingleIcon && <SingleIcon size={44} color="#FFFFFF" />}</View>
-                <Text style={styles.fileName} numberOfLines={3}>
-                  {single.name}
-                </Text>
-                <Text style={styles.fileMeta}>{[singleExt, formatFileSize(single.size)].filter(Boolean).join(" · ")}</Text>
-              </>
-            ) : (
-              <>
-                <View style={styles.iconWrap}>
-                  <HardDrive size={40} color="#FFFFFF" />
-                </View>
-                <Text style={styles.fileName}>{t("dm.fileSelectedCount", { count: files.length })}</Text>
-                <View style={styles.multiList}>
-                  {files.map((f) => {
-                    const RowIcon = fileIconFor(f.mimeType, f.name);
-                    return (
-                      <View key={f.uri} style={styles.multiRow}>
-                        <RowIcon size={16} color="#FFFFFF" />
-                        <Text style={styles.multiRowName} numberOfLines={1}>
-                          {f.name}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </>
-            )}
+            <View style={styles.iconWrap}>{SingleIcon && <SingleIcon size={44} color="#FFFFFF" />}</View>
+            <Text style={styles.fileName} numberOfLines={3}>
+              {single.name}
+            </Text>
+            <Text style={styles.fileMeta}>{[singleExt, formatFileSize(single.size)].filter(Boolean).join(" · ")}</Text>
 
             {uploading && (
               <View style={styles.progressWrap}>
@@ -161,7 +131,7 @@ export default function FilePreviewModal({
           </View>
         ) : null}
 
-        {hasFiles && !uploading && (
+        {hasFiles && single && !uploading && (
           <View>
             {emojiOpen && (
               <View style={styles.emojiGrid}>
@@ -193,7 +163,7 @@ export default function FilePreviewModal({
           </View>
         )}
 
-        {!hasFiles && (
+        {!(hasFiles && single) && (
           <View style={styles.listScreen}>
             {!selectionMode && (
               <TouchableOpacity style={styles.storageBtn} onPress={onPickFile} activeOpacity={0.85}>
@@ -313,9 +283,6 @@ const styles = StyleSheet.create({
   },
   fileName: { color: "#FFFFFF", fontSize: 17, fontWeight: "700", textAlign: "center" },
   fileMeta: { color: "rgba(255,255,255,0.55)", fontSize: 13, marginTop: 6 },
-  multiList: { width: "100%", marginTop: 20, gap: 14 },
-  multiRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  multiRowName: { flex: 1, color: "#FFFFFF", fontSize: 14 },
   composerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 8 },
   captionBox: {
     flex: 1,
