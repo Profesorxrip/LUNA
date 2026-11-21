@@ -268,7 +268,7 @@ export default function LocationPickerModal({ visible, onClose, onConfirm }: Pro
           )}
 
           <TouchableOpacity style={styles.recenterBtn} onPress={locateMe} hitSlop={8}>
-            {locatingMe ? <ActivityIndicator size="small" color="#FFFFFF" /> : <LocateFixed size={20} color="#FFFFFF" />}
+            {locatingMe ? <ActivityIndicator size="small" color="#FFFFFF" /> : <LocateFixed size={26} color="#FFFFFF" />}
           </TouchableOpacity>
         </View>
       </View>
@@ -349,9 +349,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 16,
     bottom: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: "rgba(21,32,43,0.9)",
     alignItems: "center",
     justifyContent: "center",
