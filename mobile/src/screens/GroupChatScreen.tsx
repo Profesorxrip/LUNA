@@ -14,6 +14,7 @@ import {
   Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Path } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
@@ -92,6 +93,20 @@ function formatRecordingTime(ms: number): string {
   return `${mm}:${ss.toString().padStart(2, "0")}`;
 }
 
+// DMScreen.tsx'teki BubbleTail ile BIREBIR AYNI - WhatsApp'taki gibi balonun
+// kosesinden fiskiran, yumusak egrili kuyruk. Bir gondericiden gelen ilk
+// (grubun BASI, groupedWithPrev=false) balonda gorunur.
+function BubbleTail({ color, mine }: { color: string; mine: boolean }) {
+  const d = mine
+    ? "M0,0 L5.2,0 Q7,0 6.093,1.556 L0.605,10.963 Q0,12 0,10.8 L0,0 Z"
+    : "M7,0 L1.8,0 Q0,0 0.907,1.556 L6.395,10.963 Q7,12 7,10.8 L7,0 Z";
+  return (
+    <Svg width={7} height={12} viewBox="0 0 7 12" style={[styles.bubbleTailSvg, mine ? styles.bubbleTailSvgMine : styles.bubbleTailSvgTheirs]}>
+      <Path d={d} fill={color} />
+    </Svg>
+  );
+}
+
 export interface GroupPeer {
   id: string;
   name: string;
@@ -163,6 +178,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
             style={[
               styles.bubble,
               isMine ? styles.bubbleMine : styles.bubbleTheirs,
+              !groupedWithPrev && (isMine ? styles.bubbleMineFirst : styles.bubbleTheirsFirst),
               item.kind === "voice" && styles.bubbleVoicePad,
               item.kind === "location" && styles.bubbleLocationPad,
               item.kind === "file" && styles.bubbleFilePad,
@@ -181,6 +197,9 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               item.kind === "sticker" && !isGifSticker && styles.bubbleStickerNoBg,
             ]}
           >
+            {!groupedWithPrev && (item.kind !== "sticker" || isGifSticker) && (
+              <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />
+            )}
             {item.isForwarded && !item.deletedForEveryone && (
               <View style={styles.forwardedRow}>
                 <Forward size={11} color={isMine ? "rgba(255,255,255,0.75)" : MUTED} />
@@ -1761,7 +1780,12 @@ const styles = StyleSheet.create({
   bubbleCol: { maxWidth: "75%" },
   senderName: { color: MUTED, fontSize: 12, fontWeight: "700", marginBottom: 2, marginLeft: 2 },
   bubbleWrap: { position: "relative" },
-  bubble: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 8 },
+  bubble: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 8, position: "relative" },
+  bubbleMineFirst: { borderTopRightRadius: 0 },
+  bubbleTheirsFirst: { borderTopLeftRadius: 0 },
+  bubbleTailSvg: { position: "absolute", top: 0 },
+  bubbleTailSvgMine: { right: -6 },
+  bubbleTailSvgTheirs: { left: -6 },
   bubbleVoicePad: { paddingTop: 13, paddingBottom: 10 },
   bubbleLocationPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
   bubbleFilePad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
@@ -1789,9 +1813,9 @@ const styles = StyleSheet.create({
     marginTop: -2,
     marginBottom: 4,
   },
-  reactionBadgeRow: { position: "absolute", flexDirection: "row", gap: 2, bottom: -9 },
-  reactionBadgeRowMine: { right: 9 },
-  reactionBadgeRowTheirs: { left: 9 },
+  reactionBadgeRow: { position: "absolute", flexDirection: "row", gap: 2 },
+  reactionBadgeRowMine: { left: 9, bottom: 5 },
+  reactionBadgeRowTheirs: { left: 9, bottom: 5 },
   reactionBadgeChip: {
     height: 19,
     paddingHorizontal: 6,
