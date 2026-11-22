@@ -271,11 +271,8 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               </View>
             ) : item.kind === "video" && item.viewOnce && item.mediaUrl ? (
               <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={styles.viewOnceUnopenedRow}>
-                <View style={styles.viewOnceUnopenedLeft}>
-                  <CameraIcon size={16} color={isMine ? "#FFFFFF" : TEXT} strokeWidth={1.8} />
-                  <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindVideo")}</Text>
-                </View>
                 <VoiceOnceRingIcon size={20} color={isMine ? "#FFFFFF" : TEXT} />
+                <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindVideo")}</Text>
               </TouchableOpacity>
             ) : item.kind === "video" && item.mediaUrl ? (
               <VideoMessageBubble uri={item.mediaUrl} size={280} borderRadius={8} senderName={item.fromName} sentAt={item.createdAt} onReply={onReply} />
@@ -286,11 +283,8 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               </View>
             ) : item.kind === "photo" && item.viewOnce && item.mediaUrl ? (
               <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={styles.viewOnceUnopenedRow}>
-                <View style={styles.viewOnceUnopenedLeft}>
-                  <ImageIcon size={16} color={isMine ? "#FFFFFF" : TEXT} strokeWidth={1.8} />
-                  <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindPhoto")}</Text>
-                </View>
                 <VoiceOnceRingIcon size={20} color={isMine ? "#FFFFFF" : TEXT} />
+                <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindPhoto")}</Text>
               </TouchableOpacity>
             ) : item.kind === "photo" && item.mediaUrl ? (
               <>
@@ -1851,8 +1845,7 @@ const styles = StyleSheet.create({
   // istegi: "fotoğrafsa fotoğraf videoysa video... yazdığımız bir mesaj
   // balonu" + yaninda "1" rozeti (VoiceOnceRingIcon, kayit cubugundaki ile
   // AYNI gorsel).
-  viewOnceUnopenedRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14, minWidth: 150 },
-  viewOnceUnopenedLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  viewOnceUnopenedRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   viewOnceUnopenedText: { fontSize: 16, lineHeight: 21 },
   forwardedRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 3 },
   forwardedText: { fontSize: 11, fontWeight: "500" },
