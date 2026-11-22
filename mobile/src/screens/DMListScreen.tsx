@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, PanResponder, View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from "react-native";
+import { Animated, Modal, PanResponder, View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Plus, Archive, Pin, BellOff, CircleArrowDown } from "lucide-react-native";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
@@ -10,8 +10,8 @@ import Avatar from "../components/Avatar";
 import AppBackground from "../components/AppBackground";
 import Icon from "../components/Icon";
 import LoadingView from "../components/LoadingView";
-import { showAlert } from "../components/CustomAlert";
 import DMConversationOptionsSheet, { DMConversationOptionsTarget } from "../components/DMConversationOptionsSheet";
+import FriendsScreen from "./FriendsScreen";
 import { DMPeer } from "./DMScreen";
 
 const TEXT = "#F5F0E6";
@@ -85,6 +85,13 @@ export default function DMListScreen({ onOpenDM }: Props) {
   const [showArchived, setShowArchived] = useState(false);
   const [optionsTarget, setOptionsTarget] = useState<DMConversationOptionsTarget | null>(null);
   const [optionsVisible, setOptionsVisible] = useState(false);
+  // Kullanici: "Arkadaş seçip yeni sohbet başlatabilen ve yeni grup
+  // oluşturabilen bir ekran istiyorum" - "+" dugmesi artik "yakinda" uyarisi
+  // yerine FriendsScreen'i (hideInviteExtras + !inviteMode -> satira
+  // basinca DOGRUDAN onOpenDM cagirir) bir Modal icinde "Yeni Sohbet"
+  // basligiyla acar; FriendsScreen'in EN USTUNDE "Yeni Grup Oluştur" satiri
+  // da bu modda gorunur (bkz. FriendsScreen.tsx onCreateGroup).
+  const [newChatVisible, setNewChatVisible] = useState(false);
 
   // FriendsScreen.tsx'teki "geri al" (scheduleUndo) ile AYNI mimari - satir
   // ANINDA kaybolur, gercek sunucu cagrisi ~4sn ertelenir, bu sure icinde
@@ -343,7 +350,7 @@ export default function DMListScreen({ onOpenDM }: Props) {
           {/* Arama cubugundan "kopmus bir parca" gibi - AYNI gradyan cerceve +
               AYNI koyu lacivert dolgu, sadece dairesel - icinde yeni mesaj
               basmak icin bir "+" (kullanicinin istegi). */}
-          <TouchableOpacity onPress={() => showAlert(t("dmList.newMessage"), t("profile.comingSoon"))}>
+          <TouchableOpacity onPress={() => setNewChatVisible(true)}>
             <LinearGradient colors={["#FFFFFF", "#38BDF8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.newDmButtonBorder}>
               <LinearGradient colors={["#0c1a28", "#13293f", "#1b3752"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.newDmButtonInner}>
                 <Plus size={22} color="#FFFFFF" strokeWidth={2.4} />
@@ -495,6 +502,21 @@ export default function DMListScreen({ onOpenDM }: Props) {
         onToggleUnread={toggleUnread}
         onDelete={deleteConversation}
       />
+
+      <Modal visible={newChatVisible} animationType="slide" onRequestClose={() => setNewChatVisible(false)} statusBarTranslucent>
+        <FriendsScreen
+          onBack={() => setNewChatVisible(false)}
+          onOpenDM={(peerToOpen) => {
+            setNewChatVisible(false);
+            onOpenDM(peerToOpen);
+          }}
+          onOpenParticipant={() => {}}
+          hideInviteExtras
+          hideFriendActions
+          headerTitle={t("dmList.newChatTitle")}
+          allowCreateGroup
+        />
+      </Modal>
 
       {undoBanner && (
         <View style={styles.undoBanner}>

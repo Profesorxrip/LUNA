@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft, CircleArrowDown, Users, Clock, Bell } from "lucide-react-native";
+import { ChevronLeft, CircleArrowDown, Users, UserGroup, Clock, Bell } from "lucide-react-native";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { useTranslation } from "react-i18next";
 import { getSocket, FriendUser, RecentRoommate, DMMessage } from "../services/socket";
@@ -13,6 +13,7 @@ import { showAlert } from "../components/CustomAlert";
 import LoadingView from "../components/LoadingView";
 import ShareRoomContent from "../components/ShareRoomContent";
 import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
+import GroupInfoScreen from "./GroupInfoScreen";
 import { DMPeer } from "./DMScreen";
 
 interface Props {
@@ -50,6 +51,24 @@ interface Props {
    * yerine sag taraftakiyle ayni gorunmez bosluk gosterilir. RoomScreen.tsx'
    * teki davet-modu Modal kullanimini ETKILEMEZ (orada verilmiyor). */
   embedded?: boolean;
+  // Kullanici: "Arkadaş seçip yeni sohbet başlatabilen ve yeni grup
+  // oluşturabilen bir ekran istiyorum" - DMListScreen'in "+" dugmesinden
+  // acilan "Yeni Sohbet" modunda (hideInviteExtras + !inviteMode) "Arkadaslar"
+  // sekmesinin EN USTUNDE goruntulenen ayri bir satir (bkz. asagidaki
+  // ListHeaderComponent). Basilinca (kullanicinin istegi) bu satir kaybolur,
+  // liste "arama seçme sayfasındaki gibi" (bkz. inviteMode) secim moduna
+  // gecer, en az bir kisi secilince alttaki "İleri" butonuna basinca
+  // GroupInfoScreen acilir. Grup sohbeti icin HENUZ bir sunucu alt yapisi
+  // (veritabani/soket) yok - bu yuzden GroupInfoScreen'in "Grubu Oluştur"
+  // butonu su an SADECE "yakinda" bir uyari gosteriyor (bkz. DMListScreen.tsx).
+  allowCreateGroup?: boolean;
+  // Kullanici: "Yeni sohbet ekranında bunun olmasına bence de gerek yok" -
+  // "Arkadaşlar" sekmesindeki satirin sagindaki "Arkadaşı Sil" pill'i
+  // "Yeni Sohbet" modunda (bkz. DMListScreen.tsx) gereksiz/yaniltici
+  // duruyordu - SADECE bu moddan gizlenir, normal "Arkadaşlar" sekmesinde
+  // (ve "Son Zamanlarda" sekmesinde - o ayri bir buton, etkilenmiyor) AYNEN
+  // kaliyor.
+  hideFriendActions?: boolean;
 }
 
 type Tab = "friends" | "recent" | "blocked" | "share" | "requests";
@@ -87,6 +106,8 @@ export default function FriendsScreen({
   roomCode,
   roomTitle,
   embedded = false,
+  allowCreateGroup = false,
+  hideFriendActions = false,
 }: Props) {
   const { t } = useTranslation();
   const socket = getSocket();
@@ -97,6 +118,24 @@ export default function FriendsScreen({
   const [tab, setTab] = useState<Tab>("friends");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  // Kullanici: "basınca bu buton kaybolsa ... bir daire olsa ... altta bir
+  // buton belirse ... grup bilgisi ekranı açılsa" - "Yeni Grup Oluştur"
+  // satirina basilinca bu true olur, geri kalan TUM secim mantigi
+  // (checkbox/alt bar) inviteMode ile AYNI "selected" state'ini ve AYNI
+  // UI'yi (effectiveInviteMode) yeniden kullanir - sadece "İleri" butonu
+  // onSendInvites yerine GroupInfoScreen'i acar.
+  const [groupPickerActive, setGroupPickerActive] = useState(false);
+  const [groupInfoVisible, setGroupInfoVisible] = useState(false);
+  // Kullanici: "Yazdığım isim yada öncesinde seçtiğim üyeler sıfırlanmamalı"
+  // - GroupInfoScreen "Üye Ekle" ile kapanip tekrar acildiginda (bkz.
+  // asagidaki groupInfoVisible) KENDI local state'i sifirlanirdi - bu yuzden
+  // grup adi burada, FriendsScreen'de (secili uyeler - "selected" - ile
+  // AYNI yerde) tutuluyor, boylece GroupInfoScreen'in kendisi yeniden
+  // "mount" olsa bile kaybolmuyor.
+  const [groupName, setGroupName] = useState("");
+  // groupName ile AYNI sebepten AYNI yerde tutuluyor (bkz. yukarisi).
+  const [groupAvatarUri, setGroupAvatarUri] = useState("");
+  const effectiveInviteMode = inviteMode || groupPickerActive;
   const [friends, setFriends] = useState<FriendUser[]>([]);
   const [incoming, setIncoming] = useState<FriendUser[]>([]);
   const [blocked, setBlocked] = useState<FriendUser[]>([]);
@@ -385,6 +424,21 @@ export default function FriendsScreen({
     });
   }
 
+  if (groupInfoVisible) {
+    const selectedMembers = friends.filter((f) => selected.has(f.userId));
+    return (
+      <GroupInfoScreen
+        members={selectedMembers}
+        groupName={groupName}
+        onChangeGroupName={setGroupName}
+        groupAvatarUri={groupAvatarUri}
+        onChangeGroupAvatarUri={setGroupAvatarUri}
+        onBack={() => setGroupInfoVisible(false)}
+        onCreate={() => showAlert(t("friends.createGroup"), t("profile.comingSoon"))}
+      />
+    );
+  }
+
   return (
     <View style={styles.screen}>
       {/* Embedded modda App.tsx'teki paylasilan AppBackground zaten arkada
@@ -399,13 +453,26 @@ export default function FriendsScreen({
           donus icin bir geri oku gerekiyor. */}
       {!embedded && hideInviteExtras ? (
         <View style={styles.header}>
-          <TouchableOpacity style={styles.iconTouch} onPress={onBack} hitSlop={8}>
+          <TouchableOpacity
+            style={styles.iconTouch}
+            onPress={() => {
+              // Kullanici: secim modundayken geri oku TUM ekrani kapatmak
+              // yerine (WhatsApp/Telegram'daki gibi) once secimi iptal etsin.
+              if (groupPickerActive) {
+                setGroupPickerActive(false);
+                setSelected(new Set());
+              } else {
+                onBack();
+              }
+            }}
+            hitSlop={8}
+          >
             <View style={{ transform: [{ rotate: "90deg" }] }}>
               <CircleArrowDown size={22} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
           <Text style={[styles.editHeaderTitle, headerFontLoaded && styles.editHeaderTitleFontLoaded]}>
-            {headerTitle ?? t("friends.addToCallTitle")}
+            {groupPickerActive ? t("friends.selectMembersTitle") : headerTitle ?? t("friends.addToCallTitle")}
           </Text>
           <View style={styles.iconTouch} />
         </View>
@@ -516,6 +583,18 @@ export default function FriendsScreen({
           data={visibleFriends}
           keyExtractor={(f) => f.userId}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            allowCreateGroup && !groupPickerActive ? (
+              <TouchableOpacity style={styles.row} onPress={() => setGroupPickerActive(true)}>
+                <View style={styles.createGroupIconWrap}>
+                  <UserGroup size={24} color="#FFFFFF" strokeWidth={1.8} />
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowName}>{t("friends.createGroup")}</Text>
+                </View>
+              </TouchableOpacity>
+            ) : null
+          }
           ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>{t("friends.noFriendsYet")}</Text>}
           renderItem={({ item }) => {
             const preview = previews[item.userId];
@@ -524,16 +603,16 @@ export default function FriendsScreen({
               <TouchableOpacity
                 style={styles.row}
                 onPress={() =>
-                  inviteMode
+                  effectiveInviteMode
                     ? toggleSelect(item.userId)
                     : onOpenDM({ userId: item.userId, name: item.name, handle: item.handle ?? undefined })
                 }
-                onLongPress={() => !inviteMode && openProfileCard({ ...item, isFriend: true })}
+                onLongPress={() => !effectiveInviteMode && openProfileCard({ ...item, isFriend: true })}
               >
                 <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} isFriend />
                 <View style={styles.rowText}>
                   <Text style={styles.rowName}>{item.name}</Text>
-                  {preview && !inviteMode ? (
+                  {preview && !effectiveInviteMode ? (
                     <Text style={styles.rowPreview} numberOfLines={1}>
                       {preview.text} · {relativeTime(preview.createdAt, t)}
                     </Text>
@@ -541,8 +620,8 @@ export default function FriendsScreen({
                     !!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>
                   )}
                 </View>
-                {!inviteMode && renderActionPill(t("profileOptions.removeFriend"), () => removeFriendFromCard(item))}
-                {inviteMode && (
+                {!effectiveInviteMode && !hideFriendActions && renderActionPill(t("profileOptions.removeFriend"), () => removeFriendFromCard(item))}
+                {effectiveInviteMode && (
                   <View style={[styles.checkbox, isSelected && (hideInviteExtras ? styles.checkboxCheckedWhite : styles.checkboxChecked)]}>
                     {isSelected && !hideInviteExtras && <Icon name="check" size={20} color="#04140D" />}
                   </View>
@@ -568,11 +647,11 @@ export default function FriendsScreen({
                 <TouchableOpacity
                   style={styles.rowMain}
                   onPress={() =>
-                    inviteMode
+                    effectiveInviteMode
                       ? toggleSelect(item.userId)
                       : onOpenParticipant({ userId: item.userId, name: item.name, handle: item.handle ?? undefined })
                   }
-                  onLongPress={() => !inviteMode && openProfileCard({ ...item, isFriend: friendIds.has(item.userId) })}
+                  onLongPress={() => !effectiveInviteMode && openProfileCard({ ...item, isFriend: friendIds.has(item.userId) })}
                 >
                   <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} isFriend={friendIds.has(item.userId)} />
                   <View style={styles.rowText}>
@@ -595,7 +674,7 @@ export default function FriendsScreen({
                     : sentRequests.has(item.userId)
                     ? renderActionPill(t("friends.cancelRequestShort"), () => cancelSentRequest(item.userId))
                     : renderActionPill(t("profileOptions.addFriend"), () => sendFriendRequest(item.userId))}
-                  {inviteMode && (
+                  {effectiveInviteMode && (
                     <TouchableOpacity onPress={() => toggleSelect(item.userId)} hitSlop={8}>
                       <View style={[styles.checkbox, isSelected && (hideInviteExtras ? styles.checkboxCheckedWhite : styles.checkboxChecked)]}>
                         {isSelected && !hideInviteExtras && <Icon name="check" size={20} color="#04140D" />}
@@ -689,7 +768,7 @@ export default function FriendsScreen({
 
       {tab === "share" && !!roomCode && !!roomTitle && <ShareRoomContent roomCode={roomCode} roomTitle={roomTitle} />}
 
-      {inviteMode && selected.size > 0 && (
+      {effectiveInviteMode && selected.size > 0 && (
         <View style={[styles.inviteBar, hideInviteExtras && styles.inviteBarLower]}>
           {hideInviteExtras ? (
             // ProfileScreen.tsx'teki "Çıkış Yap" butonuyla AYNI: disarida
@@ -703,10 +782,14 @@ export default function FriendsScreen({
             >
               <TouchableOpacity
                 style={styles.inviteButtonDark}
-                onPress={() => onSendInvites?.(Array.from(selected))}
+                onPress={() => (groupPickerActive ? setGroupInfoVisible(true) : onSendInvites?.(Array.from(selected)))}
               >
                 <Text style={styles.inviteButtonDarkText}>
-                  {confirmButtonLabel ? confirmButtonLabel(selected.size) : t("friends.sendInvites", { count: selected.size })}
+                  {groupPickerActive
+                    ? t("friends.groupNextButton", { count: selected.size })
+                    : confirmButtonLabel
+                    ? confirmButtonLabel(selected.size)
+                    : t("friends.sendInvites", { count: selected.size })}
                 </Text>
               </TouchableOpacity>
             </LinearGradient>
@@ -872,6 +955,24 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   rowMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
+  // "Yeni Grup Oluştur" satirinin ikonu - Avatar (48px daire) ile AYNI
+  // boyutta. Kullanici: "buton rengi ataç ikonuna basınca açılan kutudaki
+  // butonların rengi olsa" - DMScreen.tsx'teki attachIconWrap ile AYNI
+  // "rgba(14,165,233,0.12)" saydamligi, O EKRANIN KENDI koyu lacivert
+  // ("#15202B") zemininin USTUNDE farkli bir ton olarak goruntuleniyor
+  // (saydamlik, arkasindaki renge gore degisir). Bu ekranda ARKA PLAN FARKLI
+  // oldugu icin AYNI saydam deger GORSEL OLARAK FARKLI cikiyor - bu yuzden
+  // saydamlik yerine, attachIconWrap'in #15202B uzerinde GERCEKTEN nasil
+  // goruntulendigini (piksel olcumu) SABIT bir renge donduruluyor, boylece
+  // arka plandan BAGIMSIZ, HER ZAMAN ayni gorunuyor.
+  createGroupIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#14303F",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   rowText: { flex: 1 },
   rowName: { color: TEXT, fontSize: 14, fontWeight: "700" },
   rowHandle: { color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },
