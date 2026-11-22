@@ -260,7 +260,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
             )}
             {item.replyTo && !item.deletedForEveryone && (
               <View style={styles.replyQuote}>
-                <ReplyPreviewContent fromName={item.replyTo.fromName} text={item.replyTo.text} kind={item.replyTo.kind} mediaUrl={item.replyTo.mediaUrl} variant="bubble" />
+                <ReplyPreviewContent fromName={item.replyTo.fromName} text={item.replyTo.text} kind={item.replyTo.kind} mediaUrl={item.replyTo.mediaUrl} viewOnce={item.replyTo.viewOnce} stickerId={item.replyTo.stickerId} variant="bubble" />
               </View>
             )}
             {item.deletedForEveryone ? (
@@ -666,7 +666,12 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
       text: message.text,
       fromName: message.fromUserId === myUserId ? t("dm.you") : message.fromName,
       kind: message.kind,
-      mediaUrl: message.mediaUrl,
+      // Tek-gorunumlukse GERCEK mediaUrl'i cevaba HIC koymuyoruz (sizdirmamak
+      // icin) - ReplyPreviewContent sadece "viewOnce" bayragina bakip rozet+
+      // tur etiketi gosteriyor, gercek icerige ihtiyaci yok.
+      mediaUrl: message.viewOnce ? undefined : message.mediaUrl,
+      viewOnce: message.viewOnce,
+      stickerId: message.stickerId,
     });
   }
 
@@ -1498,7 +1503,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
               <View style={styles.pinnedBannerQuote}>
                 <Pin size={18} color="#FFFFFF" />
                 <View style={styles.pinnedBannerQuoteText}>
-                  <ReplyPreviewContent fromName={shown.fromUserId === myUserId ? t("dm.you") : shown.fromName} text={shown.text} kind={shown.kind} mediaUrl={shown.mediaUrl} variant="bubble" />
+                  <ReplyPreviewContent fromName={shown.fromUserId === myUserId ? t("dm.you") : shown.fromName} text={shown.text} kind={shown.kind} mediaUrl={shown.mediaUrl} viewOnce={shown.viewOnce} viewOnceConsumed={shown.viewOnceConsumed} stickerId={shown.stickerId} variant="bubble" />
                 </View>
                 <Text style={styles.pinnedBannerCounter}>
                   {cursor + 1}/{orderedPins.length}
@@ -1639,7 +1644,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
                     <View style={styles.replyPreviewCard}>
                       <View style={styles.replyBarAccent} />
                       <View style={styles.replyBarText}>
-                        <ReplyPreviewContent fromName={replyingTo.fromName} text={replyingTo.text} kind={replyingTo.kind} mediaUrl={replyingTo.mediaUrl} variant="composer" />
+                        <ReplyPreviewContent fromName={replyingTo.fromName} text={replyingTo.text} kind={replyingTo.kind} mediaUrl={replyingTo.mediaUrl} viewOnce={replyingTo.viewOnce} stickerId={replyingTo.stickerId} variant="composer" />
                       </View>
                       <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8} style={styles.replyBarClose}>
                         <Icon name="close" size={16} color={MUTED} />

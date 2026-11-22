@@ -365,6 +365,9 @@ export interface GroupReply {
   fromName: string;
   kind?: GroupMessage["kind"] | null;
   mediaUrl?: string | null;
+  // server/src/group.ts GroupReply'deki AYNI alanlar - bkz. orada.
+  viewOnce?: boolean;
+  stickerId?: string | null;
 }
 
 // Grup sohbeti - DMMessage ile BIREBIR AYNI alanlar (bkz. server/src/

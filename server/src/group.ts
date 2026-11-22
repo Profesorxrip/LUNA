@@ -14,6 +14,14 @@ export interface GroupReply {
   fromName: string;
   kind?: GroupMessage["kind"] | null;
   mediaUrl?: string | null;
+  // Yanitlanan mesaj tek-gorunumlukse (bkz. 0052_group_reply_viewonce.sql) -
+  // mobile tarafi bu alan true oldugunda mediaUrl'i HIC gondermez (gercek
+  // icerik reply'a SIZMASIN diye), ReplyPreviewContent.tsx bunun yerine
+  // rozet+tur etiketi gosterir.
+  viewOnce?: boolean;
+  // SADECE GIF cikartmalarini ("gif-" onekli) tanimak icin - bkz.
+  // ReplyPreviewContent.tsx isGifSticker.
+  stickerId?: string | null;
 }
 
 export interface GroupMessage {
@@ -105,7 +113,14 @@ function mapMessageRow(row: any): GroupMessage {
     myPollVote: null,
     stickerId: row.sticker_id ?? null,
     replyTo: row.reply_to_text
-      ? { text: row.reply_to_text, fromName: row.reply_to_from_name, kind: row.reply_to_kind ?? null, mediaUrl: row.reply_to_media_url ?? null }
+      ? {
+          text: row.reply_to_text,
+          fromName: row.reply_to_from_name,
+          kind: row.reply_to_kind ?? null,
+          mediaUrl: row.reply_to_media_url ?? null,
+          viewOnce: row.reply_to_view_once === true,
+          stickerId: row.reply_to_sticker_id ?? null,
+        }
       : null,
     deletedForEveryone: row.deleted_for_everyone === true,
     viewOnce: row.view_once === true,
@@ -214,6 +229,8 @@ export async function sendGroupMessage(
     reply_from_name: replyTo?.fromName ?? null,
     reply_kind: replyTo?.kind ?? null,
     reply_media_url: replyTo?.mediaUrl ?? null,
+    reply_view_once: replyTo?.viewOnce ?? false,
+    reply_sticker_id: replyTo?.stickerId ?? null,
   });
   if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
   return { ok: true, message: mapMessageRow(data) };

@@ -983,7 +983,9 @@ io.on("connection", (socket: Socket) => {
         isNonEmptyString(replyTo.text, 1000) &&
         isNonEmptyString(replyTo.fromName, 200) &&
         isOptionalString(replyTo.kind ?? undefined, 20) &&
-        isOptionalString(replyTo.mediaUrl ?? undefined, 2000)
+        isOptionalString(replyTo.mediaUrl ?? undefined, 2000) &&
+        isOptionalString(replyTo.stickerId ?? undefined, 100) &&
+        (replyTo.viewOnce === undefined || typeof replyTo.viewOnce === "boolean")
           ? replyTo
           : null;
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });

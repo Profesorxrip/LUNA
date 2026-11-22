@@ -428,7 +428,7 @@ let demoBlocked = false;
 // Grup sohbeti test harness'i - gercek sunucu yok, bu yuzden olusturulan
 // gruplar sadece bu modul-seviyesi Map'te (oturum boyunca) tutulur (bkz.
 // server/src/group.ts - GERCEK backend'in demo'su).
-const demoGroups = new Map<string, { id: string; name: string; avatarUrl: string | null; members: any[]; messages: any[] }>();
+const demoGroups = new Map<string, { id: string; name: string; avatarUrl: string | null; members: any[]; messages: any[]; pinned: any[] }>();
 let demoGroupCounter = 0;
 // useConnectionQuality.ts'in "ping:rtt" olcumunu test edebilmek icin -
 // gercek sunucu yok, bu yuzden donus suresini burada SIMULE ediyoruz.
@@ -601,7 +601,7 @@ const fakeSocket: any = {
         { userId: MY_ID, name: "Ben", handle: null, avatarUrl: null },
         ...DEMO_FRIENDS.filter((f) => (payload?.memberIds || []).includes(f.userId)),
       ];
-      const group = { id, name: payload?.name || "", avatarUrl: null, members, messages: [] };
+      const group = { id, name: payload?.name || "", avatarUrl: null, members, messages: [], pinned: [] };
       demoGroups.set(id, group);
       cb({ ok: true, group: { id: group.id, name: group.name, avatarUrl: group.avatarUrl } });
     } else if (event === "group:setAvatar" && cb) {
@@ -627,7 +627,12 @@ const fakeSocket: any = {
       // haberi olmadan) mutate edip ayni mesajin IKI KEZ eklenmesine (bir
       // mutasyonla, bir de setMessages'in kendi ekleyisiyle) yol aciyordu.
       // Kopyasi (immutable) verilir.
-      cb({ ok: true, group: { id: group.id, name: group.name, avatarUrl: group.avatarUrl, members: group.members }, messages: [...group.messages] });
+      cb({
+        ok: true,
+        group: { id: group.id, name: group.name, avatarUrl: group.avatarUrl, members: group.members },
+        messages: [...group.messages],
+        pinned: [...group.pinned],
+      });
     } else if (event === "group:send" && cb) {
       const group = demoGroups.get(payload?.groupId);
       if (!group) return cb({ ok: false });
@@ -637,7 +642,9 @@ const fakeSocket: any = {
         fromUserId: MY_ID,
         fromName: "Ben",
         text: payload?.text || "",
+        replyTo: payload?.replyTo ?? null,
         createdAt: Date.now(),
+        kind: "text",
       };
       group.messages.push(message);
       cb({ ok: true, message });
@@ -654,6 +661,8 @@ const fakeSocket: any = {
         kind: "photo",
         mediaUrl: payload?.mediaUrl ?? null,
         isAdult: false,
+        viewOnce: payload?.viewOnce ?? false,
+        viewOnceConsumed: false,
       };
       group.messages.push(message);
       cb({ ok: true, message });
@@ -670,9 +679,177 @@ const fakeSocket: any = {
         kind: "voice",
         mediaUrl: payload?.mediaUrl ?? null,
         durationMs: payload?.durationMs ?? null,
+        viewOnce: payload?.viewOnce ?? false,
+        viewOnceConsumed: false,
       };
       group.messages.push(message);
       cb({ ok: true, message });
+    } else if (event === "group:consumeMediaOnce" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      const message = group?.messages.find((m: any) => m.id === payload?.messageId);
+      if (!group || !message) return cb({ ok: false });
+      if (!message.viewOnceConsumed) {
+        message.viewOnceConsumed = true;
+        message.mediaUrl = null;
+      }
+      cb({ ok: true });
+      (listeners["group:message:mediaOnceConsumed"] || []).forEach((fn) =>
+        fn({ groupId: group.id, messageId: payload.messageId })
+      );
+    } else if (event === "group:sendVideo" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      const message = {
+        id: `demo-group-msg-${Date.now()}`,
+        groupId: group.id,
+        fromUserId: MY_ID,
+        fromName: "Ben",
+        text: payload?.caption || "🎥 Video",
+        createdAt: Date.now(),
+        kind: "video",
+        mediaUrl: payload?.mediaUrl ?? null,
+        durationMs: payload?.durationMs ?? null,
+        viewOnce: payload?.viewOnce ?? false,
+        viewOnceConsumed: false,
+      };
+      group.messages.push(message);
+      cb({ ok: true, message });
+    } else if (event === "group:sendLocation" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      const message = {
+        id: `demo-group-msg-${Date.now()}`,
+        groupId: group.id,
+        fromUserId: MY_ID,
+        fromName: "Ben",
+        text: "📍 Konum",
+        createdAt: Date.now(),
+        kind: "location",
+        latitude: payload?.latitude ?? null,
+        longitude: payload?.longitude ?? null,
+      };
+      group.messages.push(message);
+      cb({ ok: true, message });
+    } else if ((event === "group:sendFile" || event === "group:sendMusic") && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      const isMusic = event === "group:sendMusic";
+      const message = {
+        id: `demo-group-msg-${Date.now()}`,
+        groupId: group.id,
+        fromUserId: MY_ID,
+        fromName: "Ben",
+        text: payload?.caption || `${isMusic ? "🎵" : "📎"} ${payload?.fileName ?? ""}`,
+        createdAt: Date.now(),
+        kind: isMusic ? "music" : "file",
+        mediaUrl: payload?.mediaUrl ?? null,
+        fileName: payload?.fileName ?? null,
+        fileSize: payload?.fileSize ?? null,
+        mimeType: payload?.mimeType ?? null,
+      };
+      group.messages.push(message);
+      cb({ ok: true, message });
+    } else if (event === "group:sendContact" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      const shared = DEMO_FRIENDS.find((f) => f.userId === payload?.sharedUserId);
+      const message = {
+        id: `demo-group-msg-${Date.now()}`,
+        groupId: group.id,
+        fromUserId: MY_ID,
+        fromName: "Ben",
+        text: `👤 ${shared?.name ?? "Kullanıcı"}`,
+        createdAt: Date.now(),
+        kind: "contact",
+        sharedUserId: shared?.userId ?? payload?.sharedUserId,
+        sharedUserName: shared?.name ?? "Kullanıcı",
+        sharedUserHandle: shared?.handle ?? null,
+        sharedUserAvatarUrl: shared?.avatarUrl ?? null,
+      };
+      group.messages.push(message);
+      cb({ ok: true, message });
+    } else if (event === "group:sendPoll" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      const message = {
+        id: `demo-group-msg-${Date.now()}`,
+        groupId: group.id,
+        fromUserId: MY_ID,
+        fromName: "Ben",
+        text: `📊 ${payload?.question ?? ""}`,
+        createdAt: Date.now(),
+        kind: "poll",
+        pollQuestion: payload?.question ?? "",
+        pollOptions: payload?.options ?? [],
+        pollOptionImages: payload?.optionImages ?? null,
+        pollVotes: new Array((payload?.options ?? []).length).fill(0),
+        myPollVote: null,
+      };
+      group.messages.push(message);
+      cb({ ok: true, message });
+    } else if (event === "group:votePoll" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      const message: any = group?.messages.find((m: any) => m.id === payload?.messageId);
+      if (!group || !message) return cb({ ok: false });
+      const votes = new Array(message.pollOptions?.length ?? 0).fill(0);
+      if (payload?.optionIndex != null) votes[payload.optionIndex] = 1;
+      message.pollVotes = votes;
+      message.myPollVote = payload?.optionIndex ?? null;
+      cb({ ok: true, votes });
+    } else if (event === "group:sendSticker" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      const message = {
+        id: `demo-group-msg-${Date.now()}`,
+        groupId: group.id,
+        fromUserId: MY_ID,
+        fromName: "Ben",
+        text: "🏷️ Çıkartma",
+        createdAt: Date.now(),
+        kind: "sticker",
+        mediaUrl: payload?.mediaUrl ?? null,
+        stickerId: payload?.stickerId ?? null,
+      };
+      group.messages.push(message);
+      cb({ ok: true, message });
+    } else if (event === "group:react" && cb) {
+      cb({ ok: true });
+    } else if (event === "group:deleteMessage" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      const message: any = group?.messages.find((m: any) => m.id === payload?.messageId);
+      if (!group || !message) return cb({ ok: false });
+      if (payload?.forEveryone) {
+        message.deletedForEveryone = true;
+        cb({ ok: true });
+        (listeners["group:message:deletedForEveryone"] || []).forEach((fn) => fn({ groupId: group.id, messageId: message.id }));
+      } else {
+        group.messages = group.messages.filter((m: any) => m.id !== message.id);
+        group.pinned = group.pinned.filter((p: any) => p.message.id !== message.id);
+        cb({ ok: true });
+      }
+    } else if (event === "group:pinMessage" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      const message = group?.messages.find((m: any) => m.id === payload?.messageId);
+      if (!group || !message) return cb({ ok: false });
+      const pinnedAt = Date.now();
+      if (!group.pinned.some((p: any) => p.message.id === message.id)) {
+        group.pinned.push({ message, pinnedBy: MY_ID, pinnedAt });
+      }
+      cb({ ok: true });
+      // GERCEK sunucu (bkz. server/src/index.ts "group:pinMessage") bu olayi
+      // PINLEYEN DAHIL tum uyelere yayinlar (DM'deki dm:pinMessage ile AYNI,
+      // view-once tuketiminde oldugu gibi) - fake socket'te de AYNI sekilde
+      // kendimize geri yayinlamazsak GroupChatScreen'in pinnedMessages state'i
+      // hic guncellenmez (sadece bu yayina bakiyor, ack'e degil).
+      (listeners["group:message:pinned"] || []).forEach((fn) => fn({ groupId: group.id, messageId: message.id, pinnedBy: MY_ID, pinnedAt }));
+    } else if (event === "group:unpinMessage" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      group.pinned = group.pinned.filter((p: any) => p.message.id !== payload?.messageId);
+      cb({ ok: true });
+      (listeners["group:message:unpinned"] || []).forEach((fn) => fn({ groupId: group.id, messageId: payload?.messageId }));
+    } else if (event === "group:forwardToDm" && cb) {
+      cb({ ok: true, results: (payload?.toUserIds || []).map((userId: string) => ({ userId, ok: true })) });
     } else if (event === "ping:rtt" && cb) {
       setTimeout(() => cb(Date.now()), simulatedPingDelayMs);
     } else if (cb) cb({ ok: true });
@@ -689,6 +866,45 @@ const fakeSocket: any = {
 setTimeout(() => {
   (listeners["dm:seen"] || []).forEach((fn) => fn({ byUserId: PEER_ID, at: now - 1000 * 60 * 10 }));
 }, 800);
+
+// SADECE test/onizleme amacli - Playwright'in bir grup uyesinden "gelen"
+// bir mesaji simule edebilmesi icin (bkz. demoGroups/listeners kapali
+// scope'lari disaridan erisilemiyordu). Hic commit edilmeyen bu dosyaya
+// ozgu, production kodunda karsiligi yok.
+if (typeof window !== "undefined") {
+  (window as any).__demoGroups = demoGroups;
+  (window as any).__fireGroupMessage = (groupId: string, fromUserId: string, fromName: string, text: string) => {
+    const group = demoGroups.get(groupId);
+    if (!group) return;
+    const message = {
+      id: `demo-incoming-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      groupId,
+      fromUserId,
+      fromName,
+      text,
+      createdAt: Date.now(),
+      kind: "text",
+    };
+    group.messages.push(message);
+    (listeners["group:message"] || []).forEach((fn) => fn({ groupId, message }));
+  };
+  // Yukaridaki ile AYNI amac, SADECE her alani serbestce verebilmek icin
+  // (poll/sticker/konum/dosya/vb. ve view-once/silinmis/iletilmis bayraklari) -
+  // "overrides" GroupMessage'in geri kalan alanlarini ezer.
+  (window as any).__injectGroupMessage = (groupId: string, overrides: any) => {
+    const group = demoGroups.get(groupId);
+    if (!group) return;
+    const message = {
+      id: `demo-injected-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      groupId,
+      createdAt: Date.now(),
+      kind: "text",
+      ...overrides,
+    };
+    group.messages.push(message);
+    (listeners["group:message"] || []).forEach((fn) => fn({ groupId, message }));
+  };
+}
 
 const fakeChain = {
   select: () => fakeChain,

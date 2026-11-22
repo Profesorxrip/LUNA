@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { View, Text, Image, StyleSheet, LayoutChangeEvent } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { useTranslation } from "react-i18next";
 import { Image as ImageIcon, MapPin, File as FileIcon, Phone, User as UserIcon, BarChart2, Music, Sticker as StickerIcon } from "lucide-react-native";
 import { MicrophoneIcon } from "react-native-heroicons/outline";
 import AppIcon from "./Icon";
+import { VoiceOnceRingIcon } from "./CustomIcons";
 import { DMMessage } from "../services/socket";
 
 interface Props {
@@ -16,6 +18,17 @@ interface Props {
   // cagrilar - DMReply bu alani HENUZ tasimiyor) metindeki "🎥" emojisine
   // geri donulur.
   callIsVideo?: boolean | null;
+  // Kullanici istegi: "tek görünümlük ses ve medya görüntülerini cevap
+  // bloklarında göster" - gercek icerik (kucuk resim) ASLA gosterilmez,
+  // bunun yerine foto/video/gif balonlarindaki AYNI "1" rozeti + tur
+  // etiketi ("Fotoğraf"/"Video"/"GIF"/"Ses") gosterilir. viewOnceConsumed
+  // verilirse (sadece canli bir mesaj referansinda - bkz. GroupChatScreen.tsx
+  // "shown" sabitlenmis mesaj banner'i - reply ALINTISI gibi DONDURULMUS bir
+  // kayitta bu bilgi yok) rozet+etiket griye doner.
+  viewOnce?: boolean;
+  viewOnceConsumed?: boolean;
+  // SADECE GIF cikartmalarini ("gif-" onekli) "GIF" olarak etiketlemek icin.
+  stickerId?: string | null;
   // "composer": yaziyorken alttaki cevap cubugu (koyu/MUTED renkler).
   // "bubble": bir mesaj balonunun kendi icindeki alinti (beyaz/yari-saydam).
   variant: "composer" | "bubble";
@@ -42,10 +55,14 @@ function VideoThumb({ uri }: { uri: string }) {
  * (foto/video icin kucuk bir resim onizlemesi, digerleri icin uygun bir
  * simge) + ozet metin. kind/mediaUrl verilmemisse (eski kayitlar) sadece
  * duz metin gosterir - bkz. 0036_dm_reply_rich.sql. */
-export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, callIsVideo, variant }: Props) {
+export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, callIsVideo, viewOnce, viewOnceConsumed, stickerId, variant }: Props) {
+  const { t } = useTranslation();
   const fromColor = "#FFFFFF";
   const bodyColor = variant === "bubble" ? "rgba(255,255,255,0.75)" : "#9A8F80";
   const iconColor = variant === "bubble" ? "rgba(255,255,255,0.85)" : "#9A8F80";
+  const isGifSticker = kind === "sticker" && !!stickerId?.startsWith("gif-");
+  const isViewOnceMedia = !!viewOnce && (kind === "photo" || kind === "video" || isGifSticker || kind === "voice");
+  const viewOnceColor = viewOnceConsumed ? "#9A9A9A" : iconColor;
   // Foto/video kucuk resmi KARE olsun (genislik=yukseklik) istiyoruz, ama
   // yukseklik sabit degil (ustteki thumbAbs top:3/bottom:3 ile saran
   // replyQuote/replyBarText kutusunun - yani metnin satir sayisina gore
@@ -63,7 +80,7 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, ca
     if (h > 0 && h !== squareSize) setSquareSize(h);
   };
 
-  const hasThumb = (kind === "photo" || kind === "video") && !!mediaUrl;
+  const hasThumb = (kind === "photo" || kind === "video") && !!mediaUrl && !isViewOnceMedia;
   // Kullanici: "Dosya ve gifte nasıl mesaj metni gözüküyorsa fotoğraf ve
   // videonun cevap bloğu da öyle olmalı" - "text" alani bazi turlerde ya
   // SUNUCUNUN SABIT varsayilani ("📷 Fotoğraf"/"🎥 Video"/"📎 dosya.pdf" gibi,
@@ -99,6 +116,17 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, ca
       if (prefix && text.startsWith(prefix)) label = text.slice(prefix.length);
     }
   }
+  // Tek-gorunumlukse gercek altyazi/metin yerine HER ZAMAN sabit tur etiketi
+  // (bubble'daki "1" rozetli satirla AYNI metin) - altyazi bile gosterilmez.
+  if (isViewOnceMedia) {
+    label = isGifSticker
+      ? t("dm.kindGif")
+      : kind === "video"
+      ? t("dm.kindVideo")
+      : kind === "voice"
+      ? t("dm.kindVoice")
+      : t("dm.kindPhoto");
+  }
 
   // Kucuk resim varsa, onu saran ASIL kutunun (balon ici "replyQuote" ya da
   // composer'daki "replyBarText") kenarindan TAM 3px kalsin istiyoruz. Sabit
@@ -125,7 +153,9 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, ca
   let IconEl: React.ReactNode = null;
   let iconShift = 0;
   if (!hasThumb) {
-    if (kind === "photo") IconEl = <ImageIcon size={14} color={iconColor} />;
+    if (isViewOnceMedia) {
+      IconEl = <VoiceOnceRingIcon size={14} color={viewOnceColor} />;
+    } else if (kind === "photo") IconEl = <ImageIcon size={14} color={iconColor} />;
     else if (kind === "video") IconEl = <AppIcon name="video" size={14} color={iconColor} />;
     else if (kind === "voice") {
       IconEl = <MicrophoneIcon size={14} color={iconColor} strokeWidth={1.8} />;
@@ -177,7 +207,7 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, ca
         </Text>
         <View style={styles.bodyRow}>
           {!!IconEl && <View style={[styles.bodyIcon, { marginLeft: iconShift }]}>{IconEl}</View>}
-          <Text style={[styles.bodyText, { color: bodyColor }]} numberOfLines={1}>
+          <Text style={[styles.bodyText, { color: isViewOnceMedia ? viewOnceColor : bodyColor }]} numberOfLines={1}>
             {label}
           </Text>
         </View>
