@@ -25,6 +25,9 @@ import StatsScreen from "../screens/StatsScreen";
 import BackgroundInfoScreen from "../screens/BackgroundInfoScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import DMScreen, { DMPeer, DmInfoOpenParams } from "../screens/DMScreen";
+import GroupChatScreen, { GroupPeer } from "../screens/GroupChatScreen";
+import GroupInfoScreen from "../screens/GroupInfoScreen";
+import { GroupDetail } from "../services/socket";
 import DMListScreen from "../screens/DMListScreen";
 import DmInfoScreen from "../screens/DmInfoScreen";
 import VoiceCallScreen from "../screens/VoiceCallScreen";
@@ -76,6 +79,8 @@ export type RootStackParamList = {
   UserProfile: { own: boolean; peer?: PeerParam };
   DM: { peer: DMPeer };
   DmInfo: { peer: DMPeer } & DmInfoOpenParams;
+  GroupChat: { group: GroupPeer };
+  GroupInfo: { group: GroupDetail };
   VoiceCall: { peer: DMPeer; peerAvatarUrl: string | null };
   // VoiceCall'daki "Paylaş" butonundan - ekran paylasimi SADECE burada
   // gercek oldugu icin (bkz. VoiceCallScreen.tsx onSwitchToVideo yorumu)
@@ -226,7 +231,12 @@ function MyProfileRoute() {
 
 function DMsRoute() {
   const navigation = useNavigation<TabNav<"DMs">>();
-  return <DMListScreen onOpenDM={(peer) => navigation.navigate("DM", { peer })} />;
+  return (
+    <DMListScreen
+      onOpenDM={(peer) => navigation.navigate("DM", { peer })}
+      onOpenGroup={(group) => navigation.navigate("GroupChat", { group })}
+    />
+  );
 }
 
 // ProfileScreen'in KENDISI degismedi, SADECE buraya nasil gelindigi degisti -
@@ -341,6 +351,34 @@ function DmInfoRoute() {
       onBlocked={() => navigation.popToTop()}
       onOpenParticipant={(peer) => navigation.navigate("UserProfile", { own: false, peer })}
       onStartVoiceCall={(peer) => navigation.navigate("VoiceCall", { peer, peerAvatarUrl: params.peerAvatarUrl })}
+    />
+  );
+}
+
+function GroupChatRoute() {
+  const navigation = useNavigation<Nav>();
+  const { params } = useRoute<RouteProp<RootStackParamList, "GroupChat">>();
+  return (
+    <GroupChatScreen
+      group={params.group}
+      onBack={() => navigation.goBack()}
+      onOpenInfo={(detail) => navigation.navigate("GroupInfo", { group: detail })}
+    />
+  );
+}
+
+function GroupInfoRoute() {
+  const navigation = useNavigation<Nav>();
+  const { params } = useRoute<RouteProp<RootStackParamList, "GroupInfo">>();
+  return (
+    <GroupInfoScreen
+      readOnly
+      members={params.group.members}
+      groupName={params.group.name}
+      onChangeGroupName={() => {}}
+      groupAvatarUri={params.group.avatarUrl ?? ""}
+      onChangeGroupAvatarUri={() => {}}
+      onBack={() => navigation.goBack()}
     />
   );
 }
@@ -549,6 +587,8 @@ export default function RootNavigator() {
         <Stack.Screen name="UserProfile" component={UserProfileRoute} />
         <Stack.Screen name="DM" component={DMRoute} />
         <Stack.Screen name="DmInfo" component={DmInfoRoute} />
+        <Stack.Screen name="GroupChat" component={GroupChatRoute} />
+        <Stack.Screen name="GroupInfo" component={GroupInfoRoute} />
         <Stack.Screen name="VoiceCall" component={VoiceCallRoute} options={{ animation: "fade", gestureEnabled: false }} />
         <Stack.Screen name="VideoCall" component={VideoCallRoute} options={{ animation: "fade", gestureEnabled: false }} />
         <Stack.Screen name="RoomPreview" component={RoomPreviewRoute} />

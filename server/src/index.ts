@@ -89,6 +89,7 @@ import {
   DMReply,
   DMMessage,
 } from "./dm";
+import { createGroup, setGroupAvatar, openGroup, sendGroupMessage, listMyGroups, groupMemberUserIds } from "./group";
 import {
   setUserName,
   getFriendStatus,
@@ -879,6 +880,79 @@ io.on("connection", (socket: Socket) => {
     if (!requireAuth(ack)) return;
     const conversations = await listConversations(myDb!, myUserId!);
     ack?.({ ok: true, conversations });
+  });
+
+  // ---------------------------------------------------------------------
+  // Grup sohbeti - ilk surum (SADECE metin mesaji, bkz. server/src/group.ts
+  // ve 0047_groups.sql). DM'deki "dm:*" olaylariyla AYNI desen.
+  // ---------------------------------------------------------------------
+
+  // DM listesindeki ("+" -> "Yeni Grup Oluştur" -> uye sec -> grup bilgisi
+  // -> onayla) akisin son adimi - bkz. FriendsScreen.tsx onCreateGroup.
+  socket.on(
+    "group:create",
+    async ({ name, memberIds }: { name: string; memberIds: string[] }, ack) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(name, 60) ||
+        !Array.isArray(memberIds) ||
+        memberIds.length === 0 ||
+        memberIds.length > 200 ||
+        !memberIds.every((id) => isNonEmptyString(id, 200))
+      ) {
+        return ack?.({ ok: false });
+      }
+      const result = await createGroup(myDb!, name, memberIds);
+      if (!result.ok || !result.group) return ack?.({ ok: false, error: "Grup olusturulamadi." });
+      ack?.({ ok: true, group: result.group });
+    }
+  );
+
+  // Grup olusturulduktan sonra secilen fotograf - client'in KENDI
+  // (olusturan kisinin) "avatars" storage klasorune yukledigi public URL'i
+  // buraya iletir, biz sadece DB'ye yaziyoruz (bkz. UserProfileScreen.tsx
+  // uploadAvatar ile AYNI storage, GroupInfoScreen.tsx pickGroupAvatar).
+  socket.on("group:setAvatar", async ({ groupId, avatarUrl }: { groupId: string; avatarUrl: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(avatarUrl, 2000)) {
+      return ack?.({ ok: false });
+    }
+    const ok = await setGroupAvatar(myDb!, groupId, avatarUrl);
+    ack?.({ ok });
+  });
+
+  // DM listesiyle BIRLESTIRILMEK uzere - bkz. DMListScreen.tsx.
+  socket.on("group:list", async (_payload, ack) => {
+    if (!requireAuth(ack)) return;
+    const groups = await listMyGroups(myDb!, myUserId!);
+    ack?.({ ok: true, groups });
+  });
+
+  // GroupChatScreen.tsx acilinca gecmis mesajlari + guncel uye listesini
+  // getirir - RLS sayesinde uye DEGILSEM group_conversations bos doner.
+  socket.on("group:open", async ({ groupId }: { groupId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(groupId, 200)) return ack?.({ ok: false });
+    const result = await openGroup(myDb!, groupId);
+    if (!result) return ack?.({ ok: false, error: "Grup bulunamadi." });
+    ack?.({ ok: true, group: result.group, messages: result.messages });
+  });
+
+  socket.on("group:send", async ({ groupId, text }: { groupId: string; text: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(text, 1000)) {
+      return ack?.({ ok: false });
+    }
+    if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+    const result = await sendGroupMessage(myDb!, groupId, text);
+    if (!result.ok || !result.message) {
+      return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
+    }
+    ack?.({ ok: true, message: result.message });
+    const memberIds = await groupMemberUserIds(myDb!, groupId);
+    for (const memberId of memberIds) {
+      if (memberId === myUserId) continue;
+      const memberSocketId = getSocketIdForUser(memberId);
+      if (memberSocketId) io.to(memberSocketId).emit("group:message", { groupId, message: result.message });
+      notifyIfOffline(myDb!, memberId, Boolean(memberSocketId), myName, text.trim().slice(0, 120)).catch(() => {});
+    }
   });
 
   // DM listesinde bir kisiye basili tutunca cikan menu - hepsi SADECE

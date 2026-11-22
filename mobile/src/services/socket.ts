@@ -359,3 +359,37 @@ export interface DMPinnedMessage {
   pinnedBy: string;
   pinnedAt: number;
 }
+
+// Grup sohbeti - ilk surum, SADECE metin mesaji (bkz. server/src/group.ts).
+// DMMessage'in cok daha kuculmus hali - reply/poll/sticker/medya vb. yok,
+// ileride DM'deki gibi asama asama eklenebilir.
+export interface GroupMessage {
+  id: string;
+  groupId: string;
+  fromUserId: string;
+  fromName: string;
+  text: string;
+  createdAt: number;
+}
+
+export interface GroupMember {
+  userId: string;
+  name: string;
+  handle: string | null;
+  avatarUrl: string | null;
+}
+
+export interface GroupDetail {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  members: GroupMember[];
+}
+
+// DMListScreen.tsx'teki DM konusma ozetiyle BIRLESTIRILMEK uzere.
+export interface GroupConversationSummary {
+  groupId: string;
+  name: string;
+  avatarUrl: string | null;
+  lastMessage: GroupMessage | null;
+}

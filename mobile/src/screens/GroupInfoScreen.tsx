@@ -25,11 +25,14 @@ interface Props {
   groupAvatarUri: string;
   onChangeGroupAvatarUri: (uri: string) => void;
   onBack: () => void;
-  // Kullanici: "o butona basıncada grup bilgisi ekranı açılsa" - grup
-  // sohbeti icin HENUZ bir sunucu alt yapisi (veritabani/soket) yok (bkz.
-  // FriendsScreen.tsx onCreateGroup yorumu), bu yuzden bu geri cagirma su an
-  // SADECE "yakinda" bir uyari gosteriyor (bkz. DMListScreen.tsx).
-  onCreate: (groupName: string) => void;
+  onCreate?: (groupName: string) => void;
+  // Kullanici: "grubun ppsine ismine basınca grup bilgisi ekranına
+  // yönlendirmeli" - GroupChatScreen'den acilan, ZATEN var olan bir grup
+  // icin: isim/fotograf artik DUZENLENEMEZ (onay ikonu da yok, "Üye Ekle"
+  // de henuz "yakinda" - mevcut bir gruba uye eklemek, grup OLUSTURMADAN
+  // FARKLI, ayrica bir backend gerektirir), uye listesi SUNUCUDAN gelen
+  // GERCEK uyeler.
+  readOnly?: boolean;
 }
 
 type Tab = "media" | "files" | "members";
@@ -53,11 +56,12 @@ export default function GroupInfoScreen({
   onChangeGroupAvatarUri,
   onBack,
   onCreate,
+  readOnly = false,
 }: Props) {
   const { t } = useTranslation();
   const [titleFontLoaded] = useFonts({ BebasNeue_400Regular });
   const [tab, setTab] = useState<Tab>("media");
-  const canCreate = groupName.trim().length > 0;
+  const canCreate = !readOnly && groupName.trim().length > 0;
 
   function placeholder(label: string) {
     showAlert(label, t("profile.comingSoon"));
@@ -99,25 +103,30 @@ export default function GroupInfoScreen({
           </View>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, titleFontLoaded && styles.headerTitleFontLoaded]}>{t("friends.groupInfoTitle")}</Text>
-        {/* Kullanici: "Grubu oluştur butonunu kaldırıp sağ üste sol üstteki
-            ikonun yukarı bakanını koysak onun yerine daha mantıklı olur
-            gibi" - geri okuyla (CircleArrowDown, rotate 90deg = sola bakar)
-            AYNI ikon, 180deg (yukari bakar), "onayla/oluştur" olarak. */}
-        <TouchableOpacity
-          onPress={() => canCreate && onCreate(groupName.trim())}
-          hitSlop={10}
-          style={styles.confirmTouch}
-          disabled={!canCreate}
-        >
-          <View style={{ transform: [{ rotate: "180deg" }], opacity: canCreate ? 1 : 0.35 }}>
-            <CircleArrowDown size={22} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
+        {readOnly ? (
+          <View style={styles.confirmTouch} />
+        ) : (
+          // Kullanici: "Grubu oluştur butonunu kaldırıp sağ üste sol
+          // üstteki ikonun yukarı bakanını koysak onun yerine daha
+          // mantıklı olur gibi" - geri okuyla (CircleArrowDown, rotate
+          // 90deg = sola bakar) AYNI ikon, 180deg (yukari bakar),
+          // "onayla/oluştur" olarak.
+          <TouchableOpacity
+            onPress={() => canCreate && onCreate?.(groupName.trim())}
+            hitSlop={10}
+            style={styles.confirmTouch}
+            disabled={!canCreate}
+          >
+            <View style={{ transform: [{ rotate: "180deg" }], opacity: canCreate ? 1 : 0.35 }}>
+              <CircleArrowDown size={22} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileBlock}>
-          <TouchableOpacity onPress={pickGroupAvatar} activeOpacity={0.8}>
+          <TouchableOpacity onPress={pickGroupAvatar} activeOpacity={0.8} disabled={readOnly}>
             {groupAvatarUri ? (
               <Avatar name={groupName || "?"} avatarUrl={groupAvatarUri} size={88} ring={false} />
             ) : groupName.trim() ? (
@@ -136,6 +145,7 @@ export default function GroupInfoScreen({
             placeholderTextColor={theme.textMuted}
             maxLength={60}
             textAlign="center"
+            editable={!readOnly}
           />
         </View>
 
@@ -180,7 +190,10 @@ export default function GroupInfoScreen({
                   setGroupInfoVisible(false)), bu yuzden AYNI geri cagirma
                   burada da yeterli - secili uyeler kaybolmadan geri donulur,
                   daha fazla kisi secilip tekrar "İleri" ile buraya donulebilir. */}
-              <TouchableOpacity style={styles.addMemberRow} onPress={onBack}>
+              <TouchableOpacity
+                style={styles.addMemberRow}
+                onPress={readOnly ? () => placeholder(t("friends.addMember")) : onBack}
+              >
                 <UserPlus size={16} color="#FFFFFF" />
                 <Text style={styles.addMemberText}>{t("friends.addMember")}</Text>
               </TouchableOpacity>

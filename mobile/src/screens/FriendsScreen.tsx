@@ -15,6 +15,9 @@ import ShareRoomContent from "../components/ShareRoomContent";
 import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
 import GroupInfoScreen from "./GroupInfoScreen";
 import { DMPeer } from "./DMScreen";
+import { GroupPeer } from "./GroupChatScreen";
+import { supabase } from "../services/supabase";
+import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 
 interface Props {
   onBack: () => void;
@@ -69,6 +72,9 @@ interface Props {
   // (ve "Son Zamanlarda" sekmesinde - o ayri bir buton, etkilenmiyor) AYNEN
   // kaliyor.
   hideFriendActions?: boolean;
+  // Grup GERCEKTEN olusturulunca (bkz. handleCreateGroup) cagrilir - cagiran
+  // taraf (DMListScreen.tsx) bunu GroupChatScreen'e navigasyon olarak kullanir.
+  onOpenGroup?: (group: GroupPeer) => void;
 }
 
 type Tab = "friends" | "recent" | "blocked" | "share" | "requests";
@@ -108,6 +114,7 @@ export default function FriendsScreen({
   embedded = false,
   allowCreateGroup = false,
   hideFriendActions = false,
+  onOpenGroup,
 }: Props) {
   const { t } = useTranslation();
   const socket = getSocket();
@@ -135,6 +142,9 @@ export default function FriendsScreen({
   const [groupName, setGroupName] = useState("");
   // groupName ile AYNI sebepten AYNI yerde tutuluyor (bkz. yukarisi).
   const [groupAvatarUri, setGroupAvatarUri] = useState("");
+  // "Grubu Oluştur" onay ikonuna CIFT basilip iki kez grup olusturulmasini
+  // engeller - gercek bir sunucu cagrisi oldugu icin (bkz. handleCreateGroup).
+  const [creatingGroup, setCreatingGroup] = useState(false);
   const effectiveInviteMode = inviteMode || groupPickerActive;
   const [friends, setFriends] = useState<FriendUser[]>([]);
   const [incoming, setIncoming] = useState<FriendUser[]>([]);
@@ -424,6 +434,56 @@ export default function FriendsScreen({
     });
   }
 
+  // GroupInfoScreen'deki onay ikonuna basilinca (bkz. canCreate) - grubu
+  // GERCEKTEN olusturur (server/src/group.ts create_group RPC'si), secilmisse
+  // fotografi (groupAvatarUri - henuz galeriden secilmis yerel bir dosya)
+  // UserProfileScreen.tsx uploadAvatar ile AYNI "avatars" storage bucket'ina
+  // yukleyip URL'i kaydeder, sonra onOpenGroup ile GERCEKTEN acilan sohbete
+  // yonlendirir.
+  async function handleCreateGroup(name: string) {
+    if (creatingGroup) return;
+    setCreatingGroup(true);
+    const memberIds = Array.from(selected);
+    getSocket().emit("group:create", { name, memberIds }, async (res: any) => {
+      if (!res?.ok || !res.group) {
+        setCreatingGroup(false);
+        showAlert(t("friends.createGroup"), t("dm.genericSendErrorBody"));
+        return;
+      }
+      const group = res.group as { id: string; name: string; avatarUrl: string | null };
+      let avatarUrl = group.avatarUrl;
+      if (groupAvatarUri) {
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          const userId = userData.user?.id;
+          if (userId) {
+            const arrayBuffer = await uriToArrayBuffer(groupAvatarUri);
+            const ext = groupAvatarUri.split(".").pop()?.toLowerCase() || "jpg";
+            const contentType = ext === "png" ? "image/png" : "image/jpeg";
+            const path = `${userId}/group-${group.id}.${ext}`;
+            const { error: uploadError } = await supabase.storage
+              .from("avatars")
+              .upload(path, arrayBuffer, { contentType, upsert: true });
+            if (!uploadError) {
+              const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(path);
+              avatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+              getSocket().emit("group:setAvatar", { groupId: group.id, avatarUrl }, () => {});
+            }
+          }
+        } catch {
+          // Fotograf yuklenemese bile grup zaten olustu - sessizce devam.
+        }
+      }
+      setCreatingGroup(false);
+      setGroupInfoVisible(false);
+      setGroupPickerActive(false);
+      setSelected(new Set());
+      setGroupName("");
+      setGroupAvatarUri("");
+      onOpenGroup?.({ id: group.id, name: group.name, avatarUrl });
+    });
+  }
+
   if (groupInfoVisible) {
     const selectedMembers = friends.filter((f) => selected.has(f.userId));
     return (
@@ -434,7 +494,7 @@ export default function FriendsScreen({
         groupAvatarUri={groupAvatarUri}
         onChangeGroupAvatarUri={setGroupAvatarUri}
         onBack={() => setGroupInfoVisible(false)}
-        onCreate={() => showAlert(t("friends.createGroup"), t("profile.comingSoon"))}
+        onCreate={handleCreateGroup}
       />
     );
   }

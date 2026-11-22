@@ -5,7 +5,7 @@ import { Plus, Archive, Pin, BellOff, CircleArrowDown } from "lucide-react-nativ
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
-import { getSocket } from "../services/socket";
+import { getSocket, GroupConversationSummary } from "../services/socket";
 import Avatar from "../components/Avatar";
 import AppBackground from "../components/AppBackground";
 import Icon from "../components/Icon";
@@ -13,6 +13,7 @@ import LoadingView from "../components/LoadingView";
 import DMConversationOptionsSheet, { DMConversationOptionsTarget } from "../components/DMConversationOptionsSheet";
 import FriendsScreen from "./FriendsScreen";
 import { DMPeer } from "./DMScreen";
+import { GroupPeer } from "./GroupChatScreen";
 
 const TEXT = "#F5F0E6";
 const MUTED = "#9A8F80";
@@ -34,6 +35,33 @@ interface DMConversationSummary {
 
 interface Props {
   onOpenDM: (peer: DMPeer) => void;
+  // "+" -> "Yeni Grup Oluştur" akisinda bir grup GERCEKTEN olusturulunca
+  // (bkz. FriendsScreen.tsx handleCreateGroup), VEYA bu listeden bir grup
+  // satirina basilinca cagrilir.
+  onOpenGroup: (group: GroupPeer) => void;
+}
+
+// DM konusmasi ozetiyle (DMConversationSummary) AYNI alanlara "uydurularak"
+// - boylece asagidaki sort/filtrele/renderItem mantiginin NEREDEYSE TAMAMI
+// grup satirlari icin de degismeden calisir, SADECE basma/basili-tutma
+// davranisi dallanir (bkz. renderItem/openOptionsFor cagrilari).
+function groupToRow(g: GroupConversationSummary): DMConversationSummary & { isGroup: true; groupId: string } {
+  return {
+    conversationId: `group:${g.groupId}`,
+    peerId: g.groupId,
+    peerName: g.name,
+    peerHandle: null,
+    peerAvatarUrl: g.avatarUrl,
+    lastMessage: g.lastMessage ? { text: g.lastMessage.text, createdAt: g.lastMessage.createdAt, fromUserId: g.lastMessage.fromUserId } : null,
+    unread: false,
+    unreadCount: 0,
+    isFriend: false,
+    pinned: false,
+    muted: false,
+    archived: false,
+    isGroup: true,
+    groupId: g.groupId,
+  };
 }
 
 function pad2(n: number): string {
@@ -76,10 +104,11 @@ function sortConversations(list: DMConversationSummary[]): DMConversationSummary
   });
 }
 
-export default function DMListScreen({ onOpenDM }: Props) {
+export default function DMListScreen({ onOpenDM, onOpenGroup }: Props) {
   const { t } = useTranslation();
   const [headerFontLoaded] = useFonts({ BebasNeue_400Regular });
   const [conversations, setConversations] = useState<DMConversationSummary[]>([]);
+  const [groups, setGroups] = useState<GroupConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
@@ -135,14 +164,24 @@ export default function DMListScreen({ onOpenDM }: Props) {
       if (res?.ok) setConversations(res.conversations || []);
       setLoading(false);
     });
+    getSocket().emit("group:list", {}, (res: any) => {
+      if (res?.ok) setGroups(res.groups || []);
+    });
   }, []);
 
   useEffect(refresh, [refresh]);
   // Sekmeye her donuste (yeni mesaj gelmis olabilir) liste tazelenir.
   useFocusEffect(refresh);
 
-  const activeConversations = useMemo(() => sortConversations(conversations.filter((c) => !c.archived)), [conversations]);
-  const archivedConversations = useMemo(() => sortConversations(conversations.filter((c) => c.archived)), [conversations]);
+  // Gruplar DM'lerle AYNI listede, AYNI siralama/arama mantigiyla gorunur
+  // (bkz. yukaridaki groupToRow) - gruplar henuz arsivlenemiyor, bu yuzden
+  // hep "aktif" listede.
+  const mergedRows = useMemo(
+    () => [...conversations, ...groups.map(groupToRow)],
+    [conversations, groups]
+  );
+  const activeConversations = useMemo(() => sortConversations(mergedRows.filter((c) => !c.archived)), [mergedRows]);
+  const archivedConversations = useMemo(() => sortConversations(mergedRows.filter((c) => c.archived)), [mergedRows]);
 
   // Telegram'daki gibi "Arsiv" satirini sola/saga kaydirinca gizleme
   // (kullanicinin istegi) - gizlemek SADECE bu cihazda/oturumda bir tercih,
@@ -450,8 +489,12 @@ export default function DMListScreen({ onOpenDM }: Props) {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.row}
-              onPress={() => onOpenDM({ userId: item.peerId, name: item.peerName, handle: item.peerHandle ?? undefined })}
-              onLongPress={() => openOptionsFor(item)}
+              onPress={() =>
+                (item as any).isGroup
+                  ? onOpenGroup({ id: item.peerId, name: item.peerName, avatarUrl: item.peerAvatarUrl })
+                  : onOpenDM({ userId: item.peerId, name: item.peerName, handle: item.peerHandle ?? undefined })
+              }
+              onLongPress={() => !(item as any).isGroup && openOptionsFor(item)}
               delayLongPress={350}
             >
               <Avatar name={item.peerName} avatarUrl={item.peerAvatarUrl} size={48} isFriend={item.isFriend} />
@@ -515,6 +558,10 @@ export default function DMListScreen({ onOpenDM }: Props) {
           hideFriendActions
           headerTitle={t("dmList.newChatTitle")}
           allowCreateGroup
+          onOpenGroup={(group) => {
+            setNewChatVisible(false);
+            onOpenGroup(group);
+          }}
         />
       </Modal>
 
