@@ -309,6 +309,8 @@
     "recordResume": "Resume",
     "voiceOnceConsumed": "This voice message has been played",
     "mediaOnceConsumed": "This media has been viewed",
+    "kindPhoto": "Photo",
+    "kindVideo": "Video",
     "gallerySend": "Send",
     "galleryPermissionDenied": "Gallery access was denied. Grant permission in settings and try again.",
     "galleryTitle": "Gallery",

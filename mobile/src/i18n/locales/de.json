@@ -309,6 +309,8 @@
     "recordResume": "Fortsetzen",
     "voiceOnceConsumed": "Diese Sprachnachricht wurde abgespielt",
     "mediaOnceConsumed": "Dieses Medium wurde bereits angesehen",
+    "kindPhoto": "Foto",
+    "kindVideo": "Video",
     "gallerySend": "Senden",
     "galleryPermissionDenied": "Der Zugriff auf die Galerie wurde verweigert. Erteile die Berechtigung in den Einstellungen und versuche es erneut.",
     "galleryTitle": "Galerie",

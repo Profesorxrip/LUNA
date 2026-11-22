@@ -40,6 +40,7 @@ import {
   Copy,
   Pin,
   PinOff,
+  Camera as CameraIcon,
 } from "lucide-react-native";
 import { SimpleLineIcons, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LockClosedIcon, MicrophoneIcon } from "react-native-heroicons/outline";
@@ -52,6 +53,8 @@ import { showAlert } from "../components/CustomAlert";
 import SendMediaSheet from "../components/SendMediaSheet";
 import SendVideoSheet from "../components/SendVideoSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
+import PhotoViewerModal from "../components/PhotoViewerModal";
+import VideoViewerModal from "../components/VideoViewerModal";
 import VideoMessageBubble from "../components/VideoMessageBubble";
 import VoiceMessageBubble from "../components/VoiceMessageBubble";
 import LocationMessageBubble from "../components/LocationMessageBubble";
@@ -140,8 +143,21 @@ interface BubbleRowProps {
 function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTap, onLongPress, onReply, onConsumeMediaOnce, onVotePoll }: BubbleRowProps) {
   const { t, i18n } = useTranslation();
   const [voiceTimeLabel, setVoiceTimeLabel] = useState("0:00");
+  // Tek-gorunumluk foto/video HENUZ acilmadiysa (bkz. asagidaki
+  // viewOnceViewerUri) sohbette GERCEK icerik hic gosterilmez - sadece
+  // tur + "1" rozetli bir satir (kullanicinin istegi: "fotoğrafsa fotoğraf
+  // videoysa video... yazdığımız bir mesaj balonu"). Dokununca GERCEK
+  // mediaUrl'i YEREL state'e (consumption sonrasi item.mediaUrl undefined
+  // olsa bile) yakalayip tam ekran acar VE ayni anda tuketimi bildirir.
+  const [viewOnceViewerUri, setViewOnceViewerUri] = useState<{ uri: string; kind: "photo" | "video" } | null>(null);
   const isGifSticker = item.kind === "sticker" && !!item.stickerId?.startsWith("gif-");
   const consumedColor = isMine ? "rgba(255,255,255,0.6)" : MUTED;
+  const isUnopenedViewOnceMedia = !!item.viewOnce && !item.viewOnceConsumed && (item.kind === "photo" || item.kind === "video");
+  function openViewOnceMedia() {
+    if (!item.mediaUrl || (item.kind !== "photo" && item.kind !== "video")) return;
+    setViewOnceViewerUri({ uri: item.mediaUrl, kind: item.kind });
+    onConsumeMediaOnce(item.id);
+  }
   const hasMediaCaption =
     !item.deletedForEveryone &&
     item.kind !== "voice" &&
@@ -191,6 +207,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
                 item.kind !== "music" &&
                 (item.kind !== "sticker" || isGifSticker) &&
                 (item.mediaUrl || isGifSticker) &&
+                !isUnopenedViewOnceMedia &&
                 styles.bubblePhotoPad),
               item.kind === "sticker" && !isGifSticker && styles.bubbleStickerNoBg,
             ]}
@@ -249,19 +266,35 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               <StickerMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
             ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
               <View style={styles.deletedRow}>
-                <ImageIcon size={14} color={consumedColor} strokeWidth={1.8} />
+                <CameraIcon size={14} color={consumedColor} strokeWidth={1.8} />
                 <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.mediaOnceConsumed")}</Text>
               </View>
+            ) : item.kind === "video" && item.viewOnce && item.mediaUrl ? (
+              <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={styles.viewOnceUnopenedRow}>
+                <View style={styles.viewOnceUnopenedLeft}>
+                  <CameraIcon size={16} color={isMine ? "#FFFFFF" : TEXT} strokeWidth={1.8} />
+                  <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindVideo")}</Text>
+                </View>
+                <VoiceOnceRingIcon size={20} color={isMine ? "#FFFFFF" : TEXT} />
+              </TouchableOpacity>
             ) : item.kind === "video" && item.mediaUrl ? (
-              <VideoMessageBubble uri={item.mediaUrl} size={280} borderRadius={8} senderName={item.fromName} sentAt={item.createdAt} onReply={onReply} onOpen={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined} />
+              <VideoMessageBubble uri={item.mediaUrl} size={280} borderRadius={8} senderName={item.fromName} sentAt={item.createdAt} onReply={onReply} />
             ) : item.kind === "photo" && item.viewOnce && item.viewOnceConsumed ? (
               <View style={styles.deletedRow}>
                 <ImageIcon size={14} color={consumedColor} strokeWidth={1.8} />
                 <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.mediaOnceConsumed")}</Text>
               </View>
+            ) : item.kind === "photo" && item.viewOnce && item.mediaUrl ? (
+              <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={styles.viewOnceUnopenedRow}>
+                <View style={styles.viewOnceUnopenedLeft}>
+                  <ImageIcon size={16} color={isMine ? "#FFFFFF" : TEXT} strokeWidth={1.8} />
+                  <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindPhoto")}</Text>
+                </View>
+                <VoiceOnceRingIcon size={20} color={isMine ? "#FFFFFF" : TEXT} />
+              </TouchableOpacity>
             ) : item.kind === "photo" && item.mediaUrl ? (
               <>
-                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} size={280} senderName={item.fromName} sentAt={item.createdAt} onReply={onReply} onOpen={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined} />
+                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} size={280} senderName={item.fromName} sentAt={item.createdAt} onReply={onReply} />
               </>
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
@@ -271,7 +304,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               style={[
                 styles.metaRow,
                 item.kind === "voice" && styles.metaRowVoice,
-                (item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.kind !== "music" && (item.kind !== "sticker" || isGifSticker) && (item.mediaUrl || isGifSticker) && !hasMediaCaption && styles.metaRowPhotoOverlay),
+                (item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.kind !== "music" && (item.kind !== "sticker" || isGifSticker) && (item.mediaUrl || isGifSticker) && !hasMediaCaption && !isUnopenedViewOnceMedia && styles.metaRowPhotoOverlay),
                 item.kind === "music" && styles.metaRowMusicOverlay,
                 item.kind === "poll" && styles.metaRowPollOverlay,
                 item.kind === "contact" && styles.metaRowContactOverlay,
@@ -299,6 +332,18 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
           )}
         </TouchableOpacity>
       </View>
+      <PhotoViewerModal
+        uri={viewOnceViewerUri?.kind === "photo" ? viewOnceViewerUri.uri : null}
+        onClose={() => setViewOnceViewerUri(null)}
+        senderName={item.fromName}
+        sentAt={item.createdAt}
+      />
+      <VideoViewerModal
+        uri={viewOnceViewerUri?.kind === "video" ? viewOnceViewerUri.uri : null}
+        onClose={() => setViewOnceViewerUri(null)}
+        senderName={item.fromName}
+        sentAt={item.createdAt}
+      />
     </View>
   );
 }
@@ -1802,6 +1847,13 @@ const styles = StyleSheet.create({
   mediaCaption: { color: TEXT, fontSize: 14, marginTop: 6, paddingHorizontal: 2 },
   deletedRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
   deletedText: { fontSize: 14, fontStyle: "italic" },
+  // Tek-gorunumluk foto/video HENUZ acilmadiysa gosterilen satir - kullanici
+  // istegi: "fotoğrafsa fotoğraf videoysa video... yazdığımız bir mesaj
+  // balonu" + yaninda "1" rozeti (VoiceOnceRingIcon, kayit cubugundaki ile
+  // AYNI gorsel).
+  viewOnceUnopenedRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14, minWidth: 150 },
+  viewOnceUnopenedLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  viewOnceUnopenedText: { fontSize: 16, lineHeight: 21 },
   forwardedRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 3 },
   forwardedText: { fontSize: 11, fontWeight: "500" },
   replyQuote: {

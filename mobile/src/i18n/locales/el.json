@@ -309,6 +309,8 @@
     "recordResume": "Συνέχεια",
     "voiceOnceConsumed": "Αυτό το φωνητικό μήνυμα έχει ήδη ακουστεί",
     "mediaOnceConsumed": "Αυτό το αρχείο έχει ήδη προβληθεί",
+    "kindPhoto": "Φωτογραφία",
+    "kindVideo": "Βίντεο",
     "gallerySend": "Αποστολή",
     "galleryPermissionDenied": "Η πρόσβαση στη συλλογή απορρίφθηκε. Δώσε άδεια από τις ρυθμίσεις και δοκίμασε ξανά.",
     "galleryTitle": "Συλλογή",
