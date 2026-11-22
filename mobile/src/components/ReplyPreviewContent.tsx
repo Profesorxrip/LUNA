@@ -154,7 +154,13 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, ca
   let iconShift = 0;
   if (!hasThumb) {
     if (isViewOnceMedia) {
-      IconEl = <VoiceOnceRingIcon size={14} color={viewOnceColor} />;
+      // Digerlerinden (14px) FARKLI olarak COK daha buyuk: bu ikon ince
+      // cizgili bir halka + icinde kucuk bir "1" rakami tasiyor (bkz.
+      // CustomIcons.tsx) - GroupChatScreen.tsx'teki GERCEK balon rozeti
+      // 40px, burada da (20px bile) rakam hala secilmiyordu; kullanici geri
+      // bildirimiyle normal fotoğraf/video kucuk resmiyle (fallbackSize=38)
+      // AYNI agirlikta olacak sekilde 32px'e cikarildi.
+      IconEl = <VoiceOnceRingIcon size={32} color={viewOnceColor} />;
     } else if (kind === "photo") IconEl = <ImageIcon size={14} color={iconColor} />;
     else if (kind === "video") IconEl = <AppIcon name="video" size={14} color={iconColor} />;
     else if (kind === "voice") {
