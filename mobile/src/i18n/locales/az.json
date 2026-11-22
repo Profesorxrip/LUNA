@@ -311,6 +311,8 @@
     "mediaOnceConsumed": "Bu media artıq görüntülənib",
     "kindPhoto": "Şəkil",
     "kindVideo": "Video",
+    "kindGif": "GIF",
+    "mediaOnceOpened": "Açıldı",
     "gallerySend": "Göndər",
     "galleryPermissionDenied": "Qalereyaya giriş icazəsi verilmədi. Ayarlardan icazə verib yenidən cəhd et.",
     "galleryTitle": "Qalereya",

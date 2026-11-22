@@ -311,6 +311,8 @@
     "mediaOnceConsumed": "Bu medya görüntülendi",
     "kindPhoto": "Fotoğraf",
     "kindVideo": "Video",
+    "kindGif": "GIF",
+    "mediaOnceOpened": "Açıldı",
     "gallerySend": "Gönder",
     "galleryPermissionDenied": "Galeriye erişim izni verilmedi. Ayarlardan izin verip tekrar dene.",
     "galleryTitle": "Galeri",

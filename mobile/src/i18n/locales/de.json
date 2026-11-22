@@ -311,6 +311,8 @@
     "mediaOnceConsumed": "Dieses Medium wurde bereits angesehen",
     "kindPhoto": "Foto",
     "kindVideo": "Video",
+    "kindGif": "GIF",
+    "mediaOnceOpened": "Geöffnet",
     "gallerySend": "Senden",
     "galleryPermissionDenied": "Der Zugriff auf die Galerie wurde verweigert. Erteile die Berechtigung in den Einstellungen und versuche es erneut.",
     "galleryTitle": "Galerie",

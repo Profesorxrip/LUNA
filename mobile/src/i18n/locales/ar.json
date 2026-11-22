@@ -311,6 +311,8 @@
     "mediaOnceConsumed": "تم عرض هذا الوسائط بالفعل",
     "kindPhoto": "صورة",
     "kindVideo": "فيديو",
+    "kindGif": "GIF",
+    "mediaOnceOpened": "تم الفتح",
     "gallerySend": "إرسال",
     "galleryPermissionDenied": "تم رفض الوصول إلى المعرض. امنح الإذن من الإعدادات وحاول مرة أخرى.",
     "galleryTitle": "المعرض",

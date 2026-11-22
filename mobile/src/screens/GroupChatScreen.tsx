@@ -152,10 +152,20 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
   const [viewOnceViewerUri, setViewOnceViewerUri] = useState<{ uri: string; kind: "photo" | "video" } | null>(null);
   const isGifSticker = item.kind === "sticker" && !!item.stickerId?.startsWith("gif-");
   const consumedColor = isMine ? "rgba(255,255,255,0.6)" : MUTED;
-  const isUnopenedViewOnceMedia = !!item.viewOnce && !item.viewOnceConsumed && (item.kind === "photo" || item.kind === "video");
+  // Kullanici istegi: foto/video/gif ACILDIKTAN sonraki ikon+yazi GRI olsun
+  // (mine/theirs farki yok, tek bir notr gri) - sesli mesaj bu degisiklige
+  // dahil degil (ayri bir asama).
+  const mediaConsumedColor = "#9A9A9A";
+  const isUnopenedViewOnceMedia = !!item.viewOnce && !item.viewOnceConsumed && (item.kind === "photo" || item.kind === "video" || isGifSticker);
   function openViewOnceMedia() {
-    if (!item.mediaUrl || (item.kind !== "photo" && item.kind !== "video")) return;
-    setViewOnceViewerUri({ uri: item.mediaUrl, kind: item.kind });
+    if (!item.mediaUrl) return;
+    if (item.kind === "video") {
+      setViewOnceViewerUri({ uri: item.mediaUrl, kind: "video" });
+    } else if (item.kind === "photo" || isGifSticker) {
+      setViewOnceViewerUri({ uri: item.mediaUrl, kind: "photo" });
+    } else {
+      return;
+    }
     onConsumeMediaOnce(item.id);
   }
   const hasMediaCaption =
@@ -209,8 +219,6 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
                 (item.mediaUrl || isGifSticker) &&
                 !isUnopenedViewOnceMedia &&
                 styles.bubblePhotoPad),
-              isUnopenedViewOnceMedia && styles.bubbleViewOnceExtraRight,
-              isUnopenedViewOnceMedia && (isMine ? styles.bubbleViewOnceShiftMine : styles.bubbleViewOnceShiftTheirs),
               item.kind === "sticker" && !isGifSticker && styles.bubbleStickerNoBg,
             ]}
           >
@@ -262,28 +270,42 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               />
             ) : item.kind === "music" && item.mediaUrl ? (
               <MusicMessageBubble uri={item.mediaUrl} title={item.fileName || item.text} />
+            ) : isGifSticker && item.viewOnce && item.viewOnceConsumed ? (
+              <View style={styles.deletedRow}>
+                <ImageIcon size={14} color={mediaConsumedColor} strokeWidth={1.8} />
+                <Text style={[styles.deletedText, { color: mediaConsumedColor }]}>{t("dm.mediaOnceOpened")}</Text>
+              </View>
+            ) : isGifSticker && item.viewOnce && item.mediaUrl ? (
+              <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={isMine ? "#FFFFFF" : TEXT} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindGif")}</Text>
+                <Text style={[styles.metaTime, styles.viewOnceUnopenedTime]}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
+              </TouchableOpacity>
             ) : item.kind === "sticker" && item.stickerId?.startsWith("gif-") ? (
               <GifMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
             ) : item.kind === "sticker" ? (
               <StickerMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
             ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
               <View style={styles.deletedRow}>
-                <CameraIcon size={14} color={consumedColor} strokeWidth={1.8} />
-                <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.mediaOnceConsumed")}</Text>
+                <CameraIcon size={14} color={mediaConsumedColor} strokeWidth={1.8} />
+                <Text style={[styles.deletedText, { color: mediaConsumedColor }]}>{t("dm.mediaOnceOpened")}</Text>
               </View>
             ) : item.kind === "video" && item.viewOnce && item.mediaUrl ? (
-              <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={styles.viewOnceUnopenedRow}>
+              <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
                 <View style={styles.viewOnceUnopenedIconWrap}>
                   <VoiceOnceRingIcon size={40} color={isMine ? "#FFFFFF" : TEXT} />
                 </View>
                 <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindVideo")}</Text>
+                <Text style={[styles.metaTime, styles.viewOnceUnopenedTime]}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
               </TouchableOpacity>
             ) : item.kind === "video" && item.mediaUrl ? (
               <VideoMessageBubble uri={item.mediaUrl} size={280} borderRadius={8} senderName={item.fromName} sentAt={item.createdAt} onReply={onReply} />
             ) : item.kind === "photo" && item.viewOnce && item.viewOnceConsumed ? (
               <View style={styles.deletedRow}>
-                <ImageIcon size={14} color={consumedColor} strokeWidth={1.8} />
-                <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.mediaOnceConsumed")}</Text>
+                <ImageIcon size={14} color={mediaConsumedColor} strokeWidth={1.8} />
+                <Text style={[styles.deletedText, { color: mediaConsumedColor }]}>{t("dm.mediaOnceOpened")}</Text>
               </View>
             ) : item.kind === "photo" && item.viewOnce && item.mediaUrl ? (
               <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
@@ -291,6 +313,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
                   <VoiceOnceRingIcon size={40} color={isMine ? "#FFFFFF" : TEXT} />
                 </View>
                 <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindPhoto")}</Text>
+                <Text style={[styles.metaTime, styles.viewOnceUnopenedTime]}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
               </TouchableOpacity>
             ) : item.kind === "photo" && item.mediaUrl ? (
               <>
@@ -300,23 +323,25 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               <Text style={styles.bubbleText}>{item.text}</Text>
             )}
             {hasMediaCaption && <Text style={styles.mediaCaption}>{item.text}</Text>}
-            <View
-              style={[
-                styles.metaRow,
-                item.kind === "voice" && styles.metaRowVoice,
-                (item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.kind !== "music" && (item.kind !== "sticker" || isGifSticker) && (item.mediaUrl || isGifSticker) && !hasMediaCaption && !isUnopenedViewOnceMedia && styles.metaRowPhotoOverlay),
-                item.kind === "music" && styles.metaRowMusicOverlay,
-                item.kind === "poll" && styles.metaRowPollOverlay,
-                item.kind === "contact" && styles.metaRowContactOverlay,
-                item.kind === "file" && !hasMediaCaption && styles.metaRowFileOverlay,
-                item.kind === "sticker" && !isGifSticker && styles.metaRowStickerOverlay,
-              ]}
-            >
-              {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
-              <Text style={styles.metaTime}>
-                {formatMessageTime(item.createdAt, i18n.language)}
-              </Text>
-            </View>
+            {!isUnopenedViewOnceMedia && (
+              <View
+                style={[
+                  styles.metaRow,
+                  item.kind === "voice" && styles.metaRowVoice,
+                  (item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.kind !== "music" && (item.kind !== "sticker" || isGifSticker) && (item.mediaUrl || isGifSticker) && !hasMediaCaption && styles.metaRowPhotoOverlay),
+                  item.kind === "music" && styles.metaRowMusicOverlay,
+                  item.kind === "poll" && styles.metaRowPollOverlay,
+                  item.kind === "contact" && styles.metaRowContactOverlay,
+                  item.kind === "file" && !hasMediaCaption && styles.metaRowFileOverlay,
+                  item.kind === "sticker" && !isGifSticker && styles.metaRowStickerOverlay,
+                ]}
+              >
+                {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
+                <Text style={styles.metaTime}>
+                  {formatMessageTime(item.createdAt, i18n.language)}
+                </Text>
+              </View>
+            )}
           </View>
           {reactions.length > 0 && (
             <View style={[styles.reactionBadgeRow, isMine ? styles.reactionBadgeRowMine : styles.reactionBadgeRowTheirs]}>
@@ -1840,9 +1865,6 @@ const styles = StyleSheet.create({
   bubbleContactPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   bubbleMusicPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3, width: 286 },
-  bubbleViewOnceExtraRight: { paddingRight: 18 },
-  bubbleViewOnceShiftMine: { paddingLeft: 23 },
-  bubbleViewOnceShiftTheirs: { paddingRight: 28 },
   bubbleStickerNoBg: { backgroundColor: "transparent", padding: 0 },
   bubbleMine: { backgroundColor: BUBBLE_MINE_COLOR },
   bubbleTheirs: { backgroundColor: "#1E293B" },
@@ -1855,19 +1877,20 @@ const styles = StyleSheet.create({
   // balonu" + yaninda "1" rozeti (VoiceOnceRingIcon, kayit cubugundaki ile
   // AYNI gorsel).
   viewOnceUnopenedRow: { flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -10 },
-  // Kullanici istegi: "Benim fotoğraf rozetimi ve fotoğraf yazısını 10 px
-  // sola kaydır" - sadece KENDI fotograf mesajimda (kindVideo etkilenmez).
-  // marginLeft DEGIL transform kullanildi: negatif margin balonun auto-width
+  // Kullanici istegi: kendi mesajimdaki rozet+metin+saat fotograf VE video
+  // icin AYNI sekilde kaydirilsin. marginLeft DEGIL transform kullanildi:
+  // negatif margin balonun auto-width
   // hesaplamasini da kuculttup balonu saga kaydiriyordu (kullanici
   // sikayeti) - transform sadece GORSEL olarak kaydirir, layout/genislik
   // etkilenmez.
-  viewOnceUnopenedRowMineShift: { transform: [{ translateX: -10 }] },
+  viewOnceUnopenedRowMineShift: { transform: [{ translateX: 0 }] },
   // Rozet (40px) metnin satir yuksekliginden (21px) buyuk oldugu icin, balon
   // yuksekligi bozulmasin diye rozeti sabit 21px'lik bir kutu icinde
   // ortalayip tasiriyoruz (overflow visible) - boylece balonun toplam
   // yuksekligi duz metin balonuyla AYNI kaliyor.
   viewOnceUnopenedIconWrap: { height: 21, justifyContent: "center", alignItems: "center", overflow: "visible" },
   viewOnceUnopenedText: { fontSize: 16, lineHeight: 21, marginLeft: -10 },
+  viewOnceUnopenedTime: { marginTop: 22 },
   forwardedRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 3 },
   forwardedText: { fontSize: 11, fontWeight: "500" },
   replyQuote: {

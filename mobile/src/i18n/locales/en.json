@@ -311,6 +311,8 @@
     "mediaOnceConsumed": "This media has been viewed",
     "kindPhoto": "Photo",
     "kindVideo": "Video",
+    "kindGif": "GIF",
+    "mediaOnceOpened": "Opened",
     "gallerySend": "Send",
     "galleryPermissionDenied": "Gallery access was denied. Grant permission in settings and try again.",
     "galleryTitle": "Gallery",
