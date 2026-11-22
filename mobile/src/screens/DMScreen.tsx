@@ -451,6 +451,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 item.kind === "music" && styles.metaRowMusicOverlay,
                 item.kind === "poll" && styles.metaRowPollOverlay,
                 item.kind === "contact" && styles.metaRowContactOverlay,
+                item.kind === "file" && !hasMediaCaption && styles.metaRowFileOverlay,
                 item.kind === "sticker" && !isGifSticker && styles.metaRowStickerOverlay,
               ]}
             >
@@ -2816,7 +2817,11 @@ const styles = StyleSheet.create({
   // paylasilan 8px'e dokunulmadi).
   bubbleLocationPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
   // Dosya karti icin de AYNI mantik - bkz. FileMessageBubble'daki buyutme.
-  bubbleFilePad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
+  // Kullanici: "Dosyaların altına mesaj yazmadıysak süre kısmı kişilerdeki
+  // gibi içeride olsa" - alt yazi YOKSA saat, Kisi/Anket/Arama ile AYNI
+  // sekilde kartin kendi icine (sag-alt, bkz. metaRowFileOverlay)
+  // bindiriliyor, bu yuzden Contact/Poll/Call ile AYNI 3px-her-yon dolgu.
+  bubbleFilePad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   bubbleCallPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   // Anket karti icin de AYNI mantik (Konum/Dosya ile) - karti balonun
   // kenarina 3px'e kadar yaklastirir. Saat artik ayri bir alt satir
@@ -2890,6 +2895,15 @@ const styles = StyleSheet.create({
     right: 10,
     marginTop: 0,
   },
+  // Kullanici: "Dosyaların altına mesaj yazmadıysak süre kısmı kişilerdeki
+  // gibi içeride olsa" - alt yazi YOKSA (bkz. hasMediaCaption) dosya
+  // kartinin sag-alt kosesine, Kisi/Anket/Arama ile AYNI konuma bindirilir.
+  metaRowFileOverlay: {
+    position: "absolute",
+    bottom: 8,
+    right: 10,
+    marginTop: 0,
+  },
   // Cikartma - balonun arka plani olmadigi icin (bkz. bubbleStickerNoBg)
   // fotografta oldugu gibi KOYU bir hap arka planla (okunurluk icin, cikartma
   // kendi saydam/parlak renkli olabilir) sag-alt kosede gosterilir.
@@ -2951,7 +2965,12 @@ const styles = StyleSheet.create({
   // bubblePhotoPad width:286), alt yazi da AYNI genislige (280) yayilmali -
   // 220 ile gorselden daha dar kalip sag tarafta bos/carpik bir bosluk
   // birakiyordu.
-  mediaCaption: { color: TEXT, fontSize: 15, marginTop: 5, maxWidth: 280 },
+  // Kullanici: "Normal mesajın mesaj balonunun soluna arasındaki mesafe
+  // neyse bunlarda da aynı mesafe olsa iyi olmaz mı" - gorsel/dosya 3px
+  // kenar bosluguyla kenara dayanmaya devam ediyor (bilerek), ama alt
+  // yazinin kendisi normal metin balonundaki 13px bosluga denk gelsin diye
+  // +10px (3+10=13) kendi marjini var.
+  mediaCaption: { color: TEXT, fontSize: 15, marginTop: 5, marginHorizontal: 10, maxWidth: 260 },
   attachSheet: {
     backgroundColor: "#15202B",
     height: 300,

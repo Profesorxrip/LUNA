@@ -64,24 +64,41 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, ca
   };
 
   const hasThumb = (kind === "photo" || kind === "video") && !!mediaUrl;
-  // Foto/video icin "text" alani ya SABIT bir varsayilan ("📷 Fotoğraf"/
-  // "🎥 Video" - emoji ON EKLI) YA DA kullanicinin yazdigi GERCEK bir
-  // altyazi (emoji eki OLMADAN, "Beyaz BMW" gibi) olabilir (bkz.
-  // 0033/0034_dm_message_kinds.sql: "coalesce(nullif(trim(caption),''), ...)").
-  // Asagidaki "ilk kelimeyi emoji sanip kirpma" numarasi bu YUZDEN foto/
-  // videoda GUVENSIZ: gercek bir altyazi varsa ilk kelimesini yerdi ("Beyaz
-  // BMW" -> "BMW"). O yuzden bu iki turde kucuk resim zaten "foto/video
-  // oldugunu" gosterdigi icin, altyaziyi hic DENEMEDEN sabit bir tur
-  // etiketi gosteriyoruz.
-  const displayText = kind === "photo" ? "Fotoğraf" : kind === "video" ? "Video" : text;
-  // Diger zengin (ikonlu) turlerde metin HER ZAMAN sunucunun kendi sabit
-  // "emoji + etiket" seklidir (voice/location/call) ya da "emoji + dosya
-  // adi" (file) - orada ilk "kelimeyi" (emojiyi) kirpmak guvenli. "text"
-  // turu de DB'de HER ZAMAN dolu geliyor (not null default 'text'), bu
-  // yuzden "kind ?" tek basina duz metin mesajlarinin da ILK KELIMESINI
-  // yanlislikla emoji saniyordu.
-  const isRichKind = kind && kind !== "text" && kind !== "photo" && kind !== "video";
-  const label = isRichKind ? displayText.replace(/^\S+\s*/u, "") || displayText : displayText;
+  // Kullanici: "Dosya ve gifte nasıl mesaj metni gözüküyorsa fotoğraf ve
+  // videonun cevap bloğu da öyle olmalı" - "text" alani bazi turlerde ya
+  // SUNUCUNUN SABIT varsayilani ("📷 Fotoğraf"/"🎥 Video"/"📎 dosya.pdf" gibi,
+  // emoji ON EKLI) YA DA kullanicinin yazdigi GERCEK bir altyazi (emoji eki
+  // OLMADAN, "Beyaz BMW" gibi) olabilir (bkz. 0033/0034/0040/0043
+  // migration'lari: "coalesce(nullif(trim(caption),''), '<emoji> <etiket>')").
+  // ESKI kod foto/videoda bunu "hic denemeden" sabit etikete sabitliyordu
+  // (gercek altyazi varsa bile kayboluyordu), digerlerinde ise ters bir
+  // hata vardi: ILK SOZCUGU HER ZAMAN emoji sanip kirpiyordu - bu da gercek
+  // bir altyazinin ("Ekte son hali var..." gibi) ilk kelimesini ("Ekte")
+  // yiyordu. Dogru ve TUTARLI kural: metin GERCEKTEN o turun bilinen sabit
+  // emoji onekiyle basliyorsa sadece O ONEK kirpilir; aksi halde (gercek
+  // bir altyazi) metin HIC DOKUNULMADAN oldugu gibi gosterilir.
+  const KIND_PREFIX: Partial<Record<string, string>> = {
+    photo: "📷 ",
+    video: "🎥 ",
+    voice: "🎤 ",
+    location: "📍 ",
+    file: "📎 ",
+    contact: "👤 ",
+    poll: "📊 ",
+    music: "🎵 ",
+    sticker: "🏷️ ",
+  };
+  const isRichKind = !!kind && kind !== "text";
+  let label = text;
+  if (isRichKind) {
+    if (kind === "call") {
+      const callPrefix = ["📞 ", "🎥 "].find((p) => text.startsWith(p));
+      if (callPrefix) label = text.slice(callPrefix.length);
+    } else {
+      const prefix = kind ? KIND_PREFIX[kind] : undefined;
+      if (prefix && text.startsWith(prefix)) label = text.slice(prefix.length);
+    }
+  }
 
   // Kucuk resim varsa, onu saran ASIL kutunun (balon ici "replyQuote" ya da
   // composer'daki "replyBarText") kenarindan TAM 3px kalsin istiyoruz. Sabit
