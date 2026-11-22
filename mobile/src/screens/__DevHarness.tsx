@@ -1,8 +1,12 @@
 import React, { useCallback, useState } from "react";
 import { View, StyleSheet, Modal } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { NavigationContainer } from "@react-navigation/native";
 import DMScreen from "./DMScreen";
+import DMListScreen from "./DMListScreen";
 import DmInfoScreen from "./DmInfoScreen";
+import GroupChatScreen from "./GroupChatScreen";
+import GroupInfoScreen from "./GroupInfoScreen";
 import FriendsScreen from "./FriendsScreen";
 import VoiceCallScreen, { formatElapsed } from "./VoiceCallScreen";
 import VideoCallScreen, { type GroupParticipant } from "./VideoCallScreen";
@@ -16,6 +20,10 @@ import * as supabaseService from "../services/supabase";
 const now = Date.now();
 const MY_ID = "demo-my-user-id";
 const PEER_ID = "u1";
+// Video cevap onizlemesinde (ReplyPreviewContent -> VideoThumb) gercek bir
+// oynatilabilir kaynak lazim - mevcut demo videosu odunc alindi (bkz.
+// VideoCallScreen.tsx'teki AYNI dosya).
+const DEMO_VIDEO_URI = require("../../assets/videos/peer_screen_share_demo.mp4") as unknown as string;
 
 const MESSAGES = [
   // Asiri kisa
@@ -61,6 +69,352 @@ const MESSAGES = [
   { id: "m7", fromUserId: MY_ID, fromName: "Ben", text: "Tamamdır", mediaUrl: undefined, isAdult: false, replyTo: { text: "Ok", fromName: "Ayşe Yılmaz" }, createdAt: now - 1000 * 60 * 10, expiresAt: null },
   { id: "m8", fromUserId: PEER_ID, fromName: "Ayşe Yılmaz", text: "Tamam o zaman akşam 8'de ararım seni, unutma sakın", mediaUrl: undefined, isAdult: false, replyTo: { text: "Evet müsaitim, nerede buluşalım istersen sen söyle", fromName: "Siz" }, createdAt: now - 1000 * 60 * 8, expiresAt: null },
   { id: "m9", fromUserId: MY_ID, fromName: "Ben", text: "Tamam anlaştık", mediaUrl: undefined, isAdult: false, replyTo: { text: "Aslında sana bunu daha önce söylemek istiyordum ama hep unuttum, geçen hafta odada konuştuğumuz proje hakkında biraz daha düşündüm ve bence önce küçük bir plan yapıp sonra herkesle paylaşmamız daha mantıklı olur, böylece kimse kafası karışık başlamaz ve herkes ne yapacağını baştan bilir.", fromName: "Ayşe Yılmaz" }, createdAt: now - 1000 * 60 * 6, expiresAt: null },
+  // Anket/muzik balonlarini GORSEL olarak test edebilmek icin demo kayitlar -
+  // gercek sunucu round-trip'i olmadan (bkz. asagidaki dm:votePoll mock'u,
+  // gercek bir gonderim DEGIL, sadece render + oy verme etkilesimi icin).
+  {
+    id: "m10",
+    fromUserId: PEER_ID,
+    fromName: "Ayşe Yılmaz",
+    text: "📊 Hafta sonu nereye gidelim?",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 60 * 4,
+    expiresAt: null,
+    kind: "poll",
+    pollQuestion: "Hafta sonu nereye gidelim?",
+    pollOptions: ["Sahil", "Dağ evi", "Şehirde kalalım"],
+    pollVotes: [1, 0, 0],
+    myPollVote: null,
+  },
+  {
+    id: "m11",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "🎵 sunset-drive.mp3",
+    mediaUrl: "https://example.com/demo-audio/sunset-drive.mp3",
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 60 * 3,
+    expiresAt: null,
+    kind: "music",
+    fileName: "sunset-drive.mp3",
+    mimeType: "audio/mpeg",
+  },
+  {
+    id: "m12",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "👤 Mehmet Demir",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 60 * 2,
+    expiresAt: null,
+    kind: "contact",
+    sharedUserId: "u2",
+    sharedUserName: "Mehmet Demir",
+    sharedUserHandle: "mehmetdemir",
+    sharedUserAvatarUrl: null,
+  },
+  // Kullanici: "bütün dosyalar fotoğraflar bunların altında mesajlar nasıl
+  // duruyor kontrol edelim" - gercek bir yazi (caption) tasiyan TEK basina
+  // (gruplanmamis) dosya/foto demo kayitlari.
+  {
+    id: "m13",
+    fromUserId: PEER_ID,
+    fromName: "Ayşe Yılmaz",
+    text: "Ekte son hali var, göz atar mısın?",
+    mediaUrl: "file:///demo/rapor-sunumu.pdf",
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 60,
+    expiresAt: null,
+    kind: "file",
+    fileName: "rapor-sunumu.pdf",
+    fileSize: 842_000,
+    mimeType: "application/pdf",
+  },
+  {
+    id: "m14",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "İşte dediğim yer burası",
+    mediaUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200'><rect width='300' height='200' fill='%23336699'/></svg>",
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 30,
+    expiresAt: null,
+  },
+  // Kullanici: "altına mesaj yazılabilenlerin hem altında mesaj olan hemde
+  // olmayan hallerini göreyim" - caption'SIZ foto/dosya demo kayitlari.
+  {
+    id: "m15",
+    fromUserId: PEER_ID,
+    fromName: "Ayşe Yılmaz",
+    text: "📷 Fotoğraf",
+    mediaUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200'><rect width='300' height='200' fill='%23996633'/></svg>",
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 20,
+    expiresAt: null,
+  },
+  {
+    id: "m16",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "📎 fatura.pdf",
+    mediaUrl: "file:///demo/fatura.pdf",
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 10,
+    expiresAt: null,
+    kind: "file",
+    fileName: "fatura.pdf",
+    fileSize: 211_000,
+    mimeType: "application/pdf",
+  },
+  // Kullanici: "birden fazla dosya yada kişi seçerek paylaştığımızda
+  // neoluyor" - sendFilesDirect/sendContacts HER biri icin AYRI bir
+  // socket.emit cagirip AYRI bir mesaj olusturuyor (gruplama/tek-kart YOK),
+  // bu da ardisik ama BAGIMSIZ balonlar olarak gosteriliyor - burada 3 dosya
+  // + 2 kisi ardisik gonderilmis gibi SIMULE ediliyor.
+  {
+    id: "m17",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "📎 sozlesme-v1.pdf",
+    mediaUrl: "file:///demo/sozlesme-v1.pdf",
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 8,
+    expiresAt: null,
+    kind: "file",
+    fileName: "sozlesme-v1.pdf",
+    fileSize: 540_000,
+    mimeType: "application/pdf",
+  },
+  {
+    id: "m18",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "📎 sozlesme-v2.pdf",
+    mediaUrl: "file:///demo/sozlesme-v2.pdf",
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 7,
+    expiresAt: null,
+    kind: "file",
+    fileName: "sozlesme-v2.pdf",
+    fileSize: 612_000,
+    mimeType: "application/pdf",
+  },
+  {
+    id: "m19",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "📎 ek-tablo.xlsx",
+    mediaUrl: "file:///demo/ek-tablo.xlsx",
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 6,
+    expiresAt: null,
+    kind: "file",
+    fileName: "ek-tablo.xlsx",
+    fileSize: 88_000,
+    mimeType: "application/vnd.ms-excel",
+  },
+  {
+    id: "m20",
+    fromUserId: PEER_ID,
+    fromName: "Ayşe Yılmaz",
+    text: "👤 Mehmet Demir",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 4,
+    expiresAt: null,
+    kind: "contact",
+    sharedUserId: "u2",
+    sharedUserName: "Mehmet Demir",
+    sharedUserHandle: "mehmetdemir",
+    sharedUserAvatarUrl: null,
+  },
+  {
+    id: "m21",
+    fromUserId: PEER_ID,
+    fromName: "Ayşe Yılmaz",
+    text: "👤 Zeynep Kaya",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: null,
+    createdAt: now - 1000 * 3,
+    expiresAt: null,
+    kind: "contact",
+    sharedUserId: "u3",
+    sharedUserName: "Zeynep Kaya",
+    sharedUserHandle: "zeynepkaya",
+    sharedUserAvatarUrl: null,
+  },
+  // Kullanici: "bütün bu medyanın cevap bloğunda nasıl göründüğünü göreyim
+  // gif çıkartma kişi müzik anket felan" - her turun KENDISINE cevap olarak
+  // gonderilmis (replyTo) birer demo mesaj (bkz. ReplyPreviewContent'teki
+  // "bubble" varyanti - balonun EN USTUNDE gorunen alinti).
+  {
+    id: "m22",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "Bayıldım buna 😍",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: { text: "🏷️ Çıkartma", fromName: "Ayşe Yılmaz", kind: "sticker", mediaUrl: null },
+    createdAt: now - 1000 * 2,
+    expiresAt: null,
+  },
+  {
+    id: "m23",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "Bu da komikmiş 😂",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: { text: "GIF", fromName: "Ayşe Yılmaz", kind: "sticker", mediaUrl: null },
+    createdAt: now - 1000 * 1.8,
+    expiresAt: null,
+  },
+  {
+    id: "m24",
+    fromUserId: PEER_ID,
+    fromName: "Ayşe Yılmaz",
+    text: "Tamam, ekliyorum rehbere",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: { text: "👤 Mehmet Demir", fromName: "Ben", kind: "contact", mediaUrl: null },
+    createdAt: now - 1000 * 1.6,
+    expiresAt: null,
+  },
+  {
+    id: "m25",
+    fromUserId: PEER_ID,
+    fromName: "Ayşe Yılmaz",
+    text: "Bu şarkı çok güzelmiş",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: { text: "🎵 sunset-drive.mp3", fromName: "Ben", kind: "music", mediaUrl: null },
+    createdAt: now - 1000 * 1.4,
+    expiresAt: null,
+  },
+  {
+    id: "m26",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "Ben de sahilden yanayım",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: { text: "📊 Hafta sonu nereye gidelim?", fromName: "Ayşe Yılmaz", kind: "poll", mediaUrl: null },
+    createdAt: now - 1000 * 1.2,
+    expiresAt: null,
+  },
+  {
+    id: "m27",
+    fromUserId: PEER_ID,
+    fromName: "Ayşe Yılmaz",
+    text: "Harika görünüyor",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: { text: "📎 rapor-sunumu.pdf", fromName: "Ayşe Yılmaz", kind: "file", mediaUrl: null },
+    createdAt: now - 1000,
+    expiresAt: null,
+  },
+  {
+    id: "m28",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "Evet orası çok güzel",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: {
+      text: "Beyaz BMW",
+      fromName: "Ben",
+      kind: "photo",
+      mediaUrl:
+        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200'><rect width='300' height='200' fill='%23336699'/></svg>",
+    },
+    createdAt: now - 500,
+    expiresAt: null,
+  },
+  // Kullanici: "Altında mesaj yazan fotoğraf video gif dosya ve çoklu
+  // fotoğraf için cevap bloklarında nasıl durduklarını göster" - bu
+  // sefer orijinal mesajin GERCEK bir altyazisi (caption) VARKEN cevap
+  // onizlemesi ne gosteriyor, onu test ediyoruz.
+  {
+    id: "m29",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "Evet orada çok güzeldi",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: {
+      text: "İşte dediğim yer burası",
+      fromName: "Ben",
+      kind: "photo",
+      mediaUrl:
+        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200'><rect width='300' height='200' fill='%23336699'/></svg>",
+    },
+    createdAt: now - 400,
+    expiresAt: null,
+  },
+  {
+    id: "m30",
+    fromUserId: PEER_ID,
+    fromName: "Ayşe Yılmaz",
+    text: "Evet çok güzel çekmişsin",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: { text: "Harika bir an yakaladım", fromName: "Ben", kind: "video", mediaUrl: DEMO_VIDEO_URI },
+    createdAt: now - 300,
+    expiresAt: null,
+  },
+  {
+    id: "m31",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "Değil mi, çok tatlıydı",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: { text: "Bu gife bayılacaksın", fromName: "Ayşe Yılmaz", kind: "sticker", mediaUrl: null },
+    createdAt: now - 200,
+    expiresAt: null,
+  },
+  {
+    id: "m32",
+    fromUserId: PEER_ID,
+    fromName: "Ayşe Yılmaz",
+    text: "Tamam bakarım hemen",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: { text: "Ekte son hali var, göz atar mısın?", fromName: "Ayşe Yılmaz", kind: "file", mediaUrl: null },
+    createdAt: now - 100,
+    expiresAt: null,
+  },
+  {
+    id: "m33",
+    fromUserId: MY_ID,
+    fromName: "Ben",
+    text: "Hangisini aldın peki",
+    mediaUrl: undefined,
+    isAdult: false,
+    replyTo: {
+      text: "Beyaz BMW",
+      fromName: "Ayşe Yılmaz",
+      kind: "photo",
+      mediaUrl:
+        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200'><rect width='300' height='200' fill='%23999999'/></svg>",
+    },
+    createdAt: now - 50,
+    expiresAt: null,
+  },
 ];
 
 const DEMO_FRIENDS = [
@@ -71,6 +425,11 @@ const DEMO_FRIENDS = [
 
 const listeners: Record<string, Function[]> = {};
 let demoBlocked = false;
+// Grup sohbeti test harness'i - gercek sunucu yok, bu yuzden olusturulan
+// gruplar sadece bu modul-seviyesi Map'te (oturum boyunca) tutulur (bkz.
+// server/src/group.ts - GERCEK backend'in demo'su).
+const demoGroups = new Map<string, { id: string; name: string; avatarUrl: string | null; members: any[]; messages: any[] }>();
+let demoGroupCounter = 0;
 // useConnectionQuality.ts'in "ping:rtt" olcumunu test edebilmek icin -
 // gercek sunucu yok, bu yuzden donus suresini burada SIMULE ediyoruz.
 // 50 => iyi, 200 => orta, 450 => zayif (bkz. useConnectionQuality.ts esikleri).
@@ -80,6 +439,55 @@ const fakeSocket: any = {
   emit: (event: string, payload: any, cb?: any) => {
     if (typeof payload === "function") cb = payload;
     if (event === "dm:open" && cb) cb({ ok: true, messages: MESSAGES, expiresAfterMs: null });
+    else if (event === "dm:list" && cb) {
+      cb({
+        ok: true,
+        conversations: [
+          {
+            conversationId: "c1",
+            peerId: PEER_ID,
+            peerName: "Ayşe Yılmaz",
+            peerHandle: "ayseyilmaz",
+            peerAvatarUrl: null,
+            lastMessage: { text: "Hangisini aldın peki", createdAt: now - 50, fromUserId: MY_ID },
+            unread: true,
+            unreadCount: 2,
+            isFriend: true,
+            pinned: true,
+            muted: false,
+            archived: false,
+          },
+          {
+            conversationId: "c2",
+            peerId: "u2",
+            peerName: "Mehmet Demir",
+            peerHandle: "mehmetdemir",
+            peerAvatarUrl: null,
+            lastMessage: { text: "Yarın müsait misin?", createdAt: now - 1000 * 60 * 60 * 3, fromUserId: "u2" },
+            unread: false,
+            unreadCount: 0,
+            isFriend: true,
+            pinned: false,
+            muted: false,
+            archived: false,
+          },
+          {
+            conversationId: "c3",
+            peerId: "u3",
+            peerName: "Zeynep Kaya",
+            peerHandle: "zeynepkaya",
+            peerAvatarUrl: null,
+            lastMessage: { text: "🎵 sunset-drive.mp3", createdAt: now - 1000 * 60 * 60 * 26, fromUserId: "u3" },
+            unread: false,
+            unreadCount: 0,
+            isFriend: true,
+            pinned: false,
+            muted: true,
+            archived: false,
+          },
+        ],
+      });
+    }
     else if (event === "friend:status" && cb) cb({ ok: true, status: demoBlocked ? "blocked" : "none" });
     else if (event === "friend:block" && cb) {
       demoBlocked = true;
@@ -89,8 +497,182 @@ const fakeSocket: any = {
       cb({ ok: true });
     } else if (event === "friends:list" && cb) {
       cb({ ok: true, friends: DEMO_FRIENDS, incoming: [], blocked: [], recentRoommates: [] });
+    } else if (event === "dm:sendContact" && cb) {
+      const shared = DEMO_FRIENDS.find((f) => f.userId === payload?.sharedUserId);
+      cb({
+        ok: true,
+        message: {
+          id: `contact-${Date.now()}`,
+          fromUserId: MY_ID,
+          fromName: "Ben",
+          text: `👤 ${shared?.name ?? "Kullanıcı"}`,
+          replyTo: null,
+          createdAt: Date.now(),
+          expiresAt: null,
+          kind: "contact",
+          sharedUserId: shared?.userId ?? payload?.sharedUserId,
+          sharedUserName: shared?.name ?? "Kullanıcı",
+          sharedUserHandle: shared?.handle ?? null,
+          sharedUserAvatarUrl: shared?.avatarUrl ?? null,
+        },
+      });
+    } else if (event === "dm:sendPoll" && cb) {
+      cb({
+        ok: true,
+        message: {
+          id: `poll-${Date.now()}`,
+          fromUserId: MY_ID,
+          fromName: "Ben",
+          text: `📊 ${payload?.question ?? ""}`,
+          replyTo: null,
+          createdAt: Date.now(),
+          expiresAt: null,
+          kind: "poll",
+          pollQuestion: payload?.question ?? "",
+          pollOptions: payload?.options ?? [],
+          pollOptionImages: payload?.optionImages ?? null,
+          pollVotes: new Array((payload?.options ?? []).length).fill(0),
+          myPollVote: null,
+        },
+      });
+    } else if (event === "dm:votePoll" && cb) {
+      // Gercek sunucu "en fazla 2 oy" dongusunu simule edemeyiz (fake socket
+      // tek tarafli) - sadece bu TEK oyu 1 olarak sayip ack'liyoruz, GORSEL
+      // oy-verme etkilesimini (secili secenegin vurgulanmasi) test etmek icin yeterli.
+      const n = payload?.optionIndex != null ? payload.optionIndex + 1 : 1;
+      const votes = new Array(Math.max(n, 3)).fill(0);
+      if (payload?.optionIndex != null) votes[payload.optionIndex] = 1;
+      cb({ ok: true, votes });
+    } else if (event === "dm:send" && cb) {
+      cb({
+        ok: true,
+        message: {
+          id: `text-${Date.now()}`,
+          fromUserId: MY_ID,
+          fromName: "Ben",
+          text: payload?.text ?? "",
+          mediaUrl: null,
+          isAdult: false,
+          replyTo: payload?.replyTo ?? null,
+          createdAt: Date.now(),
+          expiresAt: null,
+          kind: "text",
+        },
+      });
+    } else if (event === "dm:sendSticker" && cb) {
+      cb({
+        ok: true,
+        message: {
+          id: `sticker-${Date.now()}`,
+          fromUserId: MY_ID,
+          fromName: "Ben",
+          text: "🏷️ Çıkartma",
+          mediaUrl: payload?.mediaUrl ?? null,
+          isAdult: false,
+          replyTo: null,
+          createdAt: Date.now(),
+          expiresAt: null,
+          kind: "sticker",
+          stickerId: payload?.stickerId ?? null,
+        },
+      });
+    } else if (event === "dm:sendVideo" && cb) {
+      cb({
+        ok: true,
+        message: {
+          id: `video-${Date.now()}`,
+          fromUserId: MY_ID,
+          fromName: "Ben",
+          text: payload?.caption ?? "",
+          mediaUrl: payload?.mediaUrl ?? null,
+          isAdult: false,
+          replyTo: null,
+          createdAt: Date.now(),
+          expiresAt: null,
+          kind: "video",
+        },
+      });
     } else if (event === "dm:preview" && cb) {
       cb({ ok: false });
+    } else if (event === "group:create" && cb) {
+      demoGroupCounter += 1;
+      const id = `demo-group-${demoGroupCounter}`;
+      const members = [
+        { userId: MY_ID, name: "Ben", handle: null, avatarUrl: null },
+        ...DEMO_FRIENDS.filter((f) => (payload?.memberIds || []).includes(f.userId)),
+      ];
+      const group = { id, name: payload?.name || "", avatarUrl: null, members, messages: [] };
+      demoGroups.set(id, group);
+      cb({ ok: true, group: { id: group.id, name: group.name, avatarUrl: group.avatarUrl } });
+    } else if (event === "group:setAvatar" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (group) group.avatarUrl = payload?.avatarUrl ?? null;
+      cb({ ok: true });
+    } else if (event === "group:list" && cb) {
+      cb({
+        ok: true,
+        groups: Array.from(demoGroups.values()).map((g) => ({
+          groupId: g.id,
+          name: g.name,
+          avatarUrl: g.avatarUrl,
+          lastMessage: g.messages[g.messages.length - 1] ?? null,
+        })),
+      });
+    } else if (event === "group:open" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      // DIKKAT: "messages: group.messages" (AYNI referans) GroupChatScreen'in
+      // React state'ine o anki demo dizisini DOGRUDAN atardi - sonraki
+      // "group:send" buna push() yapinca state'i SESSIZCE (React'in
+      // haberi olmadan) mutate edip ayni mesajin IKI KEZ eklenmesine (bir
+      // mutasyonla, bir de setMessages'in kendi ekleyisiyle) yol aciyordu.
+      // Kopyasi (immutable) verilir.
+      cb({ ok: true, group: { id: group.id, name: group.name, avatarUrl: group.avatarUrl, members: group.members }, messages: [...group.messages] });
+    } else if (event === "group:send" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      const message = {
+        id: `demo-group-msg-${Date.now()}`,
+        groupId: group.id,
+        fromUserId: MY_ID,
+        fromName: "Ben",
+        text: payload?.text || "",
+        createdAt: Date.now(),
+      };
+      group.messages.push(message);
+      cb({ ok: true, message });
+    } else if (event === "group:sendImage" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      const message = {
+        id: `demo-group-msg-${Date.now()}`,
+        groupId: group.id,
+        fromUserId: MY_ID,
+        fromName: "Ben",
+        text: payload?.caption || "📷 Fotoğraf",
+        createdAt: Date.now(),
+        kind: "photo",
+        mediaUrl: payload?.mediaUrl ?? null,
+        isAdult: false,
+      };
+      group.messages.push(message);
+      cb({ ok: true, message });
+    } else if (event === "group:sendVoice" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (!group) return cb({ ok: false });
+      const message = {
+        id: `demo-group-msg-${Date.now()}`,
+        groupId: group.id,
+        fromUserId: MY_ID,
+        fromName: "Ben",
+        text: "🎤 Sesli mesaj",
+        createdAt: Date.now(),
+        kind: "voice",
+        mediaUrl: payload?.mediaUrl ?? null,
+        durationMs: payload?.durationMs ?? null,
+      };
+      group.messages.push(message);
+      cb({ ok: true, message });
     } else if (event === "ping:rtt" && cb) {
       setTimeout(() => cb(Date.now()), simulatedPingDelayMs);
     } else if (cb) cb({ ok: true });
@@ -117,14 +699,28 @@ const fakeChain = {
 // DEGISTIREMEYIZ ("Cannot set property supabase of #<Object> which has
 // only a getter") - bunun yerine GERCEK objenin kendi alanlarini (auth/from)
 // yerinde degistiriyoruz.
-(supabaseService.supabase as any).auth = { getUser: async () => ({ data: { user: { id: MY_ID } } }) };
+(supabaseService.supabase as any).auth = {
+  getUser: async () => ({ data: { user: { id: MY_ID } } }),
+  getSession: async () => ({ data: { session: { access_token: "fake-token", user: { id: MY_ID } } } }),
+};
 (supabaseService.supabase as any).from = () => fakeChain;
+// FriendsScreen.tsx handleCreateGroup'un grup fotografi yukleme adimi icin -
+// gercek bir "avatars" bucket'i yok, bu yuzden her zaman basarili donup
+// sabit bir demo URL'i veriyor.
+(supabaseService.supabase as any).storage = {
+  from: () => ({
+    upload: async () => ({ error: null }),
+    getPublicUrl: () => ({ data: { publicUrl: "https://picsum.photos/seed/demogroup/200" } }),
+  }),
+};
 
 export default function DevHarness() {
-  const [screen, setScreen] = useState<"dm" | "info" | "incoming">("dm");
+  const [screen, setScreen] = useState<"dm" | "info" | "incoming" | "list" | "group" | "groupInfo">("dm");
+  const [activeGroup, setActiveGroup] = useState<any>(null);
+  const [groupInfoDetail, setGroupInfoDetail] = useState<any>(null);
   const [infoProps, setInfoProps] = useState<any>(null);
-  const [callActive, setCallActive] = useState(true);
-  const [callIsVideo, setCallIsVideo] = useState(true);
+  const [callActive, setCallActive] = useState(false);
+  const [callIsVideo, setCallIsVideo] = useState(false);
   const [callMinimized, setCallMinimized] = useState(false);
   const [callState, setCallState] = useState({ connected: false, elapsed: 0 });
   const [callMuted, setCallMuted] = useState(false);
@@ -207,10 +803,42 @@ export default function DevHarness() {
             marginTop: incomingBannerActive || (callActive && callMinimized) ? -36 : 0,
           }}
         >
-          {screen === "dm" ? (
+          {screen === "list" ? (
+            // DMListScreen useFocusEffect (react-navigation) kullaniyor -
+            // harness'in GERISI NavigationContainer'siz calistigi icin
+            // sadece bu dal icin ekleniyor.
+            <NavigationContainer>
+              <DMListScreen
+                onOpenDM={() => setScreen("dm")}
+                onOpenGroup={(group) => {
+                  setActiveGroup(group);
+                  setScreen("group");
+                }}
+              />
+            </NavigationContainer>
+          ) : screen === "group" ? (
+            <GroupChatScreen
+              group={activeGroup}
+              onBack={() => setScreen("list")}
+              onOpenInfo={(detail) => {
+                setGroupInfoDetail(detail);
+                setScreen("groupInfo");
+              }}
+            />
+          ) : screen === "groupInfo" ? (
+            <GroupInfoScreen
+              readOnly
+              members={groupInfoDetail?.members ?? []}
+              groupName={groupInfoDetail?.name ?? ""}
+              onChangeGroupName={() => {}}
+              groupAvatarUri={groupInfoDetail?.avatarUrl ?? ""}
+              onChangeGroupAvatarUri={() => {}}
+              onBack={() => setScreen("group")}
+            />
+          ) : screen === "dm" ? (
             <DMScreen
               peer={peer}
-              onBack={() => {}}
+              onBack={() => setScreen("list")}
               onOpenInfo={(info: any) => {
                 setInfoProps(info);
                 setScreen("info");

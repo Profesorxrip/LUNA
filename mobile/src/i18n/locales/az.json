@@ -212,6 +212,8 @@
     "blockConfirmTitle": "Blokla",
     "blockConfirmBody": "{{name}} istifadəçisini blokla etmək istədiyinizə əminsiniz?",
     "attachCamera": "Kamera",
+    "emojiLabel": "Emoji",
+    "attachMenuLabel": "Əlavə",
     "attachGallery": "Qalereyadan seç",
     "attachLocation": "Məkan",
     "locationPickerTitle": "Məkanı Göndər",

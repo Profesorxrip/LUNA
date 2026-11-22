@@ -212,6 +212,8 @@
     "blockConfirmTitle": "Bloquer",
     "blockConfirmBody": "Voulez-vous vraiment bloquer {{name}} ?",
     "attachCamera": "Appareil photo",
+    "emojiLabel": "Emoji",
+    "attachMenuLabel": "Pièce jointe",
     "attachGallery": "Choisir dans la galerie",
     "attachLocation": "Position",
     "locationPickerTitle": "Envoyer la position",

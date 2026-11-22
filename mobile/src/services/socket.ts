@@ -370,6 +370,10 @@ export interface GroupMessage {
   fromName: string;
   text: string;
   createdAt: number;
+  kind?: "text" | "photo" | "voice";
+  mediaUrl?: string | null;
+  isAdult?: boolean;
+  durationMs?: number | null;
 }
 
 export interface GroupMember {

@@ -212,6 +212,8 @@
     "blockConfirmTitle": "Αποκλεισμός",
     "blockConfirmBody": "Είστε σίγουροι ότι θέλετε να αποκλείσετε τον/την {{name}};",
     "attachCamera": "Κάμερα",
+    "emojiLabel": "Emoji",
+    "attachMenuLabel": "Συνημμένο",
     "attachGallery": "Επιλογή από τη συλλογή",
     "attachLocation": "Τοποθεσία",
     "locationPickerTitle": "Αποστολή τοποθεσίας",

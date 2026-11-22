@@ -212,6 +212,8 @@
     "blockConfirmTitle": "حظر",
     "blockConfirmBody": "هل أنت متأكد من حظر {{name}}؟",
     "attachCamera": "الكاميرا",
+    "emojiLabel": "الرموز التعبيرية",
+    "attachMenuLabel": "مرفق",
     "attachGallery": "اختر من المعرض",
     "attachLocation": "الموقع",
     "locationPickerTitle": "إرسال الموقع",

@@ -1,22 +1,69 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Keyboard } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  Keyboard,
+  Animated,
+  PanResponder,
+  Platform,
+  ActivityIndicator,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
-import { CircleArrowDown, Phone, Send } from "lucide-react-native";
-import { LockClosedIcon } from "react-native-heroicons/outline";
+import * as ImagePicker from "expo-image-picker";
+import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import {
+  CircleArrowDown,
+  Phone,
+  Send,
+  Laugh,
+  Paperclip,
+  Image as ImageIcon,
+  Trash2,
+  ChevronUp,
+  Pause,
+  Play,
+  MapPin,
+  FileText as FileTextIcon,
+  BarChart2,
+  Music,
+  User as UserIcon,
+} from "lucide-react-native";
+import { SimpleLineIcons, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import { LockClosedIcon, MicrophoneIcon } from "react-native-heroicons/outline";
+import Icon from "../components/Icon";
 import AppBackground from "../components/AppBackground";
 import Avatar from "../components/Avatar";
 import LoadingView from "../components/LoadingView";
 import { showAlert } from "../components/CustomAlert";
-import { getSocket, GroupMessage, GroupDetail } from "../services/socket";
+import SendMediaSheet from "../components/SendMediaSheet";
+import ChatImageBubble from "../components/ChatImageBubble";
+import VoiceMessageBubble from "../components/VoiceMessageBubble";
+import EmojiKeyboardPanel, { PANEL_HEIGHT as EMOJI_PANEL_BASE_HEIGHT } from "../components/EmojiKeyboardPanel";
+import { getSocket, GroupMessage, GroupDetail, GroupMember } from "../services/socket";
 import { formatMessageTime } from "../utils/time";
+import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
+import { uploadWithProgress } from "../utils/uploadWithProgress";
 import { supabase } from "../services/supabase";
-import { theme } from "../theme";
 
-const ACCENT = "#0EA5E9";
 const BUBBLE_MINE_COLOR = "#2E799E";
 const TEXT = "#F5F0E6";
 const MUTED = "#9A8F80";
+const WAVE_BAR_COUNT = 40;
+const LOCK_DRAG_THRESHOLD = 70;
+const CANCEL_DRAG_THRESHOLD = 90;
+
+function formatRecordingTime(ms: number): string {
+  const totalSec = Math.floor(Math.max(0, ms) / 1000);
+  const mm = Math.floor(totalSec / 60);
+  const ss = totalSec % 60;
+  return `${mm}:${ss.toString().padStart(2, "0")}`;
+}
 
 export interface GroupPeer {
   id: string;
@@ -30,14 +77,75 @@ interface Props {
   onOpenInfo?: (detail: GroupDetail) => void;
 }
 
-/** Grup sohbeti - DMScreen.tsx'teki ("Kişi Mesajı") ekranla GORUNUM olarak
- * BIREBIR AYNI (header/balon renkleri/giris cubugu), SADECE kullanicinin
- * istedigi grup-ozel farklarla: (1) baskasindan gelen HER yeni gonderici
- * "turu"nun ILK mesajinda pp + ustunde isim, (2) basliktaki pp/isme basinca
- * Grup Bilgisi'ne gider, (3) telefon ikonu DOGRUDAN bir grup aramasi baslatir
- * (tek kisiye degil). Ilk surum SADECE metin mesaji - DM'deki foto/ses/anket/
- * cikartma/yanitlama gibi zengin turler henuz yok (bkz. server/src/group.ts
- * dosya basi notu - DM'in kendisi de bunlara 46 ayri migration'da ulasti).
+interface BubbleRowProps {
+  item: GroupMessage;
+  isMine: boolean;
+  groupedWithPrev: boolean;
+  sender?: GroupMember;
+}
+
+/** DMScreen.tsx'teki DMBubbleRow ile AYNI mantik - SADECE sesli mesajin
+ * canli sure etiketi (voiceTimeLabel) icin kendi local state'i gerekiyor,
+ * bu yuzden FlatList'in renderItem'i icine degil AYRI bir bilesene tasindi. */
+function GroupBubbleRow({ item, isMine, groupedWithPrev, sender }: BubbleRowProps) {
+  const { i18n } = useTranslation();
+  const [voiceTimeLabel, setVoiceTimeLabel] = useState("0:00");
+  const hasMediaCaption = item.kind === "photo" && !!item.mediaUrl && !!item.text && item.text !== "📷 Fotoğraf";
+
+  return (
+    <View style={[styles.messageRow, isMine ? styles.messageRowMine : styles.messageRowTheirs, !groupedWithPrev && styles.messageRowNewGroup]}>
+      {!isMine && (
+        <View style={styles.senderAvatarWrap}>
+          {!groupedWithPrev ? (
+            <Avatar name={sender?.name || item.fromName} avatarUrl={sender?.avatarUrl} size={28} isFriend />
+          ) : (
+            <View style={styles.senderAvatarSpacer} />
+          )}
+        </View>
+      )}
+      <View style={styles.bubbleCol}>
+        {!isMine && !groupedWithPrev && <Text style={styles.senderName}>{sender?.name || item.fromName}</Text>}
+        <View style={styles.bubbleWrap}>
+          <View
+            style={[
+              styles.bubble,
+              isMine ? styles.bubbleMine : styles.bubbleTheirs,
+              item.kind === "voice" && styles.bubbleVoicePad,
+              item.kind === "photo" && styles.bubblePhotoPad,
+            ]}
+          >
+            {item.kind === "photo" && item.mediaUrl ? (
+              <>
+                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} size={280} senderName={item.fromName} sentAt={item.createdAt} />
+                {hasMediaCaption && <Text style={styles.mediaCaption}>{item.text}</Text>}
+              </>
+            ) : item.kind === "voice" && item.mediaUrl ? (
+              <VoiceMessageBubble uri={item.mediaUrl} durationMs={item.durationMs} onTimeLabel={setVoiceTimeLabel} />
+            ) : (
+              <Text style={styles.bubbleText}>{item.text}</Text>
+            )}
+            <View style={[styles.metaRow, item.kind === "photo" && !hasMediaCaption && styles.metaRowPhotoOverlay]}>
+              <Text style={styles.metaTime}>
+                {item.kind === "voice" ? voiceTimeLabel + " · " : ""}
+                {formatMessageTime(item.createdAt, i18n.language)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** Grup sohbeti - DMScreen.tsx'teki ("Kişi Mesajı") ekranla GORUNUM VE
+ * ISLEV olarak BIREBIR AYNI: emoji paneli, fotograf/galeri gonderme, kamera
+ * (ani cekim ekrani) ve sesli mesaj (basili tut/surukleyip kilitle) GERCEKTEN
+ * calisir (kullanicinin "Hepsi birebir kişi mesajındaki gibi çalışsın"
+ * istegi). Video mesaji/konum/dosya/anket/muzik/kisi/cikartma/yanitlama/
+ * tepki/iletme/sabitleme/view-once gibi DM'e ozel geri kalan turler/aksiyonlar
+ * HENUZ yok - bunlar icin ataç menusundeki ilgili satirlar "yakında" gosterir
+ * (bkz. placeholderInputFeature). DM'in kendisi de butun bunlara 46 ayri
+ * migration'da asama asama ulasti.
  */
 export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
   const { t, i18n } = useTranslation();
@@ -48,6 +156,40 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const listRef = useRef<FlatList<GroupMessage>>(null);
   const socket = getSocket();
+
+  const [attachSheetVisible, setAttachSheetVisible] = useState(false);
+  const [emojiPanelVisible, setEmojiPanelVisible] = useState(false);
+
+  // Fotograf/galeri - DMScreen.tsx'teki pendingImages/SendMediaSheet akisiyla
+  // AYNI, sadece "dm:sendImage" yerine "group:sendImage".
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Ani kamera cekimi - DMScreen.tsx'teki startQuickCapture ile AYNI, SADECE
+  // video modu YOK (grupta video mesaji henuz yok) - tek derdi bir fotograf
+  // cekip pendingImages kuyruguna eklemek.
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [quickCaptureActive, setQuickCaptureActive] = useState(false);
+  const [quickCameraReady, setQuickCameraReady] = useState(false);
+  const [quickCameraFacing, setQuickCameraFacing] = useState<"back" | "front">("back");
+  const [quickCameraFlash, setQuickCameraFlash] = useState<"off" | "on">("off");
+  const [capturingQuickPhoto, setCapturingQuickPhoto] = useState(false);
+  const cameraRef = useRef<CameraView>(null);
+
+  // Sesli mesaj kaydi - DMScreen.tsx'teki ile BIREBIR AYNI (view-once
+  // anahtari haric - grupta HENUZ yok).
+  const audioRecorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
+  const recorderState = useAudioRecorderState(audioRecorder, 200);
+  const waveHistoryRef = useRef<number[]>([]);
+  const lastMeteringTickRef = useRef(-1);
+  const [voiceRecording, setVoiceRecording] = useState(false);
+  const [sendingVoice, setSendingVoice] = useState(false);
+  const [recordingLocked, setRecordingLocked] = useState(false);
+  const [recordingPaused, setRecordingPaused] = useState(false);
+  const recordDragX = useRef(new Animated.Value(0)).current;
+  const recordDragY = useRef(new Animated.Value(0)).current;
+  const recordLockedRef = useRef(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
@@ -92,6 +234,253 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     showAlert(t("friends.groupCallAction"), t("profile.comingSoon"));
   }
 
+  // Konum/dosya/anket/muzik/kisi/cikartma grupta HENUZ yok (bkz. dosya basi
+  // notu) - bu satirlar/dugmeler GORUNUMDE duruyor, basilinca "yakinda"
+  // gosteriyor.
+  function placeholderInputFeature(label: string) {
+    showAlert(label, t("profile.comingSoon"));
+  }
+
+  function insertEmoji(emoji: string) {
+    setInput((prev) => prev + emoji);
+  }
+
+  async function pickImage() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+      allowsMultipleSelection: true,
+      selectionLimit: 10,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    setAttachSheetVisible(false);
+    setPendingImages((prev) => [...prev, ...result.assets!.map((a) => a.uri)]);
+  }
+
+  function removePendingImage(index: number) {
+    setPendingImages((prev) => prev.filter((_, i) => i !== index));
+  }
+  function replacePendingImage(index: number, uri: string) {
+    setPendingImages((prev) => prev.map((u, i) => (i === index ? uri : u)));
+  }
+
+  async function sendPickedImage(caption: string) {
+    if (!pendingImages.length || !myUserId) return;
+    setUploadingImage(true);
+    setUploadProgress(0);
+    const total = pendingImages.length;
+    try {
+      for (let i = 0; i < total; i++) {
+        const uri = pendingImages[i];
+        const arrayBuffer = await uriToArrayBuffer(uri);
+        const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
+        const contentType = ext === "png" ? "image/png" : "image/jpeg";
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const path = `${myUserId}/${fileName}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, contentType, (pct) => {
+          setUploadProgress(Math.round(((i + pct / 100) / total) * 100));
+        });
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        const isLast = i === total - 1;
+        await new Promise<void>((resolve, reject) => {
+          socket.emit(
+            "group:sendImage",
+            { groupId: group.id, mediaUrl: publicUrlData.publicUrl, caption: isLast ? caption || undefined : undefined },
+            (res: any) => {
+              if (res?.ok) {
+                setMessages((prev) => [...prev, res.message]);
+                resolve();
+              } else reject(new Error(res?.error || t("dm.imageSendFailedBody")));
+            }
+          );
+        });
+      }
+      setPendingImages([]);
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.imageSendErrorBody"));
+    } finally {
+      setUploadingImage(false);
+      setUploadProgress(0);
+    }
+  }
+
+  async function startQuickCapture() {
+    if (!cameraPermission?.granted) {
+      const res = await requestCameraPermission();
+      if (!res.granted) {
+        showAlert(t("dm.permissionRequiredTitle"), t("dm.cameraPermissionRequiredBody"));
+        return;
+      }
+    }
+    setQuickCameraReady(false);
+    setQuickCameraFacing("back");
+    setQuickCameraFlash("off");
+    setCapturingQuickPhoto(false);
+    setAttachSheetVisible(false);
+    setQuickCaptureActive(true);
+  }
+
+  function handleQuickCameraReady() {
+    setQuickCameraReady(true);
+  }
+  function toggleQuickCameraFacing() {
+    setQuickCameraFacing((f) => (f === "back" ? "front" : "back"));
+  }
+  function toggleQuickCameraFlash() {
+    setQuickCameraFlash((f) => (f === "off" ? "on" : "off"));
+  }
+  function handleQuickGalleryPress() {
+    setQuickCaptureActive(false);
+    pickImage();
+  }
+
+  // expo-camera web'de "onCameraReady" ilk kareden ONCE de tetiklenebiliyor
+  // ("not enough camera data" hatasi) - birkac deneme ile bekliyoruz.
+  async function handleQuickShutterPress() {
+    if (capturingQuickPhoto || !quickCameraReady) return;
+    setCapturingQuickPhoto(true);
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const photo = await cameraRef.current?.takePictureAsync({ quality: 0.7 });
+        if (photo?.uri) {
+          setQuickCaptureActive(false);
+          setCapturingQuickPhoto(false);
+          setPendingImages((prev) => [...prev, photo.uri]);
+          return;
+        }
+      } catch {
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
+    setCapturingQuickPhoto(false);
+  }
+
+  async function startVoiceRecording() {
+    const perm = await requestRecordingPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.micPermissionRequiredBody"));
+      return;
+    }
+    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+    await audioRecorder.prepareToRecordAsync();
+    audioRecorder.record();
+    waveHistoryRef.current = [];
+    lastMeteringTickRef.current = -1;
+    setVoiceRecording(true);
+    setRecordingLocked(false);
+    setRecordingPaused(false);
+  }
+
+  async function cancelVoiceRecording() {
+    if (audioRecorder.isRecording) await audioRecorder.stop();
+    setVoiceRecording(false);
+    setRecordingLocked(false);
+    setRecordingPaused(false);
+  }
+
+  function pauseResumeRecording() {
+    if (recordingPaused) {
+      audioRecorder.record();
+      setRecordingPaused(false);
+    } else {
+      audioRecorder.pause();
+      setRecordingPaused(true);
+    }
+  }
+
+  async function sendVoiceRecording() {
+    const durationMs = recorderState.durationMillis;
+    if (audioRecorder.isRecording) await audioRecorder.stop();
+    setVoiceRecording(false);
+    setRecordingLocked(false);
+    setRecordingPaused(false);
+    const uri = audioRecorder.uri;
+    if (!uri || !myUserId) return;
+    setSendingVoice(true);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.m4a`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, "audio/m4a", () => {});
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      socket.emit("group:sendVoice", { groupId: group.id, mediaUrl: publicUrlData.publicUrl, durationMs }, (res: any) => {
+        if (res?.ok) setMessages((prev) => [...prev, res.message]);
+        else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+      });
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingVoice(false);
+    }
+  }
+
+  const micPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        if (Platform.OS === "web" && typeof document !== "undefined") {
+          (document.body.style as any).userSelect = "none";
+        }
+        recordLockedRef.current = false;
+        recordDragX.setValue(0);
+        recordDragY.setValue(0);
+        startVoiceRecording();
+      },
+      onPanResponderMove: (_evt, g) => {
+        if (recordLockedRef.current) return;
+        recordDragX.setValue(Math.min(0, g.dx));
+        recordDragY.setValue(Math.min(0, g.dy));
+        if (-g.dy > LOCK_DRAG_THRESHOLD) {
+          recordLockedRef.current = true;
+          setRecordingLocked(true);
+          Animated.spring(recordDragX, { toValue: 0, useNativeDriver: true }).start();
+          Animated.spring(recordDragY, { toValue: 0, useNativeDriver: true }).start();
+        }
+      },
+      onPanResponderRelease: (_evt, g) => {
+        if (Platform.OS === "web" && typeof document !== "undefined") {
+          (document.body.style as any).userSelect = "";
+        }
+        if (recordLockedRef.current) return;
+        Animated.spring(recordDragX, { toValue: 0, useNativeDriver: true }).start();
+        Animated.spring(recordDragY, { toValue: 0, useNativeDriver: true }).start();
+        if (-g.dx > CANCEL_DRAG_THRESHOLD) cancelVoiceRecording();
+        else sendVoiceRecording();
+      },
+      onPanResponderTerminate: () => {
+        if (Platform.OS === "web" && typeof document !== "undefined") {
+          (document.body.style as any).userSelect = "";
+        }
+        Animated.spring(recordDragX, { toValue: 0, useNativeDriver: true }).start();
+        Animated.spring(recordDragY, { toValue: 0, useNativeDriver: true }).start();
+        if (!recordLockedRef.current) cancelVoiceRecording();
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    })
+  ).current;
+
+  const recordCancelHintOpacity = recordDragX.interpolate({
+    inputRange: [-CANCEL_DRAG_THRESHOLD, -10, 0],
+    outputRange: [0, 1, 1],
+    extrapolate: "clamp",
+  });
+
+  if (voiceRecording && recorderState.durationMillis !== lastMeteringTickRef.current) {
+    lastMeteringTickRef.current = recorderState.durationMillis;
+    const db = recorderState.metering ?? -60;
+    const norm = Math.min(1, Math.max(0, (db + 60) / 60));
+    waveHistoryRef.current = [...waveHistoryRef.current, norm].slice(-WAVE_BAR_COUNT);
+  }
+  const waveHeights = Array.from({ length: WAVE_BAR_COUNT }, (_, i) => {
+    const idx = waveHistoryRef.current.length - WAVE_BAR_COUNT + i;
+    const norm = idx >= 0 ? waveHistoryRef.current[idx] : 0;
+    return 4 + norm * 14;
+  });
+
   return (
     <View style={styles.screen}>
       <AppBackground />
@@ -101,11 +490,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
             <CircleArrowDown size={22} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.headerProfileTouch}
-          activeOpacity={0.75}
-          onPress={() => onOpenInfo?.(groupDetail)}
-        >
+        <TouchableOpacity style={styles.headerProfileTouch} activeOpacity={0.75} onPress={() => onOpenInfo?.(groupDetail)}>
           <View style={{ marginLeft: -1 }}>
             <Avatar name={groupDetail.name} avatarUrl={groupDetail.avatarUrl} size={46} />
           </View>
@@ -144,51 +529,224 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
           const isMine = item.fromUserId === myUserId;
           const prev = messages[index - 1];
           const groupedWithPrev = !!prev && prev.fromUserId === item.fromUserId;
-          const sender = memberById.get(item.fromUserId);
-          return (
-            <View style={[styles.messageRow, isMine ? styles.messageRowMine : styles.messageRowTheirs, !groupedWithPrev && styles.messageRowNewGroup]}>
-              {!isMine && (
-                <View style={styles.senderAvatarWrap}>
-                  {!groupedWithPrev ? (
-                    <Avatar name={sender?.name || item.fromName} avatarUrl={sender?.avatarUrl} size={28} isFriend />
-                  ) : (
-                    <View style={styles.senderAvatarSpacer} />
-                  )}
-                </View>
-              )}
-              <View style={styles.bubbleCol}>
-                {!isMine && !groupedWithPrev && (
-                  <Text style={styles.senderName}>{sender?.name || item.fromName}</Text>
-                )}
-                <View style={styles.bubbleWrap}>
-                  <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
-                    <Text style={styles.bubbleText}>{item.text}</Text>
-                    <View style={styles.metaRow}>
-                      <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </View>
-          );
+          return <GroupBubbleRow item={item} isMine={isMine} groupedWithPrev={groupedWithPrev} sender={memberById.get(item.fromUserId)} />;
         }}
       />
 
-      <View style={styles.inputBar}>
-        <View style={[styles.inputPill, styles.inputPillNormal]}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder={t("dm.messagePlaceholder")}
-            placeholderTextColor={MUTED}
-            onSubmitEditing={sendMessage}
-          />
-        </View>
-        <TouchableOpacity style={[styles.inputRoundBtn, !input.trim() && styles.inputRoundBtnDisabled]} onPress={sendMessage} hitSlop={8} disabled={!input.trim()}>
-          <Send size={20} color="#141210" />
-        </TouchableOpacity>
+      <View
+        style={[styles.inputBar, voiceRecording && recordingLocked && styles.inputBarLockedWrap]}
+      >
+        {voiceRecording && !recordingLocked && (
+          <Animated.View pointerEvents="none" style={[styles.recordLockHintWrap, { transform: [{ translateY: recordDragY }] }]}>
+            <View style={{ marginTop: 5, alignItems: "center" }}>
+              <LockClosedIcon size={17} color="#FFFFFF" strokeWidth={2} />
+              <ChevronUp size={15} color="#FFFFFF" style={{ marginTop: -2 }} />
+            </View>
+          </Animated.View>
+        )}
+        {voiceRecording && recordingLocked ? (
+          <View style={styles.recordingLockedBar}>
+            <View style={[styles.recordLockedTopRow, { transform: [{ translateY: -5 }] }]}>
+              <View style={{ height: 58, justifyContent: "center", marginLeft: 6.9 }}>
+                <Text style={[styles.recordingTimeLocked, { transform: [{ translateY: -1 }] }]}>
+                  {formatRecordingTime(recorderState.durationMillis)}
+                </Text>
+              </View>
+              <View style={styles.recordLiveWave}>
+                {waveHeights.map((h, i) => (
+                  <View key={i} style={[styles.recordLiveWaveBar, { height: h }]} />
+                ))}
+              </View>
+            </View>
+            <View style={styles.recordLockedBottomRow}>
+              <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={8} style={[styles.inputRoundBtn, { backgroundColor: "#FF4D4F" }]}>
+                <Trash2 size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={pauseResumeRecording} hitSlop={8} style={styles.recordPausePill}>
+                {recordingPaused ? <Play size={20} color={TEXT} /> : <Pause size={20} color={TEXT} />}
+                <Text style={[styles.recordPausePillText, { transform: [{ translateY: 1 }] }]}>
+                  {recordingPaused ? t("dm.recordResume") : t("dm.recordPause")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.inputRoundBtn} onPress={sendVoiceRecording} disabled={sendingVoice} hitSlop={8}>
+                {sendingVoice ? <ActivityIndicator size="small" color="#141210" /> : <Send size={20} color="#141210" />}
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <>
+            <View style={[styles.inputPill, styles.inputPillNormal, voiceRecording && styles.recordingPill]}>
+              {voiceRecording ? (
+                <>
+                  <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={8}>
+                    <Trash2 size={20} color={MUTED} />
+                  </TouchableOpacity>
+                  <View style={styles.recordingDot} />
+                  <Text style={styles.recordingTime}>{formatRecordingTime(recorderState.durationMillis)}</Text>
+                  <View style={{ flex: 1 }} />
+                  <Animated.Text
+                    style={[
+                      styles.recordCancelHintText,
+                      { opacity: recordCancelHintOpacity, transform: [{ translateX: Animated.add(recordDragX, -15) }] },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {"‹ " + t("dm.recordSlideToCancel")}
+                  </Animated.Text>
+                </>
+              ) : (
+                <View style={styles.inputIconsRow}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setAttachSheetVisible(false);
+                      setEmojiPanelVisible((v) => !v);
+                    }}
+                    hitSlop={6}
+                  >
+                    <Laugh size={25} color="#9CA3AF" />
+                  </TouchableOpacity>
+                  <TextInput
+                    style={styles.input}
+                    value={input}
+                    onChangeText={setInput}
+                    placeholder={t("dm.messagePlaceholder")}
+                    placeholderTextColor={MUTED}
+                    onSubmitEditing={sendMessage}
+                    onFocus={() => {
+                      setAttachSheetVisible(false);
+                      setEmojiPanelVisible(false);
+                    }}
+                  />
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -33 }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setEmojiPanelVisible(false);
+                        setAttachSheetVisible((v) => !v);
+                      }}
+                      hitSlop={6}
+                    >
+                      <View style={{ transform: [{ rotate: "-45deg" }] }}>
+                        <Paperclip size={23} color="#9CA3AF" strokeWidth={1.7} />
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={startQuickCapture} hitSlop={6} style={{ marginLeft: 5 }}>
+                      <SimpleLineIcons name="camera" size={25} color="#9CA3AF" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+            {!voiceRecording && input.trim() ? (
+              <TouchableOpacity style={styles.inputRoundBtn} onPress={sendMessage} hitSlop={8}>
+                <Send size={20} color="#141210" />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.inputRoundBtn} {...micPan.panHandlers}>
+                <MicrophoneIcon size={22.5} color="#141210" strokeWidth={2} />
+              </View>
+            )}
+          </>
+        )}
       </View>
+
+      {attachSheetVisible && (
+        <View style={styles.attachSheet}>
+          <View style={styles.attachGrid}>
+            <TouchableOpacity style={styles.attachGridItem} onPress={pickImage}>
+              <View style={styles.attachIconWrap}>
+                <ImageIcon size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachGallery")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholderInputFeature(t("dm.attachLocation"))}>
+              <View style={styles.attachIconWrap}>
+                <MapPin size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachLocation")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholderInputFeature(t("dm.attachFile"))}>
+              <View style={styles.attachIconWrap}>
+                <FileTextIcon size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachFile")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholderInputFeature(t("dm.attachPoll"))}>
+              <View style={styles.attachIconWrap}>
+                <BarChart2 size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachPoll")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholderInputFeature(t("dm.attachMusic"))}>
+              <View style={styles.attachIconWrap}>
+                <Music size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachMusic")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholderInputFeature(t("dm.attachContact"))}>
+              <View style={styles.attachIconWrap}>
+                <UserIcon size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachContact")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {emojiPanelVisible && <View style={{ height: EMOJI_PANEL_BASE_HEIGHT }} />}
+      {emojiPanelVisible && (
+        <EmojiKeyboardPanel
+          onSelect={insertEmoji}
+          onSendSticker={() => placeholderInputFeature(t("profile.comingSoon"))}
+          customStickers={[]}
+          onCreateSticker={() => placeholderInputFeature(t("profile.comingSoon"))}
+          customGifs={[]}
+          onCreateGif={() => placeholderInputFeature(t("profile.comingSoon"))}
+        />
+      )}
+
+      {quickCaptureActive && cameraPermission?.granted && (
+        <View style={styles.quickCameraOverlay}>
+          <CameraView ref={cameraRef} style={styles.quickCameraView} facing={quickCameraFacing} flash={quickCameraFlash} onCameraReady={handleQuickCameraReady} />
+          <View style={styles.quickCameraTopBar}>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={() => setQuickCaptureActive(false)} hitSlop={10}>
+              <Icon name="close" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFlash} hitSlop={10}>
+              <Ionicons name={quickCameraFlash === "on" ? "flash-outline" : "flash-off-outline"} size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.quickCameraBottomBar}>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={handleQuickGalleryPress} hitSlop={10}>
+              <ImageIcon size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.quickCameraShutterOuter}
+              onPress={handleQuickShutterPress}
+              disabled={!quickCameraReady || capturingQuickPhoto}
+              hitSlop={8}
+            >
+              <View style={[styles.quickCameraShutterInner, capturingQuickPhoto && styles.quickCameraShutterInnerActive]} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
+              <MaterialCommunityIcons name="camera-flip-outline" size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      <SendMediaSheet
+        visible={pendingImages.length > 0}
+        images={pendingImages}
+        uploading={uploadingImage}
+        uploadProgress={uploadProgress}
+        onCancel={() => setPendingImages([])}
+        onRemoveImage={removePendingImage}
+        onAddMore={pickImage}
+        onReplaceImage={replacePendingImage}
+        onSend={(caption) => sendPickedImage(caption)}
+      />
     </View>
   );
 }
@@ -220,15 +778,82 @@ const styles = StyleSheet.create({
   senderName: { color: MUTED, fontSize: 12, fontWeight: "700", marginBottom: 2, marginLeft: 2 },
   bubbleWrap: { position: "relative" },
   bubble: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 8 },
+  bubbleVoicePad: { paddingTop: 13, paddingBottom: 10 },
+  bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3, width: 286 },
   bubbleMine: { backgroundColor: BUBBLE_MINE_COLOR },
   bubbleTheirs: { backgroundColor: "#1E293B" },
   bubbleText: { color: TEXT, fontSize: 16, lineHeight: 21 },
+  mediaCaption: { color: TEXT, fontSize: 14, marginTop: 6, paddingHorizontal: 2 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, alignSelf: "flex-end" },
+  metaRowPhotoOverlay: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    marginTop: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
   metaTime: { color: "rgba(255,255,255,0.65)", fontSize: 11 },
   inputBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 15 },
+  inputBarLockedWrap: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
   inputPill: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#15202B", borderRadius: 27.5, paddingLeft: 14, paddingRight: 10 },
   inputPillNormal: { height: 55 },
+  recordingPill: { flexDirection: "row", alignItems: "center", gap: 10 },
+  recordingDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FF4D4F" },
+  recordingTime: { color: TEXT, fontSize: 15, fontWeight: "600" },
+  recordingTimeLocked: { color: TEXT, fontSize: 20, fontWeight: "600" },
+  recordCancelHintText: { color: MUTED, fontSize: 13, fontWeight: "500" },
+  recordLockHintWrap: {
+    position: "absolute",
+    right: 19.5,
+    bottom: 84,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#1E293B",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recordingLockedBar: {
+    width: "100%",
+    height: 150,
+    flexDirection: "column",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    backgroundColor: "#15202B",
+  },
+  recordLockedTopRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  recordLiveWave: { flex: 1, flexDirection: "row", alignItems: "center", gap: 1.5, height: 18 },
+  recordLiveWaveBar: { flex: 1, borderRadius: 1, backgroundColor: MUTED },
+  recordLockedBottomRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  recordPausePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    width: 260,
+    height: 55,
+    borderRadius: 27.5,
+    backgroundColor: "#55555A",
+  },
+  recordPausePillText: { color: TEXT, fontSize: 14, fontWeight: "600" },
+  inputIconsRow: { height: 55, flexDirection: "row", alignItems: "center", gap: 10, paddingLeft: 14, paddingRight: 10, marginLeft: -15 },
   input: { flex: 1, color: TEXT, fontSize: 14, paddingTop: 7, paddingBottom: 6, outlineWidth: 0, outlineStyle: "none" } as any,
   inputRoundBtn: { width: 55, height: 55, borderRadius: 27.5, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
-  inputRoundBtnDisabled: { opacity: 0.5 },
+  attachSheet: { backgroundColor: "#15202B", height: 300, paddingTop: 18, paddingHorizontal: 20, alignItems: "center" },
+  attachGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap" },
+  attachGridItem: { width: "33.33%", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
+  attachIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: "rgba(14,165,233,0.12)", alignItems: "center", justifyContent: "center" },
+  attachGridText: { color: TEXT, fontSize: 13, fontWeight: "600" },
+  quickCameraOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#000000" },
+  quickCameraView: { flex: 1, marginTop: 50, marginBottom: 70 },
+  quickCameraTopBar: { position: "absolute", top: 70, left: 16, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  quickCameraTopBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
+  quickCameraBottomBar: { position: "absolute", bottom: 86, left: 16, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  quickCameraShutterOuter: { width: 72, height: 72, borderRadius: 36, borderWidth: 4, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  quickCameraShutterInner: { width: 58, height: 58, borderRadius: 29, backgroundColor: "#FFFFFF" },
+  quickCameraShutterInnerActive: { backgroundColor: "#9CA3AF" },
 });

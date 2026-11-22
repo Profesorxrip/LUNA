@@ -212,6 +212,8 @@
     "blockConfirmTitle": "Engelle",
     "blockConfirmBody": "{{name}} kullanıcısını engellemek istediğine emin misin?",
     "attachCamera": "Kamera",
+    "emojiLabel": "Emoji",
+    "attachMenuLabel": "Ek",
     "attachGallery": "Galeriden Seç",
     "attachLocation": "Konum",
     "locationPickerTitle": "Konum Gönder",

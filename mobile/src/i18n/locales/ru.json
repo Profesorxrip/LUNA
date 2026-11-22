@@ -212,6 +212,8 @@
     "blockConfirmTitle": "Заблокировать",
     "blockConfirmBody": "Вы уверены, что хотите заблокировать {{name}}?",
     "attachCamera": "Камера",
+    "emojiLabel": "Эмодзи",
+    "attachMenuLabel": "Вложение",
     "attachGallery": "Выбрать из галереи",
     "attachLocation": "Геопозиция",
     "locationPickerTitle": "Отправить геопозицию",

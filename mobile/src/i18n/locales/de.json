@@ -212,6 +212,8 @@
     "blockConfirmTitle": "Blockieren",
     "blockConfirmBody": "Möchtest du {{name}} wirklich blockieren?",
     "attachCamera": "Kamera",
+    "emojiLabel": "Emoji",
+    "attachMenuLabel": "Anhang",
     "attachGallery": "Aus Galerie wählen",
     "attachLocation": "Standort",
     "locationPickerTitle": "Standort senden",

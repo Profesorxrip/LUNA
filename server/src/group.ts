@@ -13,6 +13,12 @@ export interface GroupMessage {
   fromName: string;
   text: string;
   createdAt: number;
+  // "text" (varsayilan), "photo", "voice" - bkz. 0048_group_media_messages.sql
+  // (DM'deki kind/media_url/is_adult/duration_ms ile AYNI desen).
+  kind: "text" | "photo" | "voice";
+  mediaUrl: string | null;
+  isAdult: boolean;
+  durationMs: number | null;
 }
 
 export interface GroupMember {
@@ -44,6 +50,10 @@ function mapMessageRow(row: any): GroupMessage {
     fromName: row.from_name,
     text: row.text,
     createdAt: new Date(row.created_at).getTime(),
+    kind: row.kind ?? "text",
+    mediaUrl: row.media_url ?? null,
+    isAdult: row.is_adult === true,
+    durationMs: row.duration_ms ?? null,
   };
 }
 
@@ -101,6 +111,38 @@ export async function sendGroupMessage(
   text: string
 ): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
   const { data, error } = await db.rpc("send_group_message", { gid: groupId, body: text });
+  if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
+  return { ok: true, message: mapMessageRow(data) };
+}
+
+export async function sendGroupImage(
+  db: SupabaseClient,
+  groupId: string,
+  mediaUrl: string,
+  isAdult: boolean,
+  caption?: string
+): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_group_image", {
+    gid: groupId,
+    media_url: mediaUrl,
+    is_adult: isAdult,
+    caption: caption ?? null,
+  });
+  if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
+  return { ok: true, message: mapMessageRow(data) };
+}
+
+export async function sendGroupVoice(
+  db: SupabaseClient,
+  groupId: string,
+  mediaUrl: string,
+  durationMs?: number
+): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_group_voice", {
+    gid: groupId,
+    media_url: mediaUrl,
+    duration_ms: durationMs ?? null,
+  });
   if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
   return { ok: true, message: mapMessageRow(data) };
 }
