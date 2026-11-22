@@ -1849,7 +1849,7 @@ const styles = StyleSheet.create({
   // istegi: "fotoğrafsa fotoğraf videoysa video... yazdığımız bir mesaj
   // balonu" + yaninda "1" rozeti (VoiceOnceRingIcon, kayit cubugundaki ile
   // AYNI gorsel).
-  viewOnceUnopenedRow: { flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -15 },
+  viewOnceUnopenedRow: { flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -12 },
   // Rozet (40px) metnin satir yuksekliginden (21px) buyuk oldugu icin, balon
   // yuksekligi bozulmasin diye rozeti sabit 21px'lik bir kutu icinde
   // ortalayip tasiriyoruz (overflow visible) - boylece balonun toplam
