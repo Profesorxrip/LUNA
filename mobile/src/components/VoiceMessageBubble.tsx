@@ -11,9 +11,12 @@ interface Props {
   // alt bilgi satirina (gonderim saatiyle AYNI hizaya) tasinabilsin diye
   // deger her degistiginde bu callback ile yukari bildiriliyor.
   onTimeLabel?: (label: string) => void;
-  // SADECE tek-gorunumluk (view-once) mesajlarda verilir - DURDURULMUS/
-  // BASLANGICTAKI durumdan OYNAMAYA gecerken (ilk "play" basisi) bir kere
-  // cagrilir, DMScreen bunu sunucuya "dm:consumeVoiceOnce" olarak iletir.
+  // SADECE tek-gorunumluk (view-once) mesajlarda verilir - kullanici istegi:
+  // "bir kere basinca degistirememeliyiz, bittiginde bitmis haline donusur"
+  // - yani ilk basista DEGIL, dinleme TAMAMEN BITINCE (didJustFinish) bir
+  // kere cagrilir. Erken cagirsaydik, sunucu "consumed" olayini hemen geri
+  // yollar, item.mediaUrl undefined olur ve bu bilesen OYNARKEN sokulup
+  // atilirdi (ses birden kesilirdi).
   onPlay?: () => void;
   // Kullanici istegi: tek-gorunumluk sesli mesaj HENUZ hic oynatilmadiysa
   // play ucgeni yerine gonderim ekranindaki (SendMediaSheet/SendVideoSheet)
@@ -55,15 +58,27 @@ export default function VoiceMessageBubble({ uri, durationMs, onTimeLabel, onPla
     onTimeLabel?.(timeLabel);
   }, [timeLabel, onTimeLabel]);
 
+  useEffect(() => {
+    if (viewOnceUnplayed && status.didJustFinish) {
+      onPlay?.();
+    }
+  }, [viewOnceUnplayed, status.didJustFinish, onPlay]);
+
   return (
     <TouchableOpacity
       style={styles.row}
       activeOpacity={0.8}
       onPress={() => {
+        if (viewOnceUnplayed) {
+          // Tek-gorunumlukte duraklatma/sarma YOK - sadece ilk basista
+          // baslatir, sonrasinda dokunulsa da hicbir sey yapmaz, sonuna
+          // kadar kendi kendine calar.
+          if (!status.playing && status.currentTime === 0) player.play();
+          return;
+        }
         if (status.playing) {
           player.pause();
         } else {
-          onPlay?.();
           if (status.currentTime >= duration && duration > 0) player.seekTo(0);
           player.play();
         }
