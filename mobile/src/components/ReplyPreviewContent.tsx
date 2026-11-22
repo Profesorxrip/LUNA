@@ -162,11 +162,11 @@ export default function ReplyPreviewContent({ fromName, text, kind, mediaUrl, ca
       // bunu istemedi - blok SABIT kalmali). Cozum: 14x14'luk SABIT bir
       // kutu (digerleriyle AYNI "ayak izi") icine, kutudan TASARAK
       // (overflow visible + absolute ortalama) GERCEKTEN cok daha buyuk
-      // (46px) bir ikon yerlestiriliyor - satir/blok yuksekligi ETKILENMEZ.
+      // (40px) bir ikon yerlestiriliyor - satir/blok yuksekligi ETKILENMEZ.
       IconEl = (
         <View style={styles.viewOnceIconOverflowBox}>
           <View style={styles.viewOnceIconAbs}>
-            <VoiceOnceRingIcon size={46} color={viewOnceColor} />
+            <VoiceOnceRingIcon size={40} color={viewOnceColor} />
           </View>
         </View>
       );
@@ -248,8 +248,8 @@ const styles = StyleSheet.create({
   // Asagidaki ikiliyle (bkz. IconEl'deki isViewOnceMedia dali) satir/blok
   // yuksekligini DEGISTIRMEDEN (ayak izi digerleriyle ayni 14x14) cok daha
   // buyuk bir ikonu TAM ORTALANMIS sekilde disari tasirarak gostermek icin -
-  // 46px ikon icin offset = (46-14)/2 = 16.
+  // 40px ikon icin offset = (40-14)/2 = 13.
   viewOnceIconOverflowBox: { width: 14, height: 14 },
-  viewOnceIconAbs: { position: "absolute", left: -16, top: -16 },
+  viewOnceIconAbs: { position: "absolute", left: -13, top: -13 },
   bodyText: { fontSize: 12, flexShrink: 1 },
 });
