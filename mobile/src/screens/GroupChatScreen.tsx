@@ -1379,7 +1379,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
           const id = pendingScrollMessageId.current;
           if (id) setTimeout(() => scrollToMessage(id), 100);
         }}
-        ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>{t("dm.noMessagesYet")}</Text>}
+        ListEmptyComponent={loading ? <LoadingView /> : null}
         ListHeaderComponent={
           <View style={styles.encryptionNoticeWrap}>
             <View style={styles.encryptionNotice}>
@@ -1765,7 +1765,6 @@ const styles = StyleSheet.create({
   headerName: { color: TEXT, fontSize: 18, fontWeight: "700" },
   headerSelectionCountText: { color: TEXT, fontSize: 20, fontWeight: "700" },
   listContent: { padding: 16, paddingBottom: 1, gap: 4 },
-  emptyText: { color: MUTED, textAlign: "center", marginTop: 40, fontSize: 13 },
   encryptionNoticeWrap: { alignItems: "center", paddingHorizontal: 20, marginTop: -6, paddingTop: 1, paddingBottom: 7 },
   encryptionNotice: { alignItems: "center", backgroundColor: "#15202B", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, maxWidth: 320 },
   encryptionNoticeRow: { alignItems: "center" },
