@@ -1,10 +1,20 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
-// Grup sohbeti - ilk surum, SADECE metin mesaji (bkz. 0047_groups.sql).
-// DM'in dm_conversations/dm_messages ciftiyle AYNI desen, dm.ts'teki
-// mapRow/openConversation/sendMessage ile birebir paralel - sadece
-// mediaUrl/poll/sticker/vb. yok (bunlar DM'de bile onlarca migration'da
-// yavas yavas eklendi, grup icin de ileride ayni sekilde eklenebilir).
+// Grup sohbeti - dm.ts'teki (DM, "Kişi Mesajı") ile BIREBIR AYNI desene
+// ulasti: metin/foto/sesli/video/konum/dosya/muzik/kisi/anket/cikartma
+// mesaj turleri VE basili tutma menusu (yanitla/sabitle/sil) - bkz.
+// 0047-0051 migration'lari. Tek fark: "ilet" icin AYRI bir grup RPC'si
+// YOK - bir grup mesaji baska bir kisiye (DM'e) iletilirken var olan
+// forward_dm_message RPC'si (0037_dm_message_actions.sql) dogrudan
+// kullanilir (bkz. index.ts "group:forwardToDm" - GroupMessage alanlari
+// zaten DMMessage ile AYNI isimlerde, dogrudan eslesir).
+
+export interface GroupReply {
+  text: string;
+  fromName: string;
+  kind?: GroupMessage["kind"] | null;
+  mediaUrl?: string | null;
+}
 
 export interface GroupMessage {
   id: string;
@@ -13,17 +23,37 @@ export interface GroupMessage {
   fromName: string;
   text: string;
   createdAt: number;
-  // "text" (varsayilan), "photo", "voice" - bkz. 0048_group_media_messages.sql
-  // (DM'deki kind/media_url/is_adult/duration_ms ile AYNI desen).
-  kind: "text" | "photo" | "voice";
+  kind: "text" | "photo" | "voice" | "location" | "file" | "video" | "contact" | "poll" | "music" | "sticker";
   mediaUrl: string | null;
   isAdult: boolean;
   durationMs: number | null;
-  // "Tek görünümlük" - bkz. 0049_group_voice_view_once.sql (DM'deki
-  // view_once/view_once_consumed_at ile AYNI desen). viewOnceConsumed true
-  // olunca mediaUrl ARTIK null'dur (sunucu temizledi).
+  latitude: number | null;
+  longitude: number | null;
+  fileName: string | null;
+  fileSize: number | null;
+  mimeType: string | null;
+  sharedUserId: string | null;
+  sharedUserName: string | null;
+  sharedUserHandle: string | null;
+  sharedUserAvatarUrl: string | null;
+  pollQuestion: string | null;
+  pollOptions: string[] | null;
+  pollOptionImages: string[] | null;
+  pollVotes: number[] | null;
+  myPollVote: number | null;
+  stickerId: string | null;
+  replyTo: GroupReply | null;
+  deletedForEveryone: boolean;
+  // "benden sil" uygulanmis satirlar listeye hic girmez (bkz. visibleToMe),
+  // bu yuzden DMMessage'daki gibi burada ayri bir alan YOK.
   viewOnce: boolean;
   viewOnceConsumed: boolean;
+}
+
+export interface GroupPinnedMessage {
+  message: GroupMessage;
+  pinnedBy: string;
+  pinnedAt: number;
 }
 
 export interface GroupMember {
@@ -59,9 +89,58 @@ function mapMessageRow(row: any): GroupMessage {
     mediaUrl: row.media_url ?? null,
     isAdult: row.is_adult === true,
     durationMs: row.duration_ms ?? null,
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
+    fileName: row.file_name ?? null,
+    fileSize: row.file_size ?? null,
+    mimeType: row.mime_type ?? null,
+    sharedUserId: row.shared_user_id ?? null,
+    sharedUserName: row.shared_user_name ?? null,
+    sharedUserHandle: row.shared_user_handle ?? null,
+    sharedUserAvatarUrl: row.shared_user_avatar_url ?? null,
+    pollQuestion: row.poll_question ?? null,
+    pollOptions: row.poll_options ?? null,
+    pollOptionImages: row.poll_option_images ?? null,
+    pollVotes: null,
+    myPollVote: null,
+    stickerId: row.sticker_id ?? null,
+    replyTo: row.reply_to_text
+      ? { text: row.reply_to_text, fromName: row.reply_to_from_name, kind: row.reply_to_kind ?? null, mediaUrl: row.reply_to_media_url ?? null }
+      : null,
+    deletedForEveryone: row.deleted_for_everyone === true,
     viewOnce: row.view_once === true,
     viewOnceConsumed: row.view_once_consumed_at != null,
   };
+}
+
+function visibleToMe(row: any, myUserId: string): boolean {
+  return !Array.isArray(row.deleted_for) || !row.deleted_for.includes(myUserId);
+}
+
+/** DM'deki attachPollExtras ile AYNI amac - FARKI: grup N kisi oldugu icin
+ * (DM'in "en fazla 2 oy" varsayimi burada GECERSIZ) sadece guncel sayimi
+ * JS'te topluyoruz, mantik degismiyor. */
+async function attachPollExtras(db: SupabaseClient, myUserId: string, messages: GroupMessage[]): Promise<GroupMessage[]> {
+  const pollIds = messages.filter((m) => m.kind === "poll").map((m) => m.id);
+  if (!pollIds.length) return messages;
+  const { data: voteRows } = await db.from("group_poll_votes").select("message_id, user_id, option_index").in("message_id", pollIds);
+  const byMessage = new Map<string, { user_id: string; option_index: number }[]>();
+  for (const r of voteRows || []) {
+    const arr = byMessage.get(r.message_id) || [];
+    arr.push({ user_id: r.user_id, option_index: r.option_index });
+    byMessage.set(r.message_id, arr);
+  }
+  return messages.map((m) => {
+    if (m.kind !== "poll") return m;
+    const rows = byMessage.get(m.id) || [];
+    const n = m.pollOptions?.length ?? 0;
+    const tally = new Array(n).fill(0);
+    for (const r of rows) {
+      if (r.option_index >= 0 && r.option_index < n) tally[r.option_index]++;
+    }
+    const mine = rows.find((r) => r.user_id === myUserId);
+    return { ...m, pollVotes: tally, myPollVote: mine ? mine.option_index : null };
+  });
 }
 
 async function membersWithProfiles(db: SupabaseClient, groupId: string): Promise<GroupMember[]> {
@@ -98,26 +177,44 @@ export async function setGroupAvatar(db: SupabaseClient, groupId: string, avatar
  * GEREKMEZ. */
 export async function openGroup(
   db: SupabaseClient,
+  myUserId: string,
   groupId: string
-): Promise<{ group: GroupDetail; messages: GroupMessage[] } | null> {
+): Promise<{ group: GroupDetail; messages: GroupMessage[]; pinned: GroupPinnedMessage[] } | null> {
   const { data: convo } = await db.from("group_conversations").select("*").eq("id", groupId).maybeSingle();
   if (!convo) return null;
-  const [{ data: rows }, members] = await Promise.all([
+  const [{ data: rows }, members, { data: pinnedRows }] = await Promise.all([
     db.from("group_messages").select("*").eq("group_id", groupId).order("created_at", { ascending: true }),
     membersWithProfiles(db, groupId),
+    db.from("group_pinned_messages").select("*, group_messages(*)").eq("group_id", groupId).order("pinned_at", { ascending: true }),
   ]);
+  const messages = await attachPollExtras(
+    db,
+    myUserId,
+    (rows || []).filter((r: any) => visibleToMe(r, myUserId)).map(mapMessageRow)
+  );
   return {
     group: { id: convo.id, name: convo.name, avatarUrl: convo.avatar_url ?? null, members },
-    messages: (rows || []).map(mapMessageRow),
+    messages,
+    pinned: (pinnedRows || [])
+      .filter((r: any) => r.group_messages)
+      .map((r: any) => ({ message: mapMessageRow(r.group_messages), pinnedBy: r.pinned_by, pinnedAt: new Date(r.pinned_at).getTime() })),
   };
 }
 
 export async function sendGroupMessage(
   db: SupabaseClient,
   groupId: string,
-  text: string
+  text: string,
+  replyTo: GroupReply | null
 ): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
-  const { data, error } = await db.rpc("send_group_message", { gid: groupId, body: text });
+  const { data, error } = await db.rpc("send_group_message", {
+    gid: groupId,
+    body: text,
+    reply_text: replyTo?.text ?? null,
+    reply_from_name: replyTo?.fromName ?? null,
+    reply_kind: replyTo?.kind ?? null,
+    reply_media_url: replyTo?.mediaUrl ?? null,
+  });
   if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
   return { ok: true, message: mapMessageRow(data) };
 }
@@ -158,12 +255,159 @@ export async function sendGroupVoice(
   return { ok: true, message: mapMessageRow(data) };
 }
 
-/** DM'deki consumeMediaOnce ile AYNI mantik - bkz. 0049_group_voice_view_once.sql
+export async function sendGroupVideo(
+  db: SupabaseClient,
+  groupId: string,
+  mediaUrl: string,
+  durationMs?: number,
+  caption?: string,
+  viewOnce?: boolean
+): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_group_video", {
+    gid: groupId,
+    media_url: mediaUrl,
+    duration_ms: durationMs ?? null,
+    caption: caption ?? null,
+    view_once: viewOnce ?? false,
+  });
+  if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
+  return { ok: true, message: mapMessageRow(data) };
+}
+
+export async function sendGroupLocation(
+  db: SupabaseClient,
+  groupId: string,
+  latitude: number,
+  longitude: number
+): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_group_location", { gid: groupId, latitude, longitude });
+  if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
+  return { ok: true, message: mapMessageRow(data) };
+}
+
+export async function sendGroupFile(
+  db: SupabaseClient,
+  groupId: string,
+  mediaUrl: string,
+  fileName: string,
+  fileSize?: number,
+  mimeType?: string,
+  caption?: string
+): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_group_file", {
+    gid: groupId,
+    media_url: mediaUrl,
+    file_name: fileName,
+    file_size: fileSize ?? null,
+    mime_type: mimeType ?? null,
+    caption: caption ?? null,
+  });
+  if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
+  return { ok: true, message: mapMessageRow(data) };
+}
+
+export async function sendGroupMusic(
+  db: SupabaseClient,
+  groupId: string,
+  mediaUrl: string,
+  fileName: string,
+  fileSize?: number,
+  mimeType?: string,
+  caption?: string
+): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_group_music", {
+    gid: groupId,
+    media_url: mediaUrl,
+    file_name: fileName,
+    file_size: fileSize ?? null,
+    mime_type: mimeType ?? null,
+    caption: caption ?? null,
+  });
+  if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
+  return { ok: true, message: mapMessageRow(data) };
+}
+
+export async function sendGroupContact(
+  db: SupabaseClient,
+  groupId: string,
+  sharedUserId: string
+): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_group_contact", { gid: groupId, shared_user_id: sharedUserId });
+  if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
+  return { ok: true, message: mapMessageRow(data) };
+}
+
+export async function sendGroupPoll(
+  db: SupabaseClient,
+  groupId: string,
+  question: string,
+  options: string[],
+  optionImages?: (string | null)[]
+): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_group_poll", {
+    gid: groupId,
+    question,
+    options,
+    option_images: optionImages ?? null,
+  });
+  if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
+  const message = mapMessageRow(data);
+  message.pollVotes = new Array(message.pollOptions?.length ?? 0).fill(0);
+  message.myPollVote = null;
+  return { ok: true, message };
+}
+
+export async function voteGroupPoll(
+  db: SupabaseClient,
+  messageId: string,
+  optionIndex: number
+): Promise<{ ok: boolean; votes?: number[] }> {
+  const { data, error } = await db.rpc("vote_group_poll", { message_id: messageId, option_index: optionIndex });
+  if (error) return { ok: false };
+  return { ok: true, votes: (data?.votes as number[]) ?? [] };
+}
+
+export async function sendGroupSticker(
+  db: SupabaseClient,
+  groupId: string,
+  stickerId?: string,
+  mediaUrl?: string
+): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
+  const { data, error } = await db.rpc("send_group_sticker", {
+    gid: groupId,
+    sticker_id: stickerId ?? null,
+    media_url: mediaUrl ?? null,
+  });
+  if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
+  return { ok: true, message: mapMessageRow(data) };
+}
+
+/** DM'deki consumeMediaOnce ile AYNI mantik - bkz. 0049/0051 migration'lari
  * consume_group_media_once RPC'si. */
 export async function consumeGroupMediaOnce(db: SupabaseClient, messageId: string): Promise<GroupMessage | null> {
   const { data, error } = await db.rpc("consume_group_media_once", { message_id: messageId });
   if (error || !data) return null;
   return mapMessageRow(data);
+}
+
+export async function deleteGroupMessageForEveryone(db: SupabaseClient, messageId: string): Promise<boolean> {
+  const { error } = await db.rpc("delete_group_message_for_everyone", { message_id: messageId });
+  return !error;
+}
+
+export async function deleteGroupMessageForMe(db: SupabaseClient, messageId: string): Promise<boolean> {
+  const { error } = await db.rpc("delete_group_message_for_me", { message_id: messageId });
+  return !error;
+}
+
+export async function pinGroupMessage(db: SupabaseClient, messageId: string): Promise<boolean> {
+  const { error } = await db.rpc("pin_group_message", { message_id: messageId });
+  return !error;
+}
+
+export async function unpinGroupMessage(db: SupabaseClient, messageId: string): Promise<boolean> {
+  const { error } = await db.rpc("unpin_group_message", { message_id: messageId });
+  return !error;
 }
 
 /** DM listesindeki konusmalarla BIRLESTIRILMEK uzere - uyesi oldugum tum
@@ -180,6 +424,7 @@ export async function listMyGroups(db: SupabaseClient, myUserId: string): Promis
 
   const lastRowByGroup = new Map<string, any>();
   for (const row of messages || []) {
+    if (!visibleToMe(row, myUserId)) continue;
     if (!lastRowByGroup.has(row.group_id)) lastRowByGroup.set(row.group_id, row);
   }
 

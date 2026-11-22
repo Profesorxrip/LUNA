@@ -11,10 +11,13 @@ import {
   PanResponder,
   Platform,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import * as Clipboard from "expo-clipboard";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import {
@@ -33,6 +36,10 @@ import {
   BarChart2,
   Music,
   User as UserIcon,
+  Copy,
+  Pin,
+  PinOff,
+  Forward,
 } from "lucide-react-native";
 import { SimpleLineIcons, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LockClosedIcon, MicrophoneIcon } from "react-native-heroicons/outline";
@@ -43,10 +50,29 @@ import Avatar from "../components/Avatar";
 import LoadingView from "../components/LoadingView";
 import { showAlert } from "../components/CustomAlert";
 import SendMediaSheet from "../components/SendMediaSheet";
+import SendVideoSheet from "../components/SendVideoSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
+import VideoMessageBubble from "../components/VideoMessageBubble";
 import VoiceMessageBubble from "../components/VoiceMessageBubble";
+import LocationMessageBubble from "../components/LocationMessageBubble";
+import FileMessageBubble from "../components/FileMessageBubble";
+import ContactMessageBubble from "../components/ContactMessageBubble";
+import PollMessageBubble from "../components/PollMessageBubble";
+import MusicMessageBubble from "../components/MusicMessageBubble";
+import StickerMessageBubble from "../components/StickerMessageBubble";
+import GifMessageBubble from "../components/GifMessageBubble";
+import ReplyPreviewContent from "../components/ReplyPreviewContent";
+import LocationPickerModal, { type PickedLocation } from "../components/LocationPickerModal";
+import FilePreviewModal from "../components/FilePreviewModal";
+import PollComposerModal from "../components/PollComposerModal";
+import CameraFilmstrip, { type FilmstripPickedAsset } from "../components/CameraFilmstrip";
 import EmojiKeyboardPanel, { PANEL_HEIGHT as EMOJI_PANEL_BASE_HEIGHT } from "../components/EmojiKeyboardPanel";
-import { getSocket, GroupMessage, GroupDetail, GroupMember } from "../services/socket";
+import { getCustomStickers, addCustomSticker, CustomSticker } from "../utils/customStickers";
+import { getCustomGifs, addCustomGif, CustomGif } from "../utils/customGifs";
+import { getRecentFiles, addRecentFile, type PickedFileAsset, type RecentFileEntry } from "../utils/recentFiles";
+import { getRecentMusic, addRecentMusic } from "../utils/recentMusic";
+import FriendsScreen from "./FriendsScreen";
+import { getSocket, GroupMessage, GroupReply, GroupPinnedMessage, GroupDetail, GroupMember } from "../services/socket";
 import { formatMessageTime } from "../utils/time";
 import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
@@ -83,17 +109,36 @@ interface BubbleRowProps {
   isMine: boolean;
   groupedWithPrev: boolean;
   sender?: GroupMember;
+  reactions: { emoji: string; count: number; mine: boolean }[];
+  onTap: () => void;
+  onLongPress: () => void;
+  onReply: () => void;
   onConsumeMediaOnce: (messageId: string) => void;
+  onVotePoll: (messageId: string, optionIndex: number) => void;
 }
 
-/** DMScreen.tsx'teki DMBubbleRow ile AYNI mantik - SADECE sesli mesajin
- * canli sure etiketi (voiceTimeLabel) icin kendi local state'i gerekiyor,
- * bu yuzden FlatList'in renderItem'i icine degil AYRI bir bilesene tasindi. */
-function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, onConsumeMediaOnce }: BubbleRowProps) {
+/** DMScreen.tsx'teki DMBubbleRow ile AYNI mantik VE AYNI mesaj
+ * turleri/aksiyonlari - SADECE "seen" (gorundu tik'i, DM'e ozgu iki-kisilik
+ * bir kavram) ve balonun disina tasan BubbleTail/kaydirarak-yanitlama
+ * (swipe) GORSEL incelikleri BILINCLI olarak disarida birakildi (bunlar
+ * salt estetik, "ozellik calisiyor mu" sorusuyla ilgisiz) - yanitlama hala
+ * basili tutma menusundeki "Yanıtla" ile TAM calisir. */
+function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTap, onLongPress, onReply, onConsumeMediaOnce, onVotePoll }: BubbleRowProps) {
   const { t, i18n } = useTranslation();
   const [voiceTimeLabel, setVoiceTimeLabel] = useState("0:00");
-  const hasMediaCaption = item.kind === "photo" && !!item.mediaUrl && !!item.text && item.text !== "📷 Fotoğraf";
+  const isGifSticker = item.kind === "sticker" && !!item.stickerId?.startsWith("gif-");
   const consumedColor = isMine ? "rgba(255,255,255,0.6)" : MUTED;
+  const hasMediaCaption =
+    !item.deletedForEveryone &&
+    item.kind !== "voice" &&
+    item.kind !== "location" &&
+    item.kind !== "music" &&
+    item.kind !== "video" &&
+    item.kind !== "sticker" &&
+    !!item.mediaUrl &&
+    !!item.text &&
+    item.text !== "📷 Fotoğraf" &&
+    !(item.kind === "file" && item.text === `📎 ${item.fileName}`);
 
   return (
     <View style={[styles.messageRow, isMine ? styles.messageRowMine : styles.messageRowTheirs, !groupedWithPrev && styles.messageRowNewGroup]}>
@@ -108,27 +153,85 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, onConsumeMediaO
       )}
       <View style={styles.bubbleCol}>
         {!isMine && !groupedWithPrev && <Text style={styles.senderName}>{sender?.name || item.fromName}</Text>}
-        <View style={styles.bubbleWrap}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={onTap}
+          onLongPress={item.deletedForEveryone ? undefined : onLongPress}
+          style={styles.bubbleWrap}
+        >
           <View
             style={[
               styles.bubble,
               isMine ? styles.bubbleMine : styles.bubbleTheirs,
               item.kind === "voice" && styles.bubbleVoicePad,
-              item.kind === "photo" && styles.bubblePhotoPad,
+              item.kind === "location" && styles.bubbleLocationPad,
+              item.kind === "file" && styles.bubbleFilePad,
+              item.kind === "poll" && styles.bubblePollPad,
+              item.kind === "contact" && styles.bubbleContactPad,
+              item.kind === "music" && styles.bubbleMusicPad,
+              (item.kind !== "voice" &&
+                item.kind !== "location" &&
+                item.kind !== "file" &&
+                item.kind !== "poll" &&
+                item.kind !== "contact" &&
+                item.kind !== "music" &&
+                (item.kind !== "sticker" || isGifSticker) &&
+                (item.mediaUrl || isGifSticker) &&
+                styles.bubblePhotoPad),
+              item.kind === "sticker" && !isGifSticker && styles.bubbleStickerNoBg,
             ]}
           >
-            {item.kind === "voice" && item.viewOnce && item.viewOnceConsumed ? (
+            {item.isForwarded && !item.deletedForEveryone && (
+              <View style={styles.forwardedRow}>
+                <Forward size={11} color={isMine ? "rgba(255,255,255,0.75)" : MUTED} />
+                <Text style={[styles.forwardedText, { color: isMine ? "rgba(255,255,255,0.75)" : MUTED }]}>{t("dm.forwardedLabel")}</Text>
+              </View>
+            )}
+            {item.replyTo && !item.deletedForEveryone && (
+              <View style={styles.replyQuote}>
+                <ReplyPreviewContent fromName={item.replyTo.fromName} text={item.replyTo.text} kind={item.replyTo.kind} mediaUrl={item.replyTo.mediaUrl} variant="bubble" />
+              </View>
+            )}
+            {item.deletedForEveryone ? (
+              <View style={styles.deletedRow}>
+                <Trash2 size={13} color={consumedColor} />
+                <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.deletedMessage")}</Text>
+              </View>
+            ) : item.kind === "voice" && item.viewOnce && item.viewOnceConsumed ? (
               <View style={styles.deletedRow}>
                 <MicrophoneIcon size={14} color={consumedColor} strokeWidth={1.8} />
                 <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.voiceOnceConsumed")}</Text>
               </View>
             ) : item.kind === "voice" && item.mediaUrl ? (
-              <VoiceMessageBubble
-                uri={item.mediaUrl}
-                durationMs={item.durationMs}
-                onTimeLabel={setVoiceTimeLabel}
-                onPlay={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined}
+              <VoiceMessageBubble uri={item.mediaUrl} durationMs={item.durationMs} onTimeLabel={setVoiceTimeLabel} onPlay={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined} />
+            ) : item.kind === "location" && item.latitude != null && item.longitude != null ? (
+              <LocationMessageBubble latitude={item.latitude} longitude={item.longitude} />
+            ) : item.kind === "file" && item.mediaUrl ? (
+              <FileMessageBubble uri={item.mediaUrl} fileName={item.fileName || item.text} fileSize={item.fileSize ?? undefined} mimeType={item.mimeType ?? undefined} />
+            ) : item.kind === "contact" && item.sharedUserName ? (
+              <ContactMessageBubble name={item.sharedUserName} handle={item.sharedUserHandle} avatarUrl={item.sharedUserAvatarUrl} />
+            ) : item.kind === "poll" && item.pollQuestion && item.pollOptions ? (
+              <PollMessageBubble
+                question={item.pollQuestion}
+                options={item.pollOptions}
+                optionImages={item.pollOptionImages}
+                votes={item.pollVotes ?? new Array(item.pollOptions.length).fill(0)}
+                myVote={item.myPollVote ?? null}
+                onVote={(optionIndex) => onVotePoll(item.id, optionIndex)}
               />
+            ) : item.kind === "music" && item.mediaUrl ? (
+              <MusicMessageBubble uri={item.mediaUrl} title={item.fileName || item.text} />
+            ) : item.kind === "sticker" && item.stickerId?.startsWith("gif-") ? (
+              <GifMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
+            ) : item.kind === "sticker" ? (
+              <StickerMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
+            ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
+              <View style={styles.deletedRow}>
+                <ImageIcon size={14} color={consumedColor} strokeWidth={1.8} />
+                <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.mediaOnceConsumed")}</Text>
+              </View>
+            ) : item.kind === "video" && item.mediaUrl ? (
+              <VideoMessageBubble uri={item.mediaUrl} size={280} borderRadius={8} senderName={item.fromName} sentAt={item.createdAt} onReply={onReply} onOpen={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined} />
             ) : item.kind === "photo" && item.viewOnce && item.viewOnceConsumed ? (
               <View style={styles.deletedRow}>
                 <ImageIcon size={14} color={consumedColor} strokeWidth={1.8} />
@@ -136,72 +239,132 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, onConsumeMediaO
               </View>
             ) : item.kind === "photo" && item.mediaUrl ? (
               <>
-                <ChatImageBubble
-                  uri={item.mediaUrl}
-                  isAdult={item.isAdult}
-                  size={280}
-                  senderName={item.fromName}
-                  sentAt={item.createdAt}
-                  onOpen={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined}
-                />
-                {hasMediaCaption && <Text style={styles.mediaCaption}>{item.text}</Text>}
+                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} size={280} senderName={item.fromName} sentAt={item.createdAt} onReply={onReply} onOpen={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined} />
               </>
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
             )}
-            <View style={[styles.metaRow, item.kind === "photo" && !hasMediaCaption && styles.metaRowPhotoOverlay]}>
+            {hasMediaCaption && <Text style={styles.mediaCaption}>{item.text}</Text>}
+            <View
+              style={[
+                styles.metaRow,
+                item.kind === "voice" && styles.metaRowVoice,
+                (item.kind !== "voice" && item.kind !== "location" && item.kind !== "file" && item.kind !== "music" && (item.kind !== "sticker" || isGifSticker) && (item.mediaUrl || isGifSticker) && !hasMediaCaption && styles.metaRowPhotoOverlay),
+                item.kind === "music" && styles.metaRowMusicOverlay,
+                item.kind === "poll" && styles.metaRowPollOverlay,
+                item.kind === "contact" && styles.metaRowContactOverlay,
+                item.kind === "file" && !hasMediaCaption && styles.metaRowFileOverlay,
+                item.kind === "sticker" && !isGifSticker && styles.metaRowStickerOverlay,
+              ]}
+            >
+              {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
               <Text style={styles.metaTime}>
-                {item.kind === "voice" ? voiceTimeLabel + " · " : ""}
                 {formatMessageTime(item.createdAt, i18n.language)}
               </Text>
             </View>
           </View>
-        </View>
+          {reactions.length > 0 && (
+            <View style={[styles.reactionBadgeRow, isMine ? styles.reactionBadgeRowMine : styles.reactionBadgeRowTheirs]}>
+              {reactions.map((r) => (
+                <View key={r.emoji} style={styles.reactionBadgeChip}>
+                  <Text style={styles.reactionBadgeEmoji}>
+                    {r.emoji}
+                    {r.count > 1 ? ` ${r.count}` : ""}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
 }
 
 /** Grup sohbeti - DMScreen.tsx'teki ("Kişi Mesajı") ekranla GORUNUM VE
- * ISLEV olarak BIREBIR AYNI: emoji paneli, fotograf/galeri gonderme, kamera
- * (ani cekim ekrani), sesli mesaj (basili tut/surukleyip kilitle) VE
- * fotograf/sesli mesajdaki "tek görünümlük" (view-once) anahtari GERCEKTEN
- * calisir (kullanicinin "Hepsi birebir kişi mesajındaki gibi çalışsın"
- * istegi). Video mesaji/konum/dosya/anket/muzik/kisi/cikartma/yanitlama/
- * tepki/iletme/sabitleme gibi DM'e ozel geri kalan turler/aksiyonlar HENUZ
- * yok - bunlar icin ataç menusundeki ilgili satirlar "yakında" gosterir
- * (bkz. placeholderInputFeature). DM'in kendisi de butun bunlara 46 ayri
- * migration'da asama asama ulasti.
- */
+ * ISLEV olarak BIREBIR AYNI: emoji paneli (cikartma/GIF sekmeleri dahil),
+ * fotograf/galeri, kamera (foto+video, son medya seridi), sesli mesaj
+ * (basili tut/surukleyip kilitle + tek gorunumluk), konum, genel dosya,
+ * muzik, kisi karti, anket (+secenek fotograflari/oylama), VE basili tutma
+ * menusu (yanitla/sabitle/ilet/sil) ile cift-tik tepki. Kullanicinin
+ * "Hepsi birebir aynı yap" istegiyle DM'in 46 migration'da asama asama
+ * ulastigi butun bu ozelliklere grup da 0047-0051 migration'larinda ulasti. */
 export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
   const { t, i18n } = useTranslation();
   const [groupDetail, setGroupDetail] = useState<GroupDetail>({ id: group.id, name: group.name, avatarUrl: group.avatarUrl, members: [] });
   const [messages, setMessages] = useState<GroupMessage[]>([]);
+  const [pinnedMessages, setPinnedMessages] = useState<GroupPinnedMessage[]>([]);
+  const [pinnedCursor, setPinnedCursor] = useState(0);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const listRef = useRef<FlatList<GroupMessage>>(null);
+  const pendingScrollMessageId = useRef<string | null>(null);
   const socket = getSocket();
 
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const [emojiPanelVisible, setEmojiPanelVisible] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<GroupReply | null>(null);
+  const [actionMenuMessage, setActionMenuMessage] = useState<GroupMessage | null>(null);
+  const [forwardTarget, setForwardTarget] = useState<GroupMessage | null>(null);
+  const [contactPickerVisible, setContactPickerVisible] = useState(false);
 
-  // Fotograf/galeri - DMScreen.tsx'teki pendingImages/SendMediaSheet akisiyla
-  // AYNI, sadece "dm:sendImage" yerine "group:sendImage".
+  // Cift-tik tepki - DM'deki myReaction/peerReaction ikilisi yerine (N kisi
+  // oldugu icin) messageId -> {userId: emoji} haritasi, sunucuda SAKLANMAZ
+  // (bkz. "group:react"/"group:reaction" - DM'in dm:react'iyle AYNI gecici
+  // mantik).
+  const [reactionsByMessage, setReactionsByMessage] = useState<Record<string, Record<string, string>>>({});
+  const [quickReactionEmoji, setQuickReactionEmoji] = useState("❤️");
+  const lastTapRef = useRef<Record<string, number>>({});
+
+  // Fotograf/galeri.
   const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Ani kamera cekimi - DMScreen.tsx'teki startQuickCapture ile AYNI, SADECE
-  // video modu YOK (grupta video mesaji henuz yok) - tek derdi bir fotograf
-  // cekip pendingImages kuyruguna eklemek.
+  // Video kuyrugu - SendVideoSheet'te onizlenip gonderiliyor (DM'deki
+  // videoQueue ile AYNI, trim/kirpma/mute GERCEK transcode YAPMAZ - sadece
+  // metadata, bkz. SendVideoSheet'in kendi dosya basi notu).
+  const [videoQueue, setVideoQueue] = useState<{ uri: string; mimeType?: string | null }[]>([]);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+
+  // Ani kamera cekimi - artik DM'deki gibi foto VE video modu var.
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [quickCaptureActive, setQuickCaptureActive] = useState(false);
   const [quickCameraReady, setQuickCameraReady] = useState(false);
   const [quickCameraFacing, setQuickCameraFacing] = useState<"back" | "front">("back");
   const [quickCameraFlash, setQuickCameraFlash] = useState<"off" | "on">("off");
+  const [quickCameraMode, setQuickCameraMode] = useState<"photo" | "video">("photo");
   const [capturingQuickPhoto, setCapturingQuickPhoto] = useState(false);
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [recordingElapsedSec, setRecordingElapsedSec] = useState(0);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cameraRef = useRef<CameraView>(null);
+
+  // Konum/dosya/muzik/anket - DM'deki ile AYNI state'ler.
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+  const [filePreviewVisible, setFilePreviewVisible] = useState(false);
+  const [pendingAttachKind, setPendingAttachKind] = useState<"file" | "music">("file");
+  const [pendingFiles, setPendingFiles] = useState<PickedFileAsset[]>([]);
+  const [fileCaption, setFileCaption] = useState("");
+  const [fileUploadProgress, setFileUploadProgress] = useState(0);
+  const [sendingFile, setSendingFile] = useState(false);
+  const [recentFiles, setRecentFiles] = useState<RecentFileEntry[]>([]);
+  const [recentSelectionMode, setRecentSelectionMode] = useState(false);
+  const [selectedRecentUris, setSelectedRecentUris] = useState<string[]>([]);
+  const [recentMusic, setRecentMusic] = useState<RecentFileEntry[]>([]);
+  const [musicSelectionMode, setMusicSelectionMode] = useState(false);
+  const [selectedMusicUris, setSelectedMusicUris] = useState<string[]>([]);
+  const [pollComposerVisible, setPollComposerVisible] = useState(false);
+  const [sendingPoll, setSendingPoll] = useState(false);
+
+  // Cikartma/GIF - DM'deki ile AYNI kisisel (cihaz basina, AsyncStorage)
+  // listeler, grup/DM ayrimi olmadan paylasilir.
+  const [customStickers, setCustomStickers] = useState<CustomSticker[]>([]);
+  const [customGifs, setCustomGifs] = useState<CustomGif[]>([]);
+  const [creatingSticker, setCreatingSticker] = useState(false);
+  const [creatingGif, setCreatingGif] = useState(false);
 
   // Sesli mesaj kaydi - DMScreen.tsx'teki ile BIREBIR AYNI.
   const audioRecorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
@@ -212,19 +375,25 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
   const [sendingVoice, setSendingVoice] = useState(false);
   const [recordingLocked, setRecordingLocked] = useState(false);
   const [recordingPaused, setRecordingPaused] = useState(false);
-  // "Tek gorunumluk" sesli mesaj anahtari - kilitli kayit cubugundaki rozetle
-  // acilip kapatiliyor, gonderirken mesaja eklenir (bkz. 0049_group_voice_
-  // view_once.sql) - DMScreen.tsx'teki voiceOnceView ile AYNI.
   const [voiceOnceView, setVoiceOnceView] = useState(false);
   const recordDragX = useRef(new Animated.Value(0)).current;
   const recordDragY = useRef(new Animated.Value(0)).current;
   const recordLockedRef = useRef(false);
-  // Tek-gorunumluk mesaj ilk kez acildiginda AYNI mesaja TEKRAR istek
-  // atilmasini onler - DMScreen.tsx'teki consumedOnceRef ile AYNI.
   const consumedOnceRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
+  }, []);
+
+  useEffect(() => {
+    getCustomStickers().then(setCustomStickers);
+    getCustomGifs().then(setCustomGifs);
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      const { data: profile } = await supabase.from("profiles").select("default_reaction_emoji").eq("id", data.user.id).maybeSingle();
+      if (profile?.default_reaction_emoji) setQuickReactionEmoji(profile.default_reaction_emoji);
+    })();
   }, []);
 
   const memberById = new Map(groupDetail.members.map((m) => [m.userId, m]));
@@ -235,6 +404,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
       if (!res?.ok) return;
       setGroupDetail(res.group);
       setMessages(res.messages || []);
+      setPinnedMessages(res.pinned || []);
     });
 
     function handleIncoming({ groupId, message }: { groupId: string; message: GroupMessage }) {
@@ -249,14 +419,57 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     }
     socket.on("group:message:mediaOnceConsumed", handleMediaOnceConsumed);
 
+    function handlePollVote({ groupId, messageId, votes }: { groupId: string; messageId: string; votes: number[] }) {
+      if (groupId !== group.id) return;
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, pollVotes: votes } : m)));
+    }
+    socket.on("group:pollVote", handlePollVote);
+
+    function handleReaction({ groupId, fromUserId, messageId, emoji }: { groupId: string; fromUserId: string; messageId: string; emoji: string | null }) {
+      if (groupId !== group.id) return;
+      setReactionsByMessage((prev) => {
+        const forMessage = { ...(prev[messageId] || {}) };
+        if (emoji) forMessage[fromUserId] = emoji;
+        else delete forMessage[fromUserId];
+        return { ...prev, [messageId]: forMessage };
+      });
+    }
+    socket.on("group:reaction", handleReaction);
+
+    function handleDeletedForEveryone({ groupId, messageId }: { groupId: string; messageId: string }) {
+      if (groupId !== group.id) return;
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, deletedForEveryone: true } : m)));
+    }
+    socket.on("group:message:deletedForEveryone", handleDeletedForEveryone);
+
+    function handlePinned({ groupId, messageId, pinnedBy, pinnedAt }: { groupId: string; messageId: string; pinnedBy: string; pinnedAt: number }) {
+      if (groupId !== group.id) return;
+      setMessages((current) => {
+        const message = current.find((m) => m.id === messageId);
+        if (message) setPinnedMessages((prev) => (prev.some((p) => p.message.id === messageId) ? prev : [...prev, { message, pinnedBy, pinnedAt }]));
+        return current;
+      });
+    }
+    socket.on("group:message:pinned", handlePinned);
+
+    function handleUnpinned({ groupId, messageId }: { groupId: string; messageId: string }) {
+      if (groupId !== group.id) return;
+      setPinnedMessages((prev) => prev.filter((p) => p.message.id !== messageId));
+    }
+    socket.on("group:message:unpinned", handleUnpinned);
+
     return () => {
       socket.off("group:message", handleIncoming);
       socket.off("group:message:mediaOnceConsumed", handleMediaOnceConsumed);
+      socket.off("group:pollVote", handlePollVote);
+      socket.off("group:reaction", handleReaction);
+      socket.off("group:message:deletedForEveryone", handleDeletedForEveryone);
+      socket.off("group:message:pinned", handlePinned);
+      socket.off("group:message:unpinned", handleUnpinned);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group.id]);
 
-  // DMScreen.tsx'teki handleConsumeMediaOnce ile AYNI mantik.
   function handleConsumeMediaOnce(messageId: string) {
     if (consumedOnceRef.current.has(messageId)) return;
     consumedOnceRef.current.add(messageId);
@@ -265,12 +478,444 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     });
   }
 
+  function scrollToMessage(id: string) {
+    const index = messages.findIndex((m) => m.id === id);
+    if (index === -1) return;
+    pendingScrollMessageId.current = id;
+    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+  }
+
+  function handleMessageTap(message: GroupMessage) {
+    const now = Date.now();
+    const last = lastTapRef.current[message.id] || 0;
+    lastTapRef.current[message.id] = now;
+    if (now - last > 300) return;
+    if (!myUserId) return;
+    const mine = reactionsByMessage[message.id]?.[myUserId];
+    const next = mine === quickReactionEmoji ? null : quickReactionEmoji;
+    setReactionsByMessage((prev) => {
+      const forMessage = { ...(prev[message.id] || {}) };
+      if (next) forMessage[myUserId] = next;
+      else delete forMessage[myUserId];
+      return { ...prev, [message.id]: forMessage };
+    });
+    socket.emit("group:react", { groupId: group.id, messageId: message.id, emoji: next });
+  }
+
+  function startReply(message: GroupMessage) {
+    setReplyingTo({
+      text: message.text,
+      fromName: message.fromUserId === myUserId ? t("dm.you") : message.fromName,
+      kind: message.kind,
+      mediaUrl: message.mediaUrl,
+    });
+  }
+
+  function openActionMenu(message: GroupMessage) {
+    if (message.deletedForEveryone) return;
+    setActionMenuMessage(message);
+  }
+  function closeActionMenu() {
+    setActionMenuMessage(null);
+  }
+  async function handleCopy(message: GroupMessage) {
+    closeActionMenu();
+    await Clipboard.setStringAsync(message.text || "");
+  }
+  function handleDeleteForMe(message: GroupMessage) {
+    closeActionMenu();
+    showAlert(t("dm.deleteForMeConfirmTitle"), t("dm.deleteForMeConfirmBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("dm.actionDeleteForMe"),
+        style: "destructive",
+        onPress: () => {
+          socket.emit("group:deleteMessage", { groupId: group.id, messageId: message.id, forEveryone: false }, (res: any) => {
+            if (res?.ok) {
+              setMessages((prev) => prev.filter((m) => m.id !== message.id));
+              setPinnedMessages((prev) => prev.filter((p) => p.message.id !== message.id));
+            }
+          });
+        },
+      },
+    ]);
+  }
+  function handleDeleteForEveryone(message: GroupMessage) {
+    closeActionMenu();
+    showAlert(t("dm.deleteForEveryoneConfirmTitle"), t("dm.deleteForEveryoneConfirmBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("dm.actionDeleteForEveryone"),
+        style: "destructive",
+        onPress: () => socket.emit("group:deleteMessage", { groupId: group.id, messageId: message.id, forEveryone: true }, () => {}),
+      },
+    ]);
+  }
+  function handleDeleteTap(message: GroupMessage) {
+    closeActionMenu();
+    const isMine = message.fromUserId === myUserId;
+    if (!isMine) {
+      handleDeleteForMe(message);
+      return;
+    }
+    showAlert(t("dm.deleteChooseTitle"), t("dm.deleteChooseBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("dm.actionDeleteForMe"), style: "destructive", onPress: () => handleDeleteForMe(message) },
+      { text: t("dm.actionDeleteForEveryone"), style: "destructive", onPress: () => handleDeleteForEveryone(message) },
+    ]);
+  }
+  function handlePinToggle(message: GroupMessage) {
+    closeActionMenu();
+    const isPinned = pinnedMessages.some((p) => p.message.id === message.id);
+    if (isPinned) socket.emit("group:unpinMessage", { groupId: group.id, messageId: message.id }, () => {});
+    else socket.emit("group:pinMessage", { groupId: group.id, messageId: message.id }, () => {});
+  }
+  function openForwardPicker(message: GroupMessage) {
+    closeActionMenu();
+    setForwardTarget(message);
+  }
+  function forwardToUsers(userIds: string[]) {
+    if (!forwardTarget || userIds.length === 0) return;
+    socket.emit("group:forwardToDm", { toUserIds: userIds, message: forwardTarget }, () => setForwardTarget(null));
+  }
+
+  function openContactPicker() {
+    setAttachSheetVisible(false);
+    setContactPickerVisible(true);
+  }
+  function sendContacts(userIds: string[]) {
+    if (!userIds.length) return;
+    setContactPickerVisible(false);
+    userIds.forEach((sharedUserId) => {
+      socket.emit("group:sendContact", { groupId: group.id, sharedUserId }, (res: any) => {
+        if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+        else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+      });
+    });
+  }
+
+  function openPollComposer() {
+    setAttachSheetVisible(false);
+    setPollComposerVisible(true);
+  }
+  async function sendPoll(question: string, options: string[], optionImages: (string | null)[]) {
+    if (!myUserId || sendingPoll) return;
+    setSendingPoll(true);
+    try {
+      const uploadedImages: (string | null)[] = [];
+      for (const uri of optionImages) {
+        if (!uri) {
+          uploadedImages.push(null);
+          continue;
+        }
+        const arrayBuffer = await uriToArrayBuffer(uri);
+        const ext = uri.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${myUserId}/${Date.now()}-poll-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, "image/jpeg", () => {});
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        uploadedImages.push(publicUrlData.publicUrl);
+      }
+      const hasImages = uploadedImages.some((u) => u !== null);
+      socket.emit("group:sendPoll", { groupId: group.id, question, options, optionImages: hasImages ? uploadedImages : undefined }, (res: any) => {
+        if (res?.ok && res.message) {
+          setMessages((prev) => [...prev, res.message]);
+          setPollComposerVisible(false);
+        } else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+      });
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingPoll(false);
+    }
+  }
+  function votePoll(messageId: string, optionIndex: number) {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== messageId || !m.pollOptions) return m;
+        const prevVote = m.myPollVote;
+        if (prevVote === optionIndex) return m;
+        const votes = [...(m.pollVotes ?? new Array(m.pollOptions.length).fill(0))];
+        if (prevVote != null) votes[prevVote] = Math.max(0, votes[prevVote] - 1);
+        votes[optionIndex] = (votes[optionIndex] ?? 0) + 1;
+        return { ...m, myPollVote: optionIndex, pollVotes: votes };
+      })
+    );
+    socket.emit("group:votePoll", { groupId: group.id, messageId, optionIndex }, (res: any) => {
+      if (res?.ok && res.votes) setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, pollVotes: res.votes } : m)));
+    });
+  }
+
+  function openLocationPicker() {
+    setAttachSheetVisible(false);
+    setLocationPickerVisible(true);
+  }
+  function handleLocationPickerConfirm(loc: PickedLocation) {
+    setLocationPickerVisible(false);
+    socket.emit("group:sendLocation", { groupId: group.id, latitude: loc.latitude, longitude: loc.longitude }, (res: any) => {
+      if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+      else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+    });
+  }
+
+  function openFilePreview() {
+    setAttachSheetVisible(false);
+    setPendingAttachKind("file");
+    setPendingFiles([]);
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
+    setFilePreviewVisible(true);
+    getRecentFiles().then(setRecentFiles);
+  }
+  function openMusicPicker() {
+    setAttachSheetVisible(false);
+    setPendingAttachKind("music");
+    setPendingFiles([]);
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+    setFilePreviewVisible(true);
+    getRecentMusic().then(setRecentMusic);
+  }
+  function pickFile() {
+    DocumentPicker.getDocumentAsync({ multiple: false }).then((result) => {
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      setPendingFiles([{ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }]);
+      setFileCaption("");
+      addRecentFile({ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }).then(setRecentFiles);
+    });
+  }
+  function pickMusicFile() {
+    DocumentPicker.getDocumentAsync({ type: "audio/*", multiple: false }).then((result) => {
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      setPendingFiles([{ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }]);
+      setFileCaption("");
+      addRecentMusic({ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }).then(setRecentMusic);
+    });
+  }
+  function toggleRecentSelection(uri: string) {
+    setSelectedRecentUris((prev) => {
+      const next = prev.includes(uri) ? prev.filter((u) => u !== uri) : [...prev, uri];
+      if (next.length === 0) setRecentSelectionMode(false);
+      return next;
+    });
+  }
+  function handlePressRecent(file: RecentFileEntry) {
+    if (recentSelectionMode) return toggleRecentSelection(file.uri);
+    setPendingFiles([{ uri: file.uri, name: file.name, size: file.size, mimeType: file.mimeType }]);
+    setFileCaption("");
+  }
+  function handleLongPressRecent(file: RecentFileEntry) {
+    if (!recentSelectionMode) setRecentSelectionMode(true);
+    toggleRecentSelection(file.uri);
+  }
+  function exitRecentSelection() {
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
+  }
+  function confirmRecentSelection() {
+    const chosen = recentFiles.filter((f) => selectedRecentUris.includes(f.uri)).map((f) => ({ uri: f.uri, name: f.name, size: f.size, mimeType: f.mimeType }));
+    if (chosen.length) sendFilesDirect(chosen);
+  }
+  async function sendFilesDirect(filesToSend: PickedFileAsset[]) {
+    if (!filesToSend.length || !myUserId || sendingFile) return;
+    setFilePreviewVisible(false);
+    setPendingFiles([]);
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
+    setSendingFile(true);
+    try {
+      for (const asset of filesToSend) {
+        const arrayBuffer = await uriToArrayBuffer(asset.uri);
+        const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
+        const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", () => {});
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        await new Promise<void>((resolve) => {
+          socket.emit("group:sendFile", { groupId: group.id, mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType }, (res: any) => {
+            if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+            else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+            resolve();
+          });
+        });
+      }
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingFile(false);
+    }
+  }
+  function toggleMusicSelection(uri: string) {
+    setSelectedMusicUris((prev) => {
+      const next = prev.includes(uri) ? prev.filter((u) => u !== uri) : [...prev, uri];
+      if (next.length === 0) setMusicSelectionMode(false);
+      return next;
+    });
+  }
+  function handlePressRecentMusic(file: RecentFileEntry) {
+    if (musicSelectionMode) return toggleMusicSelection(file.uri);
+    setPendingFiles([{ uri: file.uri, name: file.name, size: file.size, mimeType: file.mimeType }]);
+    setFileCaption("");
+  }
+  function handleLongPressRecentMusic(file: RecentFileEntry) {
+    if (!musicSelectionMode) setMusicSelectionMode(true);
+    toggleMusicSelection(file.uri);
+  }
+  function exitMusicSelection() {
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+  }
+  function confirmMusicSelection() {
+    const chosen = recentMusic.filter((f) => selectedMusicUris.includes(f.uri)).map((f) => ({ uri: f.uri, name: f.name, size: f.size, mimeType: f.mimeType }));
+    if (chosen.length) sendMusicFilesDirect(chosen);
+  }
+  async function sendMusicFilesDirect(filesToSend: PickedFileAsset[]) {
+    if (!filesToSend.length || !myUserId || sendingFile) return;
+    setFilePreviewVisible(false);
+    setPendingFiles([]);
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+    setSendingFile(true);
+    try {
+      for (const asset of filesToSend) {
+        const arrayBuffer = await uriToArrayBuffer(asset.uri);
+        const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
+        const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", () => {});
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        await new Promise<void>((resolve) => {
+          socket.emit("group:sendMusic", { groupId: group.id, mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType }, (res: any) => {
+            if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+            else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+            resolve();
+          });
+        });
+      }
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingFile(false);
+    }
+  }
+  function cancelPendingFile() {
+    if (sendingFile) return;
+    setFilePreviewVisible(false);
+    setPendingFiles([]);
+    setFileCaption("");
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+  }
+  function backToFileList() {
+    if (sendingFile) return;
+    setPendingFiles([]);
+    setFileCaption("");
+  }
+  async function confirmSendFile() {
+    const asset = pendingFiles[0];
+    if (!asset || !myUserId || sendingFile) return;
+    setSendingFile(true);
+    setFileUploadProgress(0);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(asset.uri);
+      const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
+      const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", (pct) => setFileUploadProgress(pct));
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      const event = pendingAttachKind === "music" ? "group:sendMusic" : "group:sendFile";
+      await new Promise<void>((resolve, reject) => {
+        socket.emit(event, { groupId: group.id, mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType, caption: fileCaption || undefined }, (res: any) => {
+          if (res?.ok && res.message) {
+            setMessages((prev) => [...prev, res.message]);
+            resolve();
+          } else reject(new Error(res?.error || t("dm.genericSendErrorBody")));
+        });
+      });
+      setFilePreviewVisible(false);
+      setPendingFiles([]);
+      setFileCaption("");
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingFile(false);
+      setFileUploadProgress(0);
+    }
+  }
+
+  function sendSticker(stickerId: string | null, mediaUrl: string | null) {
+    if (!myUserId) return;
+    setEmojiPanelVisible(false);
+    socket.emit("group:sendSticker", { groupId: group.id, stickerId: stickerId ?? undefined, mediaUrl: mediaUrl ?? undefined }, (res: any) => {
+      if (res?.ok && res.message) setMessages((prev) => [...prev, res.message]);
+      else if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+    });
+  }
+  async function uploadCustomSticker(uri: string) {
+    if (!myUserId) return;
+    setCreatingSticker(true);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "png";
+      const path = `${myUserId}/${Date.now()}-sticker-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, ext === "png" ? "image/png" : "image/jpeg", () => {});
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      const next = await addCustomSticker(publicUrlData.publicUrl);
+      setCustomStickers(next);
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setCreatingSticker(false);
+    }
+  }
+  async function createSticker() {
+    if (!myUserId || creatingSticker) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.9 });
+    if (result.canceled || !result.assets?.[0]) return;
+    uploadCustomSticker(result.assets[0].uri);
+  }
+  async function uploadCustomGif(uri: string) {
+    if (!myUserId) return;
+    setCreatingGif(true);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "gif";
+      const path = `${myUserId}/${Date.now()}-gif-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, "image/gif", () => {});
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      const next = await addCustomGif(publicUrlData.publicUrl);
+      setCustomGifs(next);
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setCreatingGif(false);
+    }
+  }
+  async function createGif() {
+    if (!myUserId || creatingGif) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
+    if (result.canceled || !result.assets?.[0]) return;
+    uploadCustomGif(result.assets[0].uri);
+  }
+
   function sendMessage() {
     const text = input.trim();
     if (!text) return;
+    const replyTo = replyingTo;
     setInput("");
+    setReplyingTo(null);
     Keyboard.dismiss();
-    socket.emit("group:send", { groupId: group.id, text }, (res: any) => {
+    socket.emit("group:send", { groupId: group.id, text, replyTo }, (res: any) => {
       if (!res?.ok) {
         showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
         return;
@@ -281,13 +926,6 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
 
   function placeholderCall() {
     showAlert(t("friends.groupCallAction"), t("profile.comingSoon"));
-  }
-
-  // Konum/dosya/anket/muzik/kisi/cikartma grupta HENUZ yok (bkz. dosya basi
-  // notu) - bu satirlar/dugmeler GORUNUMDE duruyor, basilinca "yakinda"
-  // gosteriyor.
-  function placeholderInputFeature(label: string) {
-    showAlert(label, t("profile.comingSoon"));
   }
 
   function insertEmoji(emoji: string) {
@@ -358,6 +996,39 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     }
   }
 
+  async function sendPickedVideo(uri: string, mimeType: string | null | undefined, caption: string, meta: { viewOnce: boolean }) {
+    if (!myUserId) return;
+    setUploadingVideo(true);
+    setVideoUploadProgress(0);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "mp4";
+      const contentType = mimeType || (ext === "mov" ? "video/quicktime" : "video/mp4");
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const path = `${myUserId}/${fileName}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, contentType, (pct) => setVideoUploadProgress(pct));
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      await new Promise<void>((resolve, reject) => {
+        socket.emit(
+          "group:sendVideo",
+          { groupId: group.id, mediaUrl: publicUrlData.publicUrl, caption: caption || undefined, viewOnce: meta.viewOnce },
+          (res: any) => {
+            if (res?.ok) {
+              setMessages((prev) => [...prev, res.message]);
+              resolve();
+            } else reject(new Error(res?.error || t("dm.genericSendErrorBody")));
+          }
+        );
+      });
+      setVideoQueue((prev) => prev.slice(1));
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setUploadingVideo(false);
+      setVideoUploadProgress(0);
+    }
+  }
+
   async function startQuickCapture() {
     if (!cameraPermission?.granted) {
       const res = await requestCameraPermission();
@@ -369,7 +1040,14 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     setQuickCameraReady(false);
     setQuickCameraFacing("back");
     setQuickCameraFlash("off");
+    setQuickCameraMode("photo");
     setCapturingQuickPhoto(false);
+    setIsRecordingVideo(false);
+    setRecordingElapsedSec(0);
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
     setAttachSheetVisible(false);
     setQuickCaptureActive(true);
   }
@@ -387,10 +1065,18 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     setQuickCaptureActive(false);
     pickImage();
   }
+  function handleFilmstripPickAsset(asset: FilmstripPickedAsset) {
+    setQuickCaptureActive(false);
+    if (asset.type === "video") setVideoQueue((prev) => [...prev, { uri: asset.uri, mimeType: "video/mp4" }]);
+    else setPendingImages((prev) => [...prev, asset.uri]);
+  }
 
-  // expo-camera web'de "onCameraReady" ilk kareden ONCE de tetiklenebiliyor
-  // ("not enough camera data" hatasi) - birkac deneme ile bekliyoruz.
-  async function handleQuickShutterPress() {
+  function handleQuickShutterPress() {
+    if (quickCameraMode === "video") handleQuickVideoShutterPress();
+    else handleQuickPhotoShutterPress();
+  }
+
+  async function handleQuickPhotoShutterPress() {
     if (capturingQuickPhoto || !quickCameraReady) return;
     setCapturingQuickPhoto(true);
     for (let attempt = 0; attempt < 4; attempt++) {
@@ -407,6 +1093,33 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
       }
     }
     setCapturingQuickPhoto(false);
+  }
+
+  async function handleQuickVideoShutterPress() {
+    if (!quickCameraReady) return;
+    if (isRecordingVideo) {
+      cameraRef.current?.stopRecording();
+      return;
+    }
+    setIsRecordingVideo(true);
+    setRecordingElapsedSec(0);
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    recordingIntervalRef.current = setInterval(() => setRecordingElapsedSec((s) => s + 1), 1000);
+    try {
+      const video = await cameraRef.current?.recordAsync({ maxDuration: 60 });
+      if (video?.uri) {
+        setQuickCaptureActive(false);
+        setVideoQueue((prev) => [...prev, { uri: video.uri, mimeType: "video/mp4" }]);
+      }
+    } catch {
+      // kayit basarisiz/iptal - ekran acik kalir
+    } finally {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+      setIsRecordingVideo(false);
+    }
   }
 
   async function startVoiceRecording() {
@@ -533,30 +1246,108 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     return 4 + norm * 14;
   });
 
+  const myGroupMemberIds = groupDetail.members.map((m) => m.userId);
+
+  const actionMenuItems: { label: string; icon: React.ReactNode; danger?: boolean; onPress: () => void }[] = (() => {
+    const m = actionMenuMessage;
+    if (!m) return [];
+    const isPinned = pinnedMessages.some((p) => p.message.id === m.id);
+    const items: { label: string; icon: React.ReactNode; danger?: boolean; onPress: () => void }[] = [
+      {
+        label: t("dm.actionReply"),
+        icon: (
+          <View style={{ transform: [{ scaleX: -1 }] }}>
+            <Icon name="undoArrow" size={25} color={TEXT} />
+          </View>
+        ),
+        onPress: () => {
+          startReply(m);
+          closeActionMenu();
+        },
+      },
+      { label: t("dm.actionCopy"), icon: <Copy size={25} color={TEXT} />, onPress: () => handleCopy(m) },
+      {
+        label: isPinned ? t("dm.actionUnpin") : t("dm.actionPin"),
+        icon: isPinned ? <PinOff size={25} color={TEXT} /> : <Pin size={25} color={TEXT} />,
+        onPress: () => handlePinToggle(m),
+      },
+      { label: t("dm.actionForward"), icon: <Icon name="undoArrow" size={25} color={TEXT} />, onPress: () => openForwardPicker(m) },
+      { label: t("dm.actionDeleteForMe"), icon: <Trash2 size={25} color="#FF4D4F" />, danger: true, onPress: () => handleDeleteTap(m) },
+    ];
+    return items;
+  })();
+
   return (
     <View style={styles.screen}>
       <AppBackground />
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} hitSlop={10} style={{ marginTop: 1 }}>
-          <View style={{ transform: [{ rotate: "90deg" }] }}>
-            <CircleArrowDown size={22} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.headerProfileTouch} activeOpacity={0.75} onPress={() => onOpenInfo?.(groupDetail)}>
-          <View style={{ marginLeft: -1 }}>
-            <Avatar name={groupDetail.name} avatarUrl={groupDetail.avatarUrl} size={46} />
-          </View>
-          <View style={styles.headerTextBlock}>
-            <Text style={styles.headerName} numberOfLines={1}>
-              {groupDetail.name}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={placeholderCall} hitSlop={10}>
-          <Phone size={25} color={TEXT} />
-        </TouchableOpacity>
+        {actionMenuMessage ? (
+          <>
+            <TouchableOpacity onPress={closeActionMenu} hitSlop={10} style={{ marginTop: 1 }}>
+              <View style={{ transform: [{ rotate: "90deg" }] }}>
+                <CircleArrowDown size={22} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerSelectionCountText}>1</Text>
+            </View>
+            {actionMenuItems.map((item) => (
+              <TouchableOpacity key={item.label} onPress={item.onPress} hitSlop={10}>
+                {item.icon}
+              </TouchableOpacity>
+            ))}
+          </>
+        ) : (
+          <>
+            <TouchableOpacity onPress={onBack} hitSlop={10} style={{ marginTop: 1 }}>
+              <View style={{ transform: [{ rotate: "90deg" }] }}>
+                <CircleArrowDown size={22} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerProfileTouch} activeOpacity={0.75} onPress={() => onOpenInfo?.(groupDetail)}>
+              <View style={{ marginLeft: -1 }}>
+                <Avatar name={groupDetail.name} avatarUrl={groupDetail.avatarUrl} size={46} />
+              </View>
+              <View style={styles.headerTextBlock}>
+                <Text style={styles.headerName} numberOfLines={1}>
+                  {groupDetail.name}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={placeholderCall} hitSlop={10}>
+              <Phone size={25} color={TEXT} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
       <LinearGradient colors={["#FFFFFF", "#38BDF8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.headerDivider} />
+
+      {pinnedMessages.length > 0 &&
+        (() => {
+          const orderedPins = [...pinnedMessages].sort((a, b) => a.message.createdAt - b.message.createdAt);
+          const cursor = Math.min(pinnedCursor, orderedPins.length - 1);
+          const shown = orderedPins[cursor].message;
+          return (
+            <TouchableOpacity
+              style={styles.pinnedBanner}
+              activeOpacity={0.75}
+              onPress={() => {
+                scrollToMessage(shown.id);
+                setPinnedCursor(cursor === 0 ? orderedPins.length - 1 : cursor - 1);
+              }}
+            >
+              <View style={styles.pinnedBannerQuote}>
+                <Pin size={18} color="#FFFFFF" />
+                <View style={styles.pinnedBannerQuoteText}>
+                  <ReplyPreviewContent fromName={shown.fromUserId === myUserId ? t("dm.you") : shown.fromName} text={shown.text} kind={shown.kind} mediaUrl={shown.mediaUrl} variant="bubble" />
+                </View>
+                <Text style={styles.pinnedBannerCounter}>
+                  {cursor + 1}/{orderedPins.length}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })()}
 
       <FlatList
         ref={listRef}
@@ -564,6 +1355,11 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.listContent}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+        onScrollToIndexFailed={(info) => {
+          listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+          const id = pendingScrollMessageId.current;
+          if (id) setTimeout(() => scrollToMessage(id), 100);
+        }}
         ListEmptyComponent={loading ? <LoadingView /> : <Text style={styles.emptyText}>{t("dm.noMessagesYet")}</Text>}
         ListHeaderComponent={
           <View style={styles.encryptionNoticeWrap}>
@@ -581,20 +1377,38 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
           const isMine = item.fromUserId === myUserId;
           const prev = messages[index - 1];
           const groupedWithPrev = !!prev && prev.fromUserId === item.fromUserId;
+          const rawReactions = reactionsByMessage[item.id] || {};
+          const byEmoji = new Map<string, { count: number; mine: boolean }>();
+          for (const [userId, emoji] of Object.entries(rawReactions)) {
+            const entry = byEmoji.get(emoji) || { count: 0, mine: false };
+            entry.count += 1;
+            if (userId === myUserId) entry.mine = true;
+            byEmoji.set(emoji, entry);
+          }
+          const reactions = Array.from(byEmoji.entries()).map(([emoji, v]) => ({ emoji, count: v.count, mine: v.mine }));
           return (
             <GroupBubbleRow
               item={item}
               isMine={isMine}
               groupedWithPrev={groupedWithPrev}
               sender={memberById.get(item.fromUserId)}
+              reactions={reactions}
+              onTap={() => handleMessageTap(item)}
+              onLongPress={() => openActionMenu(item)}
+              onReply={() => startReply(item)}
               onConsumeMediaOnce={handleConsumeMediaOnce}
+              onVotePoll={votePoll}
             />
           );
         }}
       />
 
       <View
-        style={[styles.inputBar, voiceRecording && recordingLocked && styles.inputBarLockedWrap]}
+        style={[
+          styles.inputBar,
+          replyingTo && styles.inputBarWithReply,
+          voiceRecording && recordingLocked && styles.inputBarLockedWrap,
+        ]}
       >
         {voiceRecording && !recordingLocked && (
           <Animated.View pointerEvents="none" style={[styles.recordLockHintWrap, { transform: [{ translateY: recordDragY }] }]}>
@@ -642,7 +1456,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
           </View>
         ) : (
           <>
-            <View style={[styles.inputPill, styles.inputPillNormal, voiceRecording && styles.recordingPill]}>
+            <View style={[styles.inputPill, voiceRecording ? styles.inputPillNormal : replyingTo ? styles.inputPillWithReply : styles.inputPillNormal, voiceRecording && styles.recordingPill]}>
               {voiceRecording ? (
                 <>
                   <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={8}>
@@ -652,57 +1466,67 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
                   <Text style={styles.recordingTime}>{formatRecordingTime(recorderState.durationMillis)}</Text>
                   <View style={{ flex: 1 }} />
                   <Animated.Text
-                    style={[
-                      styles.recordCancelHintText,
-                      { opacity: recordCancelHintOpacity, transform: [{ translateX: Animated.add(recordDragX, -15) }] },
-                    ]}
+                    style={[styles.recordCancelHintText, { opacity: recordCancelHintOpacity, transform: [{ translateX: Animated.add(recordDragX, -15) }] }]}
                     numberOfLines={1}
                   >
                     {"‹ " + t("dm.recordSlideToCancel")}
                   </Animated.Text>
                 </>
               ) : (
-                <View style={styles.inputIconsRow}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      setAttachSheetVisible(false);
-                      setEmojiPanelVisible((v) => !v);
-                    }}
-                    hitSlop={6}
-                  >
-                    <Laugh size={25} color="#9CA3AF" />
-                  </TouchableOpacity>
-                  <TextInput
-                    style={styles.input}
-                    value={input}
-                    onChangeText={setInput}
-                    placeholder={t("dm.messagePlaceholder")}
-                    placeholderTextColor={MUTED}
-                    onSubmitEditing={sendMessage}
-                    onFocus={() => {
-                      setAttachSheetVisible(false);
-                      setEmojiPanelVisible(false);
-                    }}
-                  />
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -33 }}>
+                <>
+                  {replyingTo && (
+                    <View style={styles.replyPreviewCard}>
+                      <View style={styles.replyBarAccent} />
+                      <View style={styles.replyBarText}>
+                        <ReplyPreviewContent fromName={replyingTo.fromName} text={replyingTo.text} kind={replyingTo.kind} mediaUrl={replyingTo.mediaUrl} variant="composer" />
+                      </View>
+                      <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8} style={styles.replyBarClose}>
+                        <Icon name="close" size={16} color={MUTED} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  <View style={styles.inputIconsRow}>
                     <TouchableOpacity
                       onPress={() => {
                         Keyboard.dismiss();
-                        setEmojiPanelVisible(false);
-                        setAttachSheetVisible((v) => !v);
+                        setAttachSheetVisible(false);
+                        setEmojiPanelVisible((v) => !v);
                       }}
                       hitSlop={6}
                     >
-                      <View style={{ transform: [{ rotate: "-45deg" }] }}>
-                        <Paperclip size={23} color="#9CA3AF" strokeWidth={1.7} />
-                      </View>
+                      <Laugh size={25} color="#9CA3AF" />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={startQuickCapture} hitSlop={6} style={{ marginLeft: 5 }}>
-                      <SimpleLineIcons name="camera" size={25} color="#9CA3AF" />
-                    </TouchableOpacity>
+                    <TextInput
+                      style={styles.input}
+                      value={input}
+                      onChangeText={setInput}
+                      placeholder={t("dm.messagePlaceholder")}
+                      placeholderTextColor={MUTED}
+                      onSubmitEditing={sendMessage}
+                      onFocus={() => {
+                        setAttachSheetVisible(false);
+                        setEmojiPanelVisible(false);
+                      }}
+                    />
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -33 }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          setEmojiPanelVisible(false);
+                          setAttachSheetVisible((v) => !v);
+                        }}
+                        hitSlop={6}
+                      >
+                        <View style={{ transform: [{ rotate: "-45deg" }] }}>
+                          <Paperclip size={23} color="#9CA3AF" strokeWidth={1.7} />
+                        </View>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={startQuickCapture} hitSlop={6} style={{ marginLeft: 5 }}>
+                        <SimpleLineIcons name="camera" size={25} color="#9CA3AF" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
+                </>
               )}
             </View>
             {!voiceRecording && input.trim() ? (
@@ -727,31 +1551,31 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
               </View>
               <Text style={styles.attachGridText}>{t("dm.attachGallery")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholderInputFeature(t("dm.attachLocation"))}>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openLocationPicker}>
               <View style={styles.attachIconWrap}>
                 <MapPin size={26} color="#FFFFFF" />
               </View>
               <Text style={styles.attachGridText}>{t("dm.attachLocation")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholderInputFeature(t("dm.attachFile"))}>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openFilePreview}>
               <View style={styles.attachIconWrap}>
                 <FileTextIcon size={26} color="#FFFFFF" />
               </View>
               <Text style={styles.attachGridText}>{t("dm.attachFile")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholderInputFeature(t("dm.attachPoll"))}>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openPollComposer}>
               <View style={styles.attachIconWrap}>
                 <BarChart2 size={26} color="#FFFFFF" />
               </View>
               <Text style={styles.attachGridText}>{t("dm.attachPoll")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholderInputFeature(t("dm.attachMusic"))}>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openMusicPicker}>
               <View style={styles.attachIconWrap}>
                 <Music size={26} color="#FFFFFF" />
               </View>
               <Text style={styles.attachGridText}>{t("dm.attachMusic")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.attachGridItem} onPress={() => placeholderInputFeature(t("dm.attachContact"))}>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openContactPicker}>
               <View style={styles.attachIconWrap}>
                 <UserIcon size={26} color="#FFFFFF" />
               </View>
@@ -765,11 +1589,13 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
       {emojiPanelVisible && (
         <EmojiKeyboardPanel
           onSelect={insertEmoji}
-          onSendSticker={() => placeholderInputFeature(t("profile.comingSoon"))}
-          customStickers={[]}
-          onCreateSticker={() => placeholderInputFeature(t("profile.comingSoon"))}
-          customGifs={[]}
-          onCreateGif={() => placeholderInputFeature(t("profile.comingSoon"))}
+          onSendSticker={sendSticker}
+          customStickers={customStickers}
+          onCreateSticker={createSticker}
+          creatingSticker={creatingSticker}
+          customGifs={customGifs}
+          onCreateGif={createGif}
+          creatingGif={creatingGif}
         />
       )}
 
@@ -784,20 +1610,50 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
               <Ionicons name={quickCameraFlash === "on" ? "flash-outline" : "flash-off-outline"} size={26} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
+
+          {isRecordingVideo && (
+            <View style={styles.quickCameraRecTimerWrap} pointerEvents="none">
+              <View style={styles.quickCameraRecTimerPill}>
+                <View style={styles.quickCameraRecDot} />
+                <Text style={styles.quickCameraRecTimerText}>{formatRecordingTime(recordingElapsedSec * 1000)}</Text>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.quickCameraFilmstripWrap} pointerEvents="box-none">
+            <CameraFilmstrip visible={quickCaptureActive} onOpenGallery={handleQuickGalleryPress} onPickAsset={handleFilmstripPickAsset} />
+          </View>
+
           <View style={styles.quickCameraBottomBar}>
             <TouchableOpacity style={styles.quickCameraTopBtn} onPress={handleQuickGalleryPress} hitSlop={10}>
               <ImageIcon size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.quickCameraShutterOuter}
+              style={[styles.quickCameraShutterOuter, quickCameraMode === "video" && styles.quickCameraShutterOuterVideo]}
               onPress={handleQuickShutterPress}
-              disabled={!quickCameraReady || capturingQuickPhoto}
+              disabled={!quickCameraReady || (quickCameraMode === "photo" && capturingQuickPhoto)}
               hitSlop={8}
             >
-              <View style={[styles.quickCameraShutterInner, capturingQuickPhoto && styles.quickCameraShutterInnerActive]} />
+              <View
+                style={[
+                  styles.quickCameraShutterInner,
+                  quickCameraMode === "video" && styles.quickCameraShutterInnerVideo,
+                  capturingQuickPhoto && styles.quickCameraShutterInnerActive,
+                  isRecordingVideo && styles.quickCameraShutterInnerRecording,
+                ]}
+              />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFacing} hitSlop={10}>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFacing} disabled={isRecordingVideo} hitSlop={10}>
               <MaterialCommunityIcons name="camera-flip-outline" size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.quickCameraModeRow}>
+            <TouchableOpacity onPress={() => !isRecordingVideo && setQuickCameraMode("video")} hitSlop={10}>
+              <Text style={[styles.quickCameraModeText, quickCameraMode === "video" && styles.quickCameraModeTextActive]}>{t("dm.cameraModeVideo")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => !isRecordingVideo && setQuickCameraMode("photo")} hitSlop={10}>
+              <Text style={[styles.quickCameraModeText, quickCameraMode === "photo" && styles.quickCameraModeTextActive]}>{t("dm.cameraModePhoto")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -814,20 +1670,81 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
         onReplaceImage={replacePendingImage}
         onSend={sendPickedImage}
       />
+
+      <SendVideoSheet
+        visible={videoQueue.length > 0}
+        uri={videoQueue[0]?.uri ?? null}
+        uploading={uploadingVideo}
+        uploadProgress={videoUploadProgress}
+        onCancel={() => setVideoQueue((prev) => prev.slice(1))}
+        onSend={(caption, meta) => sendPickedVideo(videoQueue[0].uri, videoQueue[0].mimeType, caption, meta)}
+      />
+
+      <LocationPickerModal visible={locationPickerVisible} onClose={() => setLocationPickerVisible(false)} onConfirm={handleLocationPickerConfirm} />
+
+      <FilePreviewModal
+        visible={filePreviewVisible}
+        title={pendingAttachKind === "music" ? t("dm.musicPreviewTitle") : undefined}
+        recentSectionLabel={pendingAttachKind === "music" ? t("dm.musicRecentSection") : undefined}
+        selectedCountLabel={pendingAttachKind === "music" ? t("dm.musicSelectedCount", { count: selectedMusicUris.length }) : undefined}
+        files={pendingFiles}
+        caption={fileCaption}
+        onChangeCaption={setFileCaption}
+        uploading={sendingFile}
+        uploadProgress={fileUploadProgress}
+        recentFiles={pendingAttachKind === "music" ? recentMusic : recentFiles}
+        selectionMode={pendingAttachKind === "music" ? musicSelectionMode : recentSelectionMode}
+        selectedUris={pendingAttachKind === "music" ? selectedMusicUris : selectedRecentUris}
+        onPressRecent={pendingAttachKind === "music" ? handlePressRecentMusic : handlePressRecent}
+        onLongPressRecent={pendingAttachKind === "music" ? handleLongPressRecentMusic : handleLongPressRecent}
+        onExitSelection={pendingAttachKind === "music" ? exitMusicSelection : exitRecentSelection}
+        onConfirmSelection={pendingAttachKind === "music" ? confirmMusicSelection : confirmRecentSelection}
+        onPickFile={pendingAttachKind === "music" ? pickMusicFile : pickFile}
+        onBackToList={backToFileList}
+        onCancel={cancelPendingFile}
+        onSend={confirmSendFile}
+      />
+
+      <PollComposerModal visible={pollComposerVisible} sending={sendingPoll} onCancel={() => setPollComposerVisible(false)} onSend={sendPoll} />
+
+      <Modal visible={!!forwardTarget} animationType="slide" onRequestClose={() => setForwardTarget(null)} statusBarTranslucent>
+        <FriendsScreen
+          onBack={() => setForwardTarget(null)}
+          onOpenDM={() => {}}
+          onOpenParticipant={() => {}}
+          inviteMode
+          hideInviteExtras
+          headerTitle={t("dm.forwardTitle")}
+          confirmButtonLabel={(count) => t("dm.forwardSendCount", { count })}
+          onSendInvites={forwardToUsers}
+        />
+      </Modal>
+
+      <Modal visible={contactPickerVisible} animationType="slide" onRequestClose={() => setContactPickerVisible(false)} statusBarTranslucent>
+        <FriendsScreen
+          onBack={() => setContactPickerVisible(false)}
+          onOpenDM={() => {}}
+          onOpenParticipant={() => {}}
+          inviteMode
+          hideInviteExtras
+          excludeUserIds={myGroupMemberIds}
+          headerTitle={t("dm.contactPickerTitle")}
+          confirmButtonLabel={(count) => t("dm.contactShareSendCount", { count })}
+          onSendInvites={sendContacts}
+        />
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Asagisindaki butun stiller DMScreen.tsx'teki (Kişi Mesajı ekrani) AYNI
-  // isimli stillerle BIREBIR AYNI deger - kullanicinin "kalan herşey aynı
-  // olucak birebir aynı" istegi.
   screen: { flex: 1, backgroundColor: "transparent" },
   header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18, paddingTop: 44, paddingBottom: 14, height: 104 },
   headerDivider: { height: 1, width: "100%" },
   headerProfileTouch: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   headerTextBlock: { flex: 1, marginLeft: -2 },
   headerName: { color: TEXT, fontSize: 18, fontWeight: "700" },
+  headerSelectionCountText: { color: TEXT, fontSize: 20, fontWeight: "700" },
   listContent: { padding: 16, paddingBottom: 1, gap: 4 },
   emptyText: { color: MUTED, textAlign: "center", marginTop: 40, fontSize: 13 },
   encryptionNoticeWrap: { alignItems: "center", marginBottom: 10 },
@@ -835,7 +1752,7 @@ const styles = StyleSheet.create({
   encryptionNoticeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   encryptionNoticeIconWrap: { width: 18, height: 18, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" },
   encryptionNoticeText: { color: MUTED, fontSize: 11, flexShrink: 1 },
-  messageRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, maxWidth: "100%" },
+  messageRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, maxWidth: "100%" },
   messageRowNewGroup: { marginTop: 8 },
   messageRowMine: { justifyContent: "flex-end" },
   messageRowTheirs: { justifyContent: "flex-start" },
@@ -846,14 +1763,48 @@ const styles = StyleSheet.create({
   bubbleWrap: { position: "relative" },
   bubble: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 8 },
   bubbleVoicePad: { paddingTop: 13, paddingBottom: 10 },
+  bubbleLocationPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
+  bubbleFilePad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  bubblePollPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  bubbleContactPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  bubbleMusicPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3, width: 286 },
+  bubbleStickerNoBg: { backgroundColor: "transparent", padding: 0 },
   bubbleMine: { backgroundColor: BUBBLE_MINE_COLOR },
   bubbleTheirs: { backgroundColor: "#1E293B" },
   bubbleText: { color: TEXT, fontSize: 16, lineHeight: 21 },
   mediaCaption: { color: TEXT, fontSize: 14, marginTop: 6, paddingHorizontal: 2 },
   deletedRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
   deletedText: { fontSize: 14, fontStyle: "italic" },
+  forwardedRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 3 },
+  forwardedText: { fontSize: 11, fontStyle: "italic" },
+  replyQuote: {
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderLeftWidth: 3,
+    borderLeftColor: "rgba(255,255,255,0.85)",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginHorizontal: -7,
+    marginTop: -2,
+    marginBottom: 4,
+  },
+  reactionBadgeRow: { position: "absolute", flexDirection: "row", gap: 2, bottom: -9 },
+  reactionBadgeRowMine: { right: 9 },
+  reactionBadgeRowTheirs: { left: 9 },
+  reactionBadgeChip: {
+    height: 19,
+    paddingHorizontal: 6,
+    borderRadius: 999,
+    borderWidth: 1.4,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#000000",
+    borderColor: "#FFFFFF",
+  },
+  reactionBadgeEmoji: { fontSize: 12 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, alignSelf: "flex-end" },
+  metaRowVoice: { alignSelf: "stretch", justifyContent: "space-between", marginTop: -4 },
   metaRowPhotoOverlay: {
     position: "absolute",
     bottom: 8,
@@ -864,11 +1815,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 3,
   },
+  metaRowMusicOverlay: { position: "absolute", bottom: 4, right: 10, marginTop: 0 },
+  metaRowPollOverlay: { position: "absolute", bottom: 8, right: 10, marginTop: 0 },
+  metaRowContactOverlay: { position: "absolute", bottom: 8, right: 10, marginTop: 0 },
+  metaRowFileOverlay: { position: "absolute", bottom: 8, right: 10, marginTop: 0 },
+  metaRowStickerOverlay: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    marginTop: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
   metaTime: { color: "rgba(255,255,255,0.65)", fontSize: 11 },
+  voiceMetaTime: { color: "rgba(255,255,255,0.65)", fontSize: 11, marginLeft: 38 },
   inputBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 15 },
+  inputBarWithReply: { alignItems: "flex-end" },
   inputBarLockedWrap: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
   inputPill: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#15202B", borderRadius: 27.5, paddingLeft: 14, paddingRight: 10 },
   inputPillNormal: { height: 55 },
+  inputPillWithReply: { flexDirection: "column", alignItems: "stretch", paddingLeft: 0, paddingRight: 0, paddingBottom: 0 },
   recordingPill: { flexDirection: "row", alignItems: "center", gap: 10 },
   recordingDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FF4D4F" },
   recordingTime: { color: TEXT, fontSize: 15, fontWeight: "600" },
@@ -912,6 +1880,42 @@ const styles = StyleSheet.create({
   inputIconsRow: { height: 55, flexDirection: "row", alignItems: "center", gap: 10, paddingLeft: 14, paddingRight: 10, marginLeft: -15 },
   input: { flex: 1, color: TEXT, fontSize: 14, paddingTop: 7, paddingBottom: 6, outlineWidth: 0, outlineStyle: "none" } as any,
   inputRoundBtn: { width: 55, height: 55, borderRadius: 27.5, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  replyPreviewCard: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    backgroundColor: "#4A4A50",
+    borderRadius: 10,
+    overflow: "hidden",
+    marginHorizontal: 8,
+    marginTop: 3,
+    transform: [{ translateY: 6 }],
+  },
+  replyBarAccent: { width: 4, backgroundColor: "#FFFFFF" },
+  replyBarText: { flex: 1, paddingVertical: 12, paddingHorizontal: 10 },
+  replyBarClose: { paddingHorizontal: 12, justifyContent: "flex-start", paddingTop: 12 },
+  pinnedBanner: {
+    flexDirection: "row",
+    padding: 3,
+    backgroundColor: "rgba(14,165,233,0.10)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(14,165,233,0.16)",
+  },
+  pinnedBannerQuote: {
+    position: "relative",
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderLeftWidth: 3,
+    borderLeftColor: "#FFFFFF",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  pinnedBannerCounter: { position: "absolute", top: 5, right: 8, color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: "600" },
+  pinnedBannerQuoteText: { flex: 1, minWidth: 0, paddingRight: 26 },
   attachSheet: { backgroundColor: "#15202B", height: 300, paddingTop: 18, paddingHorizontal: 20, alignItems: "center" },
   attachGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap" },
   attachGridItem: { width: "33.33%", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
@@ -920,9 +1924,20 @@ const styles = StyleSheet.create({
   quickCameraOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#000000" },
   quickCameraView: { flex: 1, marginTop: 50, marginBottom: 70 },
   quickCameraTopBar: { position: "absolute", top: 70, left: 16, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  quickCameraRecTimerWrap: { position: "absolute", top: 70, left: 0, right: 0, height: 36, alignItems: "center", justifyContent: "center" },
+  quickCameraRecTimerPill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 },
+  quickCameraRecDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FF3B30" },
+  quickCameraRecTimerText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   quickCameraTopBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
+  quickCameraFilmstripWrap: { position: "absolute", bottom: 168, left: 0, right: 0 },
   quickCameraBottomBar: { position: "absolute", bottom: 86, left: 16, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   quickCameraShutterOuter: { width: 72, height: 72, borderRadius: 36, borderWidth: 4, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   quickCameraShutterInner: { width: 58, height: 58, borderRadius: 29, backgroundColor: "#FFFFFF" },
-  quickCameraShutterInnerActive: { backgroundColor: "#9CA3AF" },
+  quickCameraShutterInnerActive: { backgroundColor: "rgba(255,255,255,0.5)" },
+  quickCameraShutterOuterVideo: { borderColor: "#FF3B30" },
+  quickCameraShutterInnerVideo: { backgroundColor: "#FF3B30" },
+  quickCameraShutterInnerRecording: { width: 28, height: 28, borderRadius: 6 },
+  quickCameraModeRow: { position: "absolute", bottom: 50, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 24 },
+  quickCameraModeText: { color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: "700" },
+  quickCameraModeTextActive: { color: "#FFFFFF" },
 });

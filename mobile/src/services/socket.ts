@@ -360,9 +360,20 @@ export interface DMPinnedMessage {
   pinnedAt: number;
 }
 
-// Grup sohbeti - ilk surum, SADECE metin mesaji (bkz. server/src/group.ts).
-// DMMessage'in cok daha kuculmus hali - reply/poll/sticker/medya vb. yok,
-// ileride DM'deki gibi asama asama eklenebilir.
+export interface GroupReply {
+  text: string;
+  fromName: string;
+  kind?: GroupMessage["kind"] | null;
+  mediaUrl?: string | null;
+}
+
+// Grup sohbeti - DMMessage ile BIREBIR AYNI alanlar (bkz. server/src/
+// group.ts GroupMessage) - "Hepsi birebir kişi mesajındaki gibi çalışsın"
+// istegiyle grup, metin/foto/sesli/video/konum/dosya/muzik/kisi/anket/
+// cikartma + yanitlama/sabitleme/silme ozelliklerinin TUMUNE ulasti. Alan
+// isimleri DMMessage ile AYNI tutuldu ki bir grup mesaji DM'e iletilirken
+// (bkz. GroupChatScreen.tsx forwardToUsers / "group:forwardToDm") dogrudan
+// eslessin.
 export interface GroupMessage {
   id: string;
   groupId: string;
@@ -370,12 +381,41 @@ export interface GroupMessage {
   fromName: string;
   text: string;
   createdAt: number;
-  kind?: "text" | "photo" | "voice";
+  replyTo: GroupReply | null;
+  // Grupta "myReaction/peerReaction" yerine (N kisi oldugu icin) kendi
+  // istemci-ici haritasi (messageId -> {userId: emoji}) tutulur - bkz.
+  // GroupChatScreen.tsx reactionsByMessage state'i, sunucuda SAKLANMAZ.
+  kind?: "text" | "photo" | "voice" | "location" | "file" | "video" | "contact" | "poll" | "music" | "sticker";
   mediaUrl?: string | null;
   isAdult?: boolean;
   durationMs?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  mimeType?: string | null;
+  sharedUserId?: string | null;
+  sharedUserName?: string | null;
+  sharedUserHandle?: string | null;
+  sharedUserAvatarUrl?: string | null;
+  pollQuestion?: string | null;
+  pollOptions?: string[] | null;
+  pollOptionImages?: (string | null)[] | null;
+  pollVotes?: number[] | null;
+  myPollVote?: number | null;
+  stickerId?: string | null;
+  deletedForEveryone?: boolean;
+  isForwarded?: boolean;
   viewOnce?: boolean;
   viewOnceConsumed?: boolean;
+}
+
+// Bir grupta sabitlenmis TEK bir mesaj - DMPinnedMessage ile AYNI desen,
+// ayni grupta BIRDEN FAZLA olabilir.
+export interface GroupPinnedMessage {
+  message: GroupMessage;
+  pinnedBy: string;
+  pinnedAt: number;
 }
 
 export interface GroupMember {

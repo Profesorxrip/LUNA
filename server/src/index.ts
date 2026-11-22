@@ -96,9 +96,22 @@ import {
   sendGroupMessage,
   sendGroupImage,
   sendGroupVoice,
+  sendGroupVideo,
+  sendGroupLocation,
+  sendGroupFile,
+  sendGroupMusic,
+  sendGroupContact,
+  sendGroupPoll,
+  voteGroupPoll,
+  sendGroupSticker,
   consumeGroupMediaOnce,
+  deleteGroupMessageForEveryone,
+  deleteGroupMessageForMe,
+  pinGroupMessage,
+  unpinGroupMessage,
   listMyGroups,
   groupMemberUserIds,
+  GroupReply,
 } from "./group";
 import {
   setUserName,
@@ -941,9 +954,9 @@ io.on("connection", (socket: Socket) => {
   // getirir - RLS sayesinde uye DEGILSEM group_conversations bos doner.
   socket.on("group:open", async ({ groupId }: { groupId: string }, ack) => {
     if (!requireAuth(ack) || !isNonEmptyString(groupId, 200)) return ack?.({ ok: false });
-    const result = await openGroup(myDb!, groupId);
+    const result = await openGroup(myDb!, myUserId!, groupId);
     if (!result) return ack?.({ ok: false, error: "Grup bulunamadi." });
-    ack?.({ ok: true, group: result.group, messages: result.messages });
+    ack?.({ ok: true, group: result.group, messages: result.messages, pinned: result.pinned });
   });
 
   // Grubun tum CEVRIMICI uyelerine (ben haric) "group:message" yayinlar,
@@ -959,18 +972,29 @@ io.on("connection", (socket: Socket) => {
     }
   }
 
-  socket.on("group:send", async ({ groupId, text }: { groupId: string; text: string }, ack) => {
-    if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(text, 1000)) {
-      return ack?.({ ok: false });
+  socket.on(
+    "group:send",
+    async ({ groupId, text, replyTo }: { groupId: string; text: string; replyTo?: GroupReply | null }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(text, 1000)) {
+        return ack?.({ ok: false });
+      }
+      const validReplyTo =
+        replyTo &&
+        isNonEmptyString(replyTo.text, 1000) &&
+        isNonEmptyString(replyTo.fromName, 200) &&
+        isOptionalString(replyTo.kind ?? undefined, 20) &&
+        isOptionalString(replyTo.mediaUrl ?? undefined, 2000)
+          ? replyTo
+          : null;
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendGroupMessage(myDb!, groupId, text, validReplyTo);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      await broadcastGroupMessage(groupId, result.message, text.trim().slice(0, 120));
     }
-    if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
-    const result = await sendGroupMessage(myDb!, groupId, text);
-    if (!result.ok || !result.message) {
-      return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
-    }
-    ack?.({ ok: true, message: result.message });
-    await broadcastGroupMessage(groupId, result.message, text.trim().slice(0, 120));
-  });
+  );
 
   // Grupta GERCEK fotograf/kamera gonderme - dm:sendImage ile AYNI desen:
   // client "chat-media" bucket'ina kendisi yukler, buraya sadece ortaya
@@ -1043,6 +1067,321 @@ io.on("connection", (socket: Socket) => {
       if (memberSocketId) io.to(memberSocketId).emit("group:message:mediaOnceConsumed", { groupId, messageId });
     }
   });
+
+  // Grupta video mesaji - foto ile AYNI desen (client "chat-media"
+  // bucket'ina kendisi yukler), DM'in dm:sendVideo'suyla AYNI alanlar.
+  socket.on(
+    "group:sendVideo",
+    async (
+      { groupId, mediaUrl, durationMs, caption, viewOnce }: { groupId: string; mediaUrl: string; durationMs?: number; caption?: string; viewOnce?: boolean },
+      ack
+    ) => {
+      if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(mediaUrl, 2000)) {
+        return ack?.({ ok: false });
+      }
+      if (durationMs !== undefined && !isFiniteNumber(durationMs, 0, 24 * 60 * 60 * 1000)) return ack?.({ ok: false });
+      if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
+      if (viewOnce !== undefined && typeof viewOnce !== "boolean") return ack?.({ ok: false });
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendGroupVideo(myDb!, groupId, mediaUrl, durationMs, caption?.trim() || undefined, viewOnce);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      await broadcastGroupMessage(groupId, result.message, "🎥 Video gönderdi");
+    }
+  );
+
+  // Grupta konum paylasimi - dosya yok, sadece iki koordinat.
+  socket.on(
+    "group:sendLocation",
+    async ({ groupId, latitude, longitude }: { groupId: string; latitude: number; longitude: number }, ack) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(groupId, 200) ||
+        !isFiniteNumber(latitude, -90, 90) ||
+        !isFiniteNumber(longitude, -180, 180)
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendGroupLocation(myDb!, groupId, latitude, longitude);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      await broadcastGroupMessage(groupId, result.message, "📍 Konum gönderdi");
+    }
+  );
+
+  // Grupta genel dosya - client "chat-media" bucket'ina kendisi yukler.
+  socket.on(
+    "group:sendFile",
+    async (
+      {
+        groupId,
+        mediaUrl,
+        fileName,
+        fileSize,
+        mimeType,
+        caption,
+      }: { groupId: string; mediaUrl: string; fileName: string; fileSize?: number; mimeType?: string; caption?: string },
+      ack
+    ) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(groupId, 200) ||
+        !isNonEmptyString(mediaUrl, 2000) ||
+        !isNonEmptyString(fileName, 255)
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (fileSize !== undefined && !isFiniteNumber(fileSize, 0, 500 * 1024 * 1024)) return ack?.({ ok: false });
+      if (mimeType !== undefined && !isOptionalString(mimeType, 150)) return ack?.({ ok: false });
+      if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendGroupFile(myDb!, groupId, mediaUrl, fileName, fileSize, mimeType, caption?.trim() || undefined);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      await broadcastGroupMessage(groupId, result.message, `📎 ${fileName}`);
+    }
+  );
+
+  // Grupta muzik paylasma - Dosya ile AYNI desen, sadece kind='music'.
+  socket.on(
+    "group:sendMusic",
+    async (
+      {
+        groupId,
+        mediaUrl,
+        fileName,
+        fileSize,
+        mimeType,
+        caption,
+      }: { groupId: string; mediaUrl: string; fileName: string; fileSize?: number; mimeType?: string; caption?: string },
+      ack
+    ) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(groupId, 200) ||
+        !isNonEmptyString(mediaUrl, 2000) ||
+        !isNonEmptyString(fileName, 255)
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (fileSize !== undefined && !isFiniteNumber(fileSize, 0, 500 * 1024 * 1024)) return ack?.({ ok: false });
+      if (mimeType !== undefined && !isOptionalString(mimeType, 150)) return ack?.({ ok: false });
+      if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendGroupMusic(myDb!, groupId, mediaUrl, fileName, fileSize, mimeType, caption?.trim() || undefined);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      await broadcastGroupMessage(groupId, result.message, `🎵 ${fileName}`);
+    }
+  );
+
+  // Grupta bir uyenin kisi kartini paylasma.
+  socket.on(
+    "group:sendContact",
+    async ({ groupId, sharedUserId }: { groupId: string; sharedUserId: string }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(sharedUserId, 200)) {
+        return ack?.({ ok: false });
+      }
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendGroupContact(myDb!, groupId, sharedUserId);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      await broadcastGroupMessage(groupId, result.message, "👤 Kişi paylaştı");
+    }
+  );
+
+  // Grupta anket olusturma - en az 2, en fazla 10 secenek.
+  socket.on(
+    "group:sendPoll",
+    async (
+      { groupId, question, options, optionImages }: { groupId: string; question: string; options: string[]; optionImages?: (string | null)[] },
+      ack
+    ) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(groupId, 200) ||
+        !isNonEmptyString(question, 300) ||
+        !Array.isArray(options) ||
+        options.length < 2 ||
+        options.length > 10 ||
+        !options.every((o) => isNonEmptyString(o, 100))
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (
+        optionImages !== undefined &&
+        (!Array.isArray(optionImages) ||
+          optionImages.length !== options.length ||
+          !optionImages.every((u) => u === null || isNonEmptyString(u, 2000)))
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendGroupPoll(myDb!, groupId, question, options, optionImages);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      await broadcastGroupMessage(groupId, result.message, "📊 Anket gönderdi");
+    }
+  );
+
+  // Ankette oy verme/degistirme - grup N kisi oldugu icin guncel sayilari
+  // TUM uyelere (DM'deki tek "karsi taraf" yerine) yayinlar.
+  socket.on(
+    "group:votePoll",
+    async ({ groupId, messageId, optionIndex }: { groupId: string; messageId: string; optionIndex: number }, ack) => {
+      if (
+        !requireAuth(ack) ||
+        !isNonEmptyString(groupId, 200) ||
+        !isNonEmptyString(messageId, 100) ||
+        !isFiniteNumber(optionIndex, 0, 9)
+      ) {
+        return ack?.({ ok: false });
+      }
+      const result = await voteGroupPoll(myDb!, messageId, optionIndex);
+      if (!result.ok) return ack?.({ ok: false });
+      ack?.({ ok: true, votes: result.votes });
+      const memberIds = await groupMemberUserIds(myDb!, groupId);
+      for (const memberId of memberIds) {
+        if (memberId === myUserId) continue;
+        const memberSocketId = getSocketIdForUser(memberId);
+        if (memberSocketId) io.to(memberSocketId).emit("group:pollVote", { groupId, messageId, votes: result.votes, voterUserId: myUserId });
+      }
+    }
+  );
+
+  // Grupta cikartma (bundle edilmis VEYA kullanicinin kendi yukledigi) -
+  // dm:sendSticker ile AYNI desen.
+  socket.on(
+    "group:sendSticker",
+    async ({ groupId, stickerId, mediaUrl }: { groupId: string; stickerId?: string; mediaUrl?: string }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(groupId, 200)) return ack?.({ ok: false });
+      if (stickerId !== undefined && !isOptionalString(stickerId, 100)) return ack?.({ ok: false });
+      if (mediaUrl !== undefined && !isOptionalString(mediaUrl, 2000)) return ack?.({ ok: false });
+      if (!stickerId && !mediaUrl) return ack?.({ ok: false });
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const result = await sendGroupSticker(myDb!, groupId, stickerId, mediaUrl);
+      if (!result.ok || !result.message) {
+        return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
+      }
+      ack?.({ ok: true, message: result.message });
+      await broadcastGroupMessage(groupId, result.message, "🏷️ Çıkartma");
+    }
+  );
+
+  // Grupta bir mesaja CIFT TIKLAYINCA gonderilen tepki - DM'in aksine N
+  // kisi oldugu icin SUNUCU hicbir state tutmadan (gecici, kalici DEGIL)
+  // TUM diger uyelere (gonderen haric) anlik olarak iletir - istemci
+  // kendi tarafinda "kim hangi emojiyi atti" haritasini tutar.
+  socket.on(
+    "group:react",
+    async ({ groupId, messageId, emoji }: { groupId: string; messageId: string; emoji: string | null }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(messageId, 100)) {
+        return ack?.({ ok: false });
+      }
+      if (emoji !== null && !isNonEmptyString(emoji, 8)) return ack?.({ ok: false });
+      if (!allow("dm:react", 40, 10_000)) return ack?.({ ok: false });
+      ack?.({ ok: true });
+      const memberIds = await groupMemberUserIds(myDb!, groupId);
+      for (const memberId of memberIds) {
+        if (memberId === myUserId) continue;
+        const memberSocketId = getSocketIdForUser(memberId);
+        if (memberSocketId) io.to(memberSocketId).emit("group:reaction", { groupId, fromUserId: myUserId, messageId, emoji });
+      }
+    }
+  );
+
+  // Basili tutma menusu: Sil (herkesten/benden), Sabitle. "Ilet" icin ayri
+  // bir handler YOK - var olan dm:forwardMessage dogrudan kullanilir (bkz.
+  // GroupChatScreen.tsx forwardToUsers).
+  socket.on(
+    "group:deleteMessage",
+    async ({ groupId, messageId, forEveryone }: { groupId: string; messageId: string; forEveryone: boolean }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(messageId, 200)) {
+        return ack?.({ ok: false });
+      }
+      const ok = forEveryone ? await deleteGroupMessageForEveryone(myDb!, messageId) : await deleteGroupMessageForMe(myDb!, messageId);
+      if (!ok) return ack?.({ ok: false });
+      ack?.({ ok: true });
+      if (forEveryone) {
+        const memberIds = await groupMemberUserIds(myDb!, groupId);
+        for (const memberId of memberIds) {
+          const memberSocketId = getSocketIdForUser(memberId);
+          if (memberSocketId) io.to(memberSocketId).emit("group:message:deletedForEveryone", { groupId, messageId });
+        }
+      }
+    }
+  );
+
+  socket.on("group:pinMessage", async ({ groupId, messageId }: { groupId: string; messageId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(messageId, 200)) {
+      return ack?.({ ok: false });
+    }
+    const ok = await pinGroupMessage(myDb!, messageId);
+    if (!ok) return ack?.({ ok: false });
+    const payload = { groupId, messageId, pinnedBy: myUserId, pinnedAt: Date.now() };
+    ack?.({ ok: true, ...payload });
+    const memberIds = await groupMemberUserIds(myDb!, groupId);
+    for (const memberId of memberIds) {
+      const memberSocketId = getSocketIdForUser(memberId);
+      if (memberSocketId) io.to(memberSocketId).emit("group:message:pinned", payload);
+    }
+  });
+
+  socket.on("group:unpinMessage", async ({ groupId, messageId }: { groupId: string; messageId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(messageId, 200)) {
+      return ack?.({ ok: false });
+    }
+    const ok = await unpinGroupMessage(myDb!, messageId);
+    if (!ok) return ack?.({ ok: false });
+    ack?.({ ok: true });
+    const memberIds = await groupMemberUserIds(myDb!, groupId);
+    for (const memberId of memberIds) {
+      const memberSocketId = getSocketIdForUser(memberId);
+      if (memberSocketId) io.to(memberSocketId).emit("group:message:unpinned", { groupId, messageId });
+    }
+  });
+
+  // Ilet: bir grup mesajini BIR YA DA BIRDEN FAZLA kisiye (DM'e) var olan
+  // forward_dm_message RPC'siyle (bkz. dm.ts forwardMessage) yeniden
+  // gonderir - GroupMessage alanlari DMMessage ile AYNI isimlerde oldugu
+  // icin dogrudan eslesir, grup tarafinda ayri bir RPC/kayit GEREKMEZ.
+  socket.on(
+    "group:forwardToDm",
+    async ({ toUserIds, message }: { toUserIds: string[]; message: DMMessage }, ack) => {
+      if (!requireAuth(ack) || !Array.isArray(toUserIds) || toUserIds.length === 0 || toUserIds.length > 20 || !message) {
+        return ack?.({ ok: false });
+      }
+      if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
+      const results: { userId: string; ok: boolean }[] = [];
+      for (const toUserId of toUserIds) {
+        if (!isNonEmptyString(toUserId, 200)) {
+          results.push({ userId: toUserId, ok: false });
+          continue;
+        }
+        const result = await forwardMessage(myDb!, toUserId, message);
+        results.push({ userId: toUserId, ok: result.ok });
+        if (result.ok && result.message) {
+          const peerSocketId = getSocketIdForUser(toUserId);
+          if (peerSocketId) io.to(peerSocketId).emit("dm:message", { fromUserId: myUserId, message: result.message });
+          socket.emit("dm:message:self", { toUserId, message: result.message });
+        }
+      }
+      ack?.({ ok: true, results });
+    }
+  );
 
   // DM listesinde bir kisiye basili tutunca cikan menu - hepsi SADECE
   // benim listemi etkiler, karsi tarafa hicbir bildirim gitmez.
