@@ -209,6 +209,8 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
                 (item.mediaUrl || isGifSticker) &&
                 !isUnopenedViewOnceMedia &&
                 styles.bubblePhotoPad),
+              isUnopenedViewOnceMedia && styles.bubbleViewOnceExtraRight,
+              isUnopenedViewOnceMedia && (isMine ? styles.bubbleViewOnceShiftMine : styles.bubbleViewOnceShiftTheirs),
               item.kind === "sticker" && !isGifSticker && styles.bubbleStickerNoBg,
             ]}
           >
@@ -284,7 +286,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
                 <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.mediaOnceConsumed")}</Text>
               </View>
             ) : item.kind === "photo" && item.viewOnce && item.mediaUrl ? (
-              <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={styles.viewOnceUnopenedRow}>
+              <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
                 <View style={styles.viewOnceUnopenedIconWrap}>
                   <VoiceOnceRingIcon size={40} color={isMine ? "#FFFFFF" : TEXT} />
                 </View>
@@ -1838,6 +1840,9 @@ const styles = StyleSheet.create({
   bubbleContactPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   bubbleMusicPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
   bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3, width: 286 },
+  bubbleViewOnceExtraRight: { paddingRight: 18 },
+  bubbleViewOnceShiftMine: { paddingLeft: 23 },
+  bubbleViewOnceShiftTheirs: { paddingRight: 28 },
   bubbleStickerNoBg: { backgroundColor: "transparent", padding: 0 },
   bubbleMine: { backgroundColor: BUBBLE_MINE_COLOR },
   bubbleTheirs: { backgroundColor: "#1E293B" },
@@ -1849,7 +1854,14 @@ const styles = StyleSheet.create({
   // istegi: "fotoğrafsa fotoğraf videoysa video... yazdığımız bir mesaj
   // balonu" + yaninda "1" rozeti (VoiceOnceRingIcon, kayit cubugundaki ile
   // AYNI gorsel).
-  viewOnceUnopenedRow: { flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -12 },
+  viewOnceUnopenedRow: { flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -10 },
+  // Kullanici istegi: "Benim fotoğraf rozetimi ve fotoğraf yazısını 10 px
+  // sola kaydır" - sadece KENDI fotograf mesajimda (kindVideo etkilenmez).
+  // marginLeft DEGIL transform kullanildi: negatif margin balonun auto-width
+  // hesaplamasini da kuculttup balonu saga kaydiriyordu (kullanici
+  // sikayeti) - transform sadece GORSEL olarak kaydirir, layout/genislik
+  // etkilenmez.
+  viewOnceUnopenedRowMineShift: { transform: [{ translateX: -10 }] },
   // Rozet (40px) metnin satir yuksekliginden (21px) buyuk oldugu icin, balon
   // yuksekligi bozulmasin diye rozeti sabit 21px'lik bir kutu icinde
   // ortalayip tasiriyoruz (overflow visible) - boylece balonun toplam
