@@ -23,6 +23,11 @@ interface Props {
   onReply?: () => void;
   onShowInChat?: () => void;
   onReport?: () => void;
+  // PhotoViewerModal.tsx'teki AYNI prop'lar - bkz. orada.
+  hideForward?: boolean;
+  hideDownload?: boolean;
+  // PhotoViewerModal.tsx'teki AYNI prop - bkz. orada.
+  caption?: string;
 }
 
 /** DM'de paylasilan bir videoya dokununca acilan TAM EKRAN oynatici -
@@ -32,7 +37,7 @@ interface Props {
  * play/duraklat/sar/ses kontrollerimiz (HlsPlayer.tsx'teki AYNI
  * "playingChange"/"timeUpdate" dinleyici deseni) kullanildi.
  */
-export default function VideoViewerModal({ uri, onClose, senderName, sentAt, onReply, onShowInChat, onReport }: Props) {
+export default function VideoViewerModal({ uri, onClose, senderName, sentAt, onReply, onShowInChat, onReport, hideForward, hideDownload, caption }: Props) {
   const insets = useSafeAreaInsets();
   const { i18n } = useTranslation();
   const [downloading, setDownloading] = useState(false);
@@ -159,9 +164,11 @@ export default function VideoViewerModal({ uri, onClose, senderName, sentAt, onR
                 </View>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setForwardVisible(true)} hitSlop={10}>
-              <Icon name="undoArrow" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
+            {!hideForward && (
+              <TouchableOpacity style={styles.iconBtn} onPress={() => setForwardVisible(true)} hitSlop={10}>
+                <Icon name="undoArrow" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)} hitSlop={10}>
               <MoreVertical size={20} color="#FFFFFF" />
             </TouchableOpacity>
@@ -173,49 +180,54 @@ export default function VideoViewerModal({ uri, onClose, senderName, sentAt, onR
         </TouchableOpacity>
 
         <Animated.View
-          style={[styles.bottomBar, { paddingBottom: insets.bottom + 16, opacity: barsOpacity }]}
+          style={[styles.bottomBarWrap, { paddingBottom: insets.bottom + 16, opacity: barsOpacity }]}
           pointerEvents={barsVisible ? "auto" : "none"}
         >
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => (playing ? player.pause() : player.play())}
-            hitSlop={10}
-          >
-            {playing ? <Pause size={20} color="#FFFFFF" /> : <Play size={20} color="#FFFFFF" fill="#FFFFFF" />}
-          </TouchableOpacity>
-          <Text style={styles.bottomTime}>{formatDuration(currentTime)}</Text>
-          <View style={styles.bottomSliderWrap}>
-            <SimpleSlider
-              value={duration > 0 ? currentTime / duration : 0}
-              onValueChange={(v) => {
-                seekingRef.current = true;
-                const t = v * duration;
-                setCurrentTime(t);
-                player.currentTime = t;
-                seekingRef.current = false;
-              }}
-            />
+          {!!caption && <Text style={styles.captionText}>{caption}</Text>}
+          <View style={styles.bottomBar}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => (playing ? player.pause() : player.play())}
+              hitSlop={10}
+            >
+              {playing ? <Pause size={20} color="#FFFFFF" /> : <Play size={20} color="#FFFFFF" fill="#FFFFFF" />}
+            </TouchableOpacity>
+            <Text style={styles.bottomTime}>{formatDuration(currentTime)}</Text>
+            <View style={styles.bottomSliderWrap}>
+              <SimpleSlider
+                value={duration > 0 ? currentTime / duration : 0}
+                onValueChange={(v) => {
+                  seekingRef.current = true;
+                  const t = v * duration;
+                  setCurrentTime(t);
+                  player.currentTime = t;
+                  seekingRef.current = false;
+                }}
+              />
+            </View>
+            <Text style={styles.bottomTime}>{formatDuration(duration)}</Text>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => setMuted((m) => { player.muted = !m; return !m; })} hitSlop={10}>
+              {muted ? <Icon name="sesKapali1" size={18} color="#FFFFFF" /> : <Icon name="sesAcik1" size={18} color="#FFFFFF" />}
+            </TouchableOpacity>
           </View>
-          <Text style={styles.bottomTime}>{formatDuration(duration)}</Text>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => setMuted((m) => { player.muted = !m; return !m; })} hitSlop={10}>
-            {muted ? <Icon name="sesKapali1" size={18} color="#FFFFFF" /> : <Icon name="sesAcik1" size={18} color="#FFFFFF" />}
-          </TouchableOpacity>
         </Animated.View>
 
         <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
           <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
             <View style={[styles.menuCard, { top: barHeight }]}>
-              <TouchableOpacity
-                style={styles.menuRow}
-                disabled={downloading}
-                onPress={() => {
-                  setMenuVisible(false);
-                  handleDownload();
-                }}
-              >
-                {downloading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <CircleArrowDown size={16} color="#FFFFFF" />}
-                <Text style={styles.menuRowText}>İndir</Text>
-              </TouchableOpacity>
+              {!hideDownload && (
+                <TouchableOpacity
+                  style={styles.menuRow}
+                  disabled={downloading}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    handleDownload();
+                  }}
+                >
+                  {downloading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <CircleArrowDown size={16} color="#FFFFFF" />}
+                  <Text style={styles.menuRowText}>İndir</Text>
+                </TouchableOpacity>
+              )}
               {!!onShowInChat && (
                 <TouchableOpacity
                   style={styles.menuRow}
@@ -280,16 +292,15 @@ const styles = StyleSheet.create({
   // Ust barla AYNI cerceve/renk (kullanicinin istegi) - sadece ustten degil
   // ALTTAN gelen bir cerceve, expo-video'nun KENDI native UI'i yerine kendi
   // play/duraklat/sar/ses kontrollerimizi tasiyor.
-  bottomBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  bottomBarWrap: {
+    backgroundColor: "#121212",
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: "#121212",
   },
+  bottomBar: { flexDirection: "row", alignItems: "center", gap: 8 },
   bottomTime: { color: "#FFFFFF", fontSize: 12, fontVariant: ["tabular-nums"] },
   bottomSliderWrap: { flex: 1 },
+  captionText: { color: "#FFFFFF", fontSize: 14, lineHeight: 20, marginBottom: 12 },
   iconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   senderInfo: { flex: 1 },
   senderName: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },

@@ -132,6 +132,13 @@ interface BubbleRowProps {
   onReply: () => void;
   onConsumeMediaOnce: (messageId: string) => void;
   onVotePoll: (messageId: string, optionIndex: number) => void;
+  // Tek-gorunumluk medya goruntuyecisinin uc nokta menusundeki "Bildir" icin
+  // (bkz. kullanicinin istegi: "İndir çıkmamalı, Sohbette Göster ve Bildir
+  // çıkmalı") - DMScreen.tsx'teki AYNI "report:submit" akisini (kullanici
+  // bazli rapor) tetikler.
+  onReportUser: (userId: string, name: string) => void;
+  // Ayni menudeki "Sohbette Göster" icin - mesaji listede ortalayip gosterir.
+  onShowInChat: (messageId: string) => void;
 }
 
 /** DMScreen.tsx'teki DMBubbleRow ile AYNI mantik VE AYNI mesaj
@@ -140,7 +147,7 @@ interface BubbleRowProps {
  * (swipe) GORSEL incelikleri BILINCLI olarak disarida birakildi (bunlar
  * salt estetik, "ozellik calisiyor mu" sorusuyla ilgisiz) - yanitlama hala
  * basili tutma menusundeki "Yanıtla" ile TAM calisir. */
-function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTap, onLongPress, onReply, onConsumeMediaOnce, onVotePoll }: BubbleRowProps) {
+function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTap, onLongPress, onReply, onConsumeMediaOnce, onVotePoll, onReportUser, onShowInChat }: BubbleRowProps) {
   const { t, i18n } = useTranslation();
   const [voiceTimeLabel, setVoiceTimeLabel] = useState("0:00");
   // Tek-gorunumluk foto/video HENUZ acilmadiysa (bkz. asagidaki
@@ -149,7 +156,11 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
   // videoysa video... yazdığımız bir mesaj balonu"). Dokununca GERCEK
   // mediaUrl'i YEREL state'e (consumption sonrasi item.mediaUrl undefined
   // olsa bile) yakalayip tam ekran acar VE ayni anda tuketimi bildirir.
-  const [viewOnceViewerUri, setViewOnceViewerUri] = useState<{ uri: string; kind: "photo" | "video" } | null>(null);
+  // caption burada da YEREL olarak yakalanir - acilinca onConsumeMediaOnce
+  // tuketimi sunucuya bildirir, bu da item.mediaUrl'i undefined yapar ve
+  // hasMediaCaption (item.mediaUrl'e bagli) FALSE olur; yazi acik goruntuyeci
+  // acikken KAYBOLMASIN diye acilis anindaki degeri burada saklıyoruz.
+  const [viewOnceViewerUri, setViewOnceViewerUri] = useState<{ uri: string; kind: "photo" | "video"; caption?: string } | null>(null);
   const isGifSticker = item.kind === "sticker" && !!item.stickerId?.startsWith("gif-");
   const consumedColor = isMine ? "rgba(255,255,255,0.6)" : MUTED;
   // Kullanici istegi: foto/video/gif ACILDIKTAN sonraki ikon+yazi GRI olsun
@@ -169,10 +180,11 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
   const isVoiceConsumedBadgeRow = item.kind === "voice" && !!item.viewOnce && !!item.viewOnceConsumed;
   function openViewOnceMedia() {
     if (!item.mediaUrl) return;
+    const caption = hasMediaCaption ? item.text : undefined;
     if (item.kind === "video") {
-      setViewOnceViewerUri({ uri: item.mediaUrl, kind: "video" });
+      setViewOnceViewerUri({ uri: item.mediaUrl, kind: "video", caption });
     } else if (item.kind === "photo" || isGifSticker) {
-      setViewOnceViewerUri({ uri: item.mediaUrl, kind: "photo" });
+      setViewOnceViewerUri({ uri: item.mediaUrl, kind: "photo", caption });
     } else {
       return;
     }
@@ -384,12 +396,24 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
         onClose={() => setViewOnceViewerUri(null)}
         senderName={item.fromName}
         sentAt={item.createdAt}
+        onReply={onReply}
+        onShowInChat={() => onShowInChat(item.id)}
+        onReport={() => onReportUser(item.fromUserId, sender?.name || item.fromName)}
+        hideForward
+        hideDownload
+        caption={viewOnceViewerUri?.caption}
       />
       <VideoViewerModal
         uri={viewOnceViewerUri?.kind === "video" ? viewOnceViewerUri.uri : null}
         onClose={() => setViewOnceViewerUri(null)}
         senderName={item.fromName}
         sentAt={item.createdAt}
+        onReply={onReply}
+        onShowInChat={() => onShowInChat(item.id)}
+        onReport={() => onReportUser(item.fromUserId, sender?.name || item.fromName)}
+        hideForward
+        hideDownload
+        caption={viewOnceViewerUri?.caption}
       />
     </View>
   );
@@ -472,6 +496,27 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
   const [selectedMusicUris, setSelectedMusicUris] = useState<string[]>([]);
   const [pollComposerVisible, setPollComposerVisible] = useState(false);
   const [sendingPoll, setSendingPoll] = useState(false);
+
+  // Tek-gorunumluk medya goruntuyecisindeki "Bildir" icin - DMScreen.tsx'teki
+  // AYNI "report:submit" (kullanici bazli rapor) akisi.
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportTarget, setReportTarget] = useState<{ userId: string; name: string } | null>(null);
+  function openReportSheet(userId: string, name: string) {
+    setReportTarget({ userId, name });
+    setReportReason("");
+    setReportVisible(true);
+  }
+  function submitReport() {
+    const reason = reportReason.trim();
+    if (!reason || !reportTarget) return;
+    socket.emit("report:submit", { targetUserId: reportTarget.userId, reason }, (res: any) => {
+      if (res?.ok) showAlert(t("dm.reportSentTitle"), t("dm.reportSentBody"));
+      else showAlert(t("dm.reportFailedTitle"), t("dm.reportFailedBody"));
+    });
+    setReportReason("");
+    setReportVisible(false);
+  }
 
   // Cikartma/GIF - DM'deki ile AYNI kisisel (cihaz basina, AsyncStorage)
   // listeler, grup/DM ayrimi olmadan paylasilir.
@@ -1512,6 +1557,8 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
               onReply={() => startReply(item)}
               onConsumeMediaOnce={handleConsumeMediaOnce}
               onVotePoll={votePoll}
+              onReportUser={openReportSheet}
+              onShowInChat={scrollToMessage}
             />
           );
         }}
@@ -1821,6 +1868,35 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
 
       <PollComposerModal visible={pollComposerVisible} sending={sendingPoll} onCancel={() => setPollComposerVisible(false)} onSend={sendPoll} />
 
+      <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)} statusBarTranslucent>
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setReportVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.sheetCard}>
+            <View style={styles.sheetHandleTop} />
+            <Text style={styles.sheetTitle}>{t("dm.reportTitle", { name: reportTarget?.name })}</Text>
+            <Text style={styles.sheetSubtitle}>{t("dm.reportSubtitle")}</Text>
+            <TextInput
+              style={styles.reportInput}
+              value={reportReason}
+              onChangeText={setReportReason}
+              placeholder={t("dm.reportPlaceholder")}
+              placeholderTextColor={MUTED}
+              multiline
+              autoFocus
+            />
+            <LinearGradient
+              colors={["#FFFFFF", "#38BDF8"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.reportSubmitGradientBorder, !reportReason.trim() && styles.reportSubmitBtnDisabled]}
+            >
+              <TouchableOpacity style={styles.reportSubmitBtnDark} onPress={submitReport} disabled={!reportReason.trim()}>
+                <Text style={styles.reportSubmitBtnDarkText}>{t("dm.reportSend")}</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
       <Modal visible={!!forwardTarget} animationType="slide" onRequestClose={() => setForwardTarget(null)} statusBarTranslucent>
         <FriendsScreen
           onBack={() => setForwardTarget(null)}
@@ -2077,4 +2153,35 @@ const styles = StyleSheet.create({
   quickCameraModeRow: { position: "absolute", bottom: 50, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 24 },
   quickCameraModeText: { color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: "700" },
   quickCameraModeTextActive: { color: "#FFFFFF" },
+  // Tek-gorunumluk medya goruntuyecisindeki "Bildir" sheet'i -
+  // DMScreen.tsx'teki AYNI stiller.
+  sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  sheetCard: {
+    backgroundColor: "#15202B",
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingTop: 18,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  sheetTitle: { color: TEXT, fontSize: 16, fontWeight: "700", marginBottom: 4, alignSelf: "flex-start" },
+  sheetSubtitle: { color: MUTED, fontSize: 12, marginBottom: 14, alignSelf: "flex-start" },
+  sheetHandleTop: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#3A4C5E", marginBottom: 14 },
+  reportInput: {
+    width: "100%",
+    minHeight: 80,
+    backgroundColor: "#0E0C0A",
+    borderRadius: 10,
+    color: TEXT,
+    fontSize: 14,
+    padding: 12,
+    textAlignVertical: "top",
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
+  reportSubmitGradientBorder: { alignSelf: "stretch", borderRadius: 10, padding: 2, marginTop: 14 },
+  reportSubmitBtnDisabled: { opacity: 0.4 },
+  reportSubmitBtnDark: { backgroundColor: "#000000", borderRadius: 8, paddingVertical: 14, alignItems: "center" },
+  reportSubmitBtnDarkText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800", letterSpacing: 0.2, textTransform: "uppercase" },
 });

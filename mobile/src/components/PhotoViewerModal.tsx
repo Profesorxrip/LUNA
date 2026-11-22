@@ -57,6 +57,18 @@ interface Props {
   // GORUNTULEYICININ DISINDA (cagiran ekranda) oldugu icin, Yanıtla/Sohbette
   // Göster ile AYNI sekilde once izleyici kapatilir.
   onReport?: () => void;
+  // Kullanici istegi: tek-gorunumluk (view-once) medyada "İlet" secenegi
+  // SACMA duruyor (WhatsApp'ta da bu tur medya iletilemiyor) - bu true
+  // oldugunda ilet butonu HIC gosterilmiyor, yerine (onReply verildiyse)
+  // sadece Yanıtla kaliyor.
+  hideForward?: boolean;
+  // Kullanici istegi: tek-gorunumluk medyada "İndir" secenegi de SACMA
+  // duruyor (goruldukten sonra kaybolmasi gereken bir icerik) - true
+  // oldugunda uc nokta menusunde İndir satiri hic gosterilmiyor.
+  hideDownload?: boolean;
+  // Kullanici istegi: mesajin yazisi (caption) varsa altta bunu gosteren bir
+  // bar olsun, bos alana dokununca ust barla AYNI anda gizlensin/gelsin.
+  caption?: string;
 }
 
 const MIN_SCALE = 1;
@@ -90,7 +102,7 @@ function touchDistance(touches: GestureResponderEvent["nativeEvent"]["touches"])
  * editHeader) AYNI gorsel dili kullanir - aynı donen CircleArrowDown geri
  * oku, "Indir" artik ayri bir ikon degil, saga TASINAN uc nokta menusunun
  * icinde bir secenek. */
-export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onReply, onShowInChat, onReport, photos, initialIndex }: Props) {
+export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onReply, onShowInChat, onReport, photos, initialIndex, hideForward, hideDownload, caption }: Props) {
   const insets = useSafeAreaInsets();
   const { i18n } = useTranslation();
   const [downloading, setDownloading] = useState(false);
@@ -435,9 +447,11 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
                 </View>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setForwardVisible(true)} hitSlop={10}>
-              <Icon name="undoArrow" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
+            {!hideForward && (
+              <TouchableOpacity style={styles.iconBtn} onPress={() => setForwardVisible(true)} hitSlop={10}>
+                <Icon name="undoArrow" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)} hitSlop={10}>
               <MoreVertical size={20} color="#FFFFFF" />
             </TouchableOpacity>
@@ -474,24 +488,35 @@ export default function PhotoViewerModal({ uri, onClose, senderName, sentAt, onR
           )}
         </Animated.View>
 
+        {!!caption && (
+          <Animated.View
+            style={[styles.captionBar, { paddingBottom: insets.bottom + 16, opacity: barsOpacity }]}
+            pointerEvents={barsVisible ? "auto" : "none"}
+          >
+            <Text style={styles.captionText}>{caption}</Text>
+          </Animated.View>
+        )}
+
         <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
           <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
             <View style={[styles.menuCard, { top: barHeight }]}>
-              <TouchableOpacity
-                style={styles.menuRow}
-                disabled={downloading}
-                onPress={() => {
-                  setMenuVisible(false);
-                  if (displayUri) downloadPhoto(displayUri);
-                }}
-              >
-                {downloading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <CircleArrowDown size={16} color="#FFFFFF" />
-                )}
-                <Text style={styles.menuRowText}>İndir</Text>
-              </TouchableOpacity>
+              {!hideDownload && (
+                <TouchableOpacity
+                  style={styles.menuRow}
+                  disabled={downloading}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    if (displayUri) downloadPhoto(displayUri);
+                  }}
+                >
+                  {downloading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <CircleArrowDown size={16} color="#FFFFFF" />
+                  )}
+                  <Text style={styles.menuRowText}>İndir</Text>
+                </TouchableOpacity>
+              )}
               {!!onShowInChat && (
                 <TouchableOpacity
                   style={styles.menuRow}
@@ -548,6 +573,8 @@ const styles = StyleSheet.create({
   imageWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   image: { width: "100%", height: "100%" },
   loadingOverlay: { alignItems: "center", justifyContent: "center" },
+  captionBar: { backgroundColor: "#121212", paddingHorizontal: 16, paddingTop: 14 },
+  captionText: { color: "#FFFFFF", fontSize: 14, lineHeight: 20 },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
