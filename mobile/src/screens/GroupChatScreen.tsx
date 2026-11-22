@@ -271,7 +271,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               </View>
             ) : item.kind === "video" && item.viewOnce && item.mediaUrl ? (
               <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={styles.viewOnceUnopenedRow}>
-                <VoiceOnceRingIcon size={28} color={isMine ? "#FFFFFF" : TEXT} />
+                <VoiceOnceRingIcon size={40} color={isMine ? "#FFFFFF" : TEXT} />
                 <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindVideo")}</Text>
               </TouchableOpacity>
             ) : item.kind === "video" && item.mediaUrl ? (
@@ -283,7 +283,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               </View>
             ) : item.kind === "photo" && item.viewOnce && item.mediaUrl ? (
               <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={styles.viewOnceUnopenedRow}>
-                <VoiceOnceRingIcon size={28} color={isMine ? "#FFFFFF" : TEXT} />
+                <VoiceOnceRingIcon size={40} color={isMine ? "#FFFFFF" : TEXT} />
                 <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindPhoto")}</Text>
               </TouchableOpacity>
             ) : item.kind === "photo" && item.mediaUrl ? (
