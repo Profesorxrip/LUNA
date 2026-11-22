@@ -130,7 +130,7 @@ export function VoiceOnceRingIcon({ size = 24, color = "#F5F5F7" }: Props) {
   return (
     <Image
       source={require("../../assets/icons/voice-once-ring.png")}
-      style={{ width: size, height: size, tintColor: color }}
+      style={{ width: size, height: size, tintColor: color, backgroundColor: "transparent" }}
       resizeMode="contain"
     />
   );

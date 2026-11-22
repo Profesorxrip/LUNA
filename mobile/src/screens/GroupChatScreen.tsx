@@ -1846,7 +1846,7 @@ const styles = StyleSheet.create({
   // balonu" + yaninda "1" rozeti (VoiceOnceRingIcon, kayit cubugundaki ile
   // AYNI gorsel).
   viewOnceUnopenedRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  viewOnceUnopenedText: { fontSize: 16, lineHeight: 21 },
+  viewOnceUnopenedText: { fontSize: 16, lineHeight: 21, marginLeft: -10 },
   forwardedRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 3 },
   forwardedText: { fontSize: 11, fontWeight: "500" },
   replyQuote: {
