@@ -37,6 +37,7 @@ import {
 import { SimpleLineIcons, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LockClosedIcon, MicrophoneIcon } from "react-native-heroicons/outline";
 import Icon from "../components/Icon";
+import { VoiceOnceRingIcon, VoiceOnceFilledIcon } from "../components/CustomIcons";
 import AppBackground from "../components/AppBackground";
 import Avatar from "../components/Avatar";
 import LoadingView from "../components/LoadingView";
@@ -82,15 +83,17 @@ interface BubbleRowProps {
   isMine: boolean;
   groupedWithPrev: boolean;
   sender?: GroupMember;
+  onConsumeMediaOnce: (messageId: string) => void;
 }
 
 /** DMScreen.tsx'teki DMBubbleRow ile AYNI mantik - SADECE sesli mesajin
  * canli sure etiketi (voiceTimeLabel) icin kendi local state'i gerekiyor,
  * bu yuzden FlatList'in renderItem'i icine degil AYRI bir bilesene tasindi. */
-function GroupBubbleRow({ item, isMine, groupedWithPrev, sender }: BubbleRowProps) {
-  const { i18n } = useTranslation();
+function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, onConsumeMediaOnce }: BubbleRowProps) {
+  const { t, i18n } = useTranslation();
   const [voiceTimeLabel, setVoiceTimeLabel] = useState("0:00");
   const hasMediaCaption = item.kind === "photo" && !!item.mediaUrl && !!item.text && item.text !== "📷 Fotoğraf";
+  const consumedColor = isMine ? "rgba(255,255,255,0.6)" : MUTED;
 
   return (
     <View style={[styles.messageRow, isMine ? styles.messageRowMine : styles.messageRowTheirs, !groupedWithPrev && styles.messageRowNewGroup]}>
@@ -114,13 +117,35 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender }: BubbleRowProp
               item.kind === "photo" && styles.bubblePhotoPad,
             ]}
           >
-            {item.kind === "photo" && item.mediaUrl ? (
+            {item.kind === "voice" && item.viewOnce && item.viewOnceConsumed ? (
+              <View style={styles.deletedRow}>
+                <MicrophoneIcon size={14} color={consumedColor} strokeWidth={1.8} />
+                <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.voiceOnceConsumed")}</Text>
+              </View>
+            ) : item.kind === "voice" && item.mediaUrl ? (
+              <VoiceMessageBubble
+                uri={item.mediaUrl}
+                durationMs={item.durationMs}
+                onTimeLabel={setVoiceTimeLabel}
+                onPlay={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined}
+              />
+            ) : item.kind === "photo" && item.viewOnce && item.viewOnceConsumed ? (
+              <View style={styles.deletedRow}>
+                <ImageIcon size={14} color={consumedColor} strokeWidth={1.8} />
+                <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.mediaOnceConsumed")}</Text>
+              </View>
+            ) : item.kind === "photo" && item.mediaUrl ? (
               <>
-                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} size={280} senderName={item.fromName} sentAt={item.createdAt} />
+                <ChatImageBubble
+                  uri={item.mediaUrl}
+                  isAdult={item.isAdult}
+                  size={280}
+                  senderName={item.fromName}
+                  sentAt={item.createdAt}
+                  onOpen={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined}
+                />
                 {hasMediaCaption && <Text style={styles.mediaCaption}>{item.text}</Text>}
               </>
-            ) : item.kind === "voice" && item.mediaUrl ? (
-              <VoiceMessageBubble uri={item.mediaUrl} durationMs={item.durationMs} onTimeLabel={setVoiceTimeLabel} />
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
             )}
@@ -139,11 +164,12 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender }: BubbleRowProp
 
 /** Grup sohbeti - DMScreen.tsx'teki ("Kişi Mesajı") ekranla GORUNUM VE
  * ISLEV olarak BIREBIR AYNI: emoji paneli, fotograf/galeri gonderme, kamera
- * (ani cekim ekrani) ve sesli mesaj (basili tut/surukleyip kilitle) GERCEKTEN
+ * (ani cekim ekrani), sesli mesaj (basili tut/surukleyip kilitle) VE
+ * fotograf/sesli mesajdaki "tek görünümlük" (view-once) anahtari GERCEKTEN
  * calisir (kullanicinin "Hepsi birebir kişi mesajındaki gibi çalışsın"
  * istegi). Video mesaji/konum/dosya/anket/muzik/kisi/cikartma/yanitlama/
- * tepki/iletme/sabitleme/view-once gibi DM'e ozel geri kalan turler/aksiyonlar
- * HENUZ yok - bunlar icin ataç menusundeki ilgili satirlar "yakında" gosterir
+ * tepki/iletme/sabitleme gibi DM'e ozel geri kalan turler/aksiyonlar HENUZ
+ * yok - bunlar icin ataç menusundeki ilgili satirlar "yakında" gosterir
  * (bkz. placeholderInputFeature). DM'in kendisi de butun bunlara 46 ayri
  * migration'da asama asama ulasti.
  */
@@ -177,8 +203,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
   const [capturingQuickPhoto, setCapturingQuickPhoto] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
-  // Sesli mesaj kaydi - DMScreen.tsx'teki ile BIREBIR AYNI (view-once
-  // anahtari haric - grupta HENUZ yok).
+  // Sesli mesaj kaydi - DMScreen.tsx'teki ile BIREBIR AYNI.
   const audioRecorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
   const recorderState = useAudioRecorderState(audioRecorder, 200);
   const waveHistoryRef = useRef<number[]>([]);
@@ -187,9 +212,16 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
   const [sendingVoice, setSendingVoice] = useState(false);
   const [recordingLocked, setRecordingLocked] = useState(false);
   const [recordingPaused, setRecordingPaused] = useState(false);
+  // "Tek gorunumluk" sesli mesaj anahtari - kilitli kayit cubugundaki rozetle
+  // acilip kapatiliyor, gonderirken mesaja eklenir (bkz. 0049_group_voice_
+  // view_once.sql) - DMScreen.tsx'teki voiceOnceView ile AYNI.
+  const [voiceOnceView, setVoiceOnceView] = useState(false);
   const recordDragX = useRef(new Animated.Value(0)).current;
   const recordDragY = useRef(new Animated.Value(0)).current;
   const recordLockedRef = useRef(false);
+  // Tek-gorunumluk mesaj ilk kez acildiginda AYNI mesaja TEKRAR istek
+  // atilmasini onler - DMScreen.tsx'teki consumedOnceRef ile AYNI.
+  const consumedOnceRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
@@ -210,11 +242,28 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
       setMessages((prev) => [...prev, message]);
     }
     socket.on("group:message", handleIncoming);
+
+    function handleMediaOnceConsumed({ groupId, messageId }: { groupId: string; messageId: string }) {
+      if (groupId !== group.id) return;
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, viewOnceConsumed: true, mediaUrl: undefined } : m)));
+    }
+    socket.on("group:message:mediaOnceConsumed", handleMediaOnceConsumed);
+
     return () => {
       socket.off("group:message", handleIncoming);
+      socket.off("group:message:mediaOnceConsumed", handleMediaOnceConsumed);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group.id]);
+
+  // DMScreen.tsx'teki handleConsumeMediaOnce ile AYNI mantik.
+  function handleConsumeMediaOnce(messageId: string) {
+    if (consumedOnceRef.current.has(messageId)) return;
+    consumedOnceRef.current.add(messageId);
+    socket.emit("group:consumeMediaOnce", { groupId: group.id, messageId }, (res: any) => {
+      if (!res?.ok) consumedOnceRef.current.delete(messageId);
+    });
+  }
 
   function sendMessage() {
     const text = input.trim();
@@ -269,7 +318,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     setPendingImages((prev) => prev.map((u, i) => (i === index ? uri : u)));
   }
 
-  async function sendPickedImage(caption: string) {
+  async function sendPickedImage(caption: string, viewOnce: boolean) {
     if (!pendingImages.length || !myUserId) return;
     setUploadingImage(true);
     setUploadProgress(0);
@@ -290,7 +339,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
         await new Promise<void>((resolve, reject) => {
           socket.emit(
             "group:sendImage",
-            { groupId: group.id, mediaUrl: publicUrlData.publicUrl, caption: isLast ? caption || undefined : undefined },
+            { groupId: group.id, mediaUrl: publicUrlData.publicUrl, caption: isLast ? caption || undefined : undefined, viewOnce },
             (res: any) => {
               if (res?.ok) {
                 setMessages((prev) => [...prev, res.message]);
@@ -374,6 +423,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     setVoiceRecording(true);
     setRecordingLocked(false);
     setRecordingPaused(false);
+    setVoiceOnceView(false);
   }
 
   async function cancelVoiceRecording() {
@@ -395,6 +445,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
 
   async function sendVoiceRecording() {
     const durationMs = recorderState.durationMillis;
+    const viewOnce = voiceOnceView;
     if (audioRecorder.isRecording) await audioRecorder.stop();
     setVoiceRecording(false);
     setRecordingLocked(false);
@@ -407,7 +458,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
       const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.m4a`;
       await uploadWithProgress("chat-media", path, arrayBuffer, "audio/m4a", () => {});
       const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
-      socket.emit("group:sendVoice", { groupId: group.id, mediaUrl: publicUrlData.publicUrl, durationMs }, (res: any) => {
+      socket.emit("group:sendVoice", { groupId: group.id, mediaUrl: publicUrlData.publicUrl, durationMs, viewOnce }, (res: any) => {
         if (res?.ok) setMessages((prev) => [...prev, res.message]);
         else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
       });
@@ -415,6 +466,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
       showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
     } finally {
       setSendingVoice(false);
+      setVoiceOnceView(false);
     }
   }
 
@@ -529,7 +581,15 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
           const isMine = item.fromUserId === myUserId;
           const prev = messages[index - 1];
           const groupedWithPrev = !!prev && prev.fromUserId === item.fromUserId;
-          return <GroupBubbleRow item={item} isMine={isMine} groupedWithPrev={groupedWithPrev} sender={memberById.get(item.fromUserId)} />;
+          return (
+            <GroupBubbleRow
+              item={item}
+              isMine={isMine}
+              groupedWithPrev={groupedWithPrev}
+              sender={memberById.get(item.fromUserId)}
+              onConsumeMediaOnce={handleConsumeMediaOnce}
+            />
+          );
         }}
       />
 
@@ -557,6 +617,13 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
                   <View key={i} style={[styles.recordLiveWaveBar, { height: h }]} />
                 ))}
               </View>
+              <TouchableOpacity
+                onPress={() => setVoiceOnceView((v) => !v)}
+                hitSlop={8}
+                style={{ width: 58, height: 58, marginRight: -1.5, alignItems: "center", justifyContent: "center" }}
+              >
+                {voiceOnceView ? <VoiceOnceFilledIcon size={58} color="#FFFFFF" /> : <VoiceOnceRingIcon size={58} color={MUTED} />}
+              </TouchableOpacity>
             </View>
             <View style={styles.recordLockedBottomRow}>
               <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={8} style={[styles.inputRoundBtn, { backgroundColor: "#FF4D4F" }]}>
@@ -745,7 +812,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
         onRemoveImage={removePendingImage}
         onAddMore={pickImage}
         onReplaceImage={replacePendingImage}
-        onSend={(caption) => sendPickedImage(caption)}
+        onSend={sendPickedImage}
       />
     </View>
   );
@@ -784,6 +851,8 @@ const styles = StyleSheet.create({
   bubbleTheirs: { backgroundColor: "#1E293B" },
   bubbleText: { color: TEXT, fontSize: 16, lineHeight: 21 },
   mediaCaption: { color: TEXT, fontSize: 14, marginTop: 6, paddingHorizontal: 2 },
+  deletedRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
+  deletedText: { fontSize: 14, fontStyle: "italic" },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, alignSelf: "flex-end" },
   metaRowPhotoOverlay: {
     position: "absolute",

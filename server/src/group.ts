@@ -19,6 +19,11 @@ export interface GroupMessage {
   mediaUrl: string | null;
   isAdult: boolean;
   durationMs: number | null;
+  // "Tek görünümlük" - bkz. 0049_group_voice_view_once.sql (DM'deki
+  // view_once/view_once_consumed_at ile AYNI desen). viewOnceConsumed true
+  // olunca mediaUrl ARTIK null'dur (sunucu temizledi).
+  viewOnce: boolean;
+  viewOnceConsumed: boolean;
 }
 
 export interface GroupMember {
@@ -54,6 +59,8 @@ function mapMessageRow(row: any): GroupMessage {
     mediaUrl: row.media_url ?? null,
     isAdult: row.is_adult === true,
     durationMs: row.duration_ms ?? null,
+    viewOnce: row.view_once === true,
+    viewOnceConsumed: row.view_once_consumed_at != null,
   };
 }
 
@@ -120,13 +127,15 @@ export async function sendGroupImage(
   groupId: string,
   mediaUrl: string,
   isAdult: boolean,
-  caption?: string
+  caption?: string,
+  viewOnce?: boolean
 ): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
   const { data, error } = await db.rpc("send_group_image", {
     gid: groupId,
     media_url: mediaUrl,
     is_adult: isAdult,
     caption: caption ?? null,
+    view_once: viewOnce ?? false,
   });
   if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
   return { ok: true, message: mapMessageRow(data) };
@@ -136,15 +145,25 @@ export async function sendGroupVoice(
   db: SupabaseClient,
   groupId: string,
   mediaUrl: string,
-  durationMs?: number
+  durationMs?: number,
+  viewOnce?: boolean
 ): Promise<{ ok: boolean; message?: GroupMessage; error?: string }> {
   const { data, error } = await db.rpc("send_group_voice", {
     gid: groupId,
     media_url: mediaUrl,
     duration_ms: durationMs ?? null,
+    view_once: viewOnce ?? false,
   });
   if (error) return { ok: false, error: error.message?.includes("not_member") ? "not_member" : "failed" };
   return { ok: true, message: mapMessageRow(data) };
+}
+
+/** DM'deki consumeMediaOnce ile AYNI mantik - bkz. 0049_group_voice_view_once.sql
+ * consume_group_media_once RPC'si. */
+export async function consumeGroupMediaOnce(db: SupabaseClient, messageId: string): Promise<GroupMessage | null> {
+  const { data, error } = await db.rpc("consume_group_media_once", { message_id: messageId });
+  if (error || !data) return null;
+  return mapMessageRow(data);
 }
 
 /** DM listesindeki konusmalarla BIRLESTIRILMEK uzere - uyesi oldugum tum

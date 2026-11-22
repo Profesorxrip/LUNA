@@ -96,6 +96,7 @@ import {
   sendGroupMessage,
   sendGroupImage,
   sendGroupVoice,
+  consumeGroupMediaOnce,
   listMyGroups,
   groupMemberUserIds,
 } from "./group";
@@ -977,11 +978,15 @@ io.on("connection", (socket: Socket) => {
   // yaptigi otomatik siniflandirmaya dayanir.
   socket.on(
     "group:sendImage",
-    async ({ groupId, mediaUrl, caption }: { groupId: string; mediaUrl: string; caption?: string }, ack) => {
+    async (
+      { groupId, mediaUrl, caption, viewOnce }: { groupId: string; mediaUrl: string; caption?: string; viewOnce?: boolean },
+      ack
+    ) => {
       if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(mediaUrl, 2000)) {
         return ack?.({ ok: false });
       }
       if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
+      if (viewOnce !== undefined && typeof viewOnce !== "boolean") return ack?.({ ok: false });
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
       let isAdult = false;
       try {
@@ -991,7 +996,7 @@ io.on("connection", (socket: Socket) => {
       } catch (err) {
         console.error("Grup fotografi indirilemedi, +18 tespiti atlaniyor:", err);
       }
-      const result = await sendGroupImage(myDb!, groupId, mediaUrl, isAdult, caption?.trim() || undefined);
+      const result = await sendGroupImage(myDb!, groupId, mediaUrl, isAdult, caption?.trim() || undefined, viewOnce);
       if (!result.ok || !result.message) {
         return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
       }
@@ -1004,13 +1009,17 @@ io.on("connection", (socket: Socket) => {
   // yukler (foto ile AYNI desen), buraya sadece public URL + sure gelir.
   socket.on(
     "group:sendVoice",
-    async ({ groupId, mediaUrl, durationMs }: { groupId: string; mediaUrl: string; durationMs?: number }, ack) => {
+    async (
+      { groupId, mediaUrl, durationMs, viewOnce }: { groupId: string; mediaUrl: string; durationMs?: number; viewOnce?: boolean },
+      ack
+    ) => {
       if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(mediaUrl, 2000)) {
         return ack?.({ ok: false });
       }
       if (durationMs !== undefined && !isFiniteNumber(durationMs, 0, 3_600_000)) return ack?.({ ok: false });
+      if (viewOnce !== undefined && typeof viewOnce !== "boolean") return ack?.({ ok: false });
       if (!allow("dm:send", 30, 10_000)) return ack?.({ ok: false, error: "Cok hizli mesaj gonderiyorsun." });
-      const result = await sendGroupVoice(myDb!, groupId, mediaUrl, durationMs);
+      const result = await sendGroupVoice(myDb!, groupId, mediaUrl, durationMs, viewOnce);
       if (!result.ok || !result.message) {
         return ack?.({ ok: false, error: result.error === "not_member" ? "Bu grubun uyesi degilsin." : "Mesaj gonderilemedi." });
       }
@@ -1018,6 +1027,22 @@ io.on("connection", (socket: Socket) => {
       await broadcastGroupMessage(groupId, result.message, "🎤 Sesli mesaj gönderdi");
     }
   );
+
+  // Tek-gorunumluk sesli/foto mesaj ilk kez acildiginda - dm:consumeMediaOnce
+  // ile AYNI mantik, HEM acan kisiye HEM diger tum uyelere (gonderen dahil)
+  // "group:message:mediaOnceConsumed" ile yayinlanir ki herkesin ekranindaki
+  // balon AYNI anda (medyasi kaldirilmis olarak) guncellensin.
+  socket.on("group:consumeMediaOnce", async ({ groupId, messageId }: { groupId: string; messageId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(messageId, 200)) return ack?.({ ok: false });
+    const message = await consumeGroupMediaOnce(myDb!, messageId);
+    if (!message) return ack?.({ ok: false });
+    ack?.({ ok: true });
+    const memberIds = await groupMemberUserIds(myDb!, groupId);
+    for (const memberId of memberIds) {
+      const memberSocketId = getSocketIdForUser(memberId);
+      if (memberSocketId) io.to(memberSocketId).emit("group:message:mediaOnceConsumed", { groupId, messageId });
+    }
+  });
 
   // DM listesinde bir kisiye basili tutunca cikan menu - hepsi SADECE
   // benim listemi etkiler, karsi tarafa hicbir bildirim gitmez.

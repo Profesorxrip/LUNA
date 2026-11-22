@@ -374,6 +374,8 @@ export interface GroupMessage {
   mediaUrl?: string | null;
   isAdult?: boolean;
   durationMs?: number | null;
+  viewOnce?: boolean;
+  viewOnceConsumed?: boolean;
 }
 
 export interface GroupMember {
