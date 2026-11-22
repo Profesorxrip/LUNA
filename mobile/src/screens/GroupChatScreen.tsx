@@ -40,7 +40,6 @@ import {
   Copy,
   Pin,
   PinOff,
-  Forward,
 } from "lucide-react-native";
 import { SimpleLineIcons, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LockClosedIcon, MicrophoneIcon } from "react-native-heroicons/outline";
@@ -206,7 +205,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
             )}
             {item.isForwarded && !item.deletedForEveryone && (
               <View style={styles.forwardedRow}>
-                <Forward size={11} color={isMine ? "rgba(255,255,255,0.75)" : MUTED} />
+                <Icon name="undoArrow" size={12} color={isMine ? "rgba(255,255,255,0.75)" : MUTED} />
                 <Text style={[styles.forwardedText, { color: isMine ? "rgba(255,255,255,0.75)" : MUTED }]}>{t("dm.forwardedLabel")}</Text>
               </View>
             )}
@@ -1804,7 +1803,7 @@ const styles = StyleSheet.create({
   deletedRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
   deletedText: { fontSize: 14, fontStyle: "italic" },
   forwardedRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 3 },
-  forwardedText: { fontSize: 11, fontStyle: "italic" },
+  forwardedText: { fontSize: 11, fontWeight: "500" },
   replyQuote: {
     backgroundColor: "rgba(255,255,255,0.14)",
     borderLeftWidth: 3,
