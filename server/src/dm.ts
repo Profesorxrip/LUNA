@@ -8,6 +8,14 @@ export interface DMReply {
   // kayitlarda ikisi de null, istemci duz metne geri doner.
   kind?: DMMessage["kind"] | null;
   mediaUrl?: string | null;
+  // Yanitlanan mesaj tek-gorunumlukse (bkz. 0053_dm_reply_viewonce.sql) -
+  // mobile tarafi bu alan true oldugunda mediaUrl'i HIC gondermez (gercek
+  // icerik reply'a SIZMASIN diye), ReplyPreviewContent.tsx bunun yerine
+  // rozet+tur etiketi gosterir.
+  viewOnce?: boolean;
+  // SADECE GIF cikartmalarini ("gif-" onekli) tanimak icin - bkz.
+  // ReplyPreviewContent.tsx isGifSticker.
+  stickerId?: string | null;
 }
 
 export interface DMMessage {
@@ -104,7 +112,14 @@ function mapRow(row: any): DMMessage {
     mediaUrl: row.media_url ?? null,
     isAdult: row.is_adult === true,
     replyTo: row.reply_to_text
-      ? { text: row.reply_to_text, fromName: row.reply_to_from_name, kind: row.reply_to_kind ?? null, mediaUrl: row.reply_to_media_url ?? null }
+      ? {
+          text: row.reply_to_text,
+          fromName: row.reply_to_from_name,
+          kind: row.reply_to_kind ?? null,
+          mediaUrl: row.reply_to_media_url ?? null,
+          viewOnce: row.reply_to_view_once === true,
+          stickerId: row.reply_to_sticker_id ?? null,
+        }
       : null,
     createdAt: new Date(row.created_at).getTime(),
     expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : null,
@@ -231,6 +246,8 @@ export async function sendMessage(
     reply_from_name: replyTo?.fromName ?? null,
     reply_kind: replyTo?.kind ?? null,
     reply_media_url: replyTo?.mediaUrl ?? null,
+    reply_view_once: replyTo?.viewOnce ?? false,
+    reply_sticker_id: replyTo?.stickerId ?? null,
   });
   if (error) {
     // RPC 'blocked' exception'ini firlatiyorsa PostgREST bunu error.message'da tasir.

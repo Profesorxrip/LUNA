@@ -594,6 +594,16 @@ const fakeSocket: any = {
       });
     } else if (event === "dm:preview" && cb) {
       cb({ ok: false });
+    } else if (event === "dm:consumeVoiceOnce" && cb) {
+      // Grup'taki "group:consumeMediaOnce" ile AYNI gerekce - gercek sunucu
+      // tuketim olayini (consume_dm_voice_once RPC) KENDIMIZE DE geri
+      // yayinlar (bkz. DMScreen.tsx handleVoiceOnceConsumed), fake socket'te
+      // de AYNI sekilde yapmazsak rozet hic griye donmez.
+      cb({ ok: true });
+      (listeners["dm:message:voiceOnceConsumed"] || []).forEach((fn) => fn({ messageId: payload?.messageId }));
+    } else if (event === "dm:consumeMediaOnce" && cb) {
+      cb({ ok: true });
+      (listeners["dm:message:mediaOnceConsumed"] || []).forEach((fn) => fn({ messageId: payload?.messageId }));
     } else if (event === "group:create" && cb) {
       demoGroupCounter += 1;
       const id = `demo-group-${demoGroupCounter}`;
@@ -903,6 +913,34 @@ if (typeof window !== "undefined") {
     };
     group.messages.push(message);
     (listeners["group:message"] || []).forEach((fn) => fn({ groupId, message }));
+  };
+  // __injectGroupMessage ile AYNI amac, DM (kisi mesaji) ekrani icin - test/
+  // onizleme disinda hic kullanilmaz. "fromUserId" MY_ID verilirse KENDI
+  // mesajimmis gibi (dm:message:self), aksi halde karsi taraftan (PEER_ID,
+  // dm:message) gelmis gibi yayinlanir - bkz. DMScreen.tsx handleMessage/
+  // handleOwnMessage (ikisi de sirasiyla peer.userId/toUserId esleyip esmedigine bakar).
+  (window as any).__injectDMMessage = (overrides: any) => {
+    // DIKKAT: "fromUserId" sadece "me" sentinel'i mi degil mi diye kontrol
+    // icin kullanilir - cagiranin GERCEK PEER_ID/MY_ID degerlerini bilmesine
+    // GEREK YOK, bu yuzden overrides.fromUserId SPREAD'TEN SONRA (asagida)
+    // GERCEK id/isimle EZILIR (aksi halde dm:message/dm:message:self
+    // dinleyicilerinin peer.userId/toUserId esleme kontrolu hic tutmaz, mesaj
+    // SESSIZCE dusurulur).
+    const fromMe = overrides?.fromUserId === "me";
+    const message = {
+      id: `demo-dm-injected-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      createdAt: Date.now(),
+      expiresAt: null,
+      kind: "text",
+      ...overrides,
+      fromUserId: fromMe ? MY_ID : PEER_ID,
+      fromName: fromMe ? "Ben" : "Ayşe Yılmaz",
+    };
+    if (fromMe) {
+      (listeners["dm:message:self"] || []).forEach((fn) => fn({ toUserId: PEER_ID, message }));
+    } else {
+      (listeners["dm:message"] || []).forEach((fn) => fn({ fromUserId: message.fromUserId, message }));
+    }
   };
 }
 

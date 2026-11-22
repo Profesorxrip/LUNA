@@ -23,7 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from "expo-audio";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Camera as CameraIcon, Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, Forward, ChevronUp, Pause, Play, BarChart2, Music, User as UserIcon } from "lucide-react-native";
+import { Image as ImageIcon, CircleArrowDown, MoreVertical, Phone, Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, Trash2, Search, Clock, Bell, BellOff, TriangleAlert, X, Copy, Pin, PinOff, ChevronUp, Pause, Play, BarChart2, Music, User as UserIcon } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { theme } from "../theme";
 import { useTranslation } from "react-i18next";
@@ -49,6 +49,8 @@ import { formatDuration } from "../utils/format";
 import ChatImageBubble from "../components/ChatImageBubble";
 import PhotoGridBubble from "../components/PhotoGridBubble";
 import VideoMessageBubble from "../components/VideoMessageBubble";
+import PhotoViewerModal from "../components/PhotoViewerModal";
+import VideoViewerModal from "../components/VideoViewerModal";
 import VoiceMessageBubble from "../components/VoiceMessageBubble";
 import LocationMessageBubble from "../components/LocationMessageBubble";
 import FileMessageBubble from "../components/FileMessageBubble";
@@ -195,14 +197,18 @@ interface DMBubbleRowProps {
   onTap: () => void;
   onReply: () => void;
   onReport: () => void;
+  // Foto izleyicideki "Sohbette Göster" icin - bkz. asagidaki
+  // PhotoViewerModal/VideoViewerModal/ChatImageBubble/VideoMessageBubble
+  // onShowInChat kullanimi.
+  onShowInChat?: () => void;
   // Yanitla'dan (kaydirma hareketi onReply'i DOGRUDAN cagirir) AYRI - basili
   // tutunca Yanitla/Kopyala/Sabitle/Ilet/Sil secenekli menuyu acar.
   onLongPress: () => void;
-  // Tek-gorunumluk sesli mesaj ilk kez oynatilmaya baslandiginda cagirilir -
-  // bkz. asagidaki VoiceMessageBubble onPlay kullanimi.
+  // Tek-gorunumluk sesli mesaj ilk kez dinlenmesi BITINCE cagirilir - bkz.
+  // asagidaki VoiceMessageBubble onPlay/viewOnceUnplayed kullanimi.
   onConsumeVoiceOnce?: (messageId: string) => void;
-  // Tek-gorunumluk foto/video ilk kez TAM EKRAN acildiginda cagirilir - bkz.
-  // asagidaki ChatImageBubble/VideoMessageBubble onOpen kullanimi.
+  // Tek-gorunumluk foto/video/gif ilk kez TAM EKRAN acildiginda cagirilir -
+  // bkz. asagidaki openViewOnceMedia kullanimi.
   onConsumeMediaOnce?: (messageId: string) => void;
   // Anket balonunda bir secenege dokununca (bkz. asagidaki PollMessageBubble
   // onVote kullanimi) - DMScreen.tsx votePoll'a yonlendirir.
@@ -213,12 +219,18 @@ interface DMBubbleRowProps {
 // mesajimizi SAGDAN SOLA, karsidakinin mesajini SOLDAN SAGA kaydirinca
 // yanitlama (reply) tetikleniyor. Satir translateX ile kaydirilirken
 // kenarda bir "reply" ikonu belirip bosalan tarafi gosteriyor.
-function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport, onLongPress, onConsumeVoiceOnce, onConsumeMediaOnce, onVotePoll }: DMBubbleRowProps) {
+function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onReport, onShowInChat, onLongPress, onConsumeVoiceOnce, onConsumeMediaOnce, onVotePoll }: DMBubbleRowProps) {
   const { t, i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   // Sesli mesajin sure etiketi - VoiceMessageBubble artik kendi icinde cizmiyor,
   // gonderim saatiyle AYNI alt satirda gosterebilelim diye buraya tasindi.
   const [voiceTimeLabel, setVoiceTimeLabel] = useState("0:00");
+  // GroupChatScreen.tsx'teki AYNI mantik (bkz. orada GroupBubbleRow): tek-
+  // gorunumluk foto/video HENUZ acilmadiysa sohbette GERCEK icerik hic
+  // gosterilmez - sadece tur + "1" rozetli bir satir. Dokununca GERCEK
+  // mediaUrl'i YEREL state'e (consumption sonrasi item.mediaUrl undefined
+  // olsa bile) yakalayip tam ekran acar VE ayni anda tuketimi bildirir.
+  const [viewOnceViewerUri, setViewOnceViewerUri] = useState<{ uri: string; kind: "photo" | "video"; caption?: string } | null>(null);
 
   const pan = useRef(
     PanResponder.create({
@@ -250,6 +262,23 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
   // (280, borderRadius 8) icinde gosterilmeli - bkz. asagidaki bubble
   // stilleri ve GifMessageBubble.
   const isGifSticker = item.kind === "sticker" && !!item.stickerId?.startsWith("gif-");
+  // GroupChatScreen.tsx'teki AYNI isimli degiskenler/mantik - bkz. orada.
+  // Kullanici istegi: foto/video/gif ACILDIKTAN sonraki ikon+yazi GRI olsun.
+  const mediaConsumedColor = "#9A9A9A";
+  const isViewOnceBadgeRow = !!item.viewOnce && (item.kind === "photo" || item.kind === "video" || isGifSticker);
+  const isVoiceConsumedBadgeRow = item.kind === "voice" && !!item.viewOnce && !!item.viewOnceConsumed;
+  function openViewOnceMedia() {
+    if (!item.mediaUrl) return;
+    const caption = hasMediaCaption ? item.text : undefined;
+    if (item.kind === "video") {
+      setViewOnceViewerUri({ uri: item.mediaUrl, kind: "video", caption });
+    } else if (item.kind === "photo" || isGifSticker) {
+      setViewOnceViewerUri({ uri: item.mediaUrl, kind: "photo", caption });
+    } else {
+      return;
+    }
+    onConsumeMediaOnce?.(item.id);
+  }
 
   // Kullanici: "medyanın altına gelen mesajlar ve mesaj süreleri çok yamuk
   // duruyor doğal mesajdaki gibi durmuyor" - bir alt yazi (caption) VARKEN
@@ -291,7 +320,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               styles.bubble,
               isMine ? styles.bubbleMine : styles.bubbleTheirs,
               !groupedWithPrev && (isMine ? styles.bubbleMineFirst : styles.bubbleTheirsFirst),
-              item.kind === "voice" && styles.bubbleVoicePad,
+              item.kind === "voice" && !isVoiceConsumedBadgeRow && styles.bubbleVoicePad,
               item.kind === "location" && styles.bubbleLocationPad,
               item.kind === "file" && styles.bubbleFilePad,
               item.kind === "call" && styles.bubbleCallPad,
@@ -311,6 +340,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 // zaten "bu mesaj kesinlikle gosterilecek bir GIF" demek, o
                 // yuzden mediaUrl sartina ALTERNATIF olarak kabul edilir.
                 (item.mediaUrl || isGifSticker) &&
+                !isViewOnceBadgeRow &&
                 styles.bubblePhotoPad),
               // Kullanici: "WhatsApp/Telegram'daki gibi" cikartmalar - GERCEK
               // bir mesaj balonu renk/kenarligi OLMADAN serbest/saydam
@@ -327,7 +357,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
             )}
             {item.isForwarded && !item.deletedForEveryone && (
               <View style={styles.forwardedRow}>
-                <Forward size={11} color={isMine ? "rgba(255,255,255,0.75)" : MUTED} />
+                <Icon name="undoArrow" size={12} color={isMine ? "rgba(255,255,255,0.75)" : MUTED} />
                 <Text style={[styles.forwardedText, { color: isMine ? "rgba(255,255,255,0.75)" : MUTED }]}>{t("dm.forwardedLabel")}</Text>
               </View>
             )}
@@ -338,6 +368,8 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                   text={item.replyTo.text}
                   kind={item.replyTo.kind}
                   mediaUrl={item.replyTo.mediaUrl}
+                  viewOnce={item.replyTo.viewOnce}
+                  stickerId={item.replyTo.stickerId}
                   variant="bubble"
                 />
               </View>
@@ -348,9 +380,17 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 <Text style={[styles.deletedText, { color: isMine ? "rgba(255,255,255,0.6)" : MUTED }]}>{t("dm.deletedMessage")}</Text>
               </View>
             ) : item.kind === "voice" && item.viewOnce && item.viewOnceConsumed ? (
-              <View style={styles.deletedRow}>
-                <MicrophoneIcon size={14} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} strokeWidth={1.8} />
-                <Text style={[styles.deletedText, { color: isMine ? "rgba(255,255,255,0.6)" : MUTED }]}>{t("dm.voiceOnceConsumed")}</Text>
+              <View style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={mediaConsumedColor} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: mediaConsumedColor }]}>{t("dm.kindVoice")}</Text>
+                <View style={[styles.metaRowRight, styles.viewOnceUnopenedTime]}>
+                  <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
+                  {isMine && (
+                    <MaterialIcons name={seen ? "done-all" : "done"} size={16} color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"} />
+                  )}
+                </View>
               </View>
             ) : item.kind === "voice" && item.mediaUrl ? (
               <VoiceMessageBubble
@@ -358,6 +398,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 durationMs={item.durationMs}
                 onTimeLabel={setVoiceTimeLabel}
                 onPlay={item.viewOnce ? () => onConsumeVoiceOnce?.(item.id) : undefined}
+                viewOnceUnplayed={!!item.viewOnce}
               />
             ) : item.kind === "location" && item.latitude != null && item.longitude != null ? (
               <LocationMessageBubble latitude={item.latitude} longitude={item.longitude} />
@@ -381,15 +422,62 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               />
             ) : item.kind === "music" && item.mediaUrl ? (
               <MusicMessageBubble uri={item.mediaUrl} title={item.fileName || item.text} />
+            ) : isGifSticker && item.viewOnce && item.viewOnceConsumed ? (
+              <View style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={mediaConsumedColor} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: mediaConsumedColor }]}>{t("dm.kindGif")}</Text>
+                <View style={[styles.metaRowRight, styles.viewOnceUnopenedTime]}>
+                  <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
+                  {isMine && (
+                    <MaterialIcons name={seen ? "done-all" : "done"} size={16} color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"} />
+                  )}
+                </View>
+              </View>
+            ) : isGifSticker && item.viewOnce && item.mediaUrl ? (
+              <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={isMine ? "#FFFFFF" : TEXT} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindGif")}</Text>
+                <View style={[styles.metaRowRight, styles.viewOnceUnopenedTime]}>
+                  <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
+                  {isMine && (
+                    <MaterialIcons name={seen ? "done-all" : "done"} size={16} color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"} />
+                  )}
+                </View>
+              </TouchableOpacity>
             ) : item.kind === "sticker" && item.stickerId?.startsWith("gif-") ? (
               <GifMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
             ) : item.kind === "sticker" ? (
               <StickerMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
             ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
-              <View style={styles.deletedRow}>
-                <CameraIcon size={14} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} strokeWidth={1.8} />
-                <Text style={[styles.deletedText, { color: isMine ? "rgba(255,255,255,0.6)" : MUTED }]}>{t("dm.mediaOnceConsumed")}</Text>
+              <View style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={mediaConsumedColor} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: mediaConsumedColor }]}>{t("dm.kindVideo")}</Text>
+                <View style={[styles.metaRowRight, styles.viewOnceUnopenedTime]}>
+                  <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
+                  {isMine && (
+                    <MaterialIcons name={seen ? "done-all" : "done"} size={16} color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"} />
+                  )}
+                </View>
               </View>
+            ) : item.kind === "video" && item.viewOnce && item.mediaUrl ? (
+              <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={isMine ? "#FFFFFF" : TEXT} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindVideo")}</Text>
+                <View style={[styles.metaRowRight, styles.viewOnceUnopenedTime]}>
+                  <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
+                  {isMine && (
+                    <MaterialIcons name={seen ? "done-all" : "done"} size={16} color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"} />
+                  )}
+                </View>
+              </TouchableOpacity>
             ) : item.kind === "video" && item.mediaUrl ? (
               <VideoMessageBubble
                 uri={item.mediaUrl}
@@ -399,15 +487,36 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 sentAt={item.createdAt}
                 onReply={onReply}
                 onReport={onReport}
-                onOpen={item.viewOnce ? () => onConsumeMediaOnce?.(item.id) : undefined}
+                onShowInChat={onShowInChat}
               />
             ) : item.kind === "call" ? (
               <CallMessageBubble isVideo={!!item.callIsVideo} status={item.callStatus || "completed"} durationMs={item.durationMs ?? null} />
             ) : item.kind === "photo" && item.viewOnce && item.viewOnceConsumed ? (
-              <View style={styles.deletedRow}>
-                <ImageIcon size={14} color={isMine ? "rgba(255,255,255,0.6)" : MUTED} strokeWidth={1.8} />
-                <Text style={[styles.deletedText, { color: isMine ? "rgba(255,255,255,0.6)" : MUTED }]}>{t("dm.mediaOnceConsumed")}</Text>
+              <View style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={mediaConsumedColor} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: mediaConsumedColor }]}>{t("dm.kindPhoto")}</Text>
+                <View style={[styles.metaRowRight, styles.viewOnceUnopenedTime]}>
+                  <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
+                  {isMine && (
+                    <MaterialIcons name={seen ? "done-all" : "done"} size={16} color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"} />
+                  )}
+                </View>
               </View>
+            ) : item.kind === "photo" && item.viewOnce && item.mediaUrl ? (
+              <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={isMine ? "#FFFFFF" : TEXT} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: isMine ? "#FFFFFF" : TEXT }]}>{t("dm.kindPhoto")}</Text>
+                <View style={[styles.metaRowRight, styles.viewOnceUnopenedTime]}>
+                  <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
+                  {isMine && (
+                    <MaterialIcons name={seen ? "done-all" : "done"} size={16} color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"} />
+                  )}
+                </View>
+              </TouchableOpacity>
             ) : item.mediaUrl ? (
               <ChatImageBubble
                 uri={item.mediaUrl}
@@ -418,7 +527,7 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
                 sentAt={item.createdAt}
                 onReply={onReply}
                 onReport={onReport}
-                onOpen={item.viewOnce ? () => onConsumeMediaOnce?.(item.id) : undefined}
+                onShowInChat={onShowInChat}
               />
             ) : (
               <Text style={styles.bubbleText}>{item.text}</Text>
@@ -435,38 +544,40 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
               !(item.kind === "file" && item.text === `📎 ${item.fileName}`) && (
                 <Text style={styles.mediaCaption}>{item.text}</Text>
               )}
-            <View
-              style={[
-                styles.metaRow,
-                item.kind === "voice" && styles.metaRowVoice,
-                (item.kind !== "voice" &&
-                  item.kind !== "location" &&
-                  item.kind !== "file" &&
-                  item.kind !== "music" &&
-                  (item.kind !== "sticker" || isGifSticker) &&
-                  (item.mediaUrl || isGifSticker) &&
-                  !hasMediaCaption &&
-                  styles.metaRowPhotoOverlay),
-                item.kind === "call" && styles.metaRowCallOverlay,
-                item.kind === "music" && styles.metaRowMusicOverlay,
-                item.kind === "poll" && styles.metaRowPollOverlay,
-                item.kind === "contact" && styles.metaRowContactOverlay,
-                item.kind === "file" && !hasMediaCaption && styles.metaRowFileOverlay,
-                item.kind === "sticker" && !isGifSticker && styles.metaRowStickerOverlay,
-              ]}
-            >
-              {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
-              <View style={styles.metaRowRight}>
-                <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
-                {isMine && item.kind !== "call" && (
-                  <MaterialIcons
-                    name={seen ? "done-all" : "done"}
-                    size={16}
-                    color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"}
-                  />
-                )}
+            {!isViewOnceBadgeRow && !isVoiceConsumedBadgeRow && (
+              <View
+                style={[
+                  styles.metaRow,
+                  item.kind === "voice" && styles.metaRowVoice,
+                  (item.kind !== "voice" &&
+                    item.kind !== "location" &&
+                    item.kind !== "file" &&
+                    item.kind !== "music" &&
+                    (item.kind !== "sticker" || isGifSticker) &&
+                    (item.mediaUrl || isGifSticker) &&
+                    !hasMediaCaption &&
+                    styles.metaRowPhotoOverlay),
+                  item.kind === "call" && styles.metaRowCallOverlay,
+                  item.kind === "music" && styles.metaRowMusicOverlay,
+                  item.kind === "poll" && styles.metaRowPollOverlay,
+                  item.kind === "contact" && styles.metaRowContactOverlay,
+                  item.kind === "file" && !hasMediaCaption && styles.metaRowFileOverlay,
+                  item.kind === "sticker" && !isGifSticker && styles.metaRowStickerOverlay,
+                ]}
+              >
+                {item.kind === "voice" && <Text style={styles.voiceMetaTime}>{voiceTimeLabel}</Text>}
+                <View style={styles.metaRowRight}>
+                  <Text style={styles.metaTime}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
+                  {isMine && item.kind !== "call" && (
+                    <MaterialIcons
+                      name={seen ? "done-all" : "done"}
+                      size={16}
+                      color={seen ? "#FFFFFF" : "rgba(255,255,255,0.65)"}
+                    />
+                  )}
+                </View>
               </View>
-            </View>
+            )}
           </View>
           {(item.myReaction || item.peerReaction) && (
             <View style={[styles.reactionBadgeRow, isMine ? styles.reactionBadgeRowMine : styles.reactionBadgeRowTheirs]}>
@@ -483,6 +594,30 @@ function DMBubbleRow({ item, isMine, groupedWithPrev, seen, onTap, onReply, onRe
             </View>
           )}
       </TouchableOpacity>
+      <PhotoViewerModal
+        uri={viewOnceViewerUri?.kind === "photo" ? viewOnceViewerUri.uri : null}
+        onClose={() => setViewOnceViewerUri(null)}
+        senderName={item.fromName}
+        sentAt={item.createdAt}
+        onReply={onReply}
+        onShowInChat={onShowInChat}
+        onReport={onReport}
+        hideForward
+        hideDownload
+        caption={viewOnceViewerUri?.caption}
+      />
+      <VideoViewerModal
+        uri={viewOnceViewerUri?.kind === "video" ? viewOnceViewerUri.uri : null}
+        onClose={() => setViewOnceViewerUri(null)}
+        senderName={item.fromName}
+        sentAt={item.createdAt}
+        onReply={onReply}
+        onShowInChat={onShowInChat}
+        onReport={onReport}
+        hideForward
+        hideDownload
+        caption={viewOnceViewerUri?.caption}
+      />
     </Animated.View>
   );
 }
@@ -1687,7 +1822,12 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
       text: message.text,
       fromName: message.fromUserId === myUserId ? t("dm.you") : message.fromName,
       kind: message.kind,
-      mediaUrl: message.mediaUrl,
+      // Tek-gorunumlukse GERCEK mediaUrl'i cevaba HIC koymuyoruz (sizdirmamak
+      // icin) - ReplyPreviewContent sadece "viewOnce" bayragina bakip rozet+
+      // tur etiketi gosteriyor, gercek icerige ihtiyaci yok.
+      mediaUrl: message.viewOnce ? undefined : message.mediaUrl,
+      viewOnce: message.viewOnce,
+      stickerId: message.stickerId,
     });
   }
 
@@ -2103,6 +2243,9 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                     kind={shown.kind}
                     mediaUrl={shown.mediaUrl}
                     callIsVideo={shown.callIsVideo}
+                    viewOnce={shown.viewOnce}
+                    viewOnceConsumed={shown.viewOnceConsumed}
+                    stickerId={shown.stickerId}
                     variant="bubble"
                   />
                 </View>
@@ -2219,6 +2362,7 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
               onTap={() => handleMessageTap(item)}
               onReply={() => startReply(item)}
               onReport={() => setReportVisible(true)}
+              onShowInChat={() => scrollToMessage(item.id)}
               onLongPress={() => openActionMenu(item)}
               onConsumeVoiceOnce={handleConsumeVoiceOnce}
               onConsumeMediaOnce={handleConsumeMediaOnce}
@@ -2351,6 +2495,8 @@ export default function DMScreen({ peer, onBack, onOpenInfo, onStartVoiceCall }:
                           text={replyingTo.text}
                           kind={replyingTo.kind}
                           mediaUrl={replyingTo.mediaUrl}
+                          viewOnce={replyingTo.viewOnce}
+                          stickerId={replyingTo.stickerId}
                           variant="composer"
                         />
                       </View>
@@ -3333,9 +3479,19 @@ const styles = StyleSheet.create({
   // sag tarafta ona yetecek kadar bosluk ayriliyor.
   pinnedBannerQuoteText: { flex: 1, minWidth: 0, paddingRight: 26 },
   forwardedRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 3 },
-  forwardedText: { fontSize: 11, fontStyle: "italic" },
+  forwardedText: { fontSize: 11, fontWeight: "500" },
   deletedRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
   deletedText: { fontSize: 14, fontStyle: "italic" },
+  // Tek-gorunumluk foto/video/gif HENUZ acilmadiysa (ya da ses/foto/video/gif
+  // ACILDIKTAN sonra) gosterilen kompakt satir - GroupChatScreen.tsx'teki
+  // AYNI isimli stillerle BIREBIR ayni (bkz. orada: "1" rozeti buyuk oldugu
+  // icin balon yuksekligi bozulmasin diye sabit yukseklikli bir kutu icinde
+  // ortalanip tasiriliyor).
+  viewOnceUnopenedRow: { flexDirection: "row", alignItems: "center", gap: 8, marginLeft: -10 },
+  viewOnceUnopenedRowMineShift: { transform: [{ translateX: 0 }] },
+  viewOnceUnopenedIconWrap: { height: 21, justifyContent: "center", alignItems: "center", overflow: "visible" },
+  viewOnceUnopenedText: { fontSize: 16, lineHeight: 21, marginLeft: -10 },
+  viewOnceUnopenedTime: { marginTop: 22 },
   sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   // Profil ekranindaki kutularla AYNI koyu lacivert (#15202B) - eskiden
   // siyaha yakin kahverengiydi (#141210).

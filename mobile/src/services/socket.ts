@@ -292,6 +292,9 @@ export interface DMReply {
   // oda sohbetinde hep undefined/null kalip düz metne geri doner).
   kind?: DMMessage["kind"] | null;
   mediaUrl?: string | null;
+  // server/src/dm.ts DMReply'deki AYNI alanlar - bkz. orada.
+  viewOnce?: boolean;
+  stickerId?: string | null;
 }
 
 export interface DMMessage {
