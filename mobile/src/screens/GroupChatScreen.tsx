@@ -47,7 +47,7 @@ import { LockClosedIcon, MicrophoneIcon } from "react-native-heroicons/outline";
 import Icon from "../components/Icon";
 import { VoiceOnceRingIcon, VoiceOnceFilledIcon } from "../components/CustomIcons";
 import AppBackground from "../components/AppBackground";
-import Avatar from "../components/Avatar";
+import Avatar, { colorForName } from "../components/Avatar";
 import LoadingView from "../components/LoadingView";
 import { showAlert } from "../components/CustomAlert";
 import SendMediaSheet from "../components/SendMediaSheet";
@@ -167,7 +167,6 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
         </View>
       )}
       <View style={styles.bubbleCol}>
-        {!isMine && !groupedWithPrev && <Text style={styles.senderName}>{sender?.name || item.fromName}</Text>}
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={onTap}
@@ -199,6 +198,11 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
           >
             {!groupedWithPrev && (item.kind !== "sticker" || isGifSticker) && (
               <BubbleTail color={isMine ? BUBBLE_MINE_COLOR : "#1E293B"} mine={isMine} />
+            )}
+            {!isMine && !groupedWithPrev && (
+              <Text style={[styles.senderName, { color: colorForName(sender?.name || item.fromName) }]}>
+                {sender?.name || item.fromName}
+              </Text>
             )}
             {item.isForwarded && !item.deletedForEveryone && (
               <View style={styles.forwardedRow}>
@@ -1777,7 +1781,7 @@ const styles = StyleSheet.create({
   senderAvatarWrap: { width: 28 },
   senderAvatarSpacer: { width: 28, height: 28 },
   bubbleCol: { maxWidth: "75%" },
-  senderName: { color: MUTED, fontSize: 12, fontWeight: "700", marginBottom: 2, marginLeft: 2 },
+  senderName: { fontSize: 13, fontWeight: "700", marginBottom: 2 },
   bubbleWrap: { position: "relative" },
   bubble: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 8, position: "relative" },
   bubbleMineFirst: { borderTopRightRadius: 0 },
