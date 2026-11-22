@@ -157,6 +157,12 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
   // dahil degil (ayri bir asama).
   const mediaConsumedColor = "#9A9A9A";
   const isUnopenedViewOnceMedia = !!item.viewOnce && !item.viewOnceConsumed && (item.kind === "photo" || item.kind === "video" || isGifSticker);
+  // Acilmis VEYA acilmamis - ikisi de AYNI satir duzenini (rozet+yazi+saat,
+  // tek satir, balon duz metin gibi kompakt) kullanir; farki sadece renk ve
+  // yazi. Balon seviyesindeki stil/padding kararlari (bubblePhotoPad, ayri
+  // metaRow) bu bayrakla kontrol edilir, sadece "henuz acilmamis" bayragiyla
+  // DEGIL - yoksa acildiktan sonra balon sekli degisirdi (kullanici sikayeti).
+  const isViewOnceBadgeRow = !!item.viewOnce && (item.kind === "photo" || item.kind === "video" || isGifSticker);
   function openViewOnceMedia() {
     if (!item.mediaUrl) return;
     if (item.kind === "video") {
@@ -217,7 +223,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
                 item.kind !== "music" &&
                 (item.kind !== "sticker" || isGifSticker) &&
                 (item.mediaUrl || isGifSticker) &&
-                !isUnopenedViewOnceMedia &&
+                !isViewOnceBadgeRow &&
                 styles.bubblePhotoPad),
               item.kind === "sticker" && !isGifSticker && styles.bubbleStickerNoBg,
             ]}
@@ -271,9 +277,12 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
             ) : item.kind === "music" && item.mediaUrl ? (
               <MusicMessageBubble uri={item.mediaUrl} title={item.fileName || item.text} />
             ) : isGifSticker && item.viewOnce && item.viewOnceConsumed ? (
-              <View style={styles.deletedRow}>
-                <ImageIcon size={14} color={mediaConsumedColor} strokeWidth={1.8} />
-                <Text style={[styles.deletedText, { color: mediaConsumedColor }]}>{t("dm.mediaOnceOpened")}</Text>
+              <View style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={mediaConsumedColor} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: mediaConsumedColor }]}>{t("dm.kindGif")}</Text>
+                <Text style={[styles.metaTime, styles.viewOnceUnopenedTime]}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
               </View>
             ) : isGifSticker && item.viewOnce && item.mediaUrl ? (
               <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
@@ -288,9 +297,12 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
             ) : item.kind === "sticker" ? (
               <StickerMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />
             ) : item.kind === "video" && item.viewOnce && item.viewOnceConsumed ? (
-              <View style={styles.deletedRow}>
-                <CameraIcon size={14} color={mediaConsumedColor} strokeWidth={1.8} />
-                <Text style={[styles.deletedText, { color: mediaConsumedColor }]}>{t("dm.mediaOnceOpened")}</Text>
+              <View style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={mediaConsumedColor} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: mediaConsumedColor }]}>{t("dm.kindVideo")}</Text>
+                <Text style={[styles.metaTime, styles.viewOnceUnopenedTime]}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
               </View>
             ) : item.kind === "video" && item.viewOnce && item.mediaUrl ? (
               <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
@@ -303,9 +315,12 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
             ) : item.kind === "video" && item.mediaUrl ? (
               <VideoMessageBubble uri={item.mediaUrl} size={280} borderRadius={8} senderName={item.fromName} sentAt={item.createdAt} onReply={onReply} />
             ) : item.kind === "photo" && item.viewOnce && item.viewOnceConsumed ? (
-              <View style={styles.deletedRow}>
-                <ImageIcon size={14} color={mediaConsumedColor} strokeWidth={1.8} />
-                <Text style={[styles.deletedText, { color: mediaConsumedColor }]}>{t("dm.mediaOnceOpened")}</Text>
+              <View style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={mediaConsumedColor} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: mediaConsumedColor }]}>{t("dm.kindPhoto")}</Text>
+                <Text style={[styles.metaTime, styles.viewOnceUnopenedTime]}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
               </View>
             ) : item.kind === "photo" && item.viewOnce && item.mediaUrl ? (
               <TouchableOpacity activeOpacity={0.7} onPress={openViewOnceMedia} style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
@@ -323,7 +338,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               <Text style={styles.bubbleText}>{item.text}</Text>
             )}
             {hasMediaCaption && <Text style={styles.mediaCaption}>{item.text}</Text>}
-            {!isUnopenedViewOnceMedia && (
+            {!isViewOnceBadgeRow && (
               <View
                 style={[
                   styles.metaRow,
