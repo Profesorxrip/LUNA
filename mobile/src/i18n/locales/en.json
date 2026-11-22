@@ -313,6 +313,7 @@
     "kindVideo": "Video",
     "kindGif": "GIF",
     "mediaOnceOpened": "Opened",
+    "kindVoice": "Voice",
     "gallerySend": "Send",
     "galleryPermissionDenied": "Gallery access was denied. Grant permission in settings and try again.",
     "galleryTitle": "Gallery",

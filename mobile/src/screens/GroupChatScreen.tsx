@@ -163,6 +163,10 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
   // metaRow) bu bayrakla kontrol edilir, sadece "henuz acilmamis" bayragiyla
   // DEGIL - yoksa acildiktan sonra balon sekli degisirdi (kullanici sikayeti).
   const isViewOnceBadgeRow = !!item.viewOnce && (item.kind === "photo" || item.kind === "video" || isGifSticker);
+  // Sesli mesaj HENUZ dinlenmemisken kendi normal calinabilir dalgaboyu
+  // arayuzunu koruyor (bubbleVoicePad/metaRowVoice) - sadece DINLENDIKTEN
+  // SONRA foto/video/gif ile AYNI kompakt rozet+yazi+saat satirina geciyor.
+  const isVoiceConsumedBadgeRow = item.kind === "voice" && !!item.viewOnce && !!item.viewOnceConsumed;
   function openViewOnceMedia() {
     if (!item.mediaUrl) return;
     if (item.kind === "video") {
@@ -209,7 +213,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               styles.bubble,
               isMine ? styles.bubbleMine : styles.bubbleTheirs,
               !groupedWithPrev && (isMine ? styles.bubbleMineFirst : styles.bubbleTheirsFirst),
-              item.kind === "voice" && styles.bubbleVoicePad,
+              item.kind === "voice" && !isVoiceConsumedBadgeRow && styles.bubbleVoicePad,
               item.kind === "location" && styles.bubbleLocationPad,
               item.kind === "file" && styles.bubbleFilePad,
               item.kind === "poll" && styles.bubblePollPad,
@@ -253,12 +257,15 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
                 <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.deletedMessage")}</Text>
               </View>
             ) : item.kind === "voice" && item.viewOnce && item.viewOnceConsumed ? (
-              <View style={styles.deletedRow}>
-                <MicrophoneIcon size={14} color={consumedColor} strokeWidth={1.8} />
-                <Text style={[styles.deletedText, { color: consumedColor }]}>{t("dm.voiceOnceConsumed")}</Text>
+              <View style={[styles.viewOnceUnopenedRow, isMine && styles.viewOnceUnopenedRowMineShift]}>
+                <View style={styles.viewOnceUnopenedIconWrap}>
+                  <VoiceOnceRingIcon size={40} color={mediaConsumedColor} />
+                </View>
+                <Text style={[styles.viewOnceUnopenedText, { color: mediaConsumedColor }]}>{t("dm.kindVoice")}</Text>
+                <Text style={[styles.metaTime, styles.viewOnceUnopenedTime]}>{formatMessageTime(item.createdAt, i18n.language)}</Text>
               </View>
             ) : item.kind === "voice" && item.mediaUrl ? (
-              <VoiceMessageBubble uri={item.mediaUrl} durationMs={item.durationMs} onTimeLabel={setVoiceTimeLabel} onPlay={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined} />
+              <VoiceMessageBubble uri={item.mediaUrl} durationMs={item.durationMs} onTimeLabel={setVoiceTimeLabel} onPlay={item.viewOnce ? () => onConsumeMediaOnce(item.id) : undefined} viewOnceUnplayed={!!item.viewOnce} />
             ) : item.kind === "location" && item.latitude != null && item.longitude != null ? (
               <LocationMessageBubble latitude={item.latitude} longitude={item.longitude} />
             ) : item.kind === "file" && item.mediaUrl ? (
@@ -338,7 +345,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
               <Text style={styles.bubbleText}>{item.text}</Text>
             )}
             {hasMediaCaption && <Text style={styles.mediaCaption}>{item.text}</Text>}
-            {!isViewOnceBadgeRow && (
+            {!isViewOnceBadgeRow && !isVoiceConsumedBadgeRow && (
               <View
                 style={[
                   styles.metaRow,
