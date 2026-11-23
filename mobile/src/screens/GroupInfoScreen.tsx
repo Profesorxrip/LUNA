@@ -60,7 +60,7 @@ export default function GroupInfoScreen({
 }: Props) {
   const { t } = useTranslation();
   const [titleFontLoaded] = useFonts({ BebasNeue_400Regular });
-  const [tab, setTab] = useState<Tab>("media");
+  const [tab, setTab] = useState<Tab>("members");
   const canCreate = !readOnly && groupName.trim().length > 0;
 
   function placeholder(label: string) {
