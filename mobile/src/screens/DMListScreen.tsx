@@ -1,7 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Modal, PanResponder, View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Plus, Archive, Pin, BellOff, CircleArrowDown, Music } from "lucide-react-native";
+import {
+  Plus,
+  Archive,
+  Pin,
+  BellOff,
+  CircleArrowDown,
+  Music,
+  Image as ImageIcon,
+  Video,
+  FileText as FileTextIcon,
+  Mic,
+  MapPin,
+  User as UserIcon,
+  BarChart2,
+  Sticker,
+  Phone,
+  PhoneMissed,
+} from "lucide-react-native";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
@@ -24,11 +41,21 @@ interface DMConversationSummary {
   peerName: string;
   peerHandle: string | null;
   peerAvatarUrl: string | null;
-  // Kullanici: "son mesajdaki müziğe niye emoji koydun ikon koysana" - "text"
-  // alani sunucuda ("🎵 " + dosya adi) emoji ONEKIYLE geliyor (bkz.
-  // send_dm_music/send_group_music RPC'leri), bu yuzden gercek bir ikon
-  // gosterebilmek icin "kind"/"fileName" de gerekiyor (asagida renderItem).
-  lastMessage: { text: string; createdAt: number; fromUserId: string; kind?: string | null; fileName?: string | null } | null;
+  // Kullanici: "son mesajdaki müziğe niye emoji koydun ikon koysana ...
+  // sesli mesaj dosya felan hepsi için aynısını yap" - "text" alani
+  // sunucuda HER medya turu icin bir emoji ONEKIYLE geliyor (bkz.
+  // send_dm_*/send_group_* RPC'leri, "🎵 "/"📎 "/"🎤 "/vb.), bu yuzden
+  // gercek bir ikon gosterip oneki metinden ayiklayabilmek icin "kind" (ve
+  // arama turu icin callStatus/callIsVideo) gerekiyor (asagida
+  // previewIconFor/previewTextFor).
+  lastMessage: {
+    text: string;
+    createdAt: number;
+    fromUserId: string;
+    kind?: string | null;
+    callStatus?: string | null;
+    callIsVideo?: boolean | null;
+  } | null;
   unread: boolean;
   unreadCount: number;
   isFriend: boolean;
@@ -56,8 +83,11 @@ function groupToRow(g: GroupConversationSummary): DMConversationSummary & { isGr
     peerName: g.name,
     peerHandle: null,
     peerAvatarUrl: g.avatarUrl,
+    // Grup mesajlarinda "call" turu YOK (aramalar SADECE DM'de) - callStatus/
+    // callIsVideo bilerek verilmiyor, previewIconFor/previewTextFor zaten
+    // kind "call" DEGILSE bunlara hic bakmiyor.
     lastMessage: g.lastMessage
-      ? { text: g.lastMessage.text, createdAt: g.lastMessage.createdAt, fromUserId: g.lastMessage.fromUserId, kind: g.lastMessage.kind, fileName: g.lastMessage.fileName }
+      ? { text: g.lastMessage.text, createdAt: g.lastMessage.createdAt, fromUserId: g.lastMessage.fromUserId, kind: g.lastMessage.kind }
       : null,
     unread: false,
     unreadCount: 0,
@@ -68,6 +98,54 @@ function groupToRow(g: GroupConversationSummary): DMConversationSummary & { isGr
     isGroup: true,
     groupId: g.groupId,
   };
+}
+
+// Her mesaj turunun sunucuda (send_dm_*/send_group_* RPC'leri) metne
+// gomdugu SABIT emoji oneki - "call" HARIC her turde TEK bir onek var,
+// "call" ise duruma gore 3 farkli onekten biriyle gelebiliyor.
+const KIND_TEXT_PREFIXES: Record<string, string[]> = {
+  photo: ["📷 "],
+  video: ["🎥 "],
+  file: ["📎 "],
+  music: ["🎵 "],
+  voice: ["🎤 "],
+  location: ["📍 "],
+  contact: ["👤 "],
+  poll: ["📊 "],
+  sticker: ["🏷️ "],
+  call: ["📞 ", "🎥 "],
+};
+
+// Attach menusundeki (DMScreen.tsx) AYNI ikon ailesi - Fotoğraf/Konum/
+// Dosya/Anket/Müzik/Kişi icin oradaki ikonlarin BIREBIR AYNISI, boylece
+// "bu mesaj turu" gorsel dili uygulamanin her yerinde tutarli.
+const KIND_ICON_COMPONENTS: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
+  photo: ImageIcon,
+  video: Video,
+  file: FileTextIcon,
+  music: Music,
+  voice: Mic,
+  location: MapPin,
+  contact: UserIcon,
+  poll: BarChart2,
+  sticker: Sticker,
+};
+
+function previewIconFor(
+  kind: string | null | undefined,
+  callStatus: string | null | undefined,
+  callIsVideo: boolean | null | undefined
+): React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }> | undefined {
+  if (!kind || kind === "text") return undefined;
+  if (kind === "call") return callStatus === "missed" ? PhoneMissed : callIsVideo ? Video : Phone;
+  return KIND_ICON_COMPONENTS[kind];
+}
+
+function previewTextFor(text: string, kind: string | null | undefined): string {
+  const prefixes = kind ? KIND_TEXT_PREFIXES[kind] : undefined;
+  if (!prefixes) return text;
+  const prefix = prefixes.find((p) => text.startsWith(p));
+  return prefix ? text.slice(prefix.length) : text;
 }
 
 function pad2(n: number): string {
@@ -519,18 +597,25 @@ export default function DMListScreen({ onOpenDM, onOpenGroup }: Props) {
                 </View>
                 <View style={styles.rowBottomLine}>
                   {item.lastMessage ? (
-                    item.lastMessage.kind === "music" ? (
-                      <View style={styles.rowPreviewMusicWrap}>
-                        <Music size={13} color={item.unread ? TEXT : MUTED} strokeWidth={2} />
-                        <Text style={[styles.rowPreview, styles.rowPreviewMusicText, item.unread && styles.rowPreviewUnread]} numberOfLines={1}>
-                          {item.lastMessage.fileName || item.lastMessage.text.replace(/^🎵\s*/, "")}
+                    (() => {
+                      const PreviewIcon = previewIconFor(item.lastMessage.kind, item.lastMessage.callStatus, item.lastMessage.callIsVideo);
+                      const previewText = previewTextFor(item.lastMessage.text, item.lastMessage.kind);
+                      return PreviewIcon ? (
+                        <View style={styles.rowPreviewIconWrap}>
+                          <PreviewIcon size={13} color={item.unread ? TEXT : MUTED} strokeWidth={2} />
+                          <Text
+                            style={[styles.rowPreview, styles.rowPreviewIconText, item.unread && styles.rowPreviewUnread]}
+                            numberOfLines={1}
+                          >
+                            {previewText}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={[styles.rowPreview, item.unread && styles.rowPreviewUnread]} numberOfLines={1}>
+                          {previewText}
                         </Text>
-                      </View>
-                    ) : (
-                      <Text style={[styles.rowPreview, item.unread && styles.rowPreviewUnread]} numberOfLines={1}>
-                        {item.lastMessage.text}
-                      </Text>
-                    )
+                      );
+                    })()
                   ) : (
                     !!item.peerHandle && <Text style={styles.rowPreview}>@{item.peerHandle}</Text>
                   )}
@@ -646,8 +731,8 @@ const styles = StyleSheet.create({
   rowBottomLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 2 },
   rowPreview: { flex: 1, color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16 },
   rowPreviewUnread: { color: TEXT, fontWeight: "700" },
-  rowPreviewMusicWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
-  rowPreviewMusicText: { flex: 1 },
+  rowPreviewIconWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
+  rowPreviewIconText: { flex: 1 },
   unreadBadge: {
     minWidth: 20,
     height: 20,
