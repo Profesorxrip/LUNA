@@ -681,11 +681,18 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   // alanı yapalım" - gercek bir tarayicinin "yeni sekme" ekranindaki kisa
   // yollar gibi, en yaygin birkac site. YouTube zaten ayri bir platform
   // secenegi oldugu icin burada TEKRAR edilmiyor.
+  // Kullanici: "Dış kutunun yüksekliğini arttır altlarda böyle kartlar
+  // sıralansın" - 4'e 2 satir halinde siralanacak sekilde liste genisletildi
+  // (kart dogal olarak uzuyor).
   const QUICK_SITES = [
     { label: "Google", url: "https://www.google.com", letter: "G", color: "#4285F4" },
     { label: "Wikipedia", url: "https://www.wikipedia.org", letter: "W", color: "#5C5C5C" },
     { label: "X", url: "https://x.com", letter: "X", color: "#000000" },
     { label: "Reddit", url: "https://www.reddit.com", letter: "R", color: "#FF4500" },
+    { label: "Instagram", url: "https://www.instagram.com", letter: "I", color: "#E1306C" },
+    { label: "Pinterest", url: "https://www.pinterest.com", letter: "P", color: "#E60023" },
+    { label: "Amazon", url: "https://www.amazon.com", letter: "A", color: "#FF9900" },
+    { label: "Bing", url: "https://www.bing.com", letter: "B", color: "#008373" },
   ];
 
   function handleQuickSiteOpen(url: string) {
@@ -1446,8 +1453,8 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 16,
   },
-  quickSitesRow: { flexDirection: "row", justifyContent: "space-between" },
-  quickSiteItem: { alignItems: "center", gap: 8 },
+  quickSitesRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 20 },
+  quickSiteItem: { alignItems: "center", gap: 8, width: 72 },
   quickSiteIcon: {
     width: 56,
     height: 56,
