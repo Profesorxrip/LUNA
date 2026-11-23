@@ -799,7 +799,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
             // uyumlu hale getirildi.
             <TouchableOpacity style={styles.backButton} onPress={mode === "grid" ? handleClose : handleBack} hitSlop={10}>
               <View style={{ transform: [{ rotate: "90deg" }] }}>
-                <CircleArrowDown size={22} color="#FFFFFF" />
+                <CircleArrowDown size={26} color="#FFFFFF" />
               </View>
             </TouchableOpacity>
           ) : (
