@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { Search, PhoneCall, BellOff, LogOut, Image as ImageIcon, Paperclip, CircleArrowDown, UserGroup, UserPlus, MoreVertical } from "lucide-react-native";
@@ -11,8 +11,10 @@ import { showAlert } from "../components/CustomAlert";
 import { theme } from "../theme";
 import type { FriendUser } from "../services/socket";
 
+type MenuMember = FriendUser & { isOnline?: boolean; isAdmin?: boolean };
+
 interface Props {
-  members: FriendUser[];
+  members: MenuMember[];
   // Kullanici: "Yazdığım isim ... sıfırlanmamalı" - bu ekran "Üye Ekle" ile
   // kapanip tekrar acildiginda KENDI state'i olsaydi kaybolurdu, bu yuzden
   // FriendsScreen'de (selected uyelerle AYNI yerde) tutulup prop olarak
@@ -49,6 +51,19 @@ interface Props {
   onSave?: () => void;
   dirty?: boolean;
   saving?: boolean;
+  // Kullanici: "Üç noktaya basınca kurucu neler görmeli profesyonel bir
+  // uygulamada ... Hepsini yapalım" - uc nokta menusu. myUserId: kendi
+  // satirimda menu hic gosterilmez. canManageMembers: BEN (kurucu ya da
+  // yonetici) Yönetici Yap/Gruptan Çıkar'i GOREBILIR miyim - gercek yetki
+  // (kurucuyu hedefleme / yonetici-yoneticiye dokunamaz) yine de sunucuda
+  // (0055_group_admin_management.sql RPC'leri) kontrol edilir, buradaki
+  // sadece anlamsiz/olumsuz sonuclanacak satirlari ONCEDEN gizlemek icin.
+  myUserId?: string;
+  canManageMembers?: boolean;
+  onOpenProfile?: (member: MenuMember) => void;
+  onOpenDM?: (member: MenuMember) => void;
+  onSetMemberAdmin?: (member: MenuMember, admin: boolean) => void;
+  onRemoveMember?: (member: MenuMember) => void;
 }
 
 type Tab = "media" | "files" | "members";
@@ -77,16 +92,30 @@ export default function GroupInfoScreen({
   onSave,
   dirty = false,
   saving = false,
+  myUserId,
+  canManageMembers = false,
+  onOpenProfile,
+  onOpenDM,
+  onSetMemberAdmin,
+  onRemoveMember,
 }: Props) {
   const { t } = useTranslation();
   const [titleFontLoaded] = useFonts({ BebasNeue_400Regular });
   const [tab, setTab] = useState<Tab>("members");
+  const [menuTarget, setMenuTarget] = useState<MenuMember | null>(null);
   const canCreate = !readOnly && groupName.trim().length > 0;
   const editable = !readOnly || !!onSave;
   const canSave = !!onSave && dirty && groupName.trim().length > 0 && !saving;
 
   function placeholder(label: string) {
     showAlert(label, t("profile.comingSoon"));
+  }
+
+  function confirmRemoveMember(member: MenuMember) {
+    showAlert(t("friends.groupMemberRemoveConfirmTitle"), t("friends.groupMemberRemoveConfirmBody", { name: member.name }), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("friends.groupMemberRemove"), style: "destructive", onPress: () => onRemoveMember?.(member) },
+    ]);
   }
 
   // UserProfileScreen.tsx'teki pickFromGallery ile AYNI akis (izin iste ->
@@ -229,30 +258,108 @@ export default function GroupInfoScreen({
               </TouchableOpacity>
               <Text style={styles.memberCountLabel}>{t("friends.groupMemberCount", { count: members.length })}</Text>
             </View>
-            {members.map((item) => (
-              <View key={item.userId} style={styles.row}>
-                <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} isFriend />
-                <View style={styles.rowText}>
-                  <Text style={styles.rowName}>{item.name}</Text>
-                  {!!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>}
+            {members.map((item) => {
+              const isCreatorRow = item.userId === creatorId;
+              const isMe = !!myUserId && item.userId === myUserId;
+              return (
+                <View key={item.userId} style={styles.row}>
+                  <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} isFriend />
+                  <View style={styles.rowText}>
+                    <Text style={styles.rowName}>{item.name}</Text>
+                    {!!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>}
+                  </View>
+                  {!!creatorId && (
+                    <Text style={styles.rowRole}>
+                      {isCreatorRow
+                        ? t("friends.groupRoleCreator")
+                        : item.isAdmin
+                        ? t("friends.groupRoleAdmin")
+                        : t("friends.groupRoleMember")}
+                    </Text>
+                  )}
+                  {!!creatorId && !isMe && (
+                    <TouchableOpacity onPress={() => setMenuTarget(item)} hitSlop={10} style={styles.rowMenuTouch}>
+                      <MoreVertical size={20} color={theme.textMuted} />
+                    </TouchableOpacity>
+                  )}
                 </View>
-                {!!creatorId && (
-                  <Text style={styles.rowRole}>
-                    {item.userId === creatorId ? t("friends.groupRoleCreator") : t("friends.groupRoleMember")}
-                  </Text>
-                )}
-                {!!creatorId && (
-                  <TouchableOpacity onPress={() => placeholder(item.name)} hitSlop={10} style={styles.rowMenuTouch}>
-                    <MoreVertical size={20} color={theme.textMuted} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
+              );
+            })}
           </>
         ) : (
           <Text style={styles.emptyText}>{tab === "media" ? t("dm.noMedia") : t("dm.tabFilesEmpty")}</Text>
         )}
       </ScrollView>
+
+      <Modal visible={!!menuTarget} transparent animationType="fade" onRequestClose={() => setMenuTarget(null)} statusBarTranslucent>
+        <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuTarget(null)}>
+          <View style={styles.menuSheet}>
+            {menuTarget &&
+              (() => {
+                const target = menuTarget;
+                const targetIsCreator = target.userId === creatorId;
+                // Yoneticiler birbirine dokunamaz - SADECE kurucu baska bir
+                // yoneticiyi yonetimden alabilir/cikarabilir (bkz. 0055_
+                // group_admin_management.sql - sunucu AYNI kurali uygular).
+                const canModerateTarget = canManageMembers && !targetIsCreator && (!target.isAdmin || myUserId === creatorId);
+                const rows: { key: string; label: string; danger?: boolean; onPress: () => void }[] = [];
+                if (onOpenProfile) {
+                  rows.push({
+                    key: "profile",
+                    label: t("friends.groupMemberViewProfile"),
+                    onPress: () => {
+                      setMenuTarget(null);
+                      onOpenProfile(target);
+                    },
+                  });
+                }
+                if (onOpenDM) {
+                  rows.push({
+                    key: "message",
+                    label: t("friends.groupMemberMessage"),
+                    onPress: () => {
+                      setMenuTarget(null);
+                      onOpenDM(target);
+                    },
+                  });
+                }
+                if (canModerateTarget && onSetMemberAdmin) {
+                  rows.push({
+                    key: "admin",
+                    label: target.isAdmin ? t("friends.groupMemberRemoveAdmin") : t("friends.groupMemberMakeAdmin"),
+                    onPress: () => {
+                      setMenuTarget(null);
+                      onSetMemberAdmin(target, !target.isAdmin);
+                    },
+                  });
+                }
+                if (canModerateTarget && onRemoveMember) {
+                  rows.push({
+                    key: "remove",
+                    label: t("friends.groupMemberRemove"),
+                    danger: true,
+                    onPress: () => {
+                      setMenuTarget(null);
+                      confirmRemoveMember(target);
+                    },
+                  });
+                }
+                return (
+                  <>
+                    <Text style={styles.menuSheetName} numberOfLines={1}>
+                      {target.name}
+                    </Text>
+                    {rows.map((row) => (
+                      <TouchableOpacity key={row.key} style={styles.menuRow} onPress={row.onPress}>
+                        <Text style={[styles.menuRowText, row.danger && styles.menuRowTextDanger]}>{row.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                );
+              })()}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -332,4 +439,28 @@ const styles = StyleSheet.create({
   rowHandle: { color: theme.textMuted, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },
   rowRole: { color: theme.textMuted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4 },
   rowMenuTouch: { paddingLeft: 10 },
+  // Uye satirindaki uc noktanin actigi alt sayfa (bottom sheet) - GroupChatScreen.tsx'teki
+  // ust-sag "menuCard" dropdown'dan farkli olarak her satirda ayri ayri
+  // acilabildigi icin ekranin ALTINDA, hedeflenen uyenin ismiyle ortalanmis.
+  menuOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  menuSheet: {
+    backgroundColor: "#15202B",
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingTop: 14,
+    paddingBottom: 34,
+    paddingHorizontal: 18,
+  },
+  menuSheetName: {
+    color: theme.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  menuRow: { paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.08)" },
+  menuRowText: { color: theme.text, fontSize: 15, fontWeight: "600", textAlign: "center" },
+  menuRowTextDanger: { color: theme.danger },
 });

@@ -12,7 +12,7 @@ import VoiceCallScreen, { formatElapsed } from "./VoiceCallScreen";
 import VideoCallScreen, { type GroupParticipant } from "./VideoCallScreen";
 import IncomingCallScreen from "./IncomingCallScreen";
 import AppBackground from "../components/AppBackground";
-import CustomAlertHost from "../components/CustomAlert";
+import CustomAlertHost, { showAlert } from "../components/CustomAlert";
 import MinimizedCallBanner from "../components/MinimizedCallBanner";
 import * as socketService from "../services/socket";
 import * as supabaseService from "../services/supabase";
@@ -611,10 +611,14 @@ const fakeSocket: any = {
       demoGroupCounter += 1;
       const id = `demo-group-${demoGroupCounter}`;
       const members = [
-        { userId: MY_ID, name: "Ben", handle: null, avatarUrl: null, isOnline: true },
+        { userId: MY_ID, name: "Ben", handle: null, avatarUrl: null, isOnline: true, isAdmin: false },
         ...DEMO_FRIENDS.filter((f) => (payload?.memberIds || []).includes(f.userId)).map((f) => ({
           ...f,
           isOnline: f.userId !== "u3",
+          // Uc nokta menusunu (Yonetici Yap/Yoneticilikten Al) HER IKI
+          // durumda da gorebilmek icin - Mehmet Demir (u2) demo'da baslangicta
+          // zaten yonetici.
+          isAdmin: f.userId === "u2",
         })),
       ];
       const group = { id, name: payload?.name || "", avatarUrl: null, creatorId: MY_ID, members, messages: [], pinned: [] };
@@ -630,6 +634,19 @@ const fakeSocket: any = {
       // haric grup olusturan kimse yok.
       const group = demoGroups.get(payload?.groupId);
       if (group && payload?.name) group.name = payload.name;
+      cb({ ok: true });
+    } else if (event === "group:setMemberAdmin" && cb) {
+      // set_group_member_admin RPC'nin (0055_group_admin_management.sql)
+      // demo'su - gercek yetki kontrolu (kurucu/yonetici, yonetici-yonetici
+      // kisitlamasi) SADECE sunucuda var, demo'da zaten UI tarafinda ayni
+      // kurallar uygulaniyor (bkz. GroupInfoScreen.tsx canModerateTarget).
+      const group = demoGroups.get(payload?.groupId);
+      const member = group?.members.find((m: any) => m.userId === payload?.userId);
+      if (member) member.isAdmin = !!payload?.isAdmin;
+      cb({ ok: true });
+    } else if (event === "group:removeMember" && cb) {
+      const group = demoGroups.get(payload?.groupId);
+      if (group) group.members = group.members.filter((m: any) => m.userId !== payload?.userId);
       cb({ ok: true });
     } else if (event === "group:list" && cb) {
       cb({
@@ -1161,6 +1178,28 @@ export default function DevHarness() {
               }
               dirty={groupInfoName.trim() !== groupInfoSavedName.trim() || groupInfoAvatarUri !== groupInfoSavedAvatarUri}
               saving={groupInfoSaving}
+              myUserId={MY_ID}
+              canManageMembers={
+                groupInfoDetail?.creatorId === MY_ID || !!groupInfoDetail?.members?.find((m: any) => m.userId === MY_ID)?.isAdmin
+              }
+              onOpenProfile={(member: any) => showAlert("Profili Gör", member.name)}
+              onOpenDM={(member: any) => showAlert("Mesaj Gönder", member.name)}
+              onSetMemberAdmin={(member: any, admin: boolean) => {
+                fakeSocket.emit("group:setMemberAdmin", { groupId: groupInfoDetail.id, userId: member.userId, isAdmin: admin }, (res: any) => {
+                  if (res?.ok) {
+                    setGroupInfoDetail((d: any) =>
+                      d ? { ...d, members: d.members.map((m: any) => (m.userId === member.userId ? { ...m, isAdmin: admin } : m)) } : d
+                    );
+                  }
+                });
+              }}
+              onRemoveMember={(member: any) => {
+                fakeSocket.emit("group:removeMember", { groupId: groupInfoDetail.id, userId: member.userId }, (res: any) => {
+                  if (res?.ok) {
+                    setGroupInfoDetail((d: any) => (d ? { ...d, members: d.members.filter((m: any) => m.userId !== member.userId) } : d));
+                  }
+                });
+              }}
             />
           ) : screen === "dm" ? (
             <DMScreen

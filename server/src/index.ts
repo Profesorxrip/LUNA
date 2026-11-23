@@ -93,6 +93,8 @@ import {
   createGroup,
   setGroupAvatar,
   renameGroup,
+  setGroupMemberAdmin,
+  removeGroupMember,
   openGroup,
   sendGroupMessage,
   sendGroupImage,
@@ -951,6 +953,52 @@ io.on("connection", (socket: Socket) => {
       return ack?.({ ok: false });
     }
     const ok = await renameGroup(myDb!, groupId, name);
+    ack?.({ ok });
+  });
+
+  // Kullanici: "Uc noktaya basinca kurucu [...] Yonetici Yap [...] Hepsini
+  // yapalim" - set_group_member_admin RPC'si (0055_group_admin_
+  // management.sql) kurucu/yetki kontrolunu kendi icinde yapiyor (yetkisiz
+  // istek exception -> ok:false). Basarili olursa TUM cevrimici uyelere
+  // canli yayinliyoruz ki o an GroupChatScreen'i ACIK olan baskasinin
+  // rozeti/yetkisi hemen guncellensin.
+  socket.on(
+    "group:setMemberAdmin",
+    async ({ groupId, userId, isAdmin }: { groupId: string; userId: string; isAdmin: boolean }, ack) => {
+      if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(userId, 200) || typeof isAdmin !== "boolean") {
+        return ack?.({ ok: false });
+      }
+      const ok = await setGroupMemberAdmin(myDb!, groupId, userId, isAdmin);
+      if (ok) {
+        const memberIds = await groupMemberUserIds(myDb!, groupId);
+        for (const memberId of memberIds) {
+          const memberSocketId = getSocketIdForUser(memberId);
+          if (memberSocketId) io.to(memberSocketId).emit("group:memberAdminChanged", { groupId, userId, isAdmin });
+        }
+      }
+      ack?.({ ok });
+    }
+  );
+
+  // AYNI menunun "Gruptan Çıkar" aksiyonu - remove_group_member RPC'si
+  // kurucuyu hedeflemeyi VE yoneticilerin birbirini cikarmasini zaten
+  // reddediyor. Cikarilan kullanici online'sa kendi GroupChatScreen'i
+  // ANINDA kapatip uyari gostersin diye AYRI bir olay yollaniyor, geri
+  // kalan uyelere de liste guncellensin diye AYNI olay yayinlaniyor -
+  // uye listesi SILINMEDEN ONCE alinmali, yoksa cikarilan kisinin kendisine
+  // ulasamayiz.
+  socket.on("group:removeMember", async ({ groupId, userId }: { groupId: string; userId: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(userId, 200)) {
+      return ack?.({ ok: false });
+    }
+    const memberIdsBefore = await groupMemberUserIds(myDb!, groupId);
+    const ok = await removeGroupMember(myDb!, groupId, userId);
+    if (ok) {
+      for (const memberId of memberIdsBefore) {
+        const memberSocketId = getSocketIdForUser(memberId);
+        if (memberSocketId) io.to(memberSocketId).emit("group:memberRemoved", { groupId, userId });
+      }
+    }
     ack?.({ ok });
   });
 

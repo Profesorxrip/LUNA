@@ -71,6 +71,7 @@ export interface GroupMember {
   handle: string | null;
   avatarUrl: string | null;
   isOnline: boolean;
+  isAdmin: boolean;
 }
 
 export interface GroupDetail {
@@ -162,9 +163,10 @@ async function attachPollExtras(db: SupabaseClient, myUserId: string, messages: 
 }
 
 async function membersWithProfiles(db: SupabaseClient, groupId: string): Promise<GroupMember[]> {
-  const { data: memberRows } = await db.from("group_members").select("user_id").eq("group_id", groupId);
+  const { data: memberRows } = await db.from("group_members").select("user_id,is_admin").eq("group_id", groupId);
   const userIds = (memberRows || []).map((r: any) => r.user_id);
   if (!userIds.length) return [];
+  const adminByUserId = new Map((memberRows || []).map((r: any) => [r.user_id, Boolean(r.is_admin)]));
   const { data: profiles } = await db.from("profiles").select("id,name,handle,avatar_url").in("id", userIds);
   const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
   return userIds.map((id: string) => {
@@ -175,6 +177,7 @@ async function membersWithProfiles(db: SupabaseClient, groupId: string): Promise
       handle: p?.handle ?? null,
       avatarUrl: p?.avatar_url ?? null,
       isOnline: Boolean(getSocketIdForUser(id)),
+      isAdmin: adminByUserId.get(id) ?? false,
     };
   });
 }
@@ -200,6 +203,26 @@ export async function setGroupAvatar(db: SupabaseClient, groupId: string, avatar
  * istekleri sessizce yok sayiyor (0 satir guncellenir). */
 export async function renameGroup(db: SupabaseClient, groupId: string, name: string): Promise<boolean> {
   const { error } = await db.rpc("rename_group", { gid: groupId, new_name: name });
+  return !error;
+}
+
+/** Bir uyeyi yonetici yapar/yoneticilikten alir - RPC (0055_group_admin_
+ * management.sql) yetkisiz/kurucuyu hedefleyen istekleri exception ile
+ * reddeder (bkz. asagidaki "error" kontrolu). */
+export async function setGroupMemberAdmin(
+  db: SupabaseClient,
+  groupId: string,
+  targetUserId: string,
+  admin: boolean
+): Promise<boolean> {
+  const { error } = await db.rpc("set_group_member_admin", { gid: groupId, target_user: targetUserId, admin });
+  return !error;
+}
+
+/** Bir uyeyi gruptan cikarir - RPC AYNI sekilde yetkisiz/kurucuyu
+ * hedefleyen istekleri reddeder. */
+export async function removeGroupMember(db: SupabaseClient, groupId: string, targetUserId: string): Promise<boolean> {
+  const { error } = await db.rpc("remove_group_member", { gid: groupId, target_user: targetUserId });
   return !error;
 }
 

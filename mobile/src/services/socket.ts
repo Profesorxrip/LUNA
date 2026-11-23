@@ -430,6 +430,7 @@ export interface GroupMember {
   handle: string | null;
   avatarUrl: string | null;
   isOnline: boolean;
+  isAdmin: boolean;
 }
 
 export interface GroupDetail {

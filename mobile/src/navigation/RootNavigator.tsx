@@ -410,13 +410,48 @@ function GroupInfoRoute() {
   const [savedName, setSavedName] = useState(params.group.name);
   const [savedAvatarUri, setSavedAvatarUri] = useState(params.group.avatarUrl ?? "");
   const [saving, setSaving] = useState(false);
+  // Kullanici: "Üç noktaya basınca kurucu neler görmeli ... Hepsini yapalım"
+  // - promote/demote/cikarma params.group'un ICINDEKI snapshot'i degil,
+  // AYRI bir state: basarili bir aksiyondan sonra listeyi burada
+  // GUNCELLEYEBILELIM diye (bkz. asagidaki handleSetMemberAdmin/
+  // handleRemoveMember).
+  const [members, setMembers] = useState(params.group.members);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
   }, []);
 
   const isCreator = !!myUserId && myUserId === params.group.creatorId;
+  const canManageMembers = isCreator || !!members.find((m) => m.userId === myUserId)?.isAdmin;
   const dirty = groupName.trim() !== savedName.trim() || groupAvatarUri !== savedAvatarUri;
+
+  function handleSetMemberAdmin(member: { userId: string }, admin: boolean) {
+    getSocket().emit("group:setMemberAdmin", { groupId: params.group.id, userId: member.userId, isAdmin: admin }, (res: any) => {
+      if (res?.ok) {
+        setMembers((prev) => prev.map((m) => (m.userId === member.userId ? { ...m, isAdmin: admin } : m)));
+      } else {
+        showAlert(t("friends.groupInfoTitle"), t("dm.genericSendErrorBody"));
+      }
+    });
+  }
+
+  function handleRemoveMember(member: { userId: string }) {
+    getSocket().emit("group:removeMember", { groupId: params.group.id, userId: member.userId }, (res: any) => {
+      if (res?.ok) {
+        setMembers((prev) => prev.filter((m) => m.userId !== member.userId));
+      } else {
+        showAlert(t("friends.groupInfoTitle"), t("dm.genericSendErrorBody"));
+      }
+    });
+  }
+
+  function handleOpenProfile(member: { userId: string; name: string; handle: string | null }) {
+    navigation.navigate("UserProfile", { own: false, peer: { userId: member.userId, name: member.name, handle: member.handle ?? undefined } });
+  }
+
+  function handleOpenDM(member: { userId: string; name: string; handle: string | null }) {
+    navigation.navigate("DM", { peer: { userId: member.userId, name: member.name, handle: member.handle ?? undefined } });
+  }
 
   async function handleSave() {
     if (saving) return;
@@ -463,7 +498,7 @@ function GroupInfoRoute() {
   return (
     <GroupInfoScreen
       readOnly
-      members={params.group.members}
+      members={members}
       groupName={groupName}
       onChangeGroupName={setGroupName}
       groupAvatarUri={groupAvatarUri}
@@ -473,6 +508,12 @@ function GroupInfoRoute() {
       onSave={isCreator ? handleSave : undefined}
       dirty={dirty}
       saving={saving}
+      myUserId={myUserId ?? undefined}
+      canManageMembers={canManageMembers}
+      onOpenProfile={handleOpenProfile}
+      onOpenDM={handleOpenDM}
+      onSetMemberAdmin={handleSetMemberAdmin}
+      onRemoveMember={handleRemoveMember}
     />
   );
 }

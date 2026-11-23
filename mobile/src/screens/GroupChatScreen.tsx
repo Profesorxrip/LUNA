@@ -673,6 +673,36 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo, onStartVoic
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group.id]);
 
+  // Kullanici: "Üç noktaya basınca kurucu neler görmeli ... Hepsini
+  // yapalım" - Yönetici Yap/Gruptan Çıkar aksiyonlari (bkz.
+  // RootNavigator.tsx GroupInfoRoute) sunucudan TUM cevrimici uyelere
+  // yayinlaniyor. AYRI bir effect'te (myUserId'ye bagli) - yukaridaki
+  // "group:open" effect'i tekrar tetiklenip mesajlari BASTAN cekmesin diye.
+  useEffect(() => {
+    function handleMemberRemoved({ groupId, userId }: { groupId: string; userId: string }) {
+      if (groupId !== group.id) return;
+      if (myUserId && userId === myUserId) {
+        showAlert(t("friends.groupInfoTitle"), t("friends.groupMemberRemovedSelfBody"));
+        onBack();
+        return;
+      }
+      setGroupDetail((prev) => ({ ...prev, members: prev.members.filter((m) => m.userId !== userId) }));
+    }
+    socket.on("group:memberRemoved", handleMemberRemoved);
+
+    function handleMemberAdminChanged({ groupId, userId, isAdmin }: { groupId: string; userId: string; isAdmin: boolean }) {
+      if (groupId !== group.id) return;
+      setGroupDetail((prev) => ({ ...prev, members: prev.members.map((m) => (m.userId === userId ? { ...m, isAdmin } : m)) }));
+    }
+    socket.on("group:memberAdminChanged", handleMemberAdminChanged);
+
+    return () => {
+      socket.off("group:memberRemoved", handleMemberRemoved);
+      socket.off("group:memberAdminChanged", handleMemberAdminChanged);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group.id, myUserId]);
+
   function handleConsumeMediaOnce(messageId: string) {
     if (consumedOnceRef.current.has(messageId)) return;
     consumedOnceRef.current.add(messageId);
