@@ -1222,7 +1222,12 @@ const styles = StyleSheet.create({
   // tasma/kirpilma riski yaratiyordu (logo kucuk/kirpilmis GORUNEBILIYORDU).
   // Yukseklik artik en uzun cocuga (en buyuk ihtiyaca) gore KENDILIGINDEN
   // hesaplaniyor.
-  topBar: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 },
+  // Kullanici: "Üstbarın yüksekliğini arttırıp biraz geri ikonunu aşağı
+  // kaydırsan gönderi oluştur ekranı gibi" - UserProfileScreen.tsx'teki
+  // "Gönderi Oluştur" basligi (composerHeaderRow) ile AYNI ek dikey
+  // bosluk: paddingTop ikonu ekranin cok ustundeki mevcut konumundan
+  // asagi kaydirip cubugu belirgin sekilde uzatir.
+  topBar: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingTop: 14, paddingBottom: 14, marginBottom: 6 },
   backButton: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   // topBar "flex-end" (alttan hizali) - ama geri ikonu kendi 38x38 kutusunun
   // icinde tabanindan boslukluyken logo PNG'sindeki "LUNA" yazisi kendi
