@@ -146,7 +146,14 @@ function isViewOnceMediaPreview(item: LastMessagePreview): boolean {
 // zaten ozenle secilmis (MicrophoneIcon/AppIcon "video"/VoiceOnceRingIcon -
 // lucide'den FARKLI aileler) ikonlarla tutarli olsun diye kopyalandi.
 function renderPreviewIcon(item: LastMessagePreview, color: string): React.ReactNode {
-  if (isViewOnceMediaPreview(item)) return <VoiceOnceRingIcon size={15} color={color} />;
+  if (isViewOnceMediaPreview(item))
+    return (
+      <View style={styles.rowPreviewViewOnceBox}>
+        <View style={styles.rowPreviewViewOnceIconWrap}>
+          <VoiceOnceRingIcon size={36} color={color} />
+        </View>
+      </View>
+    );
   switch (item.kind) {
     case "photo":
       return <ImageIcon size={13} color={color} />;
@@ -770,6 +777,8 @@ const styles = StyleSheet.create({
   rowPreviewUnread: { color: TEXT, fontWeight: "700" },
   rowPreviewIconWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
   rowPreviewIconText: { flex: 1 },
+  rowPreviewViewOnceBox: { width: 14, height: 14 },
+  rowPreviewViewOnceIconWrap: { position: "absolute", top: -11, left: -11 },
   unreadBadge: {
     minWidth: 20,
     height: 20,
