@@ -1083,6 +1083,20 @@ export default function DevHarness() {
                 setGroupInfoDetail(detail);
                 setScreen("groupInfo");
               }}
+              // SADECE bu test/onizleme ekraninda GroupCallGrid'in GORSEL
+              // olarak nasil gorunecegini gostermek icin - gercek WebRTC
+              // bu ortamda (STUN/TURN'e ag erisimi yok) kurulamaz. Grup
+              // sohbetindeki telefon ikonu GERCEK uygulamada sesli arama
+              // baslatir (VoiceCall rotasi), burada dogrudan goruntuluye
+              // (video=true) geciliyor ki coklu katilimci izgarasi GORUNUR
+              // olsun (sesli aramada boyle bir izgara yok).
+              onStartVoiceCall={(members) => {
+                const mapped = members.map((m) => ({ userId: m.userId, name: m.name, avatarUrl: m.avatarUrl }));
+                setGroupParticipants(mapped.length > 1 ? mapped : undefined);
+                setCallIsVideo(true);
+                setCallActive(true);
+                setCallMinimized(false);
+              }}
             />
           ) : screen === "groupInfo" ? (
             <GroupInfoScreen
