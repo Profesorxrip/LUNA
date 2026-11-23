@@ -1195,8 +1195,8 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                   autoFocus
                 />
               </View>
-              <Text style={styles.quickSitesTitle}>{t("mediaPicker.quickSitesTitle")}</Text>
               <View style={styles.quickSitesCard}>
+                <Text style={styles.quickSitesTitle}>{t("mediaPicker.quickSitesTitle")}</Text>
                 <View style={styles.quickSitesRow}>
                   {QUICK_SITES.map((site) => (
                     <TouchableOpacity
@@ -1448,20 +1448,16 @@ const styles = StyleSheet.create({
   // yapsaydık" dedi - referanstaki gibi KOYU bir KART icinde, beyaz
   // yuvarlak-kare ikon rozetleri + altlarinda etiket. Baslik/"Tümünü
   // Gör" YOK, dogrudan search cubugunun altina siraliyor.
-  // Kullanici: "o sık kullanılanlar kutusunun üstüne SIK KULLANILANLAR
-  // yazalım üst soluna" - kartin DISINDA, hemen ustunde, sola yasli bir
-  // baslik.
+  // Kullanici: "Kutunun içinde sol üstte olucak" - baslik artik kartin
+  // ICINDE, sol ust kosede (kartin kendi ic paddingini kullaniyor).
   quickSitesTitle: {
-    alignSelf: "stretch",
-    marginHorizontal: -36,
-    marginTop: 24,
-    marginBottom: 10,
+    alignSelf: "flex-start",
+    marginBottom: 14,
     color: theme.textMuted,
     fontSize: 13,
     fontWeight: "700",
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    textAlign: "left",
   },
   quickSitesCard: {
     alignSelf: "stretch",
