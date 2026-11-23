@@ -608,8 +608,11 @@ const fakeSocket: any = {
       demoGroupCounter += 1;
       const id = `demo-group-${demoGroupCounter}`;
       const members = [
-        { userId: MY_ID, name: "Ben", handle: null, avatarUrl: null },
-        ...DEMO_FRIENDS.filter((f) => (payload?.memberIds || []).includes(f.userId)),
+        { userId: MY_ID, name: "Ben", handle: null, avatarUrl: null, isOnline: true },
+        ...DEMO_FRIENDS.filter((f) => (payload?.memberIds || []).includes(f.userId)).map((f) => ({
+          ...f,
+          isOnline: f.userId !== "u3",
+        })),
       ];
       const group = { id, name: payload?.name || "", avatarUrl: null, members, messages: [], pinned: [] };
       demoGroups.set(id, group);

@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { getSocketIdForUser } from "./dm";
 
 // Grup sohbeti - dm.ts'teki (DM, "Kişi Mesajı") ile BIREBIR AYNI desene
 // ulasti: metin/foto/sesli/video/konum/dosya/muzik/kisi/anket/cikartma
@@ -69,6 +70,7 @@ export interface GroupMember {
   name: string;
   handle: string | null;
   avatarUrl: string | null;
+  isOnline: boolean;
 }
 
 export interface GroupDetail {
@@ -166,7 +168,13 @@ async function membersWithProfiles(db: SupabaseClient, groupId: string): Promise
   const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
   return userIds.map((id: string) => {
     const p = profileById.get(id);
-    return { userId: id, name: p?.name ?? "Kullanici", handle: p?.handle ?? null, avatarUrl: p?.avatar_url ?? null };
+    return {
+      userId: id,
+      name: p?.name ?? "Kullanici",
+      handle: p?.handle ?? null,
+      avatarUrl: p?.avatar_url ?? null,
+      isOnline: Boolean(getSocketIdForUser(id)),
+    };
   });
 }
 

@@ -247,6 +247,7 @@
     "genericSendErrorBody": "حدث خطأ أثناء إرسال الرسالة، حاول مرة أخرى.",
     "callAction": "اتصال",
     "groupCallNoMembers": "لا يوجد أحد آخر في المجموعة للاتصال به.",
+    "groupMembersOnline": "{{count}} عضو، {{online}} متصل",
     "voiceCallAction": "مكالمة صوتية",
     "callRinging": "يتصل...",
     "incomingCallStatus": "مكالمة صوتية...",

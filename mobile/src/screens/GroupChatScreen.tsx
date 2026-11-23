@@ -1544,7 +1544,10 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo, onStartVoic
                 </Text>
                 {groupDetail.members.length > 0 && (
                   <Text style={styles.headerMembers} numberOfLines={1}>
-                    {groupDetail.members.map((m) => (m.userId === myUserId ? t("dm.you") : m.name)).join(", ")}
+                    {t("dm.groupMembersOnline", {
+                      count: groupDetail.members.length,
+                      online: groupDetail.members.filter((m) => m.isOnline).length,
+                    })}
                   </Text>
                 )}
               </View>
@@ -2091,9 +2094,8 @@ const styles = StyleSheet.create({
   headerProfileTouch: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   headerTextBlock: { flex: 1, marginLeft: -2 },
   headerName: { color: TEXT, fontSize: 18, fontWeight: "700" },
-  // DMScreen.tsx'teki "@handle" (headerHandle) ile AYNI stil - kullanici
-  // istegi: grup isminin altinda uye isimleri (kendim "Sen" olarak) virgulle
-  // ayrilmis tek satirda, sigmazsa "..." ile kirpilir.
+  // DMScreen.tsx'teki "@handle" (headerHandle) ile AYNI stil - grup isminin
+  // altinda "N uye, M cevrimici" bicimli tek satir.
   headerMembers: { color: MUTED, fontSize: 13, marginTop: 1 },
   headerSelectionCountText: { color: TEXT, fontSize: 20, fontWeight: "700" },
   listContent: { padding: 16, paddingBottom: 1, gap: 4 },
