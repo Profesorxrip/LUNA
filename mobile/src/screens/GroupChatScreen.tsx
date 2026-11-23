@@ -75,6 +75,7 @@ import LocationPickerModal, { type PickedLocation } from "../components/Location
 import FilePreviewModal from "../components/FilePreviewModal";
 import PollComposerModal from "../components/PollComposerModal";
 import CameraFilmstrip, { type FilmstripPickedAsset } from "../components/CameraFilmstrip";
+import GalleryPickerModal, { type GalleryPickedAsset } from "../components/GalleryPickerModal";
 import EmojiKeyboardPanel, { PANEL_HEIGHT as EMOJI_PANEL_BASE_HEIGHT } from "../components/EmojiKeyboardPanel";
 import { getCustomStickers, addCustomSticker, CustomSticker } from "../utils/customStickers";
 import { getCustomGifs, addCustomGif, CustomGif } from "../utils/customGifs";
@@ -490,6 +491,13 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo, onStartVoic
   const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Kullanici: "Fotoğraf gerektiren heryerde bu ekran açılacak" - DMScreen.tsx
+  // ile AYNI mimari: native'de uygulama ICI GalleryPickerModal'i acar,
+  // web'de (expo-media-library gercek foto listeleyemedigi icin) eski
+  // ImagePicker.launchImageLibraryAsync akisina duser (bkz. pickImage).
+  const [galleryPickerVisible, setGalleryPickerVisible] = useState(false);
+  const [galleryPickerMode, setGalleryPickerMode] = useState<"default" | "sticker" | "gif">("default");
 
   // Video kuyrugu - SendVideoSheet'te onizlenip gonderiliyor (DM'deki
   // videoQueue ile AYNI, trim/kirpma/mute GERCEK transcode YAPMAZ - sadece
@@ -1108,6 +1116,11 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo, onStartVoic
   }
   async function createSticker() {
     if (!myUserId || creatingSticker) return;
+    if (Platform.OS !== "web") {
+      setGalleryPickerMode("sticker");
+      setGalleryPickerVisible(true);
+      return;
+    }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
@@ -1136,6 +1149,11 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo, onStartVoic
   }
   async function createGif() {
     if (!myUserId || creatingGif) return;
+    if (Platform.OS !== "web") {
+      setGalleryPickerMode("gif");
+      setGalleryPickerVisible(true);
+      return;
+    }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
@@ -1182,21 +1200,51 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo, onStartVoic
     setInput((prev) => prev + emoji);
   }
 
-  async function pickImage() {
+  function pickImage() {
+    if (Platform.OS === "web") {
+      pickImageViaOsLibrary();
+      return;
+    }
+    setAttachSheetVisible(false);
+    setGalleryPickerVisible(true);
+  }
+
+  async function pickImageViaOsLibrary() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ["images", "videos"],
       quality: 0.7,
       allowsMultipleSelection: true,
       selectionLimit: 10,
     });
     if (result.canceled || !result.assets?.length) return;
     setAttachSheetVisible(false);
-    setPendingImages((prev) => [...prev, ...result.assets!.map((a) => a.uri)]);
+    const videos = result.assets.filter((a) => a.type === "video");
+    const images = result.assets.filter((a) => a.type !== "video");
+    if (images.length) setPendingImages((prev) => [...prev, ...images.map((a) => a.uri)]);
+    if (videos.length) setVideoQueue((prev) => [...prev, ...videos.map((a) => ({ uri: a.uri, mimeType: a.mimeType }))]);
+  }
+
+  function handleGalleryPickerConfirm(picked: GalleryPickedAsset[]) {
+    setGalleryPickerVisible(false);
+    if (galleryPickerMode === "sticker") {
+      setGalleryPickerMode("default");
+      if (picked[0]) uploadCustomSticker(picked[0].uri);
+      return;
+    }
+    if (galleryPickerMode === "gif") {
+      setGalleryPickerMode("default");
+      if (picked[0]) uploadCustomGif(picked[0].uri);
+      return;
+    }
+    const videos = picked.filter((a) => a.type === "video");
+    const images = picked.filter((a) => a.type === "image");
+    if (images.length) setPendingImages((prev) => [...prev, ...images.map((a) => a.uri)]);
+    if (videos.length) setVideoQueue((prev) => [...prev, ...videos.map((a) => ({ uri: a.uri, mimeType: a.mimeType }))]);
   }
 
   function removePendingImage(index: number) {
@@ -1317,8 +1365,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo, onStartVoic
   }
   function handleFilmstripPickAsset(asset: FilmstripPickedAsset) {
     setQuickCaptureActive(false);
-    if (asset.type === "video") setVideoQueue((prev) => [...prev, { uri: asset.uri, mimeType: "video/mp4" }]);
-    else setPendingImages((prev) => [...prev, asset.uri]);
+    handleGalleryPickerConfirm([{ uri: asset.uri, type: asset.type, mimeType: asset.type === "video" ? "video/mp4" : "image/jpeg" }]);
   }
 
   function handleQuickShutterPress() {
@@ -1980,6 +2027,12 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo, onStartVoic
         uploadProgress={videoUploadProgress}
         onCancel={() => setVideoQueue((prev) => prev.slice(1))}
         onSend={(caption, meta) => sendPickedVideo(videoQueue[0].uri, videoQueue[0].mimeType, caption, meta)}
+      />
+
+      <GalleryPickerModal
+        visible={galleryPickerVisible}
+        onClose={() => setGalleryPickerVisible(false)}
+        onConfirm={handleGalleryPickerConfirm}
       />
 
       <LocationPickerModal visible={locationPickerVisible} onClose={() => setLocationPickerVisible(false)} onConfirm={handleLocationPickerConfirm} />
