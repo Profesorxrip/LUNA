@@ -510,7 +510,6 @@
     "loadingVideo": "Загрузка видео...",
     "openInApp": "↗ Открыть в {{label}}",
     "webUrlTitle": "Ссылка на сайт",
-    "webUrlPlaceholder": "напр. wikipedia.org",
     "webUrlHint": "Введите адрес и переходите по страницам, пока не найдёте нужную.",
     "selectThisPage": "Выбрать эту страницу",
     "continue": "Продолжить",

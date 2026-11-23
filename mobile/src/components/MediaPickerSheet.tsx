@@ -1147,10 +1147,10 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
             <View style={styles.browserEmptyState}>
               <Globe size={44} color={theme.textMuted} strokeWidth={1.5} />
               <View style={styles.addressBarPill}>
-                <Globe size={16} color="#6B7280" />
+                <Icon name="search" size={18} color="#6B7280" />
                 <TextInput
                   style={styles.addressBarInput}
-                  placeholder={t("mediaPicker.webUrlPlaceholder")}
+                  placeholder={t("friends.searchPlaceholder")}
                   placeholderTextColor="#6B7280"
                   value={webUrlInput}
                   onChangeText={setWebUrlInput}
@@ -1362,6 +1362,11 @@ const styles = StyleSheet.create({
   // ebeveyninden (browserEmptyState) alan beyaz/yuksek bir cubuk.
   addressBarPill: {
     alignSelf: "stretch",
+    // Kullanici: "Genişliğini arttır" - ebeveynin (browserEmptyState,
+    // paddingHorizontal:32) dar tuttugu genislige negatif kenar bosluguyla
+    // tasarak daha genis gorunur, alttaki baslik/aciklama yazisi ise kendi
+    // rahat bosluguyla kalir.
+    marginHorizontal: -16,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
