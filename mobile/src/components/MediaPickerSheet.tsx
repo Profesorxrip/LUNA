@@ -1385,7 +1385,16 @@ const styles = StyleSheet.create({
     outlineStyle: "none",
   } as any,
   browserError: { marginTop: 10 },
-  browserEmptyState: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
+  browserEmptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingHorizontal: 32,
+    // Kullanici: "dünya ikonunu ve search çubuğunu yukarı kaydır" -
+    // ortalanan icerigi yukari itmek icin alt bosluk ekleniyor.
+    paddingBottom: 140,
+  },
   browserWebviewWrap: { flex: 1, marginTop: 12, marginHorizontal: -20, marginBottom: -20 },
   selectPageBtn: {
     position: "absolute",
