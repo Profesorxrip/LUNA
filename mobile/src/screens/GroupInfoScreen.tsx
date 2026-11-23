@@ -2,7 +2,22 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Dimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
-import { Search, PhoneCall, BellOff, LogOut, Image as ImageIcon, Paperclip, CircleArrowDown, UserGroup, UserPlus, MoreVertical } from "lucide-react-native";
+import {
+  Search,
+  PhoneCall,
+  BellOff,
+  LogOut,
+  Image as ImageIcon,
+  Paperclip,
+  CircleArrowDown,
+  UserGroup,
+  UserPlus,
+  UserMinus,
+  MoreVertical,
+  User,
+  MessageCircle,
+  Shield,
+} from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import AppBackground from "../components/AppBackground";
@@ -312,10 +327,11 @@ export default function GroupInfoScreen({
               // hesaplamasi dogal olarak bu satiri disliyor (bkz. kurucu/
               // yonetici kendi uzerinde hicbir zaman "yetkili" degil).
               const canModerateTarget = canManageMembers && !targetIsCreator && (!target.isAdmin || myUserId === creatorId);
-              const rows: { key: string; label: string; danger?: boolean; onPress: () => void }[] = [];
+              const rows: { key: string; icon: React.ReactNode; label: string; danger?: boolean; onPress: () => void }[] = [];
               if (onOpenProfile) {
                 rows.push({
                   key: "profile",
+                  icon: <User size={17} color={theme.text} />,
                   label: t("friends.groupMemberViewProfile"),
                   onPress: () => {
                     setMenuTarget(null);
@@ -326,6 +342,7 @@ export default function GroupInfoScreen({
               if (onOpenDM && !isMe) {
                 rows.push({
                   key: "message",
+                  icon: <MessageCircle size={17} color={theme.text} />,
                   label: t("friends.groupMemberMessage"),
                   onPress: () => {
                     setMenuTarget(null);
@@ -336,6 +353,7 @@ export default function GroupInfoScreen({
               if (canModerateTarget && onSetMemberAdmin) {
                 rows.push({
                   key: "admin",
+                  icon: <Shield size={17} color={theme.text} />,
                   label: target.isAdmin ? t("friends.groupMemberRemoveAdmin") : t("friends.groupMemberMakeAdmin"),
                   onPress: () => {
                     setMenuTarget(null);
@@ -346,6 +364,7 @@ export default function GroupInfoScreen({
               if (canModerateTarget && onRemoveMember) {
                 rows.push({
                   key: "remove",
+                  icon: <UserMinus size={17} color={theme.danger} />,
                   label: t("friends.groupMemberRemove"),
                   danger: true,
                   onPress: () => {
@@ -368,6 +387,7 @@ export default function GroupInfoScreen({
                 <View style={[styles.menuCard, top !== undefined && { top }]}>
                   {rows.map((row) => (
                     <TouchableOpacity key={row.key} style={styles.menuRow} onPress={row.onPress}>
+                      {row.icon}
                       <Text style={[styles.menuRowText, row.danger && styles.menuRowTextDanger]}>{row.label}</Text>
                     </TouchableOpacity>
                   ))}
@@ -469,7 +489,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     minWidth: 170,
   },
-  menuRow: { paddingHorizontal: 16, paddingVertical: 12 },
+  menuRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
   menuRowText: { color: theme.text, fontSize: 14, fontWeight: "600" },
   menuRowTextDanger: { color: theme.danger },
 });
