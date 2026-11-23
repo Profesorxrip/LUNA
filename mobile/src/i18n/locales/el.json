@@ -140,6 +140,8 @@
     "groupInfoTitle": "Πληροφορίες Ομάδας",
     "groupNamePlaceholder": "Όνομα ομάδας (υποχρεωτικό)",
     "groupMemberCount": "{{count}} μέλη",
+    "groupRoleCreator": "ΙΔΡΥΤΗΣ",
+    "groupRoleMember": "ΜΈΛΟΣ",
     "createGroupButton": "Δημιουργία Ομάδας",
     "sendInvites": "Αποστολή Προσκλήσεων ({{count}})",
     "requestsTitle": "ΑΙΤΗΜΑΤΑ",

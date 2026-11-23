@@ -140,6 +140,8 @@
     "groupInfoTitle": "Qrup Məlumatı",
     "groupNamePlaceholder": "Qrup adı (məcburi)",
     "groupMemberCount": "{{count}} üzv",
+    "groupRoleCreator": "QURUCU",
+    "groupRoleMember": "ÜZV",
     "createGroupButton": "Qrup Yarat",
     "sendInvites": "Dəvət Göndər ({{count}})",
     "requestsTitle": "SORĞULAR",

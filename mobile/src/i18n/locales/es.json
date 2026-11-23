@@ -140,6 +140,8 @@
     "groupInfoTitle": "Información del Grupo",
     "groupNamePlaceholder": "Nombre del grupo (obligatorio)",
     "groupMemberCount": "{{count}} miembros",
+    "groupRoleCreator": "CREADOR",
+    "groupRoleMember": "MIEMBRO",
     "createGroupButton": "Crear Grupo",
     "sendInvites": "Enviar invitaciones ({{count}})",
     "requestsTitle": "SOLICITUDES",

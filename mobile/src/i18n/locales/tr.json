@@ -140,6 +140,8 @@
     "groupInfoTitle": "Grup Bilgisi",
     "groupNamePlaceholder": "Grup ismi (zorunlu)",
     "groupMemberCount": "{{count}} üye",
+    "groupRoleCreator": "KURUCU",
+    "groupRoleMember": "ÜYE",
     "createGroupButton": "Grubu Oluştur",
     "sendInvites": "Davet At ({{count}})",
     "requestsTitle": "İSTEKLER",

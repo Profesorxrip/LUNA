@@ -140,6 +140,8 @@
     "groupInfoTitle": "Информация о группе",
     "groupNamePlaceholder": "Название группы (обязательно)",
     "groupMemberCount": "{{count}} участников",
+    "groupRoleCreator": "СОЗДАТЕЛЬ",
+    "groupRoleMember": "УЧАСТНИК",
     "createGroupButton": "Создать группу",
     "sendInvites": "Отправить приглашения ({{count}})",
     "requestsTitle": "ЗАПРОСЫ",

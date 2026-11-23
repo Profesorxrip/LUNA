@@ -140,6 +140,8 @@
     "groupInfoTitle": "Agahiya Komê",
     "groupNamePlaceholder": "Navê komê (pêdivî)",
     "groupMemberCount": "{{count}} endam",
+    "groupRoleCreator": "AVAKAR",
+    "groupRoleMember": "ENDAM",
     "createGroupButton": "Komê Çêke",
     "sendInvites": "Vexwendiyan Bişîne ({{count}})",
     "requestsTitle": "DAXWAZ",

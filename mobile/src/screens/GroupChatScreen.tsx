@@ -443,7 +443,13 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
  * ulastigi butun bu ozelliklere grup da 0047-0051 migration'larinda ulasti. */
 export default function GroupChatScreen({ group, onBack, onOpenInfo, onStartVoiceCall }: Props) {
   const { t, i18n } = useTranslation();
-  const [groupDetail, setGroupDetail] = useState<GroupDetail>({ id: group.id, name: group.name, avatarUrl: group.avatarUrl, members: [] });
+  const [groupDetail, setGroupDetail] = useState<GroupDetail>({
+    id: group.id,
+    name: group.name,
+    avatarUrl: group.avatarUrl,
+    creatorId: "",
+    members: [],
+  });
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [pinnedMessages, setPinnedMessages] = useState<GroupPinnedMessage[]>([]);
   const [pinnedCursor, setPinnedCursor] = useState(0);

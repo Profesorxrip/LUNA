@@ -403,6 +403,7 @@ function GroupInfoRoute() {
       groupAvatarUri={params.group.avatarUrl ?? ""}
       onChangeGroupAvatarUri={() => {}}
       onBack={() => navigation.goBack()}
+      creatorId={params.group.creatorId}
     />
   );
 }

@@ -428,7 +428,10 @@ let demoBlocked = false;
 // Grup sohbeti test harness'i - gercek sunucu yok, bu yuzden olusturulan
 // gruplar sadece bu modul-seviyesi Map'te (oturum boyunca) tutulur (bkz.
 // server/src/group.ts - GERCEK backend'in demo'su).
-const demoGroups = new Map<string, { id: string; name: string; avatarUrl: string | null; members: any[]; messages: any[]; pinned: any[] }>();
+const demoGroups = new Map<
+  string,
+  { id: string; name: string; avatarUrl: string | null; creatorId: string; members: any[]; messages: any[]; pinned: any[] }
+>();
 let demoGroupCounter = 0;
 // useConnectionQuality.ts'in "ping:rtt" olcumunu test edebilmek icin -
 // gercek sunucu yok, bu yuzden donus suresini burada SIMULE ediyoruz.
@@ -614,9 +617,9 @@ const fakeSocket: any = {
           isOnline: f.userId !== "u3",
         })),
       ];
-      const group = { id, name: payload?.name || "", avatarUrl: null, members, messages: [], pinned: [] };
+      const group = { id, name: payload?.name || "", avatarUrl: null, creatorId: MY_ID, members, messages: [], pinned: [] };
       demoGroups.set(id, group);
-      cb({ ok: true, group: { id: group.id, name: group.name, avatarUrl: group.avatarUrl } });
+      cb({ ok: true, group: { id: group.id, name: group.name, avatarUrl: group.avatarUrl, creatorId: group.creatorId } });
     } else if (event === "group:setAvatar" && cb) {
       const group = demoGroups.get(payload?.groupId);
       if (group) group.avatarUrl = payload?.avatarUrl ?? null;
@@ -642,7 +645,7 @@ const fakeSocket: any = {
       // Kopyasi (immutable) verilir.
       cb({
         ok: true,
-        group: { id: group.id, name: group.name, avatarUrl: group.avatarUrl, members: group.members },
+        group: { id: group.id, name: group.name, avatarUrl: group.avatarUrl, creatorId: group.creatorId, members: group.members },
         messages: [...group.messages],
         pinned: [...group.pinned],
       });
@@ -1121,6 +1124,7 @@ export default function DevHarness() {
               groupAvatarUri={groupInfoDetail?.avatarUrl ?? ""}
               onChangeGroupAvatarUri={() => {}}
               onBack={() => setScreen("group")}
+              creatorId={groupInfoDetail?.creatorId}
             />
           ) : screen === "dm" ? (
             <DMScreen

@@ -140,6 +140,8 @@
     "groupInfoTitle": "معلومات المجموعة",
     "groupNamePlaceholder": "اسم المجموعة (مطلوب)",
     "groupMemberCount": "{{count}} أعضاء",
+    "groupRoleCreator": "مؤسس",
+    "groupRoleMember": "عضو",
     "createGroupButton": "إنشاء المجموعة",
     "sendInvites": "إرسال الدعوات ({{count}})",
     "requestsTitle": "الطلبات",

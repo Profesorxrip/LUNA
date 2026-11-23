@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
-import { Search, PhoneCall, BellOff, LogOut, Image as ImageIcon, Paperclip, CircleArrowDown, UserGroup, UserPlus } from "lucide-react-native";
+import { Search, PhoneCall, BellOff, LogOut, Image as ImageIcon, Paperclip, CircleArrowDown, UserGroup, UserPlus, MoreVertical } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import AppBackground from "../components/AppBackground";
@@ -33,6 +33,12 @@ interface Props {
   // FARKLI, ayrica bir backend gerektirir), uye listesi SUNUCUDAN gelen
   // GERCEK uyeler.
   readOnly?: boolean;
+  // Kullanici: "Buradaki tüm üyelerin yanına üç nokta koysak bide kurucu ve
+  // üye yazısı eklesek" - SADECE var olan (readOnly) bir grup icin anlamli
+  // (olusturma akisinda henuz bir "kurucu" kavrami yok, gosterilen liste
+  // "Ben" haric secilen uyeler), bu yuzden verilmediginde rozet/uc nokta
+  // gosterilmez.
+  creatorId?: string;
 }
 
 type Tab = "media" | "files" | "members";
@@ -57,6 +63,7 @@ export default function GroupInfoScreen({
   onBack,
   onCreate,
   readOnly = false,
+  creatorId,
 }: Props) {
   const { t } = useTranslation();
   const [titleFontLoaded] = useFonts({ BebasNeue_400Regular });
@@ -206,6 +213,16 @@ export default function GroupInfoScreen({
                   <Text style={styles.rowName}>{item.name}</Text>
                   {!!item.handle && <Text style={styles.rowHandle}>@{item.handle}</Text>}
                 </View>
+                {!!creatorId && (
+                  <Text style={styles.rowRole}>
+                    {item.userId === creatorId ? t("friends.groupRoleCreator") : t("friends.groupRoleMember")}
+                  </Text>
+                )}
+                {!!creatorId && (
+                  <TouchableOpacity onPress={() => placeholder(item.name)} hitSlop={10} style={styles.rowMenuTouch}>
+                    <MoreVertical size={20} color={theme.textMuted} />
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </>
@@ -290,4 +307,6 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowName: { color: theme.text, fontSize: 14, fontWeight: "700" },
   rowHandle: { color: theme.textMuted, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },
+  rowRole: { color: theme.textMuted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4 },
+  rowMenuTouch: { paddingLeft: 10 },
 });

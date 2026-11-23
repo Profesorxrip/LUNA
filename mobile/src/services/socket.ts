@@ -436,6 +436,7 @@ export interface GroupDetail {
   id: string;
   name: string;
   avatarUrl: string | null;
+  creatorId: string;
   members: GroupMember[];
 }
 

@@ -77,6 +77,7 @@ export interface GroupDetail {
   id: string;
   name: string;
   avatarUrl: string | null;
+  creatorId: string;
   members: GroupMember[];
 }
 
@@ -187,7 +188,7 @@ export async function createGroup(
   const { data, error } = await db.rpc("create_group", { group_name: name, member_ids: memberIds });
   if (error || !data) return { ok: false, error: "failed" };
   const members = await membersWithProfiles(db, data.id);
-  return { ok: true, group: { id: data.id, name: data.name, avatarUrl: data.avatar_url ?? null, members } };
+  return { ok: true, group: { id: data.id, name: data.name, avatarUrl: data.avatar_url ?? null, creatorId: data.created_by, members } };
 }
 
 export async function setGroupAvatar(db: SupabaseClient, groupId: string, avatarUrl: string): Promise<boolean> {
@@ -216,7 +217,7 @@ export async function openGroup(
     (rows || []).filter((r: any) => visibleToMe(r, myUserId)).map(mapMessageRow)
   );
   return {
-    group: { id: convo.id, name: convo.name, avatarUrl: convo.avatar_url ?? null, members },
+    group: { id: convo.id, name: convo.name, avatarUrl: convo.avatar_url ?? null, creatorId: convo.created_by, members },
     messages,
     pinned: (pinnedRows || [])
       .filter((r: any) => r.group_messages)
