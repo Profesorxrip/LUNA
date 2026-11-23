@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Modal, PanResponder, View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Plus, Archive, Pin, BellOff, CircleArrowDown } from "lucide-react-native";
+import { Plus, Archive, Pin, BellOff, CircleArrowDown, Music } from "lucide-react-native";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
@@ -24,7 +24,11 @@ interface DMConversationSummary {
   peerName: string;
   peerHandle: string | null;
   peerAvatarUrl: string | null;
-  lastMessage: { text: string; createdAt: number; fromUserId: string } | null;
+  // Kullanici: "son mesajdaki müziğe niye emoji koydun ikon koysana" - "text"
+  // alani sunucuda ("🎵 " + dosya adi) emoji ONEKIYLE geliyor (bkz.
+  // send_dm_music/send_group_music RPC'leri), bu yuzden gercek bir ikon
+  // gosterebilmek icin "kind"/"fileName" de gerekiyor (asagida renderItem).
+  lastMessage: { text: string; createdAt: number; fromUserId: string; kind?: string | null; fileName?: string | null } | null;
   unread: boolean;
   unreadCount: number;
   isFriend: boolean;
@@ -52,7 +56,9 @@ function groupToRow(g: GroupConversationSummary): DMConversationSummary & { isGr
     peerName: g.name,
     peerHandle: null,
     peerAvatarUrl: g.avatarUrl,
-    lastMessage: g.lastMessage ? { text: g.lastMessage.text, createdAt: g.lastMessage.createdAt, fromUserId: g.lastMessage.fromUserId } : null,
+    lastMessage: g.lastMessage
+      ? { text: g.lastMessage.text, createdAt: g.lastMessage.createdAt, fromUserId: g.lastMessage.fromUserId, kind: g.lastMessage.kind, fileName: g.lastMessage.fileName }
+      : null,
     unread: false,
     unreadCount: 0,
     isFriend: false,
@@ -513,9 +519,18 @@ export default function DMListScreen({ onOpenDM, onOpenGroup }: Props) {
                 </View>
                 <View style={styles.rowBottomLine}>
                   {item.lastMessage ? (
-                    <Text style={[styles.rowPreview, item.unread && styles.rowPreviewUnread]} numberOfLines={1}>
-                      {item.lastMessage.text}
-                    </Text>
+                    item.lastMessage.kind === "music" ? (
+                      <View style={styles.rowPreviewMusicWrap}>
+                        <Music size={13} color={item.unread ? TEXT : MUTED} strokeWidth={2} />
+                        <Text style={[styles.rowPreview, styles.rowPreviewMusicText, item.unread && styles.rowPreviewUnread]} numberOfLines={1}>
+                          {item.lastMessage.fileName || item.lastMessage.text.replace(/^🎵\s*/, "")}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.rowPreview, item.unread && styles.rowPreviewUnread]} numberOfLines={1}>
+                        {item.lastMessage.text}
+                      </Text>
+                    )
                   ) : (
                     !!item.peerHandle && <Text style={styles.rowPreview}>@{item.peerHandle}</Text>
                   )}
@@ -631,6 +646,8 @@ const styles = StyleSheet.create({
   rowBottomLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 2 },
   rowPreview: { flex: 1, color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16 },
   rowPreviewUnread: { color: TEXT, fontWeight: "700" },
+  rowPreviewMusicWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
+  rowPreviewMusicText: { flex: 1 },
   unreadBadge: {
     minWidth: 20,
     height: 20,
