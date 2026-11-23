@@ -247,7 +247,7 @@
     "genericSendErrorBody": "Παρουσιάστηκε σφάλμα κατά την αποστολή του μηνύματος, προσπάθησε ξανά.",
     "callAction": "Κλήση",
     "groupCallNoMembers": "Δεν υπάρχει κανένας άλλος στην ομάδα για κλήση.",
-    "groupMembersOnline": "{{count}} μέλη, {{online}} συνδεδεμένα",
+    "groupMembersOnline": "{{count}} Μέλη, {{online}} Συνδεδεμένα",
     "voiceCallAction": "Φωνητική κλήση",
     "callRinging": "Κλήση...",
     "incomingCallStatus": "Φωνητική κλήση...",

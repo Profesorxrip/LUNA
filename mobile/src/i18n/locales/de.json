@@ -247,7 +247,7 @@
     "genericSendErrorBody": "Beim Senden der Nachricht ist ein Fehler aufgetreten, versuch es erneut.",
     "callAction": "Anrufen",
     "groupCallNoMembers": "Es gibt niemand anderen in der Gruppe, der angerufen werden kann.",
-    "groupMembersOnline": "{{count}} Mitglieder, {{online}} online",
+    "groupMembersOnline": "{{count}} Mitglieder, {{online}} Online",
     "voiceCallAction": "Sprachanruf",
     "callRinging": "Klingelt...",
     "incomingCallStatus": "Sprachanruf...",

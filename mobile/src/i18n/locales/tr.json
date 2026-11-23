@@ -247,7 +247,7 @@
     "genericSendErrorBody": "Mesaj gönderilirken bir hata oluştu, tekrar dene.",
     "callAction": "Ara",
     "groupCallNoMembers": "Grupta aranacak başka kimse yok.",
-    "groupMembersOnline": "{{count}} üye, {{online}} çevrimiçi",
+    "groupMembersOnline": "{{count}} Üye, {{online}} Çevrimiçi",
     "voiceCallAction": "Sesli Arama",
     "callRinging": "Çalıyor...",
     "incomingCallStatus": "Sesli arama...",
