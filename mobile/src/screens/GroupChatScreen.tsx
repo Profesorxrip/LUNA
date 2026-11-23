@@ -264,6 +264,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
                 {sender?.name || item.fromName}
               </Text>
             )}
+            <View style={!isMine && !groupedWithPrev && styles.bubbleContentBelowSenderName}>
             {item.isForwarded && !item.deletedForEveryone && (
               <View style={styles.forwardedRow}>
                 <Icon name="undoArrow" size={12} color={isMine ? "rgba(255,255,255,0.75)" : MUTED} />
@@ -388,6 +389,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
                 </Text>
               </View>
             )}
+            </View>
           </View>
           {reactions.length > 0 && (
             <View style={[styles.reactionBadgeRow, isMine ? styles.reactionBadgeRowMine : styles.reactionBadgeRowTheirs]}>
@@ -2098,7 +2100,15 @@ const styles = StyleSheet.create({
   senderAvatarWrap: { width: 28 },
   senderAvatarSpacer: { width: 28, height: 28 },
   bubbleCol: { maxWidth: "75%" },
-  senderName: { fontSize: 13, fontWeight: "700", marginBottom: 2 },
+  // Kullanici istegi: gonderen adi mesaj TURUNE BAKMAKSIZIN (foto/video/ses/
+  // normal metin, hepsinde balonun KENDI dolgusu (padding) FARKLI) HER ZAMAN
+  // balonun sol/ust kenarindan AYNI 7/5px'te olsun - balonun degisen
+  // dolgusuna gore SURUKLENMESIN diye "position: absolute" ile balonun
+  // (bubble, zaten "position: relative") TAM dis kenarina sabitlendi (bkz.
+  // asagidaki bubbleContentBelowSenderName - geri kalan icerik buna gore
+  // asagi itiliyor, isim HICBIR icerigin USTUNE binmesin diye).
+  senderName: { position: "absolute", top: 5, left: 7, fontSize: 13, fontWeight: "700", zIndex: 2 },
+  bubbleContentBelowSenderName: { paddingTop: 22 },
   bubbleWrap: { position: "relative" },
   bubble: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 8, position: "relative" },
   bubbleMineFirst: { borderTopRightRadius: 0 },
