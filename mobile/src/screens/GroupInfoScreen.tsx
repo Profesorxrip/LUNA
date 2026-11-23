@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Dimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { Search, PhoneCall, BellOff, LogOut, Image as ImageIcon, Paperclip, CircleArrowDown, UserGroup, UserPlus, MoreVertical } from "lucide-react-native";
@@ -355,8 +355,17 @@ export default function GroupInfoScreen({
                 });
               }
               if (!rows.length) return null;
+              // Alt satirlarda (ozellikle uzun uye listelerinde) menu
+              // ekranin ALTINDAN tasmasin diye - tahmini yukseklik (satir
+              // basina ~42px + kart dolgusu) ekran yuksekliğini asarsa
+              // dokunma noktasinin UZERINDE acilir.
+              const estimatedHeight = rows.length * 42 + 12;
+              const screenHeight = Dimensions.get("window").height;
+              const top = menuAnchor
+                ? Math.min(menuAnchor.y + 8, screenHeight - estimatedHeight - 16)
+                : undefined;
               return (
-                <View style={[styles.menuCard, menuAnchor && { top: menuAnchor.y + 8 }]}>
+                <View style={[styles.menuCard, top !== undefined && { top }]}>
                   {rows.map((row) => (
                     <TouchableOpacity key={row.key} style={styles.menuRow} onPress={row.onPress}>
                       <Text style={[styles.menuRowText, row.danger && styles.menuRowTextDanger]}>{row.label}</Text>
