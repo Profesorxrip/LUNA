@@ -1259,7 +1259,7 @@ const styles = StyleSheet.create({
   // ekranlarindan bahsediyorum" diyerek bunun DISINDA tuttu. UserProfileScreen.tsx'teki
   // "Gönderi Oluştur" basligiyla (composerHeaderRow) AYNI ek dikey bosluk.
   topBarTall: { paddingTop: 14, paddingBottom: 14, marginBottom: 6 },
-  backButton: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
+  backButton: { width: 38, height: 38, justifyContent: "center", alignItems: "center", marginTop: 10 },
   // topBar "flex-end" (alttan hizali) - ama geri ikonu kendi 38x38 kutusunun
   // icinde tabanindan boslukluyken logo PNG'sindeki "LUNA" yazisi kendi
   // kutusunun neredeyse tabanina kadar uzaniyor - kutular alttan hizlansa
