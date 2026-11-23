@@ -1465,7 +1465,7 @@ const styles = StyleSheet.create({
   quickSitesCard: {
     alignSelf: "stretch",
     marginHorizontal: -36,
-    marginTop: 28,
+    marginTop: 56,
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
