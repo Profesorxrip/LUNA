@@ -246,6 +246,7 @@
     "locationPermissionRequiredBody": "نحتاج إلى إذن الموقع لإرسال موقعك.",
     "genericSendErrorBody": "حدث خطأ أثناء إرسال الرسالة، حاول مرة أخرى.",
     "callAction": "اتصال",
+    "groupCallNoMembers": "لا يوجد أحد آخر في المجموعة للاتصال به.",
     "voiceCallAction": "مكالمة صوتية",
     "callRinging": "يتصل...",
     "incomingCallStatus": "مكالمة صوتية...",

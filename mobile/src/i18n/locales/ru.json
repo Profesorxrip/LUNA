@@ -246,6 +246,7 @@
     "locationPermissionRequiredBody": "Нам нужен доступ к геопозиции, чтобы отправить твоё местоположение.",
     "genericSendErrorBody": "При отправке сообщения произошла ошибка, попробуй ещё раз.",
     "callAction": "Позвонить",
+    "groupCallNoMembers": "В группе больше некому звонить.",
     "voiceCallAction": "Голосовой вызов",
     "callRinging": "Звонок...",
     "incomingCallStatus": "Голосовой звонок...",

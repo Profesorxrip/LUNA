@@ -81,11 +81,15 @@ export type RootStackParamList = {
   DmInfo: { peer: DMPeer } & DmInfoOpenParams;
   GroupChat: { group: GroupPeer };
   GroupInfo: { group: GroupDetail };
-  VoiceCall: { peer: DMPeer; peerAvatarUrl: string | null };
+  // additionalMemberIds: SADECE grup sohbetinden baslatilan aramalarda dolu -
+  // ilk uyeyle (peer) normal 1'e 1 arama kurulur kurulmaz, kalanlar sirayla
+  // "Arama Ekle" (addToCall) ile ayni aramaya eklenir (bkz. GroupChatRoute/
+  // useRealCallWiring).
+  VoiceCall: { peer: DMPeer; peerAvatarUrl: string | null; additionalMemberIds?: string[] };
   // VoiceCall'daki "Paylaş" butonundan - ekran paylasimi SADECE burada
   // gercek oldugu icin (bkz. VoiceCallScreen.tsx onSwitchToVideo yorumu)
   // kullanici onayladiktan sonra VoiceCall'dan BURAYA replace ediliyor.
-  VideoCall: { peer: DMPeer; peerAvatarUrl: string | null };
+  VideoCall: { peer: DMPeer; peerAvatarUrl: string | null; additionalMemberIds?: string[] };
   RoomPreview: { room: PublicRoomSummary };
   Room: { room: RoomState };
 };
@@ -363,6 +367,14 @@ function GroupChatRoute() {
       group={params.group}
       onBack={() => navigation.goBack()}
       onOpenInfo={(detail) => navigation.navigate("GroupInfo", { group: detail })}
+      onStartVoiceCall={(members) => {
+        const [first, ...rest] = members;
+        navigation.navigate("VoiceCall", {
+          peer: { userId: first.userId, name: first.name },
+          peerAvatarUrl: first.avatarUrl,
+          additionalMemberIds: rest.map((m) => m.userId),
+        });
+      }}
     />
   );
 }
@@ -386,7 +398,7 @@ function GroupInfoRoute() {
 // Gelen/giden GERCEK arama durumunu (useCallEngineContext) VoiceCall/
 // VideoCall rotalarina baglayan ortak mantik - ikisi de AYNI sekilde
 // davranir, sadece isVideo degeri ve render edilen ekran farkli.
-function useRealCallWiring(peerUserId: string, isVideo: boolean) {
+function useRealCallWiring(peerUserId: string, isVideo: boolean, additionalMemberIds?: string[]) {
   const navigation = useNavigation<Nav>();
   const engine = useCallEngineContext();
   const startedRef = useRef(false);
@@ -401,7 +413,15 @@ function useRealCallWiring(peerUserId: string, isVideo: boolean) {
     // acceptCall()'i navigasyondan ONCE cagirdigi icin phase burada "idle"
     // olmaz, tekrar davet gondermeyiz.
     if (engine.phase === "idle") {
-      engine.startCall(peerUserId, isVideo);
+      engine.startCall(peerUserId, isVideo).then((ok) => {
+        // Grup sohbetinden baslatilan aramalarda (bkz. GroupChatRoute) ilk
+        // uyeyle (peerUserId) baglanti kurulur kurulmaz kalanlar "Arama
+        // Ekle" ile AYNI yontemle (engine.addToCall) sirayla eklenir -
+        // aramayi baslatan taraf sunucuda zaten "accepted" sayildigi icin
+        // (bkz. calls.ts startCall) bu hemen calisir, kimsenin kabul etmesini
+        // BEKLEMEZ.
+        if (ok) additionalMemberIds?.forEach((id) => engine.addToCall(id));
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -449,7 +469,7 @@ function useAddCallModal(engine: ReturnType<typeof useCallEngineContext>, myUser
 function VoiceCallRoute() {
   const { params } = useRoute<RouteProp<RootStackParamList, "VoiceCall">>();
   const navigation = useNavigation<Nav>();
-  const { engine, endCall } = useRealCallWiring(params.peer.userId, false);
+  const { engine, endCall } = useRealCallWiring(params.peer.userId, false, params.additionalMemberIds);
   const { onAddCall, modal } = useAddCallModal(engine, null, params.peer.userId);
   // Birden fazla kisi gercekten aramaya katildiysa (bkz. "Arama Ekle")
   // VideoCallScreen'in grup moduna (GroupCallGrid) gecilir - sesli aramada
@@ -486,7 +506,7 @@ function VoiceCallRoute() {
 function VideoCallRoute() {
   const { params } = useRoute<RouteProp<RootStackParamList, "VideoCall">>();
   const navigation = useNavigation<Nav>();
-  const { engine, endCall } = useRealCallWiring(params.peer.userId, true);
+  const { engine, endCall } = useRealCallWiring(params.peer.userId, true, params.additionalMemberIds);
   const { onAddCall, modal } = useAddCallModal(engine, null, params.peer.userId);
   // 1'den fazla katilimci varsa (bkz. "Arama Ekle") GroupCallGrid'e gecmek
   // icin VideoCallScreen'e GERCEK katilimci listesini veriyoruz.

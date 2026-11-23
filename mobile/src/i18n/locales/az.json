@@ -246,6 +246,7 @@
     "locationPermissionRequiredBody": "Məkanını göndərmək üçün məkan icazəsinə ehtiyacımız var.",
     "genericSendErrorBody": "Mesaj göndərilərkən xəta baş verdi, yenidən cəhd et.",
     "callAction": "Zəng et",
+    "groupCallNoMembers": "Qrupda zəng ediləcək başqa kimsə yoxdur.",
     "voiceCallAction": "Səsli zəng",
     "callRinging": "Zəng çalır...",
     "incomingCallStatus": "Səsli zəng...",

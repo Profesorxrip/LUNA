@@ -125,6 +125,12 @@ interface Props {
   group: GroupPeer;
   onBack: () => void;
   onOpenInfo?: (detail: GroupDetail) => void;
+  // Ust bardaki telefon ikonuna basilinca cagirilir - GERCEK grup aramasini
+  // baslatmasi icin aramak istenen (kendim HARIC) tum uye listesini verir.
+  // Verilmezse (orn. __DevHarness.tsx - WebRTC/kamera-mikrofon erisimi bu
+  // test ortaminda zaten calismaz) DMScreen.tsx'teki onStartVoiceCall
+  // undefined durumuyla AYNI sekilde bir "Yakında" bildirimine duser.
+  onStartVoiceCall?: (members: GroupMember[]) => void;
 }
 
 interface BubbleRowProps {
@@ -433,7 +439,7 @@ function GroupBubbleRow({ item, isMine, groupedWithPrev, sender, reactions, onTa
  * menusu (yanitla/sabitle/ilet/sil) ile cift-tik tepki. Kullanicinin
  * "Hepsi birebir aynı yap" istegiyle DM'in 46 migration'da asama asama
  * ulastigi butun bu ozelliklere grup da 0047-0051 migration'larinda ulasti. */
-export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
+export default function GroupChatScreen({ group, onBack, onOpenInfo, onStartVoiceCall }: Props) {
   const { t, i18n } = useTranslation();
   const [groupDetail, setGroupDetail] = useState<GroupDetail>({ id: group.id, name: group.name, avatarUrl: group.avatarUrl, members: [] });
   const [messages, setMessages] = useState<GroupMessage[]>([]);
@@ -1118,8 +1124,20 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     });
   }
 
-  function placeholderCall() {
-    showAlert(t("friends.groupCallAction"), t("profile.comingSoon"));
+  // GERCEK grup aramasini baslatir - useCallEngine.ts'teki "mesh" mimarisi
+  // sayesinde (bkz. RootNavigator.tsx GroupChatRoute/useRealCallWiring)
+  // sunucu tarafinda HICBIR yeni kod gerekmedi: ilk uyeyle normal bir 1'e 1
+  // arama baslatilip (startCall), araya giren KISI ZATEN "accepted" sayildigi
+  // icin kalan uyeler sirayla "Arama Ekle" (addToCall) ile ayni aramaya
+  // eklenir - herkes pratikte ayni anda calinir.
+  function handleCallPress() {
+    const others = groupDetail.members.filter((m) => m.userId !== myUserId);
+    if (others.length === 0) {
+      showAlert(t("friends.groupCallAction"), t("dm.groupCallNoMembers"));
+      return;
+    }
+    if (onStartVoiceCall) onStartVoiceCall(others);
+    else showAlert(t("friends.groupCallAction"), t("profile.comingSoon"));
   }
 
   function insertEmoji(emoji: string) {
@@ -1524,7 +1542,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
                 </Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity onPress={placeholderCall} hitSlop={10}>
+            <TouchableOpacity onPress={handleCallPress} hitSlop={10}>
               <Phone size={25} color={TEXT} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setMenuVisible(true)} hitSlop={10}>

@@ -246,6 +246,7 @@
     "locationPermissionRequiredBody": "Nous avons besoin de l'autorisation de localisation pour envoyer ta position.",
     "genericSendErrorBody": "Une erreur s'est produite lors de l'envoi du message, réessaie.",
     "callAction": "Appeler",
+    "groupCallNoMembers": "Il n'y a personne d'autre dans le groupe à appeler.",
     "voiceCallAction": "Appel vocal",
     "callRinging": "Appel en cours...",
     "incomingCallStatus": "Appel vocal...",
