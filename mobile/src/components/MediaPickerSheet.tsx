@@ -677,6 +677,25 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     return url.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0];
   }
 
+  // Kullanici: "Search çubuğunun altına kompakt bir sık kullanılan siteler
+  // alanı yapalım" - gercek bir tarayicinin "yeni sekme" ekranindaki kisa
+  // yollar gibi, en yaygin birkac site. YouTube zaten ayri bir platform
+  // secenegi oldugu icin burada TEKRAR edilmiyor.
+  const QUICK_SITES = [
+    { label: "Google", url: "https://www.google.com", letter: "G", color: "#4285F4" },
+    { label: "Wikipedia", url: "https://www.wikipedia.org", letter: "W", color: "#5C5C5C" },
+    { label: "X", url: "https://x.com", letter: "X", color: "#000000" },
+    { label: "Reddit", url: "https://www.reddit.com", letter: "R", color: "#FF4500" },
+  ];
+
+  function handleQuickSiteOpen(url: string) {
+    setError(null);
+    setWebUrlInput(url);
+    setWebCurrentUrl(url);
+    setWebPageTitle(null);
+    setWebBrowsing(true);
+  }
+
   // Kullanici: "Search çubuğuna birşey yazdığımda google ile arama yapıyor
   // demi" - HAYIR, oncesinde yazilan her sey dogrudan bir adres sanilip
   // "https://" ile actiliyordu. Gercek tarayicilarin adres cubugu gibi:
@@ -1165,6 +1184,23 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                   autoFocus
                 />
               </View>
+              <View style={styles.quickSitesRow}>
+                {QUICK_SITES.map((site) => (
+                  <TouchableOpacity
+                    key={site.url}
+                    style={styles.quickSiteItem}
+                    onPress={() => handleQuickSiteOpen(site.url)}
+                    hitSlop={4}
+                  >
+                    <View style={[styles.quickSiteIcon, { backgroundColor: site.color }]}>
+                      <Text style={styles.quickSiteLetter}>{site.letter}</Text>
+                    </View>
+                    <Text style={styles.quickSiteLabel} numberOfLines={1}>
+                      {site.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               {error && <Text style={[styles.error, styles.browserError]}>{error}</Text>}
             </View>
           </View>
@@ -1390,6 +1426,14 @@ const styles = StyleSheet.create({
   // cubugunu yerinde birakip SADECE globe'u transform ile yukari kaydiriyor
   // (document akisini/diger elemanlarin konumunu etkilemiyor).
   browserGlobeIcon: { transform: [{ translateY: -56 }] },
+  // Kullanici: "Search çubuğunun altına kompakt bir sık kullanılan siteler
+  // alanı yapalım" - 4 kisa yol, tek satirda, kucuk harf rozetleri +
+  // etiket.
+  quickSitesRow: { flexDirection: "row", gap: 20, marginTop: 18 },
+  quickSiteItem: { alignItems: "center", gap: 6, width: 56 },
+  quickSiteIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  quickSiteLetter: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
+  quickSiteLabel: { color: theme.textMuted, fontSize: 10, fontWeight: "600" },
   browserError: { marginTop: 10 },
   browserEmptyState: {
     flex: 1,
