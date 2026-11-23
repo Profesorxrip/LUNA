@@ -1180,7 +1180,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
             <View style={styles.browserEmptyState}>
               <View style={styles.browserGlobeIcon}>
                 <Image
-                  source={require("../../assets/logos/google-wordmark.png")}
+                  source={require("../../assets/logos/google-wordmark-white.png")}
                   style={{ width: 280, height: 280 / (2796 / 916), marginTop: 146 }}
                   resizeMode="contain"
                 />
