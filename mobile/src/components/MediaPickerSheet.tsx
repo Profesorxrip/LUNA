@@ -1389,7 +1389,7 @@ const styles = StyleSheet.create({
   // Kullanici: "Sadece dünya ikonunu biraz daha yukarı kaydır" - search
   // cubugunu yerinde birakip SADECE globe'u transform ile yukari kaydiriyor
   // (document akisini/diger elemanlarin konumunu etkilemiyor).
-  browserGlobeIcon: { transform: [{ translateY: -24 }] },
+  browserGlobeIcon: { transform: [{ translateY: -56 }] },
   browserError: { marginTop: 10 },
   browserEmptyState: {
     flex: 1,
