@@ -19,6 +19,7 @@ import { addToBlankPlaylist, clearBlankPlaylist, getBlankPlaylistUrls } from "..
 import { clearWatchedMedia, getWatchedMediaUrls } from "../utils/watchedMedia";
 import { getLastPlayedMusicUrl, getNextMusicTrackUrl, resetLastPlayedMusicUrl, setLastPlayedMusicUrl } from "../utils/musicPlaylistPosition";
 import { timeAgo } from "../utils/timeAgo";
+import { getWebVisitCounts, recordWebVisit } from "../utils/webVisitHistory";
 
 // Platform secme grid'indeki BEYAZ kartlarda kullanilan gercek renkli marka
 // logolari - PlatformLogo.tsx'teki SEFFAF/beyaz-siluet setinden (Discover/
@@ -681,10 +682,13 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   // alanı yapalım" - gercek bir tarayicinin "yeni sekme" ekranindaki kisa
   // yollar gibi, en yaygin birkac site. YouTube zaten ayri bir platform
   // secenegi oldugu icin burada TEKRAR edilmiyor.
-  // Kullanici: "Dış kutunun yüksekliğini arttır altlarda böyle kartlar
-  // sıralansın" - 4'e 2 satir halinde siralanacak sekilde liste genisletildi
-  // (kart dogal olarak uzuyor).
-  const QUICK_SITES = [
+  // Kullanici: "Sık kullanılanlar kısmında en çok girdiğimiz 15 site
+  // olmalı henüz hiçbir siteye girmediysek nasıl durur" - bu liste artik
+  // SABIT degil, varsayilan/baslangic hali: henuz hic gercek ziyaret
+  // yoksa (ya da ilk acilista) AYNEN bu sira ile gorunur, gercek
+  // ziyaretler (webVisitHistory.ts) biriktikce refreshQuickSites() bu
+  // varsayilanlari GERCEK kullanim sikligina gore yeniden siralar/degistirir.
+  const DEFAULT_QUICK_SITES = [
     { label: "Google", url: "https://www.google.com", letter: "G", color: "#4285F4" },
     { label: "Wikipedia", url: "https://www.wikipedia.org", letter: "W", color: "#5C5C5C" },
     { label: "X", url: "https://x.com", letter: "X", color: "#000000" },
@@ -701,6 +705,36 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     { label: "TikTok", url: "https://www.tiktok.com", letter: "T", color: "#000000" },
     { label: "Quora", url: "https://www.quora.com", letter: "Q", color: "#B92B27" },
   ];
+  const [quickSites, setQuickSites] = useState(DEFAULT_QUICK_SITES);
+
+  async function refreshQuickSites() {
+    const counts = await getWebVisitCounts();
+    const curated = DEFAULT_QUICK_SITES.map((site) => ({
+      ...site,
+      domain: domainLabelFor(site.url),
+    }));
+    const curatedDomains = new Set(curated.map((s) => s.domain));
+    const extra = Object.entries(counts)
+      .filter(([domain, count]) => count > 0 && !curatedDomains.has(domain))
+      .map(([domain, count]) => ({
+        label: domain,
+        url: `https://${domain}`,
+        letter: domain[0]?.toUpperCase() || "?",
+        color: "#4B5563",
+        domain,
+        count,
+      }));
+    const merged = [...curated.map((s) => ({ ...s, count: counts[s.domain] ?? 0 })), ...extra]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 15);
+    setQuickSites(merged);
+  }
+
+  // Her "Web" karsilama ekranina donuste (gezinmeden cikinca) listeyi
+  // guncel ziyaret sayilarina gore tazeler.
+  useEffect(() => {
+    if (mode === "weburl" && !webBrowsing) refreshQuickSites();
+  }, [mode, webBrowsing]);
 
   function handleQuickSiteOpen(url: string) {
     setError(null);
@@ -708,6 +742,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     setWebCurrentUrl(url);
     setWebPageTitle(null);
     setWebBrowsing(true);
+    recordWebVisit(url);
   }
 
   // Kullanici: "Search çubuğuna birşey yazdığımda google ile arama yapıyor
@@ -754,6 +789,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     setWebCurrentUrl(normalized);
     setWebPageTitle(null);
     setWebBrowsing(true);
+    recordWebVisit(normalized);
   }
 
   // Gezinme sirasinda WebView her navigasyonda cagirir - adres cubugu artik
@@ -1205,7 +1241,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               <View style={styles.quickSitesCard}>
                 <Text style={styles.quickSitesTitle}>{t("mediaPicker.quickSitesTitle")}</Text>
                 <View style={styles.quickSitesRow}>
-                  {QUICK_SITES.map((site) => (
+                  {quickSites.map((site) => (
                     <TouchableOpacity
                       key={site.url}
                       style={styles.quickSiteItem}
