@@ -4,7 +4,7 @@ import cors from "cors";
 import http from "http";
 import { randomUUID } from "crypto";
 import { Server, Socket } from "socket.io";
-import { getFaviconBadge } from "./faviconBadge";
+import { getFaviconBadge, getRawFavicon } from "./faviconBadge";
 import { fetchLinkTitle } from "./linkTitle";
 import { pickNextAutoplayVideo } from "./youtubeRelated";
 import {
@@ -187,6 +187,18 @@ app.get("/health", (_req, res) => res.json({ ok: true, supabase: isSupabaseConfi
 app.get("/favicon-badge", async (req, res) => {
   const domain = String(req.query.domain || "");
   const buffer = await getFaviconBadge(domain);
+  if (!buffer) return res.status(404).end();
+  res.set("Content-Type", "image/png");
+  res.set("Cache-Control", "public, max-age=86400");
+  res.send(buffer);
+});
+
+// Web mini tarayicisindaki "Sık Kullanılanlar" kutusu icin - favicon-badge'in
+// AKSINE rengi beyaz siluete cevirmeden, sitenin GERCEK renkli ikonunu
+// dondurur (bkz. faviconBadge.ts getRawFavicon, MediaPickerSheet.tsx).
+app.get("/favicon-raw", async (req, res) => {
+  const domain = String(req.query.domain || "");
+  const buffer = await getRawFavicon(domain);
   if (!buffer) return res.status(404).end();
   res.set("Content-Type", "image/png");
   res.set("Cache-Control", "public, max-age=86400");

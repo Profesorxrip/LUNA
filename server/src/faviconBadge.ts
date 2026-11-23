@@ -166,3 +166,35 @@ export async function getFaviconBadge(domain: string): Promise<Buffer | null> {
   cache.set(domain, { buffer, expiresAtMs: Date.now() + CACHE_TTL_MS });
   return buffer;
 }
+
+const rawCache = new Map<string, CacheEntry>();
+
+// Kullanici: "yalnızca gerçek site isimleri ve gerçek logolar kullanılmalı"
+// - Web mini tarayicisindaki "Sık Kullanılanlar" kutusu icin, getFaviconBadge
+// ile AYNI yuksek-cozunurluklu arama sirasini (apple-touch-icon -> favicon.ico
+// -> Google) kullanir ama rengi beyaz siluete CEVIRMEZ, sadece sabit boyuta
+// olceklenmis GERCEK renkli ikonu dondurur.
+export async function getRawFavicon(domain: string): Promise<Buffer | null> {
+  if (!DOMAIN_RE.test(domain)) return null;
+
+  const cached = rawCache.get(domain);
+  if (cached && cached.expiresAtMs > Date.now()) return cached.buffer;
+
+  let buffer: Buffer | null = null;
+  for (const url of candidateUrls(domain)) {
+    const sourceBuffer = await tryFetchImage(url);
+    if (!sourceBuffer) continue;
+    try {
+      const pngBuffer = await toDecodablePngBuffer(sourceBuffer);
+      const img = await Jimp.read(pngBuffer);
+      img.resize({ w: SIZE, h: SIZE });
+      buffer = await img.getBuffer("image/png");
+      break;
+    } catch {
+      continue;
+    }
+  }
+
+  rawCache.set(domain, { buffer, expiresAtMs: Date.now() + CACHE_TTL_MS });
+  return buffer;
+}

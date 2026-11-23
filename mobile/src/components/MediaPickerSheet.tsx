@@ -5,7 +5,7 @@ import { WebView } from "react-native-webview";
 import { CircleArrowDown, Music, Clapperboard, ListVideo, PlayCircle, ListPlus, Pin, Trash2, Play, RotateCcw } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
-import { getSocket, HistoryItem, SourceType } from "../services/socket";
+import { getSocket, HistoryItem, SERVER_URL, SourceType } from "../services/socket";
 import type { MediaSource } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
@@ -19,7 +19,7 @@ import { addToBlankPlaylist, clearBlankPlaylist, getBlankPlaylistUrls } from "..
 import { clearWatchedMedia, getWatchedMediaUrls } from "../utils/watchedMedia";
 import { getLastPlayedMusicUrl, getNextMusicTrackUrl, resetLastPlayedMusicUrl, setLastPlayedMusicUrl } from "../utils/musicPlaylistPosition";
 import { timeAgo } from "../utils/timeAgo";
-import { getWebVisitCounts, recordWebVisit } from "../utils/webVisitHistory";
+import { getTopWebVisits, recordWebVisit, updateWebVisitTitle } from "../utils/webVisitHistory";
 
 // Platform secme grid'indeki BEYAZ kartlarda kullanilan gercek renkli marka
 // logolari - PlatformLogo.tsx'teki SEFFAF/beyaz-siluet setinden (Discover/
@@ -231,6 +231,32 @@ function getAllItems(t: (key: string) => string): GridItem[] {
     // sayede Web'den girilen bir X linki de dogru rozet/logo ile eslesiyor,
     // bkz. RoomCard.tsx/RoomPreviewScreen.tsx domain eslestirme).
   ];
+}
+
+// Sık Kullanılanlar kutusundaki bir kisayolun ikonu - sunucudan domain'in
+// GERCEK (renkli) favicon'unu ceker (bkz. server favicon-raw, faviconBadge.ts
+// getRawFavicon); cekilemezse (404/ag hatasi) domain'in ilk harfini notr bir
+// rozette gosterir. Kullanici: "yalnızca gerçek site isimleri ve gerçek
+// logolar kullanılmalı".
+function QuickSiteFavicon({ domain }: { domain: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <View style={styles.quickSiteIcon}>
+        <Text style={styles.quickSiteLetter}>{domain[0]?.toUpperCase() || "?"}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.quickSiteIcon}>
+      <Image
+        source={{ uri: `${SERVER_URL}/favicon-raw?domain=${encodeURIComponent(domain)}` }}
+        style={styles.quickSiteFaviconImg}
+        resizeMode="contain"
+        onError={() => setFailed(true)}
+      />
+    </View>
+  );
 }
 
 /** Rave'in gercek "ne izlemek istersin" ekranina benzer TAM SAYFA ekran -
@@ -678,56 +704,17 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     return url.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0];
   }
 
-  // Kullanici: "Search çubuğunun altına kompakt bir sık kullanılan siteler
-  // alanı yapalım" - gercek bir tarayicinin "yeni sekme" ekranindaki kisa
-  // yollar gibi, en yaygin birkac site. YouTube zaten ayri bir platform
-  // secenegi oldugu icin burada TEKRAR edilmiyor.
-  // Kullanici: "Sık kullanılanlar kısmında en çok girdiğimiz 15 site
-  // olmalı henüz hiçbir siteye girmediysek nasıl durur" - bu liste artik
-  // SABIT degil, varsayilan/baslangic hali: henuz hic gercek ziyaret
-  // yoksa (ya da ilk acilista) AYNEN bu sira ile gorunur, gercek
-  // ziyaretler (webVisitHistory.ts) biriktikce refreshQuickSites() bu
-  // varsayilanlari GERCEK kullanim sikligina gore yeniden siralar/degistirir.
-  const DEFAULT_QUICK_SITES = [
-    { label: "Google", url: "https://www.google.com", letter: "G", color: "#4285F4" },
-    { label: "Wikipedia", url: "https://www.wikipedia.org", letter: "W", color: "#5C5C5C" },
-    { label: "X", url: "https://x.com", letter: "X", color: "#000000" },
-    { label: "Reddit", url: "https://www.reddit.com", letter: "R", color: "#FF4500" },
-    { label: "Instagram", url: "https://www.instagram.com", letter: "I", color: "#E1306C" },
-    { label: "Pinterest", url: "https://www.pinterest.com", letter: "P", color: "#E60023" },
-    { label: "Amazon", url: "https://www.amazon.com", letter: "A", color: "#FF9900" },
-    { label: "Bing", url: "https://www.bing.com", letter: "B", color: "#008373" },
-    { label: "Yahoo", url: "https://www.yahoo.com", letter: "Y", color: "#6001D2" },
-    { label: "Yandex", url: "https://yandex.com", letter: "Y", color: "#FF0000" },
-    { label: "Ekşi Sözlük", url: "https://eksisozluk.com", letter: "E", color: "#79BC6A" },
-    { label: "DuckDuckGo", url: "https://duckduckgo.com", letter: "D", color: "#DE5833" },
-    { label: "LinkedIn", url: "https://www.linkedin.com", letter: "L", color: "#0A66C2" },
-    { label: "TikTok", url: "https://www.tiktok.com", letter: "T", color: "#000000" },
-    { label: "Quora", url: "https://www.quora.com", letter: "Q", color: "#B92B27" },
-  ];
-  const [quickSites, setQuickSites] = useState(DEFAULT_QUICK_SITES);
+  // Kullanici: "Varsayılan 15 site diye birşey olmamalı kutu kalmalı içi
+  // boş olmalı birde yalnızca gerçek site isimleri ve gerçek logolar
+  // kullanılmalı" - sabit/curated bir liste YOK, hic ziyaret yoksa kart
+  // bos gorunur (sadece baslikla). En cok ziyaret edilen 15 GERCEK site,
+  // gercek basligi ve gercek (sunucudan cekilen renkli) favicon'uyla
+  // listelenir (bkz. webVisitHistory.ts, server favicon-raw).
+  const [quickSites, setQuickSites] = useState<Array<{ domain: string; url: string; title: string | null }>>([]);
 
   async function refreshQuickSites() {
-    const counts = await getWebVisitCounts();
-    const curated = DEFAULT_QUICK_SITES.map((site) => ({
-      ...site,
-      domain: domainLabelFor(site.url),
-    }));
-    const curatedDomains = new Set(curated.map((s) => s.domain));
-    const extra = Object.entries(counts)
-      .filter(([domain, count]) => count > 0 && !curatedDomains.has(domain))
-      .map(([domain, count]) => ({
-        label: domain,
-        url: `https://${domain}`,
-        letter: domain[0]?.toUpperCase() || "?",
-        color: "#4B5563",
-        domain,
-        count,
-      }));
-    const merged = [...curated.map((s) => ({ ...s, count: counts[s.domain] ?? 0 })), ...extra]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 15);
-    setQuickSites(merged);
+    const top = await getTopWebVisits(15);
+    setQuickSites(top.map((v) => ({ domain: v.domain, url: v.url, title: v.title })));
   }
 
   // Her "Web" karsilama ekranina donuste (gezinmeden cikinca) listeyi
@@ -798,7 +785,13 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   // arka planda takip eder.
   function handleWebNavChange(navState: { url: string; title?: string }) {
     setWebCurrentUrl(navState.url);
-    if (navState.title) setWebPageTitle(navState.title);
+    if (navState.title) {
+      setWebPageTitle(navState.title);
+      // Kullanici: "yalnızca gerçek site isimleri ... kullanılmalı" -
+      // Sık Kullanılanlar'daki etiket WebView'in GERCEKTEN yukledigi
+      // sayfa basligiyla (domain degil) guncellenir.
+      updateWebVisitTitle(navState.url, navState.title);
+    }
   }
 
   // "Bu Sayfayı Seç" - host gezinme sirasinda durdugu SAYFAYI (platform
@@ -1240,23 +1233,23 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               </View>
               <View style={styles.quickSitesCard}>
                 <Text style={styles.quickSitesTitle}>{t("mediaPicker.quickSitesTitle")}</Text>
-                <View style={styles.quickSitesRow}>
-                  {quickSites.map((site) => (
-                    <TouchableOpacity
-                      key={site.url}
-                      style={styles.quickSiteItem}
-                      onPress={() => handleQuickSiteOpen(site.url)}
-                      hitSlop={4}
-                    >
-                      <View style={styles.quickSiteIcon}>
-                        <Text style={[styles.quickSiteLetter, { color: site.color }]}>{site.letter}</Text>
-                      </View>
-                      <Text style={styles.quickSiteLabel} numberOfLines={1}>
-                        {site.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                {quickSites.length > 0 && (
+                  <View style={styles.quickSitesRow}>
+                    {quickSites.map((site) => (
+                      <TouchableOpacity
+                        key={site.domain}
+                        style={styles.quickSiteItem}
+                        onPress={() => handleQuickSiteOpen(site.url)}
+                        hitSlop={4}
+                      >
+                        <QuickSiteFavicon domain={site.domain} />
+                        <Text style={styles.quickSiteLabel} numberOfLines={1}>
+                          {site.title || site.domain}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
               {error && <Text style={[styles.error, styles.browserError]}>{error}</Text>}
             </View>
@@ -1532,7 +1525,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  quickSiteLetter: { fontSize: 18, fontWeight: "800" },
+  quickSiteFaviconImg: { width: 28, height: 28 },
+  quickSiteLetter: { fontSize: 18, fontWeight: "800", color: theme.textMuted },
   quickSiteLabel: { color: theme.textMuted, fontSize: 10, fontWeight: "600" },
   browserError: { marginTop: 10 },
   // Kullanici: "search çubuğu ve web ikonu yukarı kaydı onlar aynı
