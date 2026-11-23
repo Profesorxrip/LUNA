@@ -671,20 +671,28 @@ export default function DMListScreen({ onOpenDM, onOpenGroup }: Props) {
                       const previewColor = item.unread ? TEXT : MUTED;
                       const iconNode = renderPreviewIcon(item.lastMessage, previewColor);
                       const senderPrefix = senderPrefixFor(item.lastMessage, !!(item as any).isGroup, myUserId, t);
-                      const previewText = senderPrefix + previewLabelFor(item.lastMessage, t);
+                      const label = previewLabelFor(item.lastMessage, t);
                       return iconNode ? (
                         <View style={styles.rowPreviewIconWrap}>
+                          {!!senderPrefix && (
+                            <Text
+                              style={[styles.rowPreviewSenderPrefix, item.unread && styles.rowPreviewUnread]}
+                              numberOfLines={1}
+                            >
+                              {senderPrefix}
+                            </Text>
+                          )}
                           {iconNode}
                           <Text
                             style={[styles.rowPreview, styles.rowPreviewIconText, item.unread && styles.rowPreviewUnread]}
                             numberOfLines={1}
                           >
-                            {previewText}
+                            {label}
                           </Text>
                         </View>
                       ) : (
                         <Text style={[styles.rowPreview, item.unread && styles.rowPreviewUnread]} numberOfLines={1}>
-                          {previewText}
+                          {senderPrefix + label}
                         </Text>
                       );
                     })()
@@ -805,6 +813,11 @@ const styles = StyleSheet.create({
   rowPreviewUnread: { color: TEXT, fontWeight: "700" },
   rowPreviewIconWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
   rowPreviewIconText: { flex: 1 },
+  // Kullanici: "Ama rozet fotoğraf yazısının yanında olmalıydı ismin değil" -
+  // grup on-ekini (örn. "Elif Şahin: ") ikondan AYRI, flex'siz bir Text
+  // olarak basiyoruz ki ikon+etiket ("Fotoğraf") ismin DEGIL mesajin
+  // yaninda kalsin.
+  rowPreviewSenderPrefix: { color: MUTED, fontSize: 12, fontWeight: "500", lineHeight: 16, flexShrink: 0 },
   rowPreviewViewOnceBox: { width: 14, height: 14 },
   rowPreviewViewOnceIconWrap: { position: "absolute", top: -9.5, left: -9.5 },
   unreadBadge: {
