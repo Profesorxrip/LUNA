@@ -41,7 +41,13 @@ import {
   Pin,
   PinOff,
   Camera as CameraIcon,
+  MoreVertical,
+  Search,
+  Bell,
+  BellOff,
+  X,
 } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SimpleLineIcons, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LockClosedIcon, MicrophoneIcon } from "react-native-heroicons/outline";
 import Icon from "../components/Icon";
@@ -447,6 +453,17 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
   const [forwardTarget, setForwardTarget] = useState<GroupMessage | null>(null);
   const [contactPickerVisible, setContactPickerVisible] = useState(false);
 
+  // DMScreen.tsx'teki ust bar "üç nokta" menusuyle (Ara/Sessize Al) AYNI -
+  // kullanici istegi: kisi mesaji ekranindaki bu menu grup sohbetinde de
+  // olsun. "Süreli Mesajlar"/"Bildir" DM'e ozgu kavramlar (sirasiyla
+  // konusma bazli kendi kendini yok etme suresi ve TEK bir karsi tarafi
+  // bildirme) - grupta hicbir karsiligi olmadigi icin BILINCLI olarak
+  // disarida birakildi.
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [muted, setMuted] = useState(false);
+
   // Cift-tik tepki - DM'deki myReaction/peerReaction ikilisi yerine (N kisi
   // oldugu icin) messageId -> {userId: emoji} haritasi, sunucuda SAKLANMAZ
   // (bkz. "group:react"/"group:reaction" - DM'in dm:react'iyle AYNI gecici
@@ -543,6 +560,19 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
   }, []);
+
+  // DMScreen.tsx'teki "dm_muted_${peer.userId}" ile AYNI mantik - sadece bu
+  // cihaza ozgu (AsyncStorage), sunucuya hic bildirilmiyor.
+  const muteStorageKey = `group_muted_${group.id}`;
+  useEffect(() => {
+    AsyncStorage.getItem(muteStorageKey).then((v) => setMuted(v === "1"));
+  }, [muteStorageKey]);
+  async function toggleMute() {
+    const next = !muted;
+    setMuted(next);
+    if (next) await AsyncStorage.setItem(muteStorageKey, "1");
+    else await AsyncStorage.removeItem(muteStorageKey);
+  }
 
   useEffect(() => {
     getCustomStickers().then(setCustomStickers);
@@ -1441,6 +1471,22 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
     return items;
   })();
 
+  // DMScreen.tsx'teki "notExpired"/"visibleMessages" ile AYNI mantik (gruplarda
+  // mesaj suresi/expiresAt kavrami YOK, bu yuzden sadece arama filtresi var).
+  const visibleMessages =
+    searchVisible && searchQuery.trim()
+      ? messages.filter((m) => m.text.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+      : messages;
+
+  const menuItems: { label: string; icon: React.ReactNode; onPress: () => void }[] = [
+    { label: t("dm.menuSearch"), icon: <Search size={16} color={TEXT} />, onPress: () => setSearchVisible(true) },
+    {
+      label: muted ? t("dm.menuUnmute") : t("dm.menuMute"),
+      icon: muted ? <Bell size={16} color={TEXT} /> : <BellOff size={16} color={TEXT} />,
+      onPress: toggleMute,
+    },
+  ];
+
   return (
     <View style={styles.screen}>
       <AppBackground />
@@ -1481,10 +1527,36 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
             <TouchableOpacity onPress={placeholderCall} hitSlop={10}>
               <Phone size={25} color={TEXT} />
             </TouchableOpacity>
+            <TouchableOpacity onPress={() => setMenuVisible(true)} hitSlop={10}>
+              <MoreVertical size={27.5} color={TEXT} />
+            </TouchableOpacity>
           </>
         )}
       </View>
       <LinearGradient colors={["#FFFFFF", "#38BDF8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.headerDivider} />
+
+      {searchVisible && (
+        <View style={styles.searchBar}>
+          <Search size={15} color={MUTED} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t("dm.searchPlaceholder")}
+            placeholderTextColor={MUTED}
+            autoFocus
+          />
+          <TouchableOpacity
+            onPress={() => {
+              setSearchVisible(false);
+              setSearchQuery("");
+            }}
+            hitSlop={8}
+          >
+            <X size={16} color={MUTED} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {pinnedMessages.length > 0 &&
         (() => {
@@ -1515,7 +1587,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
 
       <FlatList
         ref={listRef}
-        data={messages}
+        data={visibleMessages}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.listContent}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
@@ -1539,7 +1611,7 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
         }
         renderItem={({ item, index }) => {
           const isMine = item.fromUserId === myUserId;
-          const prev = messages[index - 1];
+          const prev = visibleMessages[index - 1];
           const groupedWithPrev = !!prev && prev.fromUserId === item.fromUserId;
           const rawReactions = reactionsByMessage[item.id] || {};
           const byEmoji = new Map<string, { count: number; mine: boolean }>();
@@ -1902,6 +1974,26 @@ export default function GroupChatScreen({ group, onBack, onOpenInfo }: Props) {
         </TouchableOpacity>
       </Modal>
 
+      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)} statusBarTranslucent>
+        <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
+          <View style={styles.menuCard}>
+            {menuItems.map((item) => (
+              <TouchableOpacity
+                key={item.label}
+                style={styles.menuRow}
+                onPress={() => {
+                  setMenuVisible(false);
+                  item.onPress();
+                }}
+              >
+                {item.icon}
+                <Text style={styles.menuRowText}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <Modal visible={!!forwardTarget} animationType="slide" onRequestClose={() => setForwardTarget(null)} statusBarTranslucent>
         <FriendsScreen
           onBack={() => setForwardTarget(null)}
@@ -1936,6 +2028,41 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "transparent" },
   header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18, paddingTop: 44, paddingBottom: 14, height: 104 },
   headerDivider: { height: 1, width: "100%" },
+  // DMScreen.tsx'teki AYNI isimli stillerle BIREBIR ayni (bkz. orada "üç
+  // nokta" menusu/arama cubugu).
+  menuOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  menuCard: {
+    position: "absolute",
+    top: 92,
+    right: 16,
+    backgroundColor: "#15202B",
+    borderRadius: 12,
+    paddingVertical: 6,
+    minWidth: 170,
+  },
+  menuRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
+  menuRowText: { color: TEXT, fontSize: 14, fontWeight: "600" },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 18,
+    marginTop: 5,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#15202B",
+  },
+  searchInput: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 13,
+    padding: 0,
+    marginTop: 2,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
   headerProfileTouch: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   headerTextBlock: { flex: 1, marginLeft: -2 },
   headerName: { color: TEXT, fontSize: 18, fontWeight: "700" },
