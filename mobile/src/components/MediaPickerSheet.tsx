@@ -683,6 +683,19 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     return url.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0];
   }
 
+  // Kullanici: "Search çubuğuna birşey yazdığımda google ile arama yapıyor
+  // demi" - HAYIR, oncesinde yazilan her sey dogrudan bir adres sanilip
+  // "https://" ile actiliyordu. Gercek tarayicilarin adres cubugu gibi:
+  // zaten http(s):// ile basliyorsa veya bosluksuz, en az bir nokta iceren
+  // alan-adi-benzeri bir sey ise (orn. "wikipedia.org", "wikipedia.org/wiki/x")
+  // GERCEK bir adres sayilir; aksi halde (bosluk var, nokta yok vb. -
+  // orn. "pizza tarifi") bir arama cumlesi sayilip Google'da aratilir.
+  function looksLikeUrl(input: string): boolean {
+    if (/^https?:\/\//i.test(input)) return true;
+    if (/\s/.test(input)) return false;
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?([/?#].*)?$/i.test(input) || /^localhost(:\d+)?([/?#].*)?$/i.test(input);
+  }
+
   // Adres cubugundaki "Git" - dogrudan bir video dosyasi linkiyse (.mp4/
   // .m3u8) DRM'li bir platform degil, kendi oynaticimizda (HlsPlayer) gercek
   // senkronla oynatilabilir (bunlarda sayfa/baslik/gezinme kavrami yok, ham
@@ -696,7 +709,9 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
       return;
     }
     setError(null);
-    const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    const normalized = looksLikeUrl(trimmed)
+      ? (/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`)
+      : `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
     const pathname = normalized.replace(/[?#].*$/, "");
     if (/\.m3u8$/i.test(pathname)) {
       onSelect({ type: "hls", url: normalized, label: domainLabelFor(normalized) });
