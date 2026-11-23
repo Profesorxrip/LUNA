@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import { ChevronLeft, ChevronRight, CircleArrowDown, Globe, RefreshCw, Music, Clapperboard, ListVideo, PlayCircle, ListPlus, Pin, Trash2, Play, RotateCcw } from "lucide-react-native";
+import { CircleArrowDown, Globe, Music, Clapperboard, ListVideo, PlayCircle, ListPlus, Pin, Trash2, Play, RotateCcw } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { getSocket, HistoryItem, SourceType } from "../services/socket";
@@ -267,17 +267,17 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   // Kullanici: "tam profesyonel bir mini tarayıcı olmalı" - "Web" artik tek
   // seferlik bir link kutusu DEGIL, host linki yazip GERCEKTEN gezinebilir
   // (WebView), istedigi sayfada durup "Bu Sayfayı Seç" diyebilir. webBrowsing
-  // false iken adres cubugu+bos karsilama ekrani, true olunca gercek WebView
-  // gosterilir (external/youtube modlarindaki navigasyon desenine benzer).
+  // false iken adres cubugu+bos karsilama ekrani, true olunca - kullanici:
+  // "Google sayfasının üstünde bunu görmek istemiyorum" (Rave'deki gibi,
+  // uzerinde HICBIR cubuk olmadan) - adres cubugu TAMAMEN kalkip SADECE
+  // tam ekran WebView + "Bu Sayfayı Seç" gosterilir (youtube/external
+  // modlarindaki AYNI sade gorunum).
   const [webBrowsing, setWebBrowsing] = useState(false);
   const [webCurrentUrl, setWebCurrentUrl] = useState<string | null>(null);
-  const [webCanGoBack, setWebCanGoBack] = useState(false);
-  const [webCanGoForward, setWebCanGoForward] = useState(false);
   // Gercek sayfa basligi (navState.title) - oda ismi icin ayrica sunucuya
   // sorup (fetchWebPageTitle) beklemek yerine, zaten yuklenmis olan sayfanin
   // GERCEK <title>'ini dogrudan kullaniyoruz (daha hizli, CORS riski yok).
   const [webPageTitle, setWebPageTitle] = useState<string | null>(null);
-  const [webLoadProgress, setWebLoadProgress] = useState(0);
   const webViewRef = useRef<WebView>(null);
   const detectedVideoRef = useRef<string | null>(null);
   // Secilen DRM'li platform (Netflix/Disney+ vb.) - "external" modunda
@@ -451,10 +451,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     externalCurrentUrlRef.current = null;
     setWebBrowsing(false);
     setWebCurrentUrl(null);
-    setWebCanGoBack(false);
-    setWebCanGoForward(false);
     setWebPageTitle(null);
-    setWebLoadProgress(0);
   }
 
   function handleClose() {
@@ -469,10 +466,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     externalCurrentUrlRef.current = null;
     setWebBrowsing(false);
     setWebCurrentUrl(null);
-    setWebCanGoBack(false);
-    setWebCanGoForward(false);
     setWebPageTitle(null);
-    setWebLoadProgress(0);
     setWebUrlInput("");
     setMode("grid");
   }
@@ -729,15 +723,12 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     setWebBrowsing(true);
   }
 
-  // Gezinme sirasinda WebView her navigasyonda cagirir - adres cubugunu
-  // (host BASKA bir adrese odaklanip yazmiyorsa) o anki GERCEK URL'e
-  // gunceller, geri/ileri butonlarinin aktifligini ve (secim aninda
-  // kullanilacak) GERCEK sayfa basligini (navState.title) gunceller.
-  function handleWebNavChange(navState: { url: string; title?: string; canGoBack: boolean; canGoForward: boolean; loading: boolean }) {
+  // Gezinme sirasinda WebView her navigasyonda cagirir - adres cubugu artik
+  // gosterilmedigi icin (bkz. yukarisi) sadece o anki GERCEK URL'i ve
+  // (secim aninda kullanilacak) GERCEK sayfa basligini (navState.title)
+  // arka planda takip eder.
+  function handleWebNavChange(navState: { url: string; title?: string }) {
     setWebCurrentUrl(navState.url);
-    setWebUrlInput(navState.url);
-    setWebCanGoBack(navState.canGoBack);
-    setWebCanGoForward(navState.canGoForward);
     if (navState.title) setWebPageTitle(navState.title);
   }
 
@@ -1133,25 +1124,27 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               <Text style={styles.externalEscapeBtnText}>{t("mediaPicker.openInApp", { label: externalPlatform.label })}</Text>
             </TouchableOpacity>
           </View>
+        ) : webBrowsing ? (
+          // Kullanici: "Google sayfasının üstünde bunu görmek istemiyorum",
+          // "Bak ravede nasıl" - gezinme BASLAYINCA adres cubugu/geri-ileri
+          // TAMAMEN kalkar, youtube/external modlarindaki AYNI sade gorunum:
+          // sadece tam ekran GERCEK sayfa + "Bu Sayfayı Seç".
+          <View style={styles.browserWebviewWrap}>
+            <WebView
+              ref={webViewRef}
+              source={{ uri: webCurrentUrl! }}
+              style={styles.webview}
+              onNavigationStateChange={handleWebNavChange}
+              javaScriptEnabled
+              domStorageEnabled
+            />
+            <TouchableOpacity style={styles.selectPageBtn} onPress={handleWebSelectCurrentPage}>
+              <Text style={styles.selectPageBtnText}>{t("mediaPicker.selectThisPage")}</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={styles.browserContainer}>
             <View style={styles.addressBarRow}>
-              <TouchableOpacity
-                style={styles.addressNavBtn}
-                onPress={() => webViewRef.current?.goBack()}
-                disabled={!webCanGoBack}
-                hitSlop={8}
-              >
-                <ChevronLeft size={20} color={webCanGoBack ? "#FFFFFF" : theme.textMuted} strokeWidth={2.4} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.addressNavBtn}
-                onPress={() => webViewRef.current?.goForward()}
-                disabled={!webCanGoForward}
-                hitSlop={8}
-              >
-                <ChevronRight size={20} color={webCanGoForward ? "#FFFFFF" : theme.textMuted} strokeWidth={2.4} />
-              </TouchableOpacity>
               <View style={styles.addressBarPill}>
                 <Globe size={14} color={theme.textMuted} />
                 <TextInput
@@ -1166,45 +1159,16 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                   keyboardType="url"
                   returnKeyType="go"
                   selectTextOnFocus
-                  autoFocus={!webBrowsing}
+                  autoFocus
                 />
-                {webBrowsing && (
-                  <TouchableOpacity onPress={() => webViewRef.current?.reload()} hitSlop={8}>
-                    <RefreshCw size={14} color={theme.textMuted} />
-                  </TouchableOpacity>
-                )}
               </View>
             </View>
-            {webBrowsing && (
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${Math.max(webLoadProgress, 0.06) * 100}%` }]} />
-              </View>
-            )}
             {error && <Text style={[styles.error, styles.browserError]}>{error}</Text>}
-
-            {!webBrowsing ? (
-              <View style={styles.browserEmptyState}>
-                <Globe size={44} color={theme.textMuted} strokeWidth={1.5} />
-                <Text style={styles.title}>{t("mediaPicker.webUrlTitle")}</Text>
-                <Text style={styles.browserEmptyHint}>{t("mediaPicker.webUrlHint")}</Text>
-              </View>
-            ) : (
-              <View style={styles.browserWebviewWrap}>
-                <WebView
-                  ref={webViewRef}
-                  source={{ uri: webCurrentUrl! }}
-                  style={styles.webview}
-                  onNavigationStateChange={handleWebNavChange}
-                  onLoadProgress={({ nativeEvent }) => setWebLoadProgress(nativeEvent.progress)}
-                  onLoadEnd={() => setWebLoadProgress(1)}
-                  javaScriptEnabled
-                  domStorageEnabled
-                />
-                <TouchableOpacity style={styles.selectPageBtn} onPress={handleWebSelectCurrentPage}>
-                  <Text style={styles.selectPageBtnText}>{t("mediaPicker.selectThisPage")}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            <View style={styles.browserEmptyState}>
+              <Globe size={44} color={theme.textMuted} strokeWidth={1.5} />
+              <Text style={styles.title}>{t("mediaPicker.webUrlTitle")}</Text>
+              <Text style={styles.browserEmptyHint}>{t("mediaPicker.webUrlHint")}</Text>
+            </View>
           </View>
         )}
       </View>
@@ -1395,7 +1359,6 @@ const styles = StyleSheet.create({
   // cubugu + geri/ileri/yenile + ilerleme cubugu + canli WebView.
   browserContainer: { flex: 1, marginTop: 4 },
   addressBarRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  addressNavBtn: { width: 30, height: 30, alignItems: "center", justifyContent: "center" },
   addressBarPill: {
     flex: 1,
     flexDirection: "row",
@@ -1415,8 +1378,6 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  progressTrack: { height: 2, backgroundColor: "transparent", marginTop: 8, borderRadius: 1, overflow: "hidden" },
-  progressFill: { height: "100%", backgroundColor: theme.accent, borderRadius: 1 },
   browserError: { marginTop: 10 },
   browserEmptyState: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
   browserEmptyHint: { color: theme.textMuted, fontSize: 13, textAlign: "center", lineHeight: 18 },
