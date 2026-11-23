@@ -1429,11 +1429,14 @@ const styles = StyleSheet.create({
   // Kullanici: "Search çubuğunun altına kompakt bir sık kullanılan siteler
   // alanı yapalım" - 4 kisa yol, tek satirda, kucuk harf rozetleri +
   // etiket.
-  quickSitesRow: { flexDirection: "row", gap: 20, marginTop: 18 },
-  quickSiteItem: { alignItems: "center", gap: 6, width: 56 },
-  quickSiteIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  quickSiteLetter: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
-  quickSiteLabel: { color: theme.textMuted, fontSize: 10, fontWeight: "600" },
+  // Kullanici: "Hayır kastettiğim böyle birşey değildi sık kullanınlan
+  // siteler alanı büyük olmalı" - rozetler/etiketler belirgin sekilde
+  // buyutuldu.
+  quickSitesRow: { flexDirection: "row", gap: 24, marginTop: 28 },
+  quickSiteItem: { alignItems: "center", gap: 10, width: 84 },
+  quickSiteIcon: { width: 76, height: 76, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  quickSiteLetter: { color: "#FFFFFF", fontSize: 30, fontWeight: "800" },
+  quickSiteLabel: { color: theme.textMuted, fontSize: 13, fontWeight: "600" },
   browserError: { marginTop: 10 },
   browserEmptyState: {
     flex: 1,
