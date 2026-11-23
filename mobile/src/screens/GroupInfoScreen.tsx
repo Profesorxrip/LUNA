@@ -39,6 +39,16 @@ interface Props {
   // "Ben" haric secilen uyeler), bu yuzden verilmediginde rozet/uc nokta
   // gosterilmez.
   creatorId?: string;
+  // Kullanici: "sağ üste basınca kaydetme butonu ekleyelim ismi yada ppyi
+  // değiştirince kaydedebilmemiz için o yukarı bakan ok ikonunu ekleyelim" -
+  // var olan (readOnly) bir grupta SADECE kurucu duzenleyebilir (bkz.
+  // 0054_group_rename.sql - rename_group RPC'si zaten created_by disinda
+  // sessizce hicbir sey degistirmiyor). Bu prop'un VARLIGI "duzenlenebilir"
+  // demek - verilmisse isim/fotograf acilir, "Grubu Oluştur" ile AYNI ok
+  // ikonu (CircleArrowDown, 180deg) degisiklik oldugunda (dirty) aktif olur.
+  onSave?: () => void;
+  dirty?: boolean;
+  saving?: boolean;
 }
 
 type Tab = "media" | "files" | "members";
@@ -64,11 +74,16 @@ export default function GroupInfoScreen({
   onCreate,
   readOnly = false,
   creatorId,
+  onSave,
+  dirty = false,
+  saving = false,
 }: Props) {
   const { t } = useTranslation();
   const [titleFontLoaded] = useFonts({ BebasNeue_400Regular });
   const [tab, setTab] = useState<Tab>("members");
   const canCreate = !readOnly && groupName.trim().length > 0;
+  const editable = !readOnly || !!onSave;
+  const canSave = !!onSave && dirty && groupName.trim().length > 0 && !saving;
 
   function placeholder(label: string) {
     showAlert(label, t("profile.comingSoon"));
@@ -110,21 +125,29 @@ export default function GroupInfoScreen({
           </View>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, titleFontLoaded && styles.headerTitleFontLoaded]}>{t("friends.groupInfoTitle")}</Text>
-        {readOnly ? (
+        {readOnly && !onSave ? (
           <View style={styles.confirmTouch} />
         ) : (
           // Kullanici: "Grubu oluştur butonunu kaldırıp sağ üste sol
           // üstteki ikonun yukarı bakanını koysak onun yerine daha
           // mantıklı olur gibi" - geri okuyla (CircleArrowDown, rotate
           // 90deg = sola bakar) AYNI ikon, 180deg (yukari bakar),
-          // "onayla/oluştur" olarak.
+          // "onayla/oluştur" olarak. readOnly'de ("onSave" verilmisse,
+          // SADECE kurucu) AYNI ikon "kaydet" olarak - isim/pp
+          // degistirilmeden (dirty=false) pasif durur.
           <TouchableOpacity
-            onPress={() => canCreate && onCreate?.(groupName.trim())}
+            onPress={() => {
+              if (readOnly) {
+                if (canSave) onSave?.();
+              } else if (canCreate) {
+                onCreate?.(groupName.trim());
+              }
+            }}
             hitSlop={10}
             style={styles.confirmTouch}
-            disabled={!canCreate}
+            disabled={readOnly ? !canSave : !canCreate}
           >
-            <View style={{ transform: [{ rotate: "180deg" }], opacity: canCreate ? 1 : 0.35 }}>
+            <View style={{ transform: [{ rotate: "180deg" }], opacity: (readOnly ? canSave : canCreate) ? 1 : 0.35 }}>
               <CircleArrowDown size={22} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
@@ -133,7 +156,7 @@ export default function GroupInfoScreen({
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileBlock}>
-          <TouchableOpacity onPress={pickGroupAvatar} activeOpacity={0.8} disabled={readOnly}>
+          <TouchableOpacity onPress={pickGroupAvatar} activeOpacity={0.8} disabled={!editable}>
             {groupAvatarUri ? (
               <Avatar name={groupName || "?"} avatarUrl={groupAvatarUri} size={88} ring={false} />
             ) : groupName.trim() ? (
@@ -152,7 +175,7 @@ export default function GroupInfoScreen({
             placeholderTextColor={theme.textMuted}
             maxLength={60}
             textAlign="center"
-            editable={!readOnly}
+            editable={editable}
           />
         </View>
 

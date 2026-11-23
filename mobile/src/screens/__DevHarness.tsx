@@ -624,6 +624,13 @@ const fakeSocket: any = {
       const group = demoGroups.get(payload?.groupId);
       if (group) group.avatarUrl = payload?.avatarUrl ?? null;
       cb({ ok: true });
+    } else if (event === "group:rename" && cb) {
+      // rename_group RPC'nin (0054_group_rename.sql) demo'su - GERCEKTE
+      // SADECE kurucu (created_by) degistirebiliyor, demo'da zaten "Ben"
+      // haric grup olusturan kimse yok.
+      const group = demoGroups.get(payload?.groupId);
+      if (group && payload?.name) group.name = payload.name;
+      cb({ ok: true });
     } else if (event === "group:list" && cb) {
       cb({
         ok: true,
@@ -983,6 +990,14 @@ export default function DevHarness() {
   const [screen, setScreen] = useState<"dm" | "info" | "incoming" | "list" | "group" | "groupInfo">("dm");
   const [activeGroup, setActiveGroup] = useState<any>(null);
   const [groupInfoDetail, setGroupInfoDetail] = useState<any>(null);
+  // Kullanici: "sağ üste basınca kaydetme butonu ekleyelim ismi yada ppyi
+  // değiştirince kaydedebilmemiz için" - RootNavigator.tsx GroupInfoRoute
+  // ile AYNI dirty/kaydet mantiginin bu demo/onizleme ekranindaki karsiligi.
+  const [groupInfoName, setGroupInfoName] = useState("");
+  const [groupInfoAvatarUri, setGroupInfoAvatarUri] = useState("");
+  const [groupInfoSavedName, setGroupInfoSavedName] = useState("");
+  const [groupInfoSavedAvatarUri, setGroupInfoSavedAvatarUri] = useState("");
+  const [groupInfoSaving, setGroupInfoSaving] = useState(false);
   const [infoProps, setInfoProps] = useState<any>(null);
   const [callActive, setCallActive] = useState(false);
   const [callIsVideo, setCallIsVideo] = useState(false);
@@ -1087,6 +1102,10 @@ export default function DevHarness() {
               onBack={() => setScreen("list")}
               onOpenInfo={(detail) => {
                 setGroupInfoDetail(detail);
+                setGroupInfoName(detail.name);
+                setGroupInfoAvatarUri(detail.avatarUrl ?? "");
+                setGroupInfoSavedName(detail.name);
+                setGroupInfoSavedAvatarUri(detail.avatarUrl ?? "");
                 setScreen("groupInfo");
               }}
               // SADECE bu test/onizleme ekraninda GroupCallGrid'in GORSEL
@@ -1119,12 +1138,29 @@ export default function DevHarness() {
             <GroupInfoScreen
               readOnly
               members={groupInfoDetail?.members ?? []}
-              groupName={groupInfoDetail?.name ?? ""}
-              onChangeGroupName={() => {}}
-              groupAvatarUri={groupInfoDetail?.avatarUrl ?? ""}
-              onChangeGroupAvatarUri={() => {}}
+              groupName={groupInfoName}
+              onChangeGroupName={setGroupInfoName}
+              groupAvatarUri={groupInfoAvatarUri}
+              onChangeGroupAvatarUri={setGroupInfoAvatarUri}
               onBack={() => setScreen("group")}
               creatorId={groupInfoDetail?.creatorId}
+              onSave={
+                groupInfoDetail?.creatorId === MY_ID
+                  ? () => {
+                      setGroupInfoSaving(true);
+                      fakeSocket.emit("group:rename", { groupId: groupInfoDetail.id, name: groupInfoName.trim() }, (res: any) => {
+                        setGroupInfoSaving(false);
+                        if (res?.ok) {
+                          setGroupInfoSavedName(groupInfoName.trim());
+                          setGroupInfoSavedAvatarUri(groupInfoAvatarUri);
+                          setGroupInfoDetail((d: any) => (d ? { ...d, name: groupInfoName.trim() } : d));
+                        }
+                      });
+                    }
+                  : undefined
+              }
+              dirty={groupInfoName.trim() !== groupInfoSavedName.trim() || groupInfoAvatarUri !== groupInfoSavedAvatarUri}
+              saving={groupInfoSaving}
             />
           ) : screen === "dm" ? (
             <DMScreen

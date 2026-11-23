@@ -12,7 +12,10 @@ import {
 import { createNativeStackNavigator, NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { createBottomTabNavigator, BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import { showAlert } from "../components/CustomAlert";
+import { supabase } from "../services/supabase";
+import { uriToArrayBuffer } from "../utils/uriToArrayBuffer";
 import DiscoverScreen from "../screens/DiscoverScreen";
 import FriendsScreen from "../screens/FriendsScreen";
 import CreateRoomScreen from "../screens/CreateRoomScreen";
@@ -392,18 +395,84 @@ function GroupChatRoute() {
 }
 
 function GroupInfoRoute() {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<RouteProp<RootStackParamList, "GroupInfo">>();
+  // Kullanici: "sağ üste basınca kaydetme butonu ekleyelim ismi yada ppyi
+  // değiştirince kaydedebilmemiz için" - FriendsScreen.tsx handleCreateGroup
+  // ile AYNI "once sunucuya RPC, foto degistiyse AYNI avatars bucket'ina
+  // yukle" deseni, ama burada OLUSTURMA degil DUZENLEME (sadece kurucu -
+  // rename_group/set_group_avatar RPC'leri zaten created_by disinda
+  // sessizce hicbir sey degistirmiyor).
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [groupName, setGroupName] = useState(params.group.name);
+  const [groupAvatarUri, setGroupAvatarUri] = useState(params.group.avatarUrl ?? "");
+  const [savedName, setSavedName] = useState(params.group.name);
+  const [savedAvatarUri, setSavedAvatarUri] = useState(params.group.avatarUrl ?? "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
+  }, []);
+
+  const isCreator = !!myUserId && myUserId === params.group.creatorId;
+  const dirty = groupName.trim() !== savedName.trim() || groupAvatarUri !== savedAvatarUri;
+
+  async function handleSave() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (groupName.trim() !== savedName.trim()) {
+        const ok = await new Promise<boolean>((resolve) =>
+          getSocket().emit("group:rename", { groupId: params.group.id, name: groupName.trim() }, (res: any) => resolve(!!res?.ok))
+        );
+        if (!ok) {
+          showAlert(t("friends.groupInfoTitle"), t("dm.genericSendErrorBody"));
+          setSaving(false);
+          return;
+        }
+        setSavedName(groupName.trim());
+      }
+      if (groupAvatarUri !== savedAvatarUri && groupAvatarUri) {
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData.user?.id;
+        if (userId) {
+          const arrayBuffer = await uriToArrayBuffer(groupAvatarUri);
+          const ext = groupAvatarUri.split(".").pop()?.toLowerCase() || "jpg";
+          const contentType = ext === "png" ? "image/png" : "image/jpeg";
+          const path = `${userId}/group-${params.group.id}.${ext}`;
+          const { error: uploadError } = await supabase.storage.from("avatars").upload(path, arrayBuffer, { contentType, upsert: true });
+          if (!uploadError) {
+            const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(path);
+            const avatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+            const ok = await new Promise<boolean>((resolve) =>
+              getSocket().emit("group:setAvatar", { groupId: params.group.id, avatarUrl }, (res: any) => resolve(!!res?.ok))
+            );
+            if (ok) {
+              setGroupAvatarUri(avatarUrl);
+              setSavedAvatarUri(avatarUrl);
+            }
+          }
+        }
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <GroupInfoScreen
       readOnly
       members={params.group.members}
-      groupName={params.group.name}
-      onChangeGroupName={() => {}}
-      groupAvatarUri={params.group.avatarUrl ?? ""}
-      onChangeGroupAvatarUri={() => {}}
+      groupName={groupName}
+      onChangeGroupName={setGroupName}
+      groupAvatarUri={groupAvatarUri}
+      onChangeGroupAvatarUri={setGroupAvatarUri}
       onBack={() => navigation.goBack()}
       creatorId={params.group.creatorId}
+      onSave={isCreator ? handleSave : undefined}
+      dirty={dirty}
+      saving={saving}
     />
   );
 }

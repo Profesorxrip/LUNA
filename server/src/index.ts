@@ -92,6 +92,7 @@ import {
 import {
   createGroup,
   setGroupAvatar,
+  renameGroup,
   openGroup,
   sendGroupMessage,
   sendGroupImage,
@@ -940,6 +941,16 @@ io.on("connection", (socket: Socket) => {
       return ack?.({ ok: false });
     }
     const ok = await setGroupAvatar(myDb!, groupId, avatarUrl);
+    ack?.({ ok });
+  });
+
+  // GroupInfoScreen.tsx'teki (SADECE olusturan kisi icin acik) isim
+  // duzenleme + kaydet ikonu - set_group_avatar ile AYNI yetki kisitlamasi.
+  socket.on("group:rename", async ({ groupId, name }: { groupId: string; name: string }, ack) => {
+    if (!requireAuth(ack) || !isNonEmptyString(groupId, 200) || !isNonEmptyString(name, 60)) {
+      return ack?.({ ok: false });
+    }
+    const ok = await renameGroup(myDb!, groupId, name);
     ack?.({ ok });
   });
 

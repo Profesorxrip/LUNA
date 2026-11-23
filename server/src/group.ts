@@ -196,6 +196,13 @@ export async function setGroupAvatar(db: SupabaseClient, groupId: string, avatar
   return !error;
 }
 
+/** Grup ismini degistirir - RPC (SADECE olusturan kisi) zaten yetkisiz
+ * istekleri sessizce yok sayiyor (0 satir guncellenir). */
+export async function renameGroup(db: SupabaseClient, groupId: string, name: string): Promise<boolean> {
+  const { error } = await db.rpc("rename_group", { gid: groupId, new_name: name });
+  return !error;
+}
+
 /** Konusmayi acar - RLS sayesinde uye DEGILSEM group_conversations sorgusu
  * bos doner (ack "ok:false" olur), ayrica bir "yetkin yok" kontrolu
  * GEREKMEZ. */
