@@ -693,6 +693,10 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     { label: "Pinterest", url: "https://www.pinterest.com", letter: "P", color: "#E60023" },
     { label: "Amazon", url: "https://www.amazon.com", letter: "A", color: "#FF9900" },
     { label: "Bing", url: "https://www.bing.com", letter: "B", color: "#008373" },
+    { label: "Yahoo", url: "https://www.yahoo.com", letter: "Y", color: "#6001D2" },
+    { label: "Yandex", url: "https://yandex.com", letter: "Y", color: "#FF0000" },
+    { label: "Ekşi Sözlük", url: "https://eksisozluk.com", letter: "E", color: "#79BC6A" },
+    { label: "DuckDuckGo", url: "https://duckduckgo.com", letter: "D", color: "#DE5833" },
   ];
 
   function handleQuickSiteOpen(url: string) {
@@ -1431,10 +1435,7 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  // Kullanici: "Sadece dünya ikonunu biraz daha yukarı kaydır" - search
-  // cubugunu yerinde birakip SADECE globe'u transform ile yukari kaydiriyor
-  // (document akisini/diger elemanlarin konumunu etkilemiyor).
-  browserGlobeIcon: { transform: [{ translateY: -56 }] },
+  browserGlobeIcon: {},
   // Kullanici: "Search çubuğunun altına kompakt bir sık kullanılan siteler
   // alanı yapalım" - 4 kisa yol, tek satirda, kucuk harf rozetleri +
   // etiket.
@@ -1466,16 +1467,16 @@ const styles = StyleSheet.create({
   quickSiteLetter: { fontSize: 22, fontWeight: "800" },
   quickSiteLabel: { color: theme.textMuted, fontSize: 12, fontWeight: "600" },
   browserError: { marginTop: 10 },
+  // Kullanici: "search çubuğu ve web ikonu yukarı kaydı onlar aynı
+  // yerinde dursa kutucuk alta doğru uzasa" - ARTIK ortalanmiyor:
+  // globe+search sabit bir ust bosluktan baslayip orada SABIT kalıyor,
+  // alttaki kart (quickSitesCard) satir eklendikce sadece asagiya dogru
+  // buyuyor, yukaridakileri YERINDEN OYNATMIYOR.
   browserEmptyState: {
-    flex: 1,
     alignItems: "center",
-    justifyContent: "center",
     gap: 10,
     paddingHorizontal: 32,
-    // Kullanici: "dünya ikonunu ve search çubuğunu yukarı kaydır" / "Çok
-    // daha yukarı kaydır" - ortalanan icerigi yukari itmek icin alt
-    // bosluk ekleniyor.
-    paddingBottom: 380,
+    paddingTop: 4,
   },
   browserWebviewWrap: { flex: 1, marginTop: 12, marginHorizontal: -20, marginBottom: -20 },
   selectPageBtn: {
