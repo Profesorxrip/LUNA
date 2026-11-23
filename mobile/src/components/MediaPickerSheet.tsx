@@ -1184,22 +1184,24 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                   autoFocus
                 />
               </View>
-              <View style={styles.quickSitesRow}>
-                {QUICK_SITES.map((site) => (
-                  <TouchableOpacity
-                    key={site.url}
-                    style={styles.quickSiteItem}
-                    onPress={() => handleQuickSiteOpen(site.url)}
-                    hitSlop={4}
-                  >
-                    <View style={[styles.quickSiteIcon, { backgroundColor: site.color }]}>
-                      <Text style={styles.quickSiteLetter}>{site.letter}</Text>
-                    </View>
-                    <Text style={styles.quickSiteLabel} numberOfLines={1}>
-                      {site.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.quickSitesCard}>
+                <View style={styles.quickSitesRow}>
+                  {QUICK_SITES.map((site) => (
+                    <TouchableOpacity
+                      key={site.url}
+                      style={styles.quickSiteItem}
+                      onPress={() => handleQuickSiteOpen(site.url)}
+                      hitSlop={4}
+                    >
+                      <View style={styles.quickSiteIcon}>
+                        <Text style={[styles.quickSiteLetter, { color: site.color }]}>{site.letter}</Text>
+                      </View>
+                      <Text style={styles.quickSiteLabel} numberOfLines={1}>
+                        {site.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
               {error && <Text style={[styles.error, styles.browserError]}>{error}</Text>}
             </View>
@@ -1429,14 +1431,33 @@ const styles = StyleSheet.create({
   // Kullanici: "Search çubuğunun altına kompakt bir sık kullanılan siteler
   // alanı yapalım" - 4 kisa yol, tek satirda, kucuk harf rozetleri +
   // etiket.
-  // Kullanici: "Hayır kastettiğim böyle birşey değildi sık kullanınlan
-  // siteler alanı büyük olmalı" - rozetler/etiketler belirgin sekilde
-  // buyutuldu.
-  quickSitesRow: { flexDirection: "row", gap: 24, marginTop: 28 },
-  quickSiteItem: { alignItems: "center", gap: 10, width: 84 },
-  quickSiteIcon: { width: 76, height: 76, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  quickSiteLetter: { color: "#FFFFFF", fontSize: 30, fontWeight: "800" },
-  quickSiteLabel: { color: theme.textMuted, fontSize: 13, fontWeight: "600" },
+  // Kullanici: ekran goruntusu gonderip "kuyu düzeni gibi birşey
+  // yapsaydık" dedi - referanstaki gibi KOYU bir KART icinde, beyaz
+  // yuvarlak-kare ikon rozetleri + altlarinda etiket. Baslik/"Tümünü
+  // Gör" YOK, dogrudan search cubugunun altina siraliyor.
+  quickSitesCard: {
+    alignSelf: "stretch",
+    marginHorizontal: -36,
+    marginTop: 20,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    borderRadius: 24,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+  },
+  quickSitesRow: { flexDirection: "row", justifyContent: "space-between" },
+  quickSiteItem: { alignItems: "center", gap: 8 },
+  quickSiteIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickSiteLetter: { fontSize: 22, fontWeight: "800" },
+  quickSiteLabel: { color: theme.textMuted, fontSize: 12, fontWeight: "600" },
   browserError: { marginTop: 10 },
   browserEmptyState: {
     flex: 1,
