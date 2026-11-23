@@ -9,16 +9,14 @@ import {
   CircleArrowDown,
   Music,
   Image as ImageIcon,
-  Video,
-  FileText as FileTextIcon,
-  Mic,
+  File as FileIcon,
   MapPin,
   User as UserIcon,
   BarChart2,
-  Sticker,
+  Sticker as StickerIcon,
   Phone,
-  PhoneMissed,
 } from "lucide-react-native";
+import { MicrophoneIcon } from "react-native-heroicons/outline";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
@@ -26,6 +24,7 @@ import { getSocket, GroupConversationSummary } from "../services/socket";
 import Avatar from "../components/Avatar";
 import AppBackground from "../components/AppBackground";
 import Icon from "../components/Icon";
+import { VoiceOnceRingIcon } from "../components/CustomIcons";
 import LoadingView from "../components/LoadingView";
 import DMConversationOptionsSheet, { DMConversationOptionsTarget } from "../components/DMConversationOptionsSheet";
 import FriendsScreen from "./FriendsScreen";
@@ -55,6 +54,11 @@ interface DMConversationSummary {
     kind?: string | null;
     callStatus?: string | null;
     callIsVideo?: boolean | null;
+    // Kullanici: "...birde fotoğraf video ve tek kullanımlıkşarı göreyim" -
+    // ReplyPreviewContent.tsx'teki (cevap alintisi) AYNI "tek görünümlük"
+    // kuralini burada da uygulayabilmek icin.
+    viewOnce?: boolean | null;
+    stickerId?: string | null;
   } | null;
   unread: boolean;
   unreadCount: number;
@@ -87,7 +91,14 @@ function groupToRow(g: GroupConversationSummary): DMConversationSummary & { isGr
     // callIsVideo bilerek verilmiyor, previewIconFor/previewTextFor zaten
     // kind "call" DEGILSE bunlara hic bakmiyor.
     lastMessage: g.lastMessage
-      ? { text: g.lastMessage.text, createdAt: g.lastMessage.createdAt, fromUserId: g.lastMessage.fromUserId, kind: g.lastMessage.kind }
+      ? {
+          text: g.lastMessage.text,
+          createdAt: g.lastMessage.createdAt,
+          fromUserId: g.lastMessage.fromUserId,
+          kind: g.lastMessage.kind,
+          viewOnce: g.lastMessage.viewOnce,
+          stickerId: g.lastMessage.stickerId,
+        }
       : null,
     unread: false,
     unreadCount: 0,
@@ -116,36 +127,61 @@ const KIND_TEXT_PREFIXES: Record<string, string[]> = {
   call: ["📞 ", "🎥 "],
 };
 
-// Attach menusundeki (DMScreen.tsx) AYNI ikon ailesi - Fotoğraf/Konum/
-// Dosya/Anket/Müzik/Kişi icin oradaki ikonlarin BIREBIR AYNISI, boylece
-// "bu mesaj turu" gorsel dili uygulamanin her yerinde tutarli.
-const KIND_ICON_COMPONENTS: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
-  photo: ImageIcon,
-  video: Video,
-  file: FileTextIcon,
-  music: Music,
-  voice: Mic,
-  location: MapPin,
-  contact: UserIcon,
-  poll: BarChart2,
-  sticker: Sticker,
-};
-
-function previewIconFor(
-  kind: string | null | undefined,
-  callStatus: string | null | undefined,
-  callIsVideo: boolean | null | undefined
-): React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }> | undefined {
-  if (!kind || kind === "text") return undefined;
-  if (kind === "call") return callStatus === "missed" ? PhoneMissed : callIsVideo ? Video : Phone;
-  return KIND_ICON_COMPONENTS[kind];
-}
-
 function previewTextFor(text: string, kind: string | null | undefined): string {
   const prefixes = kind ? KIND_TEXT_PREFIXES[kind] : undefined;
   if (!prefixes) return text;
   const prefix = prefixes.find((p) => text.startsWith(p));
   return prefix ? text.slice(prefix.length) : text;
+}
+
+type LastMessagePreview = NonNullable<DMConversationSummary["lastMessage"]>;
+
+function isViewOnceMediaPreview(item: LastMessagePreview): boolean {
+  const isGifSticker = item.kind === "sticker" && !!item.stickerId?.startsWith("gif-");
+  return !!item.viewOnce && (item.kind === "photo" || item.kind === "video" || isGifSticker || item.kind === "voice");
+}
+
+// ReplyPreviewContent.tsx'teki (cevap alintisi) "tur ikonu" seciminin
+// BIREBIR AYNISI - kullanici "Sesli mesajın ikonu bu değildi" dedi: orada
+// zaten ozenle secilmis (MicrophoneIcon/AppIcon "video"/VoiceOnceRingIcon -
+// lucide'den FARKLI aileler) ikonlarla tutarli olsun diye kopyalandi.
+function renderPreviewIcon(item: LastMessagePreview, color: string): React.ReactNode {
+  if (isViewOnceMediaPreview(item)) return <VoiceOnceRingIcon size={15} color={color} />;
+  switch (item.kind) {
+    case "photo":
+      return <ImageIcon size={13} color={color} />;
+    case "video":
+      return <Icon name="video" size={13} color={color} />;
+    case "voice":
+      return <MicrophoneIcon size={13} color={color} strokeWidth={1.8} />;
+    case "location":
+      return <MapPin size={13} color={color} />;
+    case "file":
+      return <FileIcon size={13} color={color} />;
+    case "contact":
+      return <UserIcon size={13} color={color} />;
+    case "poll":
+      return <BarChart2 size={13} color={color} />;
+    case "music":
+      return <Music size={13} color={color} />;
+    case "sticker":
+      return <StickerIcon size={13} color={color} />;
+    case "call":
+      return item.callIsVideo ? <Icon name="video" size={13} color={color} /> : <Phone size={13} color={color} />;
+    default:
+      return null;
+  }
+}
+
+// AYNI sekilde ReplyPreviewContent.tsx'teki "label" mantigiyla BIREBIR -
+// tek-gorunumluk medyada gercek altyazi/metin yerine HER ZAMAN sabit tur
+// etiketi gosterilir (kullanici: "tek kullanımlıkşarı göreyim").
+function previewLabelFor(item: LastMessagePreview, t: (key: string) => string): string {
+  if (isViewOnceMediaPreview(item)) {
+    const isGifSticker = item.kind === "sticker" && !!item.stickerId?.startsWith("gif-");
+    return isGifSticker ? t("dm.kindGif") : item.kind === "video" ? t("dm.kindVideo") : item.kind === "voice" ? t("dm.kindVoice") : t("dm.kindPhoto");
+  }
+  return previewTextFor(item.text, item.kind);
 }
 
 function pad2(n: number): string {
@@ -598,11 +634,12 @@ export default function DMListScreen({ onOpenDM, onOpenGroup }: Props) {
                 <View style={styles.rowBottomLine}>
                   {item.lastMessage ? (
                     (() => {
-                      const PreviewIcon = previewIconFor(item.lastMessage.kind, item.lastMessage.callStatus, item.lastMessage.callIsVideo);
-                      const previewText = previewTextFor(item.lastMessage.text, item.lastMessage.kind);
-                      return PreviewIcon ? (
+                      const previewColor = item.unread ? TEXT : MUTED;
+                      const iconNode = renderPreviewIcon(item.lastMessage, previewColor);
+                      const previewText = previewLabelFor(item.lastMessage, t);
+                      return iconNode ? (
                         <View style={styles.rowPreviewIconWrap}>
-                          <PreviewIcon size={13} color={item.unread ? TEXT : MUTED} strokeWidth={2} />
+                          {iconNode}
                           <Text
                             style={[styles.rowPreview, styles.rowPreviewIconText, item.unread && styles.rowPreviewUnread]}
                             numberOfLines={1}
