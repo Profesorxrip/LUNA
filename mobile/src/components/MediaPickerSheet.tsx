@@ -1418,7 +1418,9 @@ const styles = StyleSheet.create({
     // Kullanici: "Globeyi niye indirdin search çubuğu demiştim" - globe
     // ESKI konumuna donduruldu (browserEmptyState paddingTop tekrar 4),
     // SADECE arama cubugu kendi marginTop'uyla asagi kaydiriliyor.
-    marginTop: 66,
+    // Kullanici: "Şimdi search çubuğunu bunun üstüne al" - search cubugu
+    // artik globe'un hemen altinda degil, dogrudan kartin USTUNDE.
+    marginTop: 242,
     // Kullanici: "Bu search çubuğunun genişliği discover ekranındakiyle
     // aynı olsun" - DiscoverScreen.tsx'teki arama cubugu (searchBarBorder)
     // ekranin GERCEK kenarindan 16px bosluklu; burada ekran (screen
@@ -1465,7 +1467,7 @@ const styles = StyleSheet.create({
   quickSitesCard: {
     alignSelf: "stretch",
     marginHorizontal: -36,
-    marginTop: 196,
+    marginTop: 20,
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
