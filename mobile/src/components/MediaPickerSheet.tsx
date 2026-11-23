@@ -1391,9 +1391,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     paddingHorizontal: 32,
-    // Kullanici: "dünya ikonunu ve search çubuğunu yukarı kaydır" -
-    // ortalanan icerigi yukari itmek icin alt bosluk ekleniyor.
-    paddingBottom: 140,
+    // Kullanici: "dünya ikonunu ve search çubuğunu yukarı kaydır" / "Çok
+    // daha yukarı kaydır" - ortalanan icerigi yukari itmek icin alt
+    // bosluk ekleniyor.
+    paddingBottom: 380,
   },
   browserWebviewWrap: { flex: 1, marginTop: 12, marginHorizontal: -20, marginBottom: -20 },
   selectPageBtn: {
