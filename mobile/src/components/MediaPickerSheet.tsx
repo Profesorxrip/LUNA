@@ -1411,6 +1411,10 @@ const styles = StyleSheet.create({
   // ebeveyninden (browserEmptyState) alan beyaz/yuksek bir cubuk.
   addressBarPill: {
     alignSelf: "stretch",
+    // Kullanici: "Globeyi niye indirdin search çubuğu demiştim" - globe
+    // ESKI konumuna donduruldu (browserEmptyState paddingTop tekrar 4),
+    // SADECE arama cubugu kendi marginTop'uyla asagi kaydiriliyor.
+    marginTop: 66,
     // Kullanici: "Bu search çubuğunun genişliği discover ekranındakiyle
     // aynı olsun" - DiscoverScreen.tsx'teki arama cubugu (searchBarBorder)
     // ekranin GERCEK kenarindan 16px bosluklu; burada ekran (screen
@@ -1476,7 +1480,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingHorizontal: 32,
-    paddingTop: 70,
+    paddingTop: 4,
   },
   browserWebviewWrap: { flex: 1, marginTop: 12, marginHorizontal: -20, marginBottom: -20 },
   selectPageBtn: {
