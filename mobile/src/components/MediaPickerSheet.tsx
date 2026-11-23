@@ -751,7 +751,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
             history/liked) grid'e, grid'in KENDISINDEYSEK sheet'i kapatiyor
             (artik "ARA" cubugunun solunda kapatma icin TEK dokunulacak yer
             buydu, oncesinde hicbir ikon yoktu). */}
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, mode !== "grid" && styles.topBarTall]}>
           {showBackButton ? (
             // Kullanici: "Geri ikonu bizim yuvarlak içindeki sola bakan ok
             // ikonumuz olsun" - uygulamadaki standart geri dugmesi (bkz.
@@ -1222,12 +1222,14 @@ const styles = StyleSheet.create({
   // tasma/kirpilma riski yaratiyordu (logo kucuk/kirpilmis GORUNEBILIYORDU).
   // Yukseklik artik en uzun cocuga (en buyuk ihtiyaca) gore KENDILIGINDEN
   // hesaplaniyor.
+  topBar: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 },
   // Kullanici: "Üstbarın yüksekliğini arttırıp biraz geri ikonunu aşağı
-  // kaydırsan gönderi oluştur ekranı gibi" - UserProfileScreen.tsx'teki
-  // "Gönderi Oluştur" basligi (composerHeaderRow) ile AYNI ek dikey
-  // bosluk: paddingTop ikonu ekranin cok ustundeki mevcut konumundan
-  // asagi kaydirip cubugu belirgin sekilde uzatir.
-  topBar: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingTop: 14, paddingBottom: 14, marginBottom: 6 },
+  // kaydırsan gönderi oluştur ekranı gibi" - SADECE platform ALT
+  // ekranlarinda (YouTube/Web/Netflix/vb., mode !== "grid") uygulanir, ana
+  // platform secme ekraninin KENDISI (grid) kullanici "ben platform
+  // ekranlarindan bahsediyorum" diyerek bunun DISINDA tuttu. UserProfileScreen.tsx'teki
+  // "Gönderi Oluştur" basligiyla (composerHeaderRow) AYNI ek dikey bosluk.
+  topBarTall: { paddingTop: 14, paddingBottom: 14, marginBottom: 6 },
   backButton: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   // topBar "flex-end" (alttan hizali) - ama geri ikonu kendi 38x38 kutusunun
   // icinde tabanindan boslukluyken logo PNG'sindeki "LUNA" yazisi kendi
