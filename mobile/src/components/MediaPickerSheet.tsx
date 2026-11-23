@@ -1144,13 +1144,14 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
           </View>
         ) : (
           <View style={styles.browserContainer}>
-            <View style={styles.addressBarRow}>
+            <View style={styles.browserEmptyState}>
+              <Globe size={44} color={theme.textMuted} strokeWidth={1.5} />
               <View style={styles.addressBarPill}>
-                <Globe size={14} color={theme.textMuted} />
+                <Globe size={16} color="#6B7280" />
                 <TextInput
                   style={styles.addressBarInput}
                   placeholder={t("mediaPicker.webUrlPlaceholder")}
-                  placeholderTextColor={theme.textMuted}
+                  placeholderTextColor="#6B7280"
                   value={webUrlInput}
                   onChangeText={setWebUrlInput}
                   onSubmitEditing={handleWebGo}
@@ -1162,10 +1163,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                   autoFocus
                 />
               </View>
-            </View>
-            {error && <Text style={[styles.error, styles.browserError]}>{error}</Text>}
-            <View style={styles.browserEmptyState}>
-              <Globe size={44} color={theme.textMuted} strokeWidth={1.5} />
+              {error && <Text style={[styles.error, styles.browserError]}>{error}</Text>}
               <Text style={styles.title}>{t("mediaPicker.webUrlTitle")}</Text>
               <Text style={styles.browserEmptyHint}>{t("mediaPicker.webUrlHint")}</Text>
             </View>
@@ -1358,21 +1356,24 @@ const styles = StyleSheet.create({
   // mobil tarayicinin (Chrome/Safari) ust cubugunu taklit eden adres
   // cubugu + geri/ileri/yenile + ilerleme cubugu + canli WebView.
   browserContainer: { flex: 1, marginTop: 4 },
-  addressBarRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  // Kullanici: "Search çubuğunu beyaz yap ve yüksekliğini arttır sonra
+  // dünya ikonunun altına koy" - artik ayri bir ust satir DEGIL, karsilama
+  // ekranindaki buyuk dunya ikonunun HEMEN altinda, kendi genisligini
+  // ebeveyninden (browserEmptyState) alan beyaz/yuksek bir cubuk.
   addressBarPill: {
-    flex: 1,
+    alignSelf: "stretch",
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    height: 38,
-    borderRadius: 19,
-    paddingHorizontal: 14,
-    backgroundColor: theme.surfaceAlt,
+    gap: 10,
+    height: 54,
+    borderRadius: 27,
+    paddingHorizontal: 18,
+    backgroundColor: "#FFFFFF",
   },
   addressBarInput: {
     flex: 1,
-    color: theme.text,
-    fontSize: 14,
+    color: "#111111",
+    fontSize: 15,
     paddingVertical: 0,
     includeFontPadding: false,
     outlineWidth: 0,
