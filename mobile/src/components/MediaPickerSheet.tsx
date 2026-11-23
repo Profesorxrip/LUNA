@@ -1360,11 +1360,13 @@ const styles = StyleSheet.create({
   // ebeveyninden (browserEmptyState) alan beyaz/yuksek bir cubuk.
   addressBarPill: {
     alignSelf: "stretch",
-    // Kullanici: "Genişliğini arttır" - ebeveynin (browserEmptyState,
-    // paddingHorizontal:32) dar tuttugu genislige negatif kenar bosluguyla
-    // tasarak daha genis gorunur, alttaki baslik/aciklama yazisi ise kendi
-    // rahat bosluguyla kalir.
-    marginHorizontal: -22,
+    // Kullanici: "Bu search çubuğunun genişliği discover ekranındakiyle
+    // aynı olsun" - DiscoverScreen.tsx'teki arama cubugu (searchBarBorder)
+    // ekranin GERCEK kenarindan 16px bosluklu; burada ekran (screen
+    // padding:20) + browserEmptyState (paddingHorizontal:32) toplam 52px
+    // ic bosluk biriktirdigi icin, 16px'e inmek icin -36 negatif kenar
+    // boslugu gerekiyor (20+32-36=16).
+    marginHorizontal: -36,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
