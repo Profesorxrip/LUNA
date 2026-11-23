@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import { CircleArrowDown, Globe, Music, Clapperboard, ListVideo, PlayCircle, ListPlus, Pin, Trash2, Play, RotateCcw } from "lucide-react-native";
+import { CircleArrowDown, Music, Clapperboard, ListVideo, PlayCircle, ListPlus, Pin, Trash2, Play, RotateCcw } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { getSocket, HistoryItem, SourceType } from "../services/socket";
@@ -1179,7 +1179,11 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
           <View style={styles.browserContainer}>
             <View style={styles.browserEmptyState}>
               <View style={styles.browserGlobeIcon}>
-                <Globe size={99} color={theme.textMuted} strokeWidth={1.5} />
+                <Image
+                  source={require("../../assets/logos/google-wordmark.png")}
+                  style={{ width: 220, height: 220 / (2796 / 916) }}
+                  resizeMode="contain"
+                />
               </View>
               <View style={styles.addressBarPill}>
                 <Icon name="search" size={18} color="#6B7280" />
