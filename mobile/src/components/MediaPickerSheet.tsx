@@ -1366,12 +1366,12 @@ const styles = StyleSheet.create({
     // paddingHorizontal:32) dar tuttugu genislige negatif kenar bosluguyla
     // tasarak daha genis gorunur, alttaki baslik/aciklama yazisi ise kendi
     // rahat bosluguyla kalir.
-    marginHorizontal: -16,
+    marginHorizontal: -17,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    height: 54,
-    borderRadius: 27,
+    height: 44,
+    borderRadius: 22,
     paddingHorizontal: 18,
     backgroundColor: "#FFFFFF",
   },
