@@ -103,6 +103,7 @@ export default function GroupInfoScreen({
   const [titleFontLoaded] = useFonts({ BebasNeue_400Regular });
   const [tab, setTab] = useState<Tab>("members");
   const [menuTarget, setMenuTarget] = useState<MenuMember | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
   const canCreate = !readOnly && groupName.trim().length > 0;
   const editable = !readOnly || !!onSave;
   const canSave = !!onSave && dirty && groupName.trim().length > 0 && !saving;
@@ -260,7 +261,6 @@ export default function GroupInfoScreen({
             </View>
             {members.map((item) => {
               const isCreatorRow = item.userId === creatorId;
-              const isMe = !!myUserId && item.userId === myUserId;
               return (
                 <View key={item.userId} style={styles.row}>
                   <Avatar name={item.name} avatarUrl={item.avatarUrl} size={48} isFriend />
@@ -277,8 +277,15 @@ export default function GroupInfoScreen({
                         : t("friends.groupRoleMember")}
                     </Text>
                   )}
-                  {!!creatorId && !isMe && (
-                    <TouchableOpacity onPress={() => setMenuTarget(item)} hitSlop={10} style={styles.rowMenuTouch}>
+                  {!!creatorId && (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        setMenuAnchor({ x: e.nativeEvent.pageX, y: e.nativeEvent.pageY });
+                        setMenuTarget(item);
+                      }}
+                      hitSlop={10}
+                      style={styles.rowMenuTouch}
+                    >
                       <MoreVertical size={20} color={theme.textMuted} />
                     </TouchableOpacity>
                   )}
@@ -293,71 +300,71 @@ export default function GroupInfoScreen({
 
       <Modal visible={!!menuTarget} transparent animationType="fade" onRequestClose={() => setMenuTarget(null)} statusBarTranslucent>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuTarget(null)}>
-          <View style={styles.menuSheet}>
-            {menuTarget &&
-              (() => {
-                const target = menuTarget;
-                const targetIsCreator = target.userId === creatorId;
-                // Yoneticiler birbirine dokunamaz - SADECE kurucu baska bir
-                // yoneticiyi yonetimden alabilir/cikarabilir (bkz. 0055_
-                // group_admin_management.sql - sunucu AYNI kurali uygular).
-                const canModerateTarget = canManageMembers && !targetIsCreator && (!target.isAdmin || myUserId === creatorId);
-                const rows: { key: string; label: string; danger?: boolean; onPress: () => void }[] = [];
-                if (onOpenProfile) {
-                  rows.push({
-                    key: "profile",
-                    label: t("friends.groupMemberViewProfile"),
-                    onPress: () => {
-                      setMenuTarget(null);
-                      onOpenProfile(target);
-                    },
-                  });
-                }
-                if (onOpenDM) {
-                  rows.push({
-                    key: "message",
-                    label: t("friends.groupMemberMessage"),
-                    onPress: () => {
-                      setMenuTarget(null);
-                      onOpenDM(target);
-                    },
-                  });
-                }
-                if (canModerateTarget && onSetMemberAdmin) {
-                  rows.push({
-                    key: "admin",
-                    label: target.isAdmin ? t("friends.groupMemberRemoveAdmin") : t("friends.groupMemberMakeAdmin"),
-                    onPress: () => {
-                      setMenuTarget(null);
-                      onSetMemberAdmin(target, !target.isAdmin);
-                    },
-                  });
-                }
-                if (canModerateTarget && onRemoveMember) {
-                  rows.push({
-                    key: "remove",
-                    label: t("friends.groupMemberRemove"),
-                    danger: true,
-                    onPress: () => {
-                      setMenuTarget(null);
-                      confirmRemoveMember(target);
-                    },
-                  });
-                }
-                return (
-                  <>
-                    <Text style={styles.menuSheetName} numberOfLines={1}>
-                      {target.name}
-                    </Text>
-                    {rows.map((row) => (
-                      <TouchableOpacity key={row.key} style={styles.menuRow} onPress={row.onPress}>
-                        <Text style={[styles.menuRowText, row.danger && styles.menuRowTextDanger]}>{row.label}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </>
-                );
-              })()}
-          </View>
+          {menuTarget &&
+            (() => {
+              const target = menuTarget;
+              const isMe = !!myUserId && target.userId === myUserId;
+              const targetIsCreator = target.userId === creatorId;
+              // Yoneticiler birbirine dokunamaz - SADECE kurucu baska bir
+              // yoneticiyi yonetimden alabilir/cikarabilir (bkz. 0055_
+              // group_admin_management.sql - sunucu AYNI kurali uygular).
+              // Kendi satirimda (isMe) zaten canManageMembers/targetIsCreator
+              // hesaplamasi dogal olarak bu satiri disliyor (bkz. kurucu/
+              // yonetici kendi uzerinde hicbir zaman "yetkili" degil).
+              const canModerateTarget = canManageMembers && !targetIsCreator && (!target.isAdmin || myUserId === creatorId);
+              const rows: { key: string; label: string; danger?: boolean; onPress: () => void }[] = [];
+              if (onOpenProfile) {
+                rows.push({
+                  key: "profile",
+                  label: t("friends.groupMemberViewProfile"),
+                  onPress: () => {
+                    setMenuTarget(null);
+                    onOpenProfile(target);
+                  },
+                });
+              }
+              if (onOpenDM && !isMe) {
+                rows.push({
+                  key: "message",
+                  label: t("friends.groupMemberMessage"),
+                  onPress: () => {
+                    setMenuTarget(null);
+                    onOpenDM(target);
+                  },
+                });
+              }
+              if (canModerateTarget && onSetMemberAdmin) {
+                rows.push({
+                  key: "admin",
+                  label: target.isAdmin ? t("friends.groupMemberRemoveAdmin") : t("friends.groupMemberMakeAdmin"),
+                  onPress: () => {
+                    setMenuTarget(null);
+                    onSetMemberAdmin(target, !target.isAdmin);
+                  },
+                });
+              }
+              if (canModerateTarget && onRemoveMember) {
+                rows.push({
+                  key: "remove",
+                  label: t("friends.groupMemberRemove"),
+                  danger: true,
+                  onPress: () => {
+                    setMenuTarget(null);
+                    confirmRemoveMember(target);
+                  },
+                });
+              }
+              if (!rows.length) return null;
+              return (
+                <View style={[styles.menuCard, menuAnchor && { top: menuAnchor.y + 8 }]}>
+                  {rows.map((row) => (
+                    <TouchableOpacity key={row.key} style={styles.menuRow} onPress={row.onPress}>
+                      <Text style={[styles.menuRowText, row.danger && styles.menuRowTextDanger]}>{row.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              );
+            })()}
         </TouchableOpacity>
       </Modal>
     </View>
@@ -439,28 +446,21 @@ const styles = StyleSheet.create({
   rowHandle: { color: theme.textMuted, fontSize: 12, fontWeight: "500", lineHeight: 16, marginTop: 2 },
   rowRole: { color: theme.textMuted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4 },
   rowMenuTouch: { paddingLeft: 10 },
-  // Uye satirindaki uc noktanin actigi alt sayfa (bottom sheet) - GroupChatScreen.tsx'teki
-  // ust-sag "menuCard" dropdown'dan farkli olarak her satirda ayri ayri
-  // acilabildigi icin ekranin ALTINDA, hedeflenen uyenin ismiyle ortalanmis.
-  menuOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  menuSheet: {
+  // Uye satirindaki uc noktanin actigi kucuk menu - GroupChatScreen.tsx/
+  // DMScreen.tsx'teki ust-sag "menuCard" dropdown'uyla AYNI kompakt
+  // gorunum, ama sabit degil: basilan satirin tam hizasinda (menuAnchor.y)
+  // acilsin diye dinamik "top" ile konumlanir (kullanici: "küçük kutu
+  // açılsın bu büyük kutu değil").
+  menuOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  menuCard: {
+    position: "absolute",
+    right: 16,
     backgroundColor: "#15202B",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    paddingTop: 14,
-    paddingBottom: 34,
-    paddingHorizontal: 18,
+    borderRadius: 12,
+    paddingVertical: 6,
+    minWidth: 170,
   },
-  menuSheetName: {
-    color: theme.textMuted,
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  menuRow: { paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.08)" },
-  menuRowText: { color: theme.text, fontSize: 15, fontWeight: "600", textAlign: "center" },
+  menuRow: { paddingHorizontal: 16, paddingVertical: 12 },
+  menuRowText: { color: theme.text, fontSize: 14, fontWeight: "600" },
   menuRowTextDanger: { color: theme.danger },
 });
