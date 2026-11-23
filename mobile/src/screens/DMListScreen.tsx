@@ -150,7 +150,7 @@ function renderPreviewIcon(item: LastMessagePreview, color: string): React.React
     return (
       <View style={styles.rowPreviewViewOnceBox}>
         <View style={styles.rowPreviewViewOnceIconWrap}>
-          <VoiceOnceRingIcon size={36} color={color} />
+          <VoiceOnceRingIcon size={33} color={color} />
         </View>
       </View>
     );
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
   rowPreviewIconWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
   rowPreviewIconText: { flex: 1 },
   rowPreviewViewOnceBox: { width: 14, height: 14 },
-  rowPreviewViewOnceIconWrap: { position: "absolute", top: -11, left: -11 },
+  rowPreviewViewOnceIconWrap: { position: "absolute", top: -9.5, left: -9.5 },
   unreadBadge: {
     minWidth: 20,
     height: 20,
