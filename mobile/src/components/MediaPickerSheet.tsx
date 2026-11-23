@@ -1181,7 +1181,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               <View style={styles.browserGlobeIcon}>
                 <Image
                   source={require("../../assets/logos/google-wordmark.png")}
-                  style={{ width: 280, height: 280 / (2796 / 916), marginTop: 36 }}
+                  style={{ width: 280, height: 280 / (2796 / 916), marginTop: 196 }}
                   resizeMode="contain"
                 />
               </View>
@@ -1424,7 +1424,11 @@ const styles = StyleSheet.create({
     // SADECE arama cubugu kendi marginTop'uyla asagi kaydiriliyor.
     // Kullanici: "Şimdi search çubuğunu bunun üstüne al" - search cubugu
     // artik globe'un hemen altinda degil, dogrudan kartin USTUNDE.
-    marginTop: 242,
+    // Kullanici: "Search çubuğu ve sık kullanılanlar kutusunun yerini
+    // değiştirmeden logoyu aşşağı doğru baya bi kaydır" - logo marginTop'u
+    // arttirildiginda (160px) buradan ayni miktar DUSULEREK search
+    // cubugunun/kartin konumu SABIT tutuluyor.
+    marginTop: 82,
     // Kullanici: "Bu search çubuğunun genişliği discover ekranındakiyle
     // aynı olsun" - DiscoverScreen.tsx'teki arama cubugu (searchBarBorder)
     // ekranin GERCEK kenarindan 16px bosluklu; burada ekran (screen
