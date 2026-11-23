@@ -16,7 +16,8 @@ import {
   MoreVertical,
   User,
   MessageCircle,
-  Shield,
+  ShieldPlus,
+  ShieldMinus,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
@@ -353,7 +354,11 @@ export default function GroupInfoScreen({
               if (canModerateTarget && onSetMemberAdmin) {
                 rows.push({
                   key: "admin",
-                  icon: <Shield size={17} color={theme.text} />,
+                  icon: target.isAdmin ? (
+                    <ShieldMinus size={17} color={theme.text} />
+                  ) : (
+                    <ShieldPlus size={17} color={theme.text} />
+                  ),
                   label: target.isAdmin ? t("friends.groupMemberRemoveAdmin") : t("friends.groupMemberMakeAdmin"),
                   onPress: () => {
                     setMenuTarget(null);
