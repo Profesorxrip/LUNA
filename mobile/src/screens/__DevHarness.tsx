@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { DEMO_VOICE_URI } from "./__voiceDemoAsset";
 import { View, StyleSheet, Modal } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
@@ -24,6 +25,14 @@ const PEER_ID = "u1";
 // oynatilabilir kaynak lazim - mevcut demo videosu odunc alindi (bkz.
 // VideoCallScreen.tsx'teki AYNI dosya).
 const DEMO_VIDEO_URI = require("../../assets/videos/peer_screen_share_demo.mp4") as unknown as string;
+// Kullanici: "Bu sesli mesaj ne böyle böyle bir sesli mesaj yok değil mi" -
+// haklıydı: demo "Kampüs Ekibi" grubundaki sesli mesajın mediaUrl'si YOKTU,
+// bu yuzden GroupChatScreen (item.kind==="voice" && item.mediaUrl sartini
+// GECEMEDIGI icin) gercek VoiceMessageBubble yerine duz metni gosteriyordu -
+// GERCEK uygulamada bu HIC olamaz (send_group_voice RPC'si media_url
+// olmadan mesaji REDDEDER, bkz. 0049_group_voice_view_once.sql). Gercekci
+// bir waveform/oynatici gorebilmek icin kisa, sessiz bir WAV data URI
+// (bkz. yukaridaki DEMO_VOICE_URI importu, __voiceDemoAsset.ts).
 
 const MESSAGES = [
   // Asiri kisa
@@ -457,6 +466,8 @@ let demoGroupCounter = 0;
         text: "🎤 Sesli mesaj",
         createdAt: now - 1000 * 60 * 15,
         kind: "voice",
+        mediaUrl: DEMO_VOICE_URI,
+        durationMs: 2000,
       },
     ],
     pinned: [],
