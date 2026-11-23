@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import { ChevronLeft, ChevronRight, Globe, RefreshCw, Music, Clapperboard, ListVideo, PlayCircle, ListPlus, Pin, Trash2, Play, RotateCcw } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, CircleArrowDown, Globe, RefreshCw, Music, Clapperboard, ListVideo, PlayCircle, ListPlus, Pin, Trash2, Play, RotateCcw } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { getSocket, HistoryItem, SourceType } from "../services/socket";
@@ -753,8 +753,15 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
             buydu, oncesinde hicbir ikon yoktu). */}
         <View style={styles.topBar}>
           {showBackButton ? (
+            // Kullanici: "Geri ikonu bizim yuvarlak içindeki sola bakan ok
+            // ikonumuz olsun" - uygulamadaki standart geri dugmesi (bkz.
+            // DMScreen.tsx/GroupChatScreen.tsx onBack) CircleArrowDown'in
+            // 90 derece dondurulmus hali - duz ChevronLeft yerine ONA
+            // uyumlu hale getirildi.
             <TouchableOpacity style={styles.backButton} onPress={mode === "grid" ? handleClose : handleBack} hitSlop={10}>
-              <ChevronLeft size={28} color="#FFFFFF" strokeWidth={3} />
+              <View style={{ transform: [{ rotate: "90deg" }] }}>
+                <CircleArrowDown size={22} color="#FFFFFF" />
+              </View>
             </TouchableOpacity>
           ) : (
             <View style={styles.backButton} />
