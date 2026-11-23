@@ -433,6 +433,80 @@ const demoGroups = new Map<
   { id: string; name: string; avatarUrl: string | null; creatorId: string; members: any[]; messages: any[]; pinned: any[] }
 >();
 let demoGroupCounter = 0;
+
+// Liste ekranindaki "son mesaj" onizlemesinin DM'lerle AYNI mantigi
+// kullandigini gorsel olarak dogrulamak icin - groupToRow() zaten
+// DMConversationSummary'ninkiyle AYNI alanlari (kind/viewOnce/stickerId)
+// okuyor, burada sadece birkac farkli tur ornegi tohumlaniyor.
+[
+  {
+    id: "demo-group-voice",
+    name: "Kampüs Ekibi",
+    avatarUrl: null,
+    creatorId: MY_ID,
+    members: [
+      { userId: MY_ID, name: "Ben", avatarUrl: null, isAdmin: true, isCreator: true },
+      { userId: "u2", name: "Mehmet Demir", avatarUrl: null, isAdmin: false, isCreator: false },
+    ],
+    messages: [
+      {
+        id: "demo-group-voice-msg",
+        groupId: "demo-group-voice",
+        fromUserId: "u2",
+        fromName: "Mehmet Demir",
+        text: "🎤 Sesli mesaj",
+        createdAt: now - 1000 * 60 * 15,
+        kind: "voice",
+      },
+    ],
+    pinned: [],
+  },
+  {
+    id: "demo-group-viewonce",
+    name: "Aile Grubu",
+    avatarUrl: null,
+    creatorId: "u5",
+    members: [
+      { userId: MY_ID, name: "Ben", avatarUrl: null, isAdmin: false, isCreator: false },
+      { userId: "u5", name: "Elif Şahin", avatarUrl: null, isAdmin: true, isCreator: true },
+    ],
+    messages: [
+      {
+        id: "demo-group-viewonce-msg",
+        groupId: "demo-group-viewonce",
+        fromUserId: "u5",
+        fromName: "Elif Şahin",
+        text: "📷 Fotoğraf",
+        createdAt: now - 1000 * 60 * 60 * 4,
+        kind: "photo",
+        viewOnce: true,
+      },
+    ],
+    pinned: [],
+  },
+  {
+    id: "demo-group-file",
+    name: "Proje X",
+    avatarUrl: null,
+    creatorId: "u4",
+    members: [
+      { userId: MY_ID, name: "Ben", avatarUrl: null, isAdmin: false, isCreator: false },
+      { userId: "u4", name: "Can Öztürk", avatarUrl: null, isAdmin: true, isCreator: true },
+    ],
+    messages: [
+      {
+        id: "demo-group-file-msg",
+        groupId: "demo-group-file",
+        fromUserId: "u4",
+        fromName: "Can Öztürk",
+        text: "📎 sunum.pptx",
+        createdAt: now - 1000 * 60 * 60 * 30,
+        kind: "file",
+      },
+    ],
+    pinned: [],
+  },
+].forEach((g) => demoGroups.set(g.id, g));
 // useConnectionQuality.ts'in "ping:rtt" olcumunu test edebilmek icin -
 // gercek sunucu yok, bu yuzden donus suresini burada SIMULE ediyoruz.
 // 50 => iyi, 200 => orta, 450 => zayif (bkz. useConnectionQuality.ts esikleri).
