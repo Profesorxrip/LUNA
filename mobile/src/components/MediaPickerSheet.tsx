@@ -1159,11 +1159,6 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                   </TouchableOpacity>
                 )}
               </View>
-              {!webBrowsing && (
-                <TouchableOpacity style={styles.addressGoBtn} onPress={handleWebGo}>
-                  <Text style={styles.addressGoBtnText}>{t("mediaPicker.go")}</Text>
-                </TouchableOpacity>
-              )}
             </View>
             {webBrowsing && (
               <View style={styles.progressTrack}>
@@ -1405,8 +1400,6 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
-  addressGoBtn: { paddingHorizontal: 4 },
-  addressGoBtnText: { color: theme.accent, fontSize: 15, fontWeight: "700" },
   progressTrack: { height: 2, backgroundColor: "transparent", marginTop: 8, borderRadius: 1, overflow: "hidden" },
   progressFill: { height: "100%", backgroundColor: theme.accent, borderRadius: 1 },
   browserError: { marginTop: 10 },

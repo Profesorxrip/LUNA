@@ -567,7 +567,6 @@
     "webUrlTitle": "Website link",
     "webUrlPlaceholder": "e.g. wikipedia.org",
     "webUrlHint": "Type an address and browse, then pick the page you like.",
-    "go": "Go",
     "selectThisPage": "Select This Page",
     "continue": "Continue",
     "youtubeFallbackTitle": "YouTube Video"
