@@ -247,7 +247,7 @@
     "genericSendErrorBody": "Mesaj göndərilərkən xəta baş verdi, yenidən cəhd et.",
     "callAction": "Zəng et",
     "groupCallNoMembers": "Qrupda zəng ediləcək başqa kimsə yoxdur.",
-    "groupMembersOnline": "{{count}} Üzv, {{online}} Aktiv",
+    "groupMembersOnline": "{{count}} ÜZV, {{online}} AKTİV",
     "voiceCallAction": "Səsli zəng",
     "callRinging": "Zəng çalır...",
     "incomingCallStatus": "Səsli zəng...",

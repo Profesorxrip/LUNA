@@ -247,7 +247,7 @@
     "genericSendErrorBody": "Di şandina peyamê de çewtiyek çêbû, dîsa biceribîne.",
     "callAction": "Telefon bike",
     "groupCallNoMembers": "Di komê de kesekî din ê ku were telefon kirin tune ye.",
-    "groupMembersOnline": "{{count}} Endam, {{online}} Serhêl",
+    "groupMembersOnline": "{{count}} ENDAM, {{online}} SERHÊL",
     "voiceCallAction": "Tefona dengî",
     "callRinging": "Lêdan...",
     "incomingCallStatus": "Lêdana dengî...",

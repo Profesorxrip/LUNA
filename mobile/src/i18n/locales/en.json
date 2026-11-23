@@ -247,7 +247,7 @@
     "genericSendErrorBody": "Something went wrong sending the message, try again.",
     "callAction": "Call",
     "groupCallNoMembers": "There's no one else in the group to call.",
-    "groupMembersOnline": "{{count}} Members, {{online}} Online",
+    "groupMembersOnline": "{{count}} MEMBERS, {{online}} ONLINE",
     "voiceCallAction": "Voice Call",
     "callRinging": "Ringing...",
     "incomingCallStatus": "Voice call...",

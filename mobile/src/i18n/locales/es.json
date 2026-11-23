@@ -247,7 +247,7 @@
     "genericSendErrorBody": "Ocurrió un error al enviar el mensaje, inténtalo de nuevo.",
     "callAction": "Llamar",
     "groupCallNoMembers": "No hay nadie más en el grupo para llamar.",
-    "groupMembersOnline": "{{count}} Miembros, {{online}} En línea",
+    "groupMembersOnline": "{{count}} MIEMBROS, {{online}} EN LÍNEA",
     "voiceCallAction": "Llamada de voz",
     "callRinging": "Llamando...",
     "incomingCallStatus": "Llamada de voz...",

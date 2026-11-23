@@ -247,7 +247,7 @@
     "genericSendErrorBody": "Une erreur s'est produite lors de l'envoi du message, réessaie.",
     "callAction": "Appeler",
     "groupCallNoMembers": "Il n'y a personne d'autre dans le groupe à appeler.",
-    "groupMembersOnline": "{{count}} Membres, {{online}} En ligne",
+    "groupMembersOnline": "{{count}} MEMBRES, {{online}} EN LIGNE",
     "voiceCallAction": "Appel vocal",
     "callRinging": "Appel en cours...",
     "incomingCallStatus": "Appel vocal...",
