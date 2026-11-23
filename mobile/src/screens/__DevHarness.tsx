@@ -910,6 +910,11 @@ if (typeof window !== "undefined") {
       createdAt: Date.now(),
       kind: "text",
       ...overrides,
+      // "me" sentinel'i verilirse GERCEK MY_ID ile degistirilir - aksi halde
+      // (bkz. asagidaki __injectDMMessage'daki AYNI sorun) "isMine" kontrolu
+      // (item.fromUserId === myUserId) hic tutmaz, mesaj yanlislikla "karsi
+      // tarafinmis" gibi SOLA/gri balon olarak render edilir.
+      fromUserId: overrides?.fromUserId === "me" ? MY_ID : overrides?.fromUserId,
     };
     group.messages.push(message);
     (listeners["group:message"] || []).forEach((fn) => fn({ groupId, message }));
