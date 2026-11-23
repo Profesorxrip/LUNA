@@ -1233,23 +1233,21 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
               </View>
               <View style={styles.quickSitesCard}>
                 <Text style={styles.quickSitesTitle}>{t("mediaPicker.quickSitesTitle")}</Text>
-                {quickSites.length > 0 && (
-                  <View style={styles.quickSitesRow}>
-                    {quickSites.map((site) => (
-                      <TouchableOpacity
-                        key={site.domain}
-                        style={styles.quickSiteItem}
-                        onPress={() => handleQuickSiteOpen(site.url)}
-                        hitSlop={4}
-                      >
-                        <QuickSiteFavicon domain={site.domain} />
-                        <Text style={styles.quickSiteLabel} numberOfLines={1}>
-                          {site.title || site.domain}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
+                <View style={styles.quickSitesRow}>
+                  {quickSites.map((site) => (
+                    <TouchableOpacity
+                      key={site.domain}
+                      style={styles.quickSiteItem}
+                      onPress={() => handleQuickSiteOpen(site.url)}
+                      hitSlop={4}
+                    >
+                      <QuickSiteFavicon domain={site.domain} />
+                      <Text style={styles.quickSiteLabel} numberOfLines={1}>
+                        {site.title || site.domain}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
               {error && <Text style={[styles.error, styles.browserError]}>{error}</Text>}
             </View>
@@ -1513,7 +1511,18 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 16,
   },
-  quickSitesRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 20 },
+  // Kullanici: "kutu hep aynı boyutunda kalmalıydı henüz ziyaret edilen
+  // site olmasada" - 0 ile 15 site arasinda (3 dolu satir kadar) HER
+  // ZAMAN ayni minimum yukseklik, kutu boyutu site sayisina gore
+  // kuculup buyumuyor.
+  quickSitesRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignContent: "flex-start",
+    rowGap: 20,
+    minHeight: 240,
+  },
   // Kullanici: "Her bir satırda 4 değil 5 site olmalı" - rozet/etiket
   // kuculdu ki 5'i tek satira sigsin.
   quickSiteItem: { alignItems: "center", gap: 6, width: 58 },
