@@ -1145,7 +1145,9 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
         ) : (
           <View style={styles.browserContainer}>
             <View style={styles.browserEmptyState}>
-              <Globe size={99} color={theme.textMuted} strokeWidth={1.5} />
+              <View style={styles.browserGlobeIcon}>
+                <Globe size={99} color={theme.textMuted} strokeWidth={1.5} />
+              </View>
               <View style={styles.addressBarPill}>
                 <Icon name="search" size={18} color="#6B7280" />
                 <TextInput
@@ -1384,6 +1386,10 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
     outlineStyle: "none",
   } as any,
+  // Kullanici: "Sadece dünya ikonunu biraz daha yukarı kaydır" - search
+  // cubugunu yerinde birakip SADECE globe'u transform ile yukari kaydiriyor
+  // (document akisini/diger elemanlarin konumunu etkilemiyor).
+  browserGlobeIcon: { transform: [{ translateY: -24 }] },
   browserError: { marginTop: 10 },
   browserEmptyState: {
     flex: 1,
