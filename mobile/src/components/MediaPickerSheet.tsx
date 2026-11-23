@@ -697,6 +697,9 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     { label: "Yandex", url: "https://yandex.com", letter: "Y", color: "#FF0000" },
     { label: "Ekşi Sözlük", url: "https://eksisozluk.com", letter: "E", color: "#79BC6A" },
     { label: "DuckDuckGo", url: "https://duckduckgo.com", letter: "D", color: "#DE5833" },
+    { label: "LinkedIn", url: "https://www.linkedin.com", letter: "L", color: "#0A66C2" },
+    { label: "TikTok", url: "https://www.tiktok.com", letter: "T", color: "#000000" },
+    { label: "Quora", url: "https://www.quora.com", letter: "Q", color: "#B92B27" },
   ];
 
   function handleQuickSiteOpen(url: string) {
@@ -1471,17 +1474,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   quickSitesRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 20 },
-  quickSiteItem: { alignItems: "center", gap: 8, width: 72 },
+  // Kullanici: "Her bir satırda 4 değil 5 site olmalı" - rozet/etiket
+  // kuculdu ki 5'i tek satira sigsin.
+  quickSiteItem: { alignItems: "center", gap: 6, width: 58 },
   quickSiteIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
   },
-  quickSiteLetter: { fontSize: 22, fontWeight: "800" },
-  quickSiteLabel: { color: theme.textMuted, fontSize: 12, fontWeight: "600" },
+  quickSiteLetter: { fontSize: 18, fontWeight: "800" },
+  quickSiteLabel: { color: theme.textMuted, fontSize: 10, fontWeight: "600" },
   browserError: { marginTop: 10 },
   // Kullanici: "search çubuğu ve web ikonu yukarı kaydı onlar aynı
   // yerinde dursa kutucuk alta doğru uzasa" - ARTIK ortalanmiyor:
