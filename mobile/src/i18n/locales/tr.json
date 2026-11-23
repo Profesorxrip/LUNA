@@ -564,8 +564,6 @@
     "resetPlaylist": "Sıfırla",
     "loadingVideo": "Video yükleniyor...",
     "openInApp": "↗ {{label}}'de aç",
-    "webUrlTitle": "Web sitesi linki",
-    "webUrlHint": "Bir adres yaz ve gez, beğendiğin sayfada dur.",
     "selectThisPage": "Bu Sayfayı Seç",
     "continue": "Devam",
     "youtubeFallbackTitle": "YouTube Videosu"

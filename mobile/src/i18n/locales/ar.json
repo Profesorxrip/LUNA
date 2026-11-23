@@ -509,8 +509,6 @@
     "resetPlaylist": "إعادة تعيين",
     "loadingVideo": "جارٍ تحميل الفيديو...",
     "openInApp": "↗ افتح في {{label}}",
-    "webUrlTitle": "رابط موقع ويب",
-    "webUrlHint": "اكتب رابطًا وتصفح حتى تجد الصفحة التي تريدها.",
     "selectThisPage": "اختر هذه الصفحة",
     "continue": "متابعة",
     "youtubeFallbackTitle": "فيديو YouTube"

@@ -509,8 +509,6 @@
     "resetPlaylist": "Réinitialiser",
     "loadingVideo": "Chargement de la vidéo...",
     "openInApp": "↗ Ouvrir dans {{label}}",
-    "webUrlTitle": "Lien du site web",
-    "webUrlHint": "Tape une adresse et navigue jusqu'à la page qui te plaît.",
     "selectThisPage": "Sélectionner cette page",
     "continue": "Continuer",
     "youtubeFallbackTitle": "Vidéo YouTube"

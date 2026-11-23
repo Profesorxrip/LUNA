@@ -509,8 +509,6 @@
     "resetPlaylist": "Επαναφορά",
     "loadingVideo": "Φόρτωση βίντεο...",
     "openInApp": "↗ Άνοιγμα στο {{label}}",
-    "webUrlTitle": "Σύνδεσμος ιστότοπου",
-    "webUrlHint": "Πληκτρολόγησε μια διεύθυνση και περιηγήσου μέχρι να βρεις τη σελίδα που θέλεις.",
     "selectThisPage": "Επιλογή αυτής της σελίδας",
     "continue": "Συνέχεια",
     "youtubeFallbackTitle": "Βίντεο YouTube"

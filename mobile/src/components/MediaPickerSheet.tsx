@@ -1164,8 +1164,6 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
                 />
               </View>
               {error && <Text style={[styles.error, styles.browserError]}>{error}</Text>}
-              <Text style={styles.title}>{t("mediaPicker.webUrlTitle")}</Text>
-              <Text style={styles.browserEmptyHint}>{t("mediaPicker.webUrlHint")}</Text>
             </View>
           </View>
         )}
@@ -1386,7 +1384,6 @@ const styles = StyleSheet.create({
   } as any,
   browserError: { marginTop: 10 },
   browserEmptyState: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
-  browserEmptyHint: { color: theme.textMuted, fontSize: 13, textAlign: "center", lineHeight: 18 },
   browserWebviewWrap: { flex: 1, marginTop: 12, marginHorizontal: -20, marginBottom: -20 },
   selectPageBtn: {
     position: "absolute",
