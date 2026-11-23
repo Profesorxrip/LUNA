@@ -16,14 +16,14 @@ import {
   MoreVertical,
   User,
   MessageCircle,
-  ShieldPlus,
-  ShieldMinus,
+  Crown,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import AppBackground from "../components/AppBackground";
 import Avatar from "../components/Avatar";
 import { showAlert } from "../components/CustomAlert";
+import { CrownOffIcon } from "../components/CustomIcons";
 import { theme } from "../theme";
 import type { FriendUser } from "../services/socket";
 
@@ -355,9 +355,9 @@ export default function GroupInfoScreen({
                 rows.push({
                   key: "admin",
                   icon: target.isAdmin ? (
-                    <ShieldMinus size={17} color={theme.text} />
+                    <CrownOffIcon size={17} color={theme.text} />
                   ) : (
-                    <ShieldPlus size={17} color={theme.text} />
+                    <Crown size={17} color={theme.text} />
                   ),
                   label: target.isAdmin ? t("friends.groupMemberRemoveAdmin") : t("friends.groupMemberMakeAdmin"),
                   onPress: () => {
