@@ -1155,12 +1155,18 @@ function GroupCallGrid({
   // measureConnectionQuality) kullanilir.
   const connectionQuality = realCall ? realCall.connectionQuality : connectionQualityMock;
 
+  // GERCEK aramada (bkz. yukarisi "connected") sure, herhangi bir katilimciyla
+  // kurulan ILK gercek WebRTC baglantisinda baslar (useCallEngine.ts
+  // onconnectionstatechange). Mock (realCall yok, SADECE __DevHarness.tsx)
+  // modda da AYNI mantik: sabit bir gecikme yerine ilk katilimci (participants)
+  // eklenir eklenmez "baglandi" sayilir - boylece onizlemede de sure, dogru
+  // kisi katilinca baslar (kullanici geri bildirimi: "Mehmet Demir girdiğinde
+  // başlamış olmalı arama süresi").
   useEffect(() => {
     if (realCall) return;
-    const connectTimer = setTimeout(() => setConnectedMock(true), 2500);
-    return () => clearTimeout(connectTimer);
+    if (participants.length > 0) setConnectedMock(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [participants.length]);
 
   useEffect(() => {
     if (realCall) return;
