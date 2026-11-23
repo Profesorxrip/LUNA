@@ -1145,7 +1145,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
         ) : (
           <View style={styles.browserContainer}>
             <View style={styles.browserEmptyState}>
-              <Globe size={99} color={theme.textMuted} strokeWidth={1.5} />
+              <Globe size={297} color={theme.textMuted} strokeWidth={1.5} />
               <View style={styles.addressBarPill}>
                 <Icon name="search" size={18} color="#6B7280" />
                 <TextInput
