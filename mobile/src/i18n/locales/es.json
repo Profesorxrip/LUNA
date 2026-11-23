@@ -511,6 +511,9 @@
     "openInApp": "↗ Abrir en {{label}}",
     "webUrlTitle": "Enlace de sitio web",
     "webUrlPlaceholder": "ej. wikipedia.org",
+    "webUrlHint": "Escribe una dirección y navega hasta encontrar la página que te guste.",
+    "go": "Ir",
+    "selectThisPage": "Seleccionar esta página",
     "continue": "Continuar",
     "youtubeFallbackTitle": "Video de YouTube"
   },

@@ -511,6 +511,9 @@
     "openInApp": "↗ Άνοιγμα στο {{label}}",
     "webUrlTitle": "Σύνδεσμος ιστότοπου",
     "webUrlPlaceholder": "π.χ. wikipedia.org",
+    "webUrlHint": "Πληκτρολόγησε μια διεύθυνση και περιηγήσου μέχρι να βρεις τη σελίδα που θέλεις.",
+    "go": "Μετάβαση",
+    "selectThisPage": "Επιλογή αυτής της σελίδας",
     "continue": "Συνέχεια",
     "youtubeFallbackTitle": "Βίντεο YouTube"
   },

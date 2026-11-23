@@ -511,6 +511,9 @@
     "openInApp": "↗ {{label}}-də aç",
     "webUrlTitle": "Veb sayt linki",
     "webUrlPlaceholder": "məs. wikipedia.org",
+    "webUrlHint": "Bir ünvan yaz və bəyəndiyin səhifəyə qədər gəz.",
+    "go": "Get",
+    "selectThisPage": "Bu Səhifəni Seç",
     "continue": "Davam",
     "youtubeFallbackTitle": "YouTube Videosu"
   },

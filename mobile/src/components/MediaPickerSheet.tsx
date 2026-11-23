@@ -2,14 +2,14 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import { ChevronLeft, Music, Clapperboard, ListVideo, PlayCircle, ListPlus, Pin, Trash2, Play, RotateCcw } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Globe, RefreshCw, Music, Clapperboard, ListVideo, PlayCircle, ListPlus, Pin, Trash2, Play, RotateCcw } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { getSocket, HistoryItem, SourceType } from "../services/socket";
 import type { MediaSource } from "../services/socket";
 import { supabase } from "../services/supabase";
 import { theme } from "../theme";
-import { badgeInfoForSource, EXTERNAL_PLATFORMS, fetchWebPageTitle, openPlatformApp } from "../utils/media";
+import { badgeInfoForSource, EXTERNAL_PLATFORMS, openPlatformApp } from "../utils/media";
 import PlatformBadge from "./PlatformBadge";
 import { extractYouTubeId, fetchYouTubeMeta } from "../utils/youtube";
 import Icon from "./Icon";
@@ -264,6 +264,21 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   const [webUrlInput, setWebUrlInput] = useState("");
   const [loadingTitle, setLoadingTitle] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Kullanici: "tam profesyonel bir mini tarayıcı olmalı" - "Web" artik tek
+  // seferlik bir link kutusu DEGIL, host linki yazip GERCEKTEN gezinebilir
+  // (WebView), istedigi sayfada durup "Bu Sayfayı Seç" diyebilir. webBrowsing
+  // false iken adres cubugu+bos karsilama ekrani, true olunca gercek WebView
+  // gosterilir (external/youtube modlarindaki navigasyon desenine benzer).
+  const [webBrowsing, setWebBrowsing] = useState(false);
+  const [webCurrentUrl, setWebCurrentUrl] = useState<string | null>(null);
+  const [webCanGoBack, setWebCanGoBack] = useState(false);
+  const [webCanGoForward, setWebCanGoForward] = useState(false);
+  // Gercek sayfa basligi (navState.title) - oda ismi icin ayrica sunucuya
+  // sorup (fetchWebPageTitle) beklemek yerine, zaten yuklenmis olan sayfanin
+  // GERCEK <title>'ini dogrudan kullaniyoruz (daha hizli, CORS riski yok).
+  const [webPageTitle, setWebPageTitle] = useState<string | null>(null);
+  const [webLoadProgress, setWebLoadProgress] = useState(0);
+  const webViewRef = useRef<WebView>(null);
   const detectedVideoRef = useRef<string | null>(null);
   // Secilen DRM'li platform (Netflix/Disney+ vb.) - "external" modunda
   // gezinme WebView'inin hangi adresten baslayacagini ve secim aninda
@@ -434,6 +449,12 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     detectedVideoRef.current = null;
     setExternalPlatform(null);
     externalCurrentUrlRef.current = null;
+    setWebBrowsing(false);
+    setWebCurrentUrl(null);
+    setWebCanGoBack(false);
+    setWebCanGoForward(false);
+    setWebPageTitle(null);
+    setWebLoadProgress(0);
   }
 
   function handleClose() {
@@ -446,6 +467,13 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     detectedVideoRef.current = null;
     setExternalPlatform(null);
     externalCurrentUrlRef.current = null;
+    setWebBrowsing(false);
+    setWebCurrentUrl(null);
+    setWebCanGoBack(false);
+    setWebCanGoForward(false);
+    setWebPageTitle(null);
+    setWebLoadProgress(0);
+    setWebUrlInput("");
     setMode("grid");
   }
 
@@ -651,35 +679,61 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
     );
   }
 
-  async function handleWebUrlSubmit() {
+  function domainLabelFor(url: string): string {
+    return url.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0];
+  }
+
+  // Adres cubugundaki "Git" - dogrudan bir video dosyasi linkiyse (.mp4/
+  // .m3u8) DRM'li bir platform degil, kendi oynaticimizda (HlsPlayer) gercek
+  // senkronla oynatilabilir (bunlarda sayfa/baslik/gezinme kavrami yok, ham
+  // video verisi) - bu durumda ESKIDEN OLDUGU gibi aninda secilir. Genel bir
+  // sayfaysa artik dogrudan secilmiyor, GERCEK gezinme (WebView) baslatiliyor
+  // - host istedigi sayfaya gidip orada "Bu Sayfayı Seç" diyebilir.
+  function handleWebGo() {
     const trimmed = webUrlInput.trim();
     if (!trimmed) {
       setError(t("mediaPicker.enterUrlError"));
       return;
     }
+    setError(null);
     const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-    const domainLabel = normalized.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0];
-    // Dogrudan bir video dosyasi linkiyse (.mp4/.m3u8) DRM'li bir platform
-    // degil, kendi oynaticimizda (HlsPlayer) gercek senkronla oynatilabilir -
-    // bunlarda sayfa/baslik kavrami yok (ham video verisi), alan adi kaliyor.
     const pathname = normalized.replace(/[?#].*$/, "");
     if (/\.m3u8$/i.test(pathname)) {
-      onSelect({ type: "hls", url: normalized, label: domainLabel });
+      onSelect({ type: "hls", url: normalized, label: domainLabelFor(normalized) });
       handleClose();
       return;
     }
     if (/\.mp4$/i.test(pathname)) {
-      onSelect({ type: "mp4", url: normalized, label: domainLabel });
+      onSelect({ type: "mp4", url: normalized, label: domainLabelFor(normalized) });
       handleClose();
       return;
     }
-    // Genel sayfa linki ("external") - oda/kart ismi icin sayfanin GERCEK
-    // basligini (og:title) cekmeyi deniyoruz, basarisiz olursa alan adi
-    // yedek olarak kullanilir (bkz. fetchWebPageTitle).
-    setLoadingTitle(true);
-    const realTitle = await fetchWebPageTitle(normalized);
-    setLoadingTitle(false);
-    onSelect({ type: "external", url: normalized, label: realTitle || domainLabel });
+    setWebUrlInput(normalized);
+    setWebCurrentUrl(normalized);
+    setWebPageTitle(null);
+    setWebBrowsing(true);
+  }
+
+  // Gezinme sirasinda WebView her navigasyonda cagirir - adres cubugunu
+  // (host BASKA bir adrese odaklanip yazmiyorsa) o anki GERCEK URL'e
+  // gunceller, geri/ileri butonlarinin aktifligini ve (secim aninda
+  // kullanilacak) GERCEK sayfa basligini (navState.title) gunceller.
+  function handleWebNavChange(navState: { url: string; title?: string; canGoBack: boolean; canGoForward: boolean; loading: boolean }) {
+    setWebCurrentUrl(navState.url);
+    setWebUrlInput(navState.url);
+    setWebCanGoBack(navState.canGoBack);
+    setWebCanGoForward(navState.canGoForward);
+    if (navState.title) setWebPageTitle(navState.title);
+  }
+
+  // "Bu Sayfayı Seç" - host gezinme sirasinda durdugu SAYFAYI (platform
+  // listesindeki digerleri gibi "external" turunde) odanin icerigi yapar.
+  // Sayfa basligi icin ayrica sunucuya sorup beklemiyoruz (bkz. yukarisi) -
+  // WebView zaten o sayfayi tamamen yuklemis durumda, navState.title GERCEK
+  // <title>'i veriyor.
+  function handleWebSelectCurrentPage() {
+    if (!webCurrentUrl) return;
+    onSelect({ type: "external", url: webCurrentUrl, label: webPageTitle || domainLabelFor(webCurrentUrl) });
     handleClose();
   }
 
@@ -1058,25 +1112,82 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.formBox}>
-            <Text style={styles.title}>{t("mediaPicker.webUrlTitle")}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder={t("mediaPicker.webUrlPlaceholder")}
-              placeholderTextColor={theme.textMuted}
-              value={webUrlInput}
-              onChangeText={setWebUrlInput}
-              autoCapitalize="none"
-              autoFocus
-            />
-            {error && <Text style={styles.error}>{error}</Text>}
-            <TouchableOpacity style={styles.primaryButton} onPress={handleWebUrlSubmit} disabled={loadingTitle}>
-              {loadingTitle ? (
-                <ActivityIndicator color="#04140D" />
-              ) : (
-                <Text style={styles.primaryButtonText}>{t("mediaPicker.continue")}</Text>
+          <View style={styles.browserContainer}>
+            <View style={styles.addressBarRow}>
+              <TouchableOpacity
+                style={styles.addressNavBtn}
+                onPress={() => webViewRef.current?.goBack()}
+                disabled={!webCanGoBack}
+                hitSlop={8}
+              >
+                <ChevronLeft size={20} color={webCanGoBack ? "#FFFFFF" : theme.textMuted} strokeWidth={2.4} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.addressNavBtn}
+                onPress={() => webViewRef.current?.goForward()}
+                disabled={!webCanGoForward}
+                hitSlop={8}
+              >
+                <ChevronRight size={20} color={webCanGoForward ? "#FFFFFF" : theme.textMuted} strokeWidth={2.4} />
+              </TouchableOpacity>
+              <View style={styles.addressBarPill}>
+                <Globe size={14} color={theme.textMuted} />
+                <TextInput
+                  style={styles.addressBarInput}
+                  placeholder={t("mediaPicker.webUrlPlaceholder")}
+                  placeholderTextColor={theme.textMuted}
+                  value={webUrlInput}
+                  onChangeText={setWebUrlInput}
+                  onSubmitEditing={handleWebGo}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  returnKeyType="go"
+                  selectTextOnFocus
+                  autoFocus={!webBrowsing}
+                />
+                {webBrowsing && (
+                  <TouchableOpacity onPress={() => webViewRef.current?.reload()} hitSlop={8}>
+                    <RefreshCw size={14} color={theme.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {!webBrowsing && (
+                <TouchableOpacity style={styles.addressGoBtn} onPress={handleWebGo}>
+                  <Text style={styles.addressGoBtnText}>{t("mediaPicker.go")}</Text>
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+            </View>
+            {webBrowsing && (
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${Math.max(webLoadProgress, 0.06) * 100}%` }]} />
+              </View>
+            )}
+            {error && <Text style={[styles.error, styles.browserError]}>{error}</Text>}
+
+            {!webBrowsing ? (
+              <View style={styles.browserEmptyState}>
+                <Globe size={44} color={theme.textMuted} strokeWidth={1.5} />
+                <Text style={styles.title}>{t("mediaPicker.webUrlTitle")}</Text>
+                <Text style={styles.browserEmptyHint}>{t("mediaPicker.webUrlHint")}</Text>
+              </View>
+            ) : (
+              <View style={styles.browserWebviewWrap}>
+                <WebView
+                  ref={webViewRef}
+                  source={{ uri: webCurrentUrl! }}
+                  style={styles.webview}
+                  onNavigationStateChange={handleWebNavChange}
+                  onLoadProgress={({ nativeEvent }) => setWebLoadProgress(nativeEvent.progress)}
+                  onLoadEnd={() => setWebLoadProgress(1)}
+                  javaScriptEnabled
+                  domStorageEnabled
+                />
+                <TouchableOpacity style={styles.selectPageBtn} onPress={handleWebSelectCurrentPage}>
+                  <Text style={styles.selectPageBtnText}>{t("mediaPicker.selectThisPage")}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -1255,15 +1366,50 @@ const styles = StyleSheet.create({
   historyThumbImage: { width: "100%", height: "100%" },
   historyTitle: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
   historyMeta: { color: theme.textMuted, fontSize: 11, fontWeight: "600", marginTop: 3 },
-  formBox: { backgroundColor: theme.bg, borderRadius: 16, padding: 20, gap: 16, marginTop: 20 },
-  input: {
-    backgroundColor: theme.surfaceAlt,
-    color: theme.text,
-    borderRadius: 10,
+  // Kullanici: "tam profesyonel bir mini tarayıcı olmalı" - gercek bir
+  // mobil tarayicinin (Chrome/Safari) ust cubugunu taklit eden adres
+  // cubugu + geri/ileri/yenile + ilerleme cubugu + canli WebView.
+  browserContainer: { flex: 1, marginTop: 4 },
+  addressBarRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  addressNavBtn: { width: 30, height: 30, alignItems: "center", justifyContent: "center" },
+  addressBarPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    height: 38,
+    borderRadius: 19,
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
+    backgroundColor: theme.surfaceAlt,
   },
+  addressBarInput: {
+    flex: 1,
+    color: theme.text,
+    fontSize: 14,
+    paddingVertical: 0,
+    includeFontPadding: false,
+    outlineWidth: 0,
+    outlineStyle: "none",
+  } as any,
+  addressGoBtn: { paddingHorizontal: 4 },
+  addressGoBtnText: { color: theme.accent, fontSize: 15, fontWeight: "700" },
+  progressTrack: { height: 2, backgroundColor: "transparent", marginTop: 8, borderRadius: 1, overflow: "hidden" },
+  progressFill: { height: "100%", backgroundColor: theme.accent, borderRadius: 1 },
+  browserError: { marginTop: 10 },
+  browserEmptyState: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
+  browserEmptyHint: { color: theme.textMuted, fontSize: 13, textAlign: "center", lineHeight: 18 },
+  browserWebviewWrap: { flex: 1, marginTop: 12, marginHorizontal: -20, marginBottom: -20 },
+  selectPageBtn: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 16,
+    backgroundColor: theme.accent,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  selectPageBtnText: { color: "#04140D", fontWeight: "700", fontSize: 15 },
   youtubeContainer: { flex: 1, marginHorizontal: -20, marginBottom: -20 },
   webview: { flex: 1 },
   youtubeLoadingOverlay: {
