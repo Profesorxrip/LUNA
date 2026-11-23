@@ -112,10 +112,16 @@ export default function CallEngineProvider({ children }: { children: React.React
             onPress={() => {
               setCallMinimized(false);
               if (navigationRef.isReady()) {
-                navigationRef.navigate(isVideoCall ? "VideoCall" : "VoiceCall", {
-                  peer: { userId: minimizedPeer.userId, name: minimizedPeer.name },
-                  peerAvatarUrl: minimizedPeer.avatarUrl,
-                });
+                const peer = { userId: minimizedPeer.userId, name: minimizedPeer.name };
+                // engine.isGroupCall: henuz tam SADECE 1 kisi katilmis bir
+                // grup aramasina geri donuluyor olabilir (bkz. yukarisi) -
+                // VoiceCallScreen'de izgara olmadigi icin bu durumda da
+                // VideoCall'a (GroupCallGrid) donulur.
+                if (isVideoCall || engine.isGroupCall) {
+                  navigationRef.navigate("VideoCall", { peer, peerAvatarUrl: minimizedPeer.avatarUrl, startWithVideoOff: !isVideoCall });
+                } else {
+                  navigationRef.navigate("VoiceCall", { peer, peerAvatarUrl: minimizedPeer.avatarUrl });
+                }
               }
             }}
           />
@@ -133,13 +139,21 @@ export default function CallEngineProvider({ children }: { children: React.React
             peer={{ userId: incomingCall.fromUserId, name: incomingCall.fromName }}
             peerAvatarUrl={incomingCall.fromAvatarUrl}
             onAccept={() => {
-              const { fromUserId, fromName, fromAvatarUrl, isVideo } = incomingCall;
+              const { fromUserId, fromName, fromAvatarUrl, isVideo, existingMembers } = incomingCall;
               acceptCall();
               if (navigationRef.isReady()) {
-                navigationRef.navigate(isVideo ? "VideoCall" : "VoiceCall", {
-                  peer: { userId: fromUserId, name: fromName },
-                  peerAvatarUrl: fromAvatarUrl,
-                });
+                // Zaten ICINDE baska biri olan (existingMembers dolu) bir
+                // aramaya katiliyorsak bu TANIM GEREGI bir grup aramasi -
+                // VoiceCallScreen'de bunun icin bir izgara OLMADIGI icin
+                // (bkz. RootNavigator.tsx GroupChatRoute yorumu) isVideo
+                // false olsa bile VideoCall'a (GroupCallGrid) gidilir.
+                const isGroupCall = existingMembers.length > 0;
+                const peer = { userId: fromUserId, name: fromName };
+                if (isVideo || isGroupCall) {
+                  navigationRef.navigate("VideoCall", { peer, peerAvatarUrl: fromAvatarUrl, startWithVideoOff: !isVideo });
+                } else {
+                  navigationRef.navigate("VoiceCall", { peer, peerAvatarUrl: fromAvatarUrl });
+                }
               }
             }}
             onDecline={declineCall}

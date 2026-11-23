@@ -89,7 +89,13 @@ export type RootStackParamList = {
   // VoiceCall'daki "Paylaş" butonundan - ekran paylasimi SADECE burada
   // gercek oldugu icin (bkz. VoiceCallScreen.tsx onSwitchToVideo yorumu)
   // kullanici onayladiktan sonra VoiceCall'dan BURAYA replace ediliyor.
-  VideoCall: { peer: DMPeer; peerAvatarUrl: string | null; additionalMemberIds?: string[] };
+  // startWithVideoOff: SADECE grup sohbetinden baslatilan SESLI aramalarda
+  // true - VoiceCallScreen'de grup icin bir izgara (grid) OLMADIGI icin
+  // (bkz. GroupChatRoute) grup aramalari (sesli de olsa) HER ZAMAN buraya
+  // (VideoCall/GroupCallGrid, kamerasi kapali baslayarak) yonlendirilir.
+  // Verilmezse (digerleri - 1'e 1 goruntulu arama, "Paylaş" ile buraya
+  // gecis, "Arama Ekle" ile buyuyen aramalar) eskisi gibi kamera ACIK baslar.
+  VideoCall: { peer: DMPeer; peerAvatarUrl: string | null; additionalMemberIds?: string[]; startWithVideoOff?: boolean };
   RoomPreview: { room: PublicRoomSummary };
   Room: { room: RoomState };
 };
@@ -369,10 +375,16 @@ function GroupChatRoute() {
       onOpenInfo={(detail) => navigation.navigate("GroupInfo", { group: detail })}
       onStartVoiceCall={(members) => {
         const [first, ...rest] = members;
-        navigation.navigate("VoiceCall", {
+        // VoiceCall DEGIL - VoiceCallScreen'de grup icin bir izgara (grid)
+        // yok, bu yuzden grup aramalari (sesli de olsa) HER ZAMAN
+        // VideoCall'a (GroupCallGrid, startWithVideoOff ile kamerasi kapali
+        // baslayarak) yonlendirilir - bkz. RootStackParamList'teki
+        // startWithVideoOff aciklamasi.
+        navigation.navigate("VideoCall", {
           peer: { userId: first.userId, name: first.name },
           peerAvatarUrl: first.avatarUrl,
           additionalMemberIds: rest.map((m) => m.userId),
+          startWithVideoOff: true,
         });
       }}
     />
@@ -413,7 +425,7 @@ function useRealCallWiring(peerUserId: string, isVideo: boolean, additionalMembe
     // acceptCall()'i navigasyondan ONCE cagirdigi icin phase burada "idle"
     // olmaz, tekrar davet gondermeyiz.
     if (engine.phase === "idle") {
-      engine.startCall(peerUserId, isVideo).then((ok) => {
+      engine.startCall(peerUserId, isVideo, !!additionalMemberIds?.length).then((ok) => {
         // Grup sohbetinden baslatilan aramalarda (bkz. GroupChatRoute) ilk
         // uyeyle (peerUserId) baglanti kurulur kurulmaz kalanlar "Arama
         // Ekle" ile AYNI yontemle (engine.addToCall) sirayla eklenir -
@@ -506,12 +518,18 @@ function VoiceCallRoute() {
 function VideoCallRoute() {
   const { params } = useRoute<RouteProp<RootStackParamList, "VideoCall">>();
   const navigation = useNavigation<Nav>();
-  const { engine, endCall } = useRealCallWiring(params.peer.userId, true, params.additionalMemberIds);
+  const { engine, endCall } = useRealCallWiring(params.peer.userId, !params.startWithVideoOff, params.additionalMemberIds);
   const { onAddCall, modal } = useAddCallModal(engine, null, params.peer.userId);
   // 1'den fazla katilimci varsa (bkz. "Arama Ekle") GroupCallGrid'e gecmek
-  // icin VideoCallScreen'e GERCEK katilimci listesini veriyoruz.
+  // icin VideoCallScreen'e GERCEK katilimci listesini veriyoruz. isGroupCall
+  // true ise (bkz. useCallEngine.ts) HENUZ KIMSE katilmamis olsa bile (bos
+  // dizi) izgaraya geciliyor - "calarken sadece ben, katilan tek tek
+  // eklensin" davranisi boyle saglanir (bkz. VideoCallScreen.tsx'teki
+  // "participants !== undefined" kontrolu).
   const groupParticipants: GroupParticipant[] | undefined =
-    engine.participants.length > 1 ? engine.participants.map((p) => ({ userId: p.userId, name: p.name, avatarUrl: p.avatarUrl })) : undefined;
+    engine.isGroupCall || engine.participants.length > 1
+      ? engine.participants.map((p) => ({ userId: p.userId, name: p.name, avatarUrl: p.avatarUrl }))
+      : undefined;
   return (
     <>
       <VideoCallScreen

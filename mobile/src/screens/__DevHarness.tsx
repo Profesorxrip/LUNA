@@ -1091,11 +1091,22 @@ export default function DevHarness() {
               // (video=true) geciliyor ki coklu katilimci izgarasi GORUNUR
               // olsun (sesli aramada boyle bir izgara yok).
               onStartVoiceCall={(members) => {
+                // GERCEK uygulamada (bkz. RootNavigator.tsx VideoCallRoute
+                // isGroupCall kontrolu) "calarken sadece ben, katilan tek
+                // tek eklensin" - bu SADECE gorsel onizleme oldugu icin
+                // (gercek WebRTC kabul olayi yok) her uyenin "katilmasini"
+                // birer saniye arayla SAHTE olarak simule ediyoruz: once
+                // bos dizi (sadece "Siz" kutusu), sonra sirayla ekleniyor.
                 const mapped = members.map((m) => ({ userId: m.userId, name: m.name, avatarUrl: m.avatarUrl }));
-                setGroupParticipants(mapped.length > 1 ? mapped : undefined);
+                setGroupParticipants([]);
                 setCallIsVideo(true);
                 setCallActive(true);
                 setCallMinimized(false);
+                mapped.forEach((p, i) => {
+                  setTimeout(() => {
+                    setGroupParticipants((prev) => [...(prev ?? []), p]);
+                  }, (i + 1) * 1500);
+                });
               }}
             />
           ) : screen === "groupInfo" ? (

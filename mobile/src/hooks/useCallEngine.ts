@@ -136,6 +136,16 @@ export function useCallEngine() {
   // Isim "isVideo" degil "isVideoCall" - cok sayida fonksiyonda zaten "isVideo"
   // adinda bir PARAMETRE var, isim CAKISMASIN diye.
   const [isVideoCall, setIsVideoCallState] = useState(false);
+  // Bu arama BASLANGICTA birden fazla kisiyi hedefliyor mu (bkz.
+  // RootNavigator.tsx GroupChatRoute/useRealCallWiring'deki
+  // additionalMemberIds) YA DA katildigimiz arama zaten bir grup aramasi mi
+  // (bkz. acceptCall - existingMembers dolu) - "Cal catiktir katilimcilar
+  // izgarasi (GroupCallGrid) HENUZ KIMSE KATILMAMISKEN bile (participants
+  // bos dizi) gosterilsin, sadece 'Siz' kutusuyla" kararinin tek kaynagi.
+  // Normal 1'e 1 aramalarda (DM) false kalir - "Arama Ekle" ile SONRADAN
+  // buyuyen aramalar hala eski "participants.length > 1" kontrolune gore
+  // izgaraya gecer, bu bayraktan ETKILENMEZ.
+  const [isGroupCall, setIsGroupCallState] = useState(false);
   // Aramanin GERCEK suresi - ekranin kendi yerel sayacinin AKSINE burada
   // (motorun kendisinde) tutulur, boylece arama ekrani kucultulup (bkz.
   // RootNavigator.tsx onMinimize) baska bir ekrana gecilse/arama ekrani
@@ -193,6 +203,7 @@ export function useCallEngine() {
     myKeyPairRef.current = null;
     peerKeysRef.current.clear();
     setIsVideoCallState(false);
+    setIsGroupCallState(false);
     setElapsedSeconds(0);
   }, []);
 
@@ -370,10 +381,20 @@ export function useCallEngine() {
     setParticipants((prev) => prev.filter((p) => p.userId !== userId));
   }
 
-  const startCall = useCallback(async (toUserId: string, isVideo: boolean): Promise<boolean> => {
+  const startCall = useCallback(async (toUserId: string, isVideo: boolean, isGroupCall = false): Promise<boolean> => {
     setError(null);
     isVideoRef.current = isVideo;
     setIsVideoCallState(isVideo);
+    setIsGroupCallState(isGroupCall);
+    // "cameraEnabled" (showSelfCamera'nin kaynagi) ESKIDEN resetAll/acceptCall
+    // disinda hic ayarlanmiyordu (hep true kalirdi) - bu simdiye kadar
+    // sorun degildi cunku SADECE isVideo=true oldugunda (zaten VideoCallScreen/
+    // GroupCallGrid) gosteriliyordu. Artik SESLI bir grup aramasi da
+    // GroupCallGrid'i (avatar-kutucuk fallback'iyle) kullanabildigi icin
+    // (bkz. isGroupCall) burada GERCEK niyeti (isVideo) yansitmasi sart -
+    // yoksa sesli aramada kendi kamerasi hic istenmedigi halde "acik"
+    // gorunup bos/siyah bir self-preview denemesine yol acardi.
+    setCameraEnabledState(isVideo);
     const socket = getSocket();
     const res: any = await new Promise((resolve) => socket.emit("call:invite", { toUserId, isVideo }, resolve));
     if (!res?.ok) {
@@ -407,6 +428,11 @@ export function useCallEngine() {
     }
     const existing: ParticipantInfo[] = res.existingMembers || call.existingMembers || [];
     setParticipants(existing);
+    // Zaten ICINDE en az bir kisi olan bir aramaya katiliyorsak (existing
+    // dolu) bu TANIM GEREGI bir grup aramasi - startCall'daki AYNI
+    // isGroupCall/cameraEnabled mantigi (bkz. oradaki yorum).
+    setIsGroupCallState(existing.length > 0);
+    setCameraEnabledState(res.isVideo ?? call.isVideo);
     try {
       await ensureLocalMedia(res.isVideo ?? call.isVideo);
       // Simdi aramada zaten olan herkesin teklifini (offer) bekliyoruz - bkz.
@@ -839,6 +865,7 @@ export function useCallEngine() {
     incomingCall,
     phase,
     isVideoCall,
+    isGroupCall,
     elapsedSeconds,
     localStream,
     participants,

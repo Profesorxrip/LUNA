@@ -737,7 +737,13 @@ export default function VideoCallScreen({
   // hook kurallari geregi (her render'da AYNI hook'lar AYNI sirada
   // cagrilmali) component'in EN USTUNE konulamaz, cunku "Arama Ekle" ile
   // participants prop'u SONRADAN degisebiliyor (bkz. __DevHarness.tsx).
-  if (participants && participants.length > 0) {
+  // DIKKAT: "length > 0" DEGIL "!== undefined" - grup sohbetinden baslatilan
+  // bir aramada (bkz. RootNavigator.tsx VideoCallRoute isGroupCall kontrolu)
+  // HENUZ KIMSE katilmamisken bile (bos dizi) izgaraya gecilsin istiyoruz:
+  // "calarken sadece ben, katilan tek tek eklensin" (kullanici istegi) -
+  // GroupCallGrid zaten "ben" kutusunu HER ZAMAN ekliyor (bkz. oradaki
+  // "tiles" dizisi), bos participants ile tek basina gorunur.
+  if (participants !== undefined) {
     return (
       <GroupCallGrid
         participants={participants}
