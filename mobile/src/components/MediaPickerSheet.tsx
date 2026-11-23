@@ -1457,8 +1457,9 @@ const styles = StyleSheet.create({
   // ICINDE, sol ust kosede (kartin kendi ic paddingini kullaniyor).
   quickSitesTitle: {
     alignSelf: "flex-start",
+    marginLeft: 10,
     marginBottom: 14,
-    color: theme.textMuted,
+    color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "700",
     letterSpacing: 0.6,
