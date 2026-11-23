@@ -1189,20 +1189,33 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
         ) : webBrowsing ? (
           // Kullanici: "Google sayfasının üstünde bunu görmek istemiyorum",
           // "Bak ravede nasıl" - gezinme BASLAYINCA adres cubugu/geri-ileri
-          // TAMAMEN kalkar, youtube/external modlarindaki AYNI sade gorunum:
-          // sadece tam ekran GERCEK sayfa + "Bu Sayfayı Seç".
+          // TAMAMEN kalkar, youtube/external modlarindaki AYNI sade gorunum.
+          // Kullanici: "Bu sayfayı seç butonunu kaldır ordan bir videoyu
+          // oynatma tuşuna bastığımızda onu seçmeli veya açmalı odada" -
+          // artik manuel buton YOK, DRM'li platformlarla (Netflix/Disney+
+          // vb.) AYNI mekanizma (EXTERNAL_VIDEO_DETECT_JS): host sayfada
+          // GERCEKTEN bir <video> etiketi belirince (oynat tusuna basinca)
+          // o an durulan sayfa otomatik secilir.
           <View style={styles.browserWebviewWrap}>
             <WebView
               ref={webViewRef}
               source={{ uri: webCurrentUrl! }}
               style={styles.webview}
+              injectedJavaScriptBeforeContentLoaded={EXTERNAL_VIDEO_DETECT_JS}
               onNavigationStateChange={handleWebNavChange}
+              onMessage={(event) => {
+                try {
+                  const data = JSON.parse(event.nativeEvent.data);
+                  if (data.type === "videoDetected") handleWebSelectCurrentPage();
+                } catch {
+                  // yoksay - beklenmeyen mesaj formati
+                }
+              }}
               javaScriptEnabled
               domStorageEnabled
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
             />
-            <TouchableOpacity style={styles.selectPageBtn} onPress={handleWebSelectCurrentPage}>
-              <Text style={styles.selectPageBtnText}>{t("mediaPicker.selectThisPage")}</Text>
-            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.browserContainer}>
@@ -1550,17 +1563,6 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   browserWebviewWrap: { flex: 1, marginTop: 12, marginHorizontal: -20, marginBottom: -20 },
-  selectPageBtn: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 16,
-    backgroundColor: theme.accent,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  selectPageBtnText: { color: "#04140D", fontWeight: "700", fontSize: 15 },
   youtubeContainer: { flex: 1, marginHorizontal: -20, marginBottom: -20 },
   webview: { flex: 1 },
   youtubeLoadingOverlay: {
