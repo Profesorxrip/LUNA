@@ -21,6 +21,7 @@ import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
 import { getSocket, GroupConversationSummary } from "../services/socket";
+import { supabase } from "../services/supabase";
 import Avatar from "../components/Avatar";
 import AppBackground from "../components/AppBackground";
 import Icon from "../components/Icon";
@@ -51,6 +52,10 @@ interface DMConversationSummary {
     text: string;
     createdAt: number;
     fromUserId: string;
+    // Kullanici: "Gruplarda mesajı kim attıysa onun ismi ve : noktada
+    // olmalı" - sadece grup satirlarinda kullanilir (DM'de tek bir
+    // PEER oldugu icin gereksiz), bkz. senderPrefixFor.
+    fromName?: string | null;
     kind?: string | null;
     callStatus?: string | null;
     callIsVideo?: boolean | null;
@@ -95,6 +100,7 @@ function groupToRow(g: GroupConversationSummary): DMConversationSummary & { isGr
           text: g.lastMessage.text,
           createdAt: g.lastMessage.createdAt,
           fromUserId: g.lastMessage.fromUserId,
+          fromName: g.lastMessage.fromName,
           kind: g.lastMessage.kind,
           viewOnce: g.lastMessage.viewOnce,
           stickerId: g.lastMessage.stickerId,
@@ -191,6 +197,20 @@ function previewLabelFor(item: LastMessagePreview, t: (key: string) => string): 
   return previewTextFor(item.text, item.kind);
 }
 
+// Kullanici: "Gruplarda mesajı kim attıysa onun ismi ve : noktada olmalı" -
+// DM'de PEER zaten tek kisi oldugu icin sadece grup satirlarinda uygulanir;
+// kendi mesajimizsa isim yerine "Siz" (t("dmList.you")) gosterilir.
+function senderPrefixFor(
+  item: LastMessagePreview,
+  isGroup: boolean,
+  myUserId: string | null,
+  t: (key: string) => string
+): string {
+  if (!isGroup) return "";
+  const name = myUserId && item.fromUserId === myUserId ? t("dmList.you") : item.fromName;
+  return name ? `${name}: ` : "";
+}
+
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
 }
@@ -255,6 +275,13 @@ export default function DMListScreen({ onOpenDM, onOpenGroup }: Props) {
   const [undoBanner, setUndoBanner] = useState<{ message: string; onUndo: () => void } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingCommitRef = useRef<(() => void) | null>(null);
+
+  // Grup satirlarinda son mesaji "Siz: ..." / "Ad: ..." gosterebilmek icin
+  // kendi kullanici id'mizi biliyor olmamiz gerekiyor (bkz. senderPrefixFor).
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -643,7 +670,8 @@ export default function DMListScreen({ onOpenDM, onOpenGroup }: Props) {
                     (() => {
                       const previewColor = item.unread ? TEXT : MUTED;
                       const iconNode = renderPreviewIcon(item.lastMessage, previewColor);
-                      const previewText = previewLabelFor(item.lastMessage, t);
+                      const senderPrefix = senderPrefixFor(item.lastMessage, !!(item as any).isGroup, myUserId, t);
+                      const previewText = senderPrefix + previewLabelFor(item.lastMessage, t);
                       return iconNode ? (
                         <View style={styles.rowPreviewIconWrap}>
                           {iconNode}

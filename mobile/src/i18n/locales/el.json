@@ -167,6 +167,7 @@
   },
   "dmList": {
     "title": "Μηνύματα",
+    "you": "Εσείς",
     "searchPlaceholder": "ΑΝΑΖΗΤΗΣΗ",
     "newMessage": "Νέο Μήνυμα",
     "newChatTitle": "Νέα Συνομιλία",

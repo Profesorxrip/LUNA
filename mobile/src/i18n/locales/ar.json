@@ -167,6 +167,7 @@
   },
   "dmList": {
     "title": "الرسائل",
+    "you": "أنت",
     "searchPlaceholder": "بحث",
     "newMessage": "رسالة جديدة",
     "newChatTitle": "محادثة جديدة",

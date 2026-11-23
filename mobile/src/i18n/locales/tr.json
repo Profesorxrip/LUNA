@@ -167,6 +167,7 @@
   },
   "dmList": {
     "title": "Mesajlar",
+    "you": "Siz",
     "searchPlaceholder": "ARA",
     "newMessage": "Yeni Mesaj",
     "newChatTitle": "Yeni Sohbet",

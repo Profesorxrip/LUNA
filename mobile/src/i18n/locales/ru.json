@@ -167,6 +167,7 @@
   },
   "dmList": {
     "title": "Сообщения",
+    "you": "Вы",
     "searchPlaceholder": "ПОИСК",
     "newMessage": "Новое сообщение",
     "newChatTitle": "Новый чат",

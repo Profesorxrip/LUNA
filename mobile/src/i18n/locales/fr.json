@@ -167,6 +167,7 @@
   },
   "dmList": {
     "title": "Messages",
+    "you": "Vous",
     "searchPlaceholder": "RECHERCHER",
     "newMessage": "Nouveau Message",
     "newChatTitle": "Nouvelle Discussion",

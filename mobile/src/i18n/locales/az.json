@@ -167,6 +167,7 @@
   },
   "dmList": {
     "title": "Mesajlar",
+    "you": "Siz",
     "searchPlaceholder": "AXTAR",
     "newMessage": "Yeni Mesaj",
     "newChatTitle": "Yeni Söhbət",
