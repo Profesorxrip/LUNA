@@ -27,7 +27,7 @@ import * as Location from "expo-location";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Clipboard from "expo-clipboard";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon, UserGroup, LocateFixed } from "lucide-react-native";
+import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon, UserGroup, LocateFixed, Key } from "lucide-react-native";
 import { SimpleLineIcons, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import i18n from "../i18n";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
@@ -2695,28 +2695,38 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 end={{ x: 1, y: 0 }}
                 style={styles.handleBoxLineBottom}
               />
-              {/* Kullanici: "Mikrofonla o pusula ikonunu yer değiştir" - pusula
-                  (harita) butonu artik solda. "6yı deneyelim" - özel pusula
-                  (CompassBadgeIcon) yerine lucide LocateFixed. */}
-              <TouchableOpacity style={styles.videoHandleSideBtn} onPress={showMap} hitSlop={8}>
-                <LocateFixed size={24} color="#FFFFFF" strokeWidth={1.8} />
-              </TouchableOpacity>
+              <View style={styles.videoHandleSideGroup}>
+                {/* Kullanici: "Mikrofonla o pusula ikonunu yer değiştir" - pusula
+                    (harita) butonu artik solda. "6yı deneyelim" - özel pusula
+                    (CompassBadgeIcon) yerine lucide LocateFixed. */}
+                <TouchableOpacity style={styles.videoHandleSideBtn} onPress={showMap} hitSlop={8}>
+                  <LocateFixed size={24} color="#FFFFFF" strokeWidth={1.8} />
+                </TouchableOpacity>
+                {/* Kullanici: "Davetli ikonunu ... oda haritayı açan ikonun
+                    sağına gelse" - davet butonu (ust bardakiyle AYNI eylem,
+                    setInviteFriendsVisible), ikonu lucide Key. */}
+                <TouchableOpacity style={styles.videoHandleSideBtn} onPress={() => setInviteFriendsVisible(true)} hitSlop={8}>
+                  <Key size={24} color="#FFFFFF" strokeWidth={1.8} />
+                </TouchableOpacity>
+              </View>
               <View style={styles.videoHandleNotch} />
-              {/* Mikrofon butonu (bkz. handleMicPress/handleMicLongPress) artik
-                  sagda - VideoCallScreen.tsx'teki AYNI heroicons outline
-                  MicrophoneIcon, acik/kapali farki sadece renkle. */}
-              <TouchableOpacity
-                style={styles.videoHandleSideBtn}
-                onPress={handleMicPress}
-                onLongPress={handleMicLongPress}
-                hitSlop={8}
-              >
-                <MicrophoneOutline
-                  size={24}
-                  color={voice.connected && !voice.muted ? theme.accent : "#FFFFFF"}
-                  strokeWidth={1.8}
-                />
-              </TouchableOpacity>
+              <View style={[styles.videoHandleSideGroup, styles.videoHandleSideGroupRight]}>
+                {/* Mikrofon butonu (bkz. handleMicPress/handleMicLongPress) artik
+                    sagda - VideoCallScreen.tsx'teki AYNI heroicons outline
+                    MicrophoneIcon, acik/kapali farki sadece renkle. */}
+                <TouchableOpacity
+                  style={styles.videoHandleSideBtn}
+                  onPress={handleMicPress}
+                  onLongPress={handleMicLongPress}
+                  hitSlop={8}
+                >
+                  <MicrophoneOutline
+                    size={24}
+                    color={voice.connected && !voice.muted ? theme.accent : "#FFFFFF"}
+                    strokeWidth={1.8}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -3342,11 +3352,17 @@ const styles = StyleSheet.create({
   videoHandleBar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 10,
     backgroundColor: theme.surface,
   },
+  // Kullanici: "Davetli ikonunu ... oda haritayı açan ikonun sağına ...
+  // mikrofonun soluna" - notch'un (surukleme tutamaci) TAM ORTADA kalmasi
+  // icin sol/sag taraflar artik birer flex:1 grup, notch ikisinin arasinda
+  // sabit boyutta duruyor (eskiden 3 cocuklu space-between'de notch
+  // merkeziydi, 4. butonla bu dengeyi bozmamak icin boyle yapildi).
+  videoHandleSideGroup: { flex: 1, flexDirection: "row", alignItems: "center", gap: 20 },
+  videoHandleSideGroupRight: { justifyContent: "flex-end" },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   videoHandleSideBtn: { width: 24, height: 24, justifyContent: "center", alignItems: "center" },
   // Kullanici: "Alttaki kutuda üstteki kutuyla aynı boyutta olsun" - artik
