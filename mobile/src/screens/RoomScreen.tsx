@@ -26,7 +26,7 @@ import * as Location from "expo-location";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Clipboard from "expo-clipboard";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon, Users } from "lucide-react-native";
+import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon, UserGroup } from "lucide-react-native";
 import { SimpleLineIcons, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import i18n from "../i18n";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
@@ -2440,11 +2440,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         {/* Kullanici: "Odadakiler ikonu grup ikonu olsun ve büyüteç ikonunun
             yerinde olsun" - katilimcilar butonu (ikonu artik lucide "grup"
             ikonu Users) eskiden buyutecin oldugu yere tasindi. */}
-        <TouchableOpacity style={styles.participantsBadge} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
-          <Users size={24} color={theme.text} />
-          <View style={styles.countBubble}>
-            <Text style={styles.countText}>{room.participants.length}</Text>
-          </View>
+        {/* Kullanici: "grup ikonu dediğim bu değil, gruptaki üyeler kısmını
+            gösteren ikon" - GroupInfoScreen.tsx'teki "Üyeler" sekmesiyle
+            AYNI lucide UserGroup glyph'i. "sağ üstteki kişi sayısı balonunu
+            kaldıralım" - countBubble kaldirildi, artik duz iconTouch. */}
+        <TouchableOpacity style={styles.iconTouch} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
+          <UserGroup size={24} color={theme.text} strokeWidth={1.8} />
         </TouchableOpacity>
         {/* "büyüteç ikonu davet ikonunun yerinde olsun" - buyutec artik
             eskiden davetin oldugu yerde. */}
@@ -3430,20 +3431,6 @@ const styles = StyleSheet.create({
   },
   iconTouch: { width: 32, height: 32, justifyContent: "center", alignItems: "center" },
   topIconDim: { opacity: 0.35 },
-  participantsBadge: { position: "relative", width: 32, height: 32, justifyContent: "center", alignItems: "center" },
-  countBubble: {
-    position: "absolute",
-    top: 1,
-    right: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 7,
-    minWidth: 14,
-    height: 14,
-    paddingHorizontal: 3,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  countText: { color: "#04140D", fontSize: 9, fontWeight: "700" },
   bufferingBanner: {
     marginHorizontal: 12,
     marginTop: 6,
