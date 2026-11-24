@@ -3517,9 +3517,9 @@ const styles = StyleSheet.create({
   },
   inputPillIconsRow: { flexDirection: "row", alignItems: "center" },
   inputRoundBtn: {
-    width: 55,
-    height: 55,
-    borderRadius: 27.5,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: theme.accentBright,
     alignItems: "center",
     justifyContent: "center",
