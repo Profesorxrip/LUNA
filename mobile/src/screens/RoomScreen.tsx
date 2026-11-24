@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import { MicrophoneIcon as MicrophoneOutline } from "react-native-heroicons/outline";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
@@ -2696,17 +2697,21 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               />
               {/* Kullanici: "sekme çubuğa mikrofon ikonu ekleyelim" - alt
                   composer bar'dan kaldirilan CANLI sesli sohbet ac/kapa
-                  butonunun yeni yeri (bkz. handleMicPress/handleMicLongPress). */}
+                  butonunun yeni yeri (bkz. handleMicPress/handleMicLongPress).
+                  "Soldaki mikrofon ikonu yerine arama ekranında kullandığımız
+                  mikrofon ikonunu koyalım" - VideoCallScreen.tsx'teki AYNI
+                  heroicons outline MicrophoneIcon (tek glyph, acik/kapali
+                  farki sadece renkle - orada muted ? danger : beyaz). */}
               <TouchableOpacity
                 style={styles.videoHandleSideBtn}
                 onPress={handleMicPress}
                 onLongPress={handleMicLongPress}
                 hitSlop={8}
               >
-                <Icon
-                  name={voice.connected && voice.muted ? "micOff" : "mic"}
+                <MicrophoneOutline
                   size={24}
                   color={voice.connected && !voice.muted ? theme.accent : "#FFFFFF"}
+                  strokeWidth={1.8}
                 />
               </TouchableOpacity>
               <View style={styles.videoHandleNotch} />
