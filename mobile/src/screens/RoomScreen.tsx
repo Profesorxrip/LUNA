@@ -95,6 +95,10 @@ interface Props {
 }
 
 const DRIFT_TOLERANCE_SECONDS = 2;
+// Ust bardaki dekoratif cercevenin (sol/sag/ust cizgi) yuksekligi - ust
+// barin kendi yuksekliginden (paddingTop:38) BAGIMSIZ, alt ucu HER ZAMAN
+// videoya deyecek sekilde sabit kalir (bkz. topBoxLine* stilleri).
+const TOP_FRAME_HEIGHT = 28;
 const GUEST_RESYNC_INTERVAL_MS = 8000;
 const HOST_HEARTBEAT_INTERVAL_MS = 5000;
 const REPLY_SWIPE_TRIGGER = 48;
@@ -3335,9 +3339,14 @@ const styles = StyleSheet.create({
   handleBoxLineLeft: { position: "absolute", left: 0, top: 0, bottom: 0, width: 2 },
   handleBoxLineRight: { position: "absolute", right: 0, top: 0, bottom: 0, width: 2 },
   handleBoxLineBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: 2 },
-  topBoxLineLeft: { position: "absolute", left: 0, top: 0, bottom: 0, width: 2 },
-  topBoxLineRight: { position: "absolute", right: 0, top: 0, bottom: 0, width: 2 },
-  topBoxLineTop: { position: "absolute", left: 0, right: 0, top: 0, height: 2 },
+  // Kullanici: "üstteki çerçevenin yüksekliğini düşür" - cercevenin kendisi
+  // ust barin TUM yuksekligini KAPLAMIYOR artik, SADECE alt ucu (videoya
+  // deyen taraf) sabit kalip SABIT bir yukseklikte (TOP_FRAME_HEIGHT) yukari
+  // dogru kisaliyor - ust barin kendi yuksekligi (paddingTop:38) bundan
+  // ETKILENMIYOR.
+  topBoxLineLeft: { position: "absolute", left: 0, bottom: 0, height: TOP_FRAME_HEIGHT, width: 2 },
+  topBoxLineRight: { position: "absolute", right: 0, bottom: 0, height: TOP_FRAME_HEIGHT, width: 2 },
+  topBoxLineTop: { position: "absolute", left: 0, right: 0, bottom: TOP_FRAME_HEIGHT - 2, height: 2 },
   adultBlurFallbackBg: { backgroundColor: theme.surface },
   adultBlurHint: {
     position: "absolute",
@@ -3371,7 +3380,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "space-between",
     paddingHorizontal: 14,
-    paddingTop: 30,
+    paddingTop: 38,
     paddingBottom: 4,
     // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor -
     // videoColFullscreen'in AKSINE (bkz. asagisi) burasi video degil, ust
