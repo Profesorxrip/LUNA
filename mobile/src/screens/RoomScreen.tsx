@@ -3336,9 +3336,13 @@ const styles = StyleSheet.create({
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   videoHandleSideBtn: { width: 22, height: 22, justifyContent: "center", alignItems: "center" },
-  handleBoxLineLeft: { position: "absolute", left: 0, top: 0, bottom: 0, width: 2 },
-  handleBoxLineRight: { position: "absolute", right: 0, top: 0, bottom: 0, width: 2 },
-  handleBoxLineBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: 2 },
+  // Kullanici: "Alttaki kutuda üstteki kutuyla aynı boyutta olsun" - artik
+  // sekme cubugunun TAM yuksekligini degil, ust bardaki cerceveyle AYNI
+  // sabit yuksekligi (TOP_FRAME_HEIGHT) kullanip, videoya deyen uctan
+  // (sekme cubugunun USTU) asagi dogru uzuyor.
+  handleBoxLineLeft: { position: "absolute", left: 0, top: 0, height: TOP_FRAME_HEIGHT, width: 2 },
+  handleBoxLineRight: { position: "absolute", right: 0, top: 0, height: TOP_FRAME_HEIGHT, width: 2 },
+  handleBoxLineBottom: { position: "absolute", left: 0, right: 0, top: TOP_FRAME_HEIGHT - 2, height: 2 },
   // Kullanici: "üstteki çerçevenin yüksekliğini düşür" - cercevenin kendisi
   // ust barin TUM yuksekligini KAPLAMIYOR artik, SADECE alt ucu (videoya
   // deyen taraf) sabit kalip SABIT bir yukseklikte (TOP_FRAME_HEIGHT) yukari
