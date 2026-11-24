@@ -60,12 +60,6 @@ interface Props {
   // UZERINE binmesin, hemen altindan baslasin diye (bkz. RoomScreen.tsx
   // topBarHeight - gercek yukseklik cihaza gore degistigi icin olculur).
   topOffset: number;
-  // Harita (dunya ikonu) - eskiden mesaj alanindaki ikon cubugundaydi,
-  // artik panelin alt barinda, davetin solunda (bkz. RoomScreen.tsx showMap).
-  onShowMap: () => void;
-  // Davet (arkadas ekle) - eskiden mesaj alanindaki ikon cubugundaydi,
-  // artik panelin alt barinda, en sagda.
-  onInvite: () => void;
   // Discover'daki oda kartlarindaki mavi "arkadas halkasi" ile AYNI - bu
   // odada gercek arkadasimiz olan katilimcilarin avatarinda gosterilir
   // (bkz. Avatar.tsx isFriend, RoomScreen.tsx friendIds).
@@ -108,8 +102,6 @@ export default function ParticipantsModal({
   micOnBySocket,
   speakingSocketIds,
   topOffset,
-  onShowMap,
-  onInvite,
   friendIds,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -223,17 +215,6 @@ export default function ParticipantsModal({
               }}
             />
           </View>
-          {/* Alt bar - mesaj alanindaki alt barla AYNI seviyede (bkz.
-              RoomScreen.tsx styles.bottomBar) - harita ve davet ikonlari
-              artik burada, davet en sagda, harita onun solunda. */}
-          <View style={styles.bottomBar}>
-            <TouchableOpacity style={styles.inviteBtn} onPress={onShowMap} hitSlop={4}>
-              <Icon name="globe" size={26} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.inviteBtn} onPress={onInvite} hitSlop={4}>
-              <Icon name="invite" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -254,19 +235,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.bg,
   },
   content: { flex: 1, padding: 20 },
-  // Alt bar - mesaj alanindaki alt barla (RoomScreen.tsx styles.bottomBar)
-  // AYNI yukseklik/dolgu degerleri, davet ikonu en saga yaslanir.
-  bottomBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderTopWidth: 1,
-    borderTopColor: theme.border,
-  },
-  inviteBtn: { width: 30, height: 30, justifyContent: "center", alignItems: "center" },
   list: { flex: 1 },
   // Ilk satirin lider rozeti (negatif top ile ustte tasan) listenin kendi
   // ust sinirinda KESILMESIN diye ufak bir bosluk birakiyoruz.

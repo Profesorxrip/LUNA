@@ -2412,6 +2412,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         <TouchableOpacity style={[styles.iconTouch, !canPickMedia && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
           <Icon name="search" size={24} color={theme.text} />
         </TouchableOpacity>
+        {/* Kullanici: "Davet ikonunu üst bara koyalım" - eskiden Katilimcilar
+            panelinin alt barindaydi (bkz. ParticipantsModal.tsx), artik
+            dogrudan burada. */}
+        <TouchableOpacity style={styles.iconTouch} onPress={() => setInviteFriendsVisible(true)} hitSlop={8}>
+          <Icon name="invite" size={24} color={theme.text} />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.participantsBadge} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
           <Icon name="people" size={24} color={theme.text} />
           <View style={styles.countBubble}>
@@ -2630,7 +2636,28 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               suruklenince video geri acilir (bkz. videoHandlePanResponder). */}
           {!fullscreenVideo && (
             <View style={styles.videoHandleBar} {...videoHandlePanResponder.panHandlers}>
+              {/* Kullanici: "sekme çubuğa mikrofon ikonu ekleyelim" - alt
+                  composer bar'dan kaldirilan CANLI sesli sohbet ac/kapa
+                  butonunun yeni yeri (bkz. handleMicPress/handleMicLongPress). */}
+              <TouchableOpacity
+                style={styles.videoHandleSideBtn}
+                onPress={handleMicPress}
+                onLongPress={handleMicLongPress}
+                hitSlop={8}
+              >
+                <Icon
+                  name={voice.connected && voice.muted ? "micOff" : "mic"}
+                  size={22}
+                  color={voice.connected && !voice.muted ? theme.accent : "#FFFFFF"}
+                />
+              </TouchableOpacity>
               <View style={styles.videoHandleNotch} />
+              {/* Kullanici: "Globe ikonunu sekme çubuğuna" - eskiden
+                  Katilimcilar panelinin alt barindaydi (bkz.
+                  ParticipantsModal.tsx), artik dogrudan burada. */}
+              <TouchableOpacity style={styles.videoHandleSideBtn} onPress={showMap} hitSlop={8}>
+                <Icon name="globe" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
           )}
 
@@ -3100,11 +3127,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         micOnBySocket={socket.id ? { ...voice.remoteMicOn, [socket.id]: voice.connected && !voice.muted } : voice.remoteMicOn}
         speakingSocketIds={voice.speakingIds}
         topOffset={topBarHeight}
-        onShowMap={() => {
-          setParticipantsVisible(false);
-          showMap();
-        }}
-        onInvite={() => setInviteFriendsVisible(true)}
         friendIds={friendIds}
       />
       {/* Davet et - Discover'daki sag ustteki arkadaslar ikonuyla ACILAN AYNI
@@ -3254,12 +3276,15 @@ const styles = StyleSheet.create({
   // HER ZAMAN gorunen, kendi ince arka planiyla ayri bir serit (eskiden
   // sadece video gizliyken gorunen, arka plansiz "centik"ti).
   videoHandleBar: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
     paddingVertical: 18,
     backgroundColor: theme.surface,
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
+  videoHandleSideBtn: { width: 30, height: 30, justifyContent: "center", alignItems: "center" },
   adultBlurFallbackBg: { backgroundColor: theme.surface },
   adultBlurHint: {
     position: "absolute",
