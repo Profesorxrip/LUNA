@@ -2824,19 +2824,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
           ZAMAN gonder oku olarak kalıyor (bos/yaziyorken aynı buton,
           disabled degil - bos basinca sendChat zaten no-op). */}
       <View style={styles.bottomBar}>
-        {!chatFocused && (
-          <TouchableOpacity
-            style={[styles.micButton, voice.connected && voice.muted && styles.micButtonMuted]}
-            onPress={handleMicPress}
-            onLongPress={handleMicLongPress}
-          >
-            <Icon
-              name={voice.connected && voice.muted ? "micOff" : "mic"}
-              size={28}
-              color={voice.connected && !voice.muted ? theme.accent : "#04140D"}
-            />
-          </TouchableOpacity>
-        )}
+        {/* Kullanici: "en sol alttaki sesli görüşme tuşunu şimdilik kaldır
+            ben ona yeni yer yapıcam" - CANLI sesli sohbet mikrofon butonu
+            (handleMicPress/handleMicLongPress, "sesli mesaj" ile
+            KARISTIRILMASIN) alt composer bar'dan GECICI olarak kaldirildi.
+            Fonksiyonlar hala burada duruyor - baska bir yere (kullanicinin
+            kendi sececegi) baglanmayi bekliyor. */}
         <View style={styles.inputPill}>
           <TouchableOpacity
             onPress={() => {
