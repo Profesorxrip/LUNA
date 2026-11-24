@@ -178,7 +178,7 @@ function renderMediaContent(item: ChatMessage, onReply: () => void, onVotePoll: 
     return <VideoMessageBubble uri={item.mediaUrl} size={280} borderRadius={8} senderName={item.from} sentAt={item.ts} onReply={onReply} />;
   }
   if (item.mediaUrl) {
-    return <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} senderName={item.from} sentAt={item.ts} onReply={onReply} />;
+    return <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} size={280} senderName={item.from} sentAt={item.ts} onReply={onReply} />;
   }
   return null;
 }
