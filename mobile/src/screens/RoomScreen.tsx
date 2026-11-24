@@ -40,6 +40,7 @@ import VideoControlsOverlay from "../components/VideoControlsOverlay";
 import NowPlayingBar from "../components/NowPlayingBar";
 import ParticipantsModal from "../components/ParticipantsModal";
 import FriendsScreen from "./FriendsScreen";
+import LunaLogo from "../components/LunaLogo";
 import RoomSettingsSheet from "../components/RoomSettingsSheet";
 import VideoSettingsSheet from "../components/VideoSettingsSheet";
 import MessageOptionsSheet from "../components/MessageOptionsSheet";
@@ -2438,16 +2439,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         <TouchableOpacity style={styles.iconTouch} onPress={() => setSettingsVisible(true)} hitSlop={8}>
           <Icon name="settings" size={24} color={theme.text} />
         </TouchableOpacity>
-        {/* Kullanici: "Odadakiler ikonu grup ikonu olsun ve büyüteç ikonunun
-            yerinde olsun" - katilimcilar butonu (ikonu artik lucide "grup"
-            ikonu Users) eskiden buyutecin oldugu yere tasindi. */}
-        {/* Kullanici: "grup ikonu dediğim bu değil, gruptaki üyeler kısmını
-            gösteren ikon" - GroupInfoScreen.tsx'teki "Üyeler" sekmesiyle
-            AYNI lucide UserGroup glyph'i. "sağ üstteki kişi sayısı balonunu
-            kaldıralım" - countBubble kaldirildi, artik duz iconTouch. */}
-        <TouchableOpacity style={styles.iconTouch} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
-          <UserGroup size={24} color={theme.text} strokeWidth={1.8} />
-        </TouchableOpacity>
+        {/* Kullanici: "grup ikonunun yerine luna logosu koy" - katilimcilar
+            butonu (eskiden burada, bkz. asagisi sekme cubugu) artik
+            dekoratif LUNA logosu - tiklama eylemi yok. */}
+        <View style={styles.topBarLogoSlot}>
+          <LunaLogo width={56} />
+        </View>
         {/* "büyüteç ikonu davet ikonunun yerinde olsun" - buyutec artik
             eskiden davetin oldugu yerde. */}
         <TouchableOpacity style={[styles.iconTouch, !canPickMedia && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
@@ -2709,7 +2706,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   <Key size={24} color="#FFFFFF" strokeWidth={1.8} />
                 </TouchableOpacity>
               </View>
-              <View style={styles.videoHandleNotch} />
+              {/* Kullanici: "hapın yerine üst ortadaki grup ikonunu koy" -
+                  surukleme hapi kaldirildi, yerine katilimcilar butonu
+                  (eskiden ust bardaydi) geldi - ikonu AYNI UserGroup. */}
+              <TouchableOpacity style={styles.videoHandleSideBtn} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
+                <UserGroup size={24} color="#FFFFFF" strokeWidth={1.8} />
+              </TouchableOpacity>
               <View style={[styles.videoHandleSideGroup, styles.videoHandleSideGroupRight]}>
                 {/* Kullanici: "mikrofonun soluna koy demiştim" - DoorClosed
                     artik TAM mikrofonun solunda (sag grubun ilk elemani),
@@ -3357,12 +3359,17 @@ const styles = StyleSheet.create({
   // paddingVertical de TAM TOP_FRAME_HEIGHT'a (44) oturacak sekilde
   // ayarlandi: 10+24+10=44, boylece ikonlar dekoratif kutunun icinde
   // dikey olarak tam ortalaniyor.
+  // Kullanici: "alt sekme çubuğunun rengide üst sekme çubuğundaki gibi
+  // olsun ama arkasına mesaj düşmeye başladımı ... arkasındaki mesaj
+  // gözükmesin" - duz gri theme.surface yerine AppBackground'un KENDI
+  // (koyu lacivert) tonlarindan biri - ust bar GIBI gorunuyor ama OPAK
+  // oldugu icin altindan kayan sohbet mesajlari ASLA gorunmuyor.
   videoHandleBar: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: theme.surface,
+    backgroundColor: "#0b1422",
   },
   // Kullanici: "Davetli ikonunu ... oda haritayı açan ikonun sağına ...
   // mikrofonun soluna" - notch'un (surukleme tutamaci) TAM ORTADA kalmasi
@@ -3377,7 +3384,6 @@ const styles = StyleSheet.create({
   // "aynısı sağ içinde geçerli") ayni bosluga esitlendi.
   videoHandleSideGroup: { flex: 1, flexDirection: "row", alignItems: "center", gap: 50 },
   videoHandleSideGroupRight: { justifyContent: "flex-end" },
-  videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   videoHandleSideBtn: { width: 24, height: 24, justifyContent: "center", alignItems: "center" },
   // Kullanici: "Alttaki kutuda üstteki kutuyla aynı boyutta olsun" - artik
   // sekme cubugunun TAM yuksekligini degil, ust bardaki cerceveyle AYNI
@@ -3467,6 +3473,7 @@ const styles = StyleSheet.create({
   },
   iconTouch: { width: 32, height: 32, justifyContent: "center", alignItems: "center" },
   topIconDim: { opacity: 0.35 },
+  topBarLogoSlot: { width: 32, height: 32, justifyContent: "center", alignItems: "center" },
   bufferingBanner: {
     marginHorizontal: 12,
     marginTop: 6,
