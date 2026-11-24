@@ -2647,7 +2647,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               >
                 <Icon
                   name={voice.connected && voice.muted ? "micOff" : "mic"}
-                  size={22}
+                  size={18}
                   color={voice.connected && !voice.muted ? theme.accent : "#FFFFFF"}
                 />
               </TouchableOpacity>
@@ -2656,7 +2656,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   Katilimcilar panelinin alt barindaydi (bkz.
                   ParticipantsModal.tsx), artik dogrudan burada. */}
               <TouchableOpacity style={styles.videoHandleSideBtn} onPress={showMap} hitSlop={8}>
-                <Icon name="globe" size={22} color="#FFFFFF" />
+                <Icon name="globe" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           )}
@@ -3280,11 +3280,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 6,
     backgroundColor: theme.surface,
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
-  videoHandleSideBtn: { width: 30, height: 30, justifyContent: "center", alignItems: "center" },
+  videoHandleSideBtn: { width: 22, height: 22, justifyContent: "center", alignItems: "center" },
   adultBlurFallbackBg: { backgroundColor: theme.surface },
   adultBlurHint: {
     position: "absolute",
