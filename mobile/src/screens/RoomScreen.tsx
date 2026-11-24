@@ -467,19 +467,16 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
         <Icon name="reply" size={16} color={theme.textMuted} />
       </Animated.View>
       {isOwn ? (
-        <>
-          <View style={styles.bubbleCol}>
-            <TouchableOpacity activeOpacity={0.85} onPress={handleTap} onLongPress={onLongPressMessage} style={styles.bubbleWrap}>
-              {bubbleInner}
-            </TouchableOpacity>
-            {reactionBadges}
-          </View>
-          {!groupedWithPrev ? (
-            <ChatAvatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} isFriend={isFriend} isHost={senderIsHost} isModerator={senderIsModerator} />
-          ) : (
-            <View style={styles.avatarSpacer} />
-          )}
-        </>
+        // GroupChatScreen.tsx'teki GroupBubbleRow ile BIREBIR AYNI: kendi
+        // mesajimda HIC avatar yok (kullanici: "benim ppm grup mesajında
+        // gözükmüyor buradada gözükmesin istiyorum") - sadece baloncuk,
+        // sagdan hizali.
+        <View style={styles.bubbleCol}>
+          <TouchableOpacity activeOpacity={0.85} onPress={handleTap} onLongPress={onLongPressMessage} style={styles.bubbleWrap}>
+            {bubbleInner}
+          </TouchableOpacity>
+          {reactionBadges}
+        </View>
       ) : (
         <>
           {!groupedWithPrev ? (
