@@ -2708,15 +2708,17 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 <TouchableOpacity style={styles.videoHandleSideBtn} onPress={() => setInviteFriendsVisible(true)} hitSlop={8}>
                   <Key size={24} color="#FFFFFF" strokeWidth={1.8} />
                 </TouchableOpacity>
-                {/* Kullanici: "Davetli kısmının closedoor ikonuda mikrofonun
-                    solunda olsa" - oda gizliligini dogrudan "Davetli"ye
-                    ceviren hizli kisayol (sadece lider degistirebilir). */}
-                <TouchableOpacity style={styles.videoHandleSideBtn} onPress={() => isHost && changePrivacy("invite")} hitSlop={8}>
-                  <DoorClosed size={24} color="#FFFFFF" strokeWidth={1.8} />
-                </TouchableOpacity>
               </View>
               <View style={styles.videoHandleNotch} />
               <View style={[styles.videoHandleSideGroup, styles.videoHandleSideGroupRight]}>
+                {/* Kullanici: "mikrofonun soluna koy demiştim" - DoorClosed
+                    artik TAM mikrofonun solunda (sag grubun ilk elemani),
+                    notch'un solunda degil. Oda gizliligini dogrudan
+                    "Davetli"ye ceviren hizli kisayol (sadece lider
+                    degistirebilir). */}
+                <TouchableOpacity style={styles.videoHandleSideBtn} onPress={() => isHost && changePrivacy("invite")} hitSlop={8}>
+                  <DoorClosed size={24} color="#FFFFFF" strokeWidth={1.8} />
+                </TouchableOpacity>
                 {/* Mikrofon butonu (bkz. handleMicPress/handleMicLongPress) artik
                     sagda - VideoCallScreen.tsx'teki AYNI heroicons outline
                     MicrophoneIcon, acik/kapali farki sadece renkle. */}
