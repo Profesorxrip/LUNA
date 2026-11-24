@@ -3298,17 +3298,20 @@ const styles = StyleSheet.create({
   // paddingVertical de TAM TOP_FRAME_HEIGHT'a (44) oturacak sekilde
   // ayarlandi: 10+24+10=44, boylece ikonlar dekoratif kutunun icinde
   // dikey olarak tam ortalaniyor.
-  // Kullanici: "alt sekme çubuğunun rengide üst sekme çubuğundaki gibi
-  // olsun ama arkasına mesaj düşmeye başladımı ... arkasındaki mesaj
-  // gözükmesin" - duz gri theme.surface yerine AppBackground'un KENDI
-  // (koyu lacivert) tonlarindan biri - ust bar GIBI gorunuyor ama OPAK
-  // oldugu icin altindan kayan sohbet mesajlari ASLA gorunmuyor.
+  // Kullanici: "üstbar normal arkaplanı gösteriyor altsekme çubuğu
+  // normal arkaplanı göstermiyor o sorununu çöz" - tahmini duz bir renk
+  // (#0b1422) GERCEK degradeyle TAM eslesmiyordu. Sekme cubugu, mediaSection
+  // Animated.View'inin DISINDA, chatCol'dan ONCE normal akista (position
+  // absolute/overlay DEGIL) duruyor - yani sohbet mesajlariyla ASLA
+  // CAKISMIYOR, bu yuzden ust bar gibi dogrudan "transparent" guvenli:
+  // altindan GERCEK AppBackground degradesi gorunuyor, mesaj gorunmesi
+  // soz konusu olamaz.
   videoHandleBar: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: "#0b1422",
+    backgroundColor: "transparent",
   },
   // Kullanici: "Davetli ikonunu ... oda haritayı açan ikonun sağına ...
   // mikrofonun soluna" - notch'un (surukleme tutamaci) TAM ORTADA kalmasi
