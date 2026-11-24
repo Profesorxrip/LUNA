@@ -2875,7 +2875,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
           </View>
         </View>
         <TouchableOpacity style={styles.inputRoundBtn} onPress={() => sendPendingImagesAndText()} hitSlop={8} disabled={uploadingImage}>
-          {uploadingImage ? <ActivityIndicator color="#04140D" size="small" /> : <Send size={20} color="#04140D" />}
+          {uploadingImage ? <ActivityIndicator color="#141210" size="small" /> : <Send size={20} color="#141210" />}
         </TouchableOpacity>
       </View>
 
@@ -3606,13 +3606,17 @@ const styles = StyleSheet.create({
   settingsTextCol: { flex: 1 },
   settingsValue: { color: theme.text, fontSize: 16, fontWeight: "700" },
   settingsDesc: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
+  // GroupChatScreen.tsx'teki inputBar ile BIREBIR AYNI degerler - mikrofon
+  // kaldirildiktan sonra bu bar da artik SADECE mesaj kutusu+gonder butonu
+  // iceriyor (Group'taki gibi), bu yuzden ONCEKI "mikrofonla hizala" amacli
+  // yukari kaydirma/ozel dolgu da kaldirildi.
   bottomBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    transform: [{ translateY: -7 }], // mikrofon/mesaj kutusu/gonder - ucu de biraz yukari kaydirildi
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 15,
   },
   micButton: {
     width: 56,
@@ -3674,19 +3678,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    // GroupChatScreen.tsx'teki mesaj kutusuyla BIREBIR AYNI renk (#15202B).
+    // GroupChatScreen.tsx'teki mesaj kutusuyla BIREBIR AYNI (renk + boyut).
     backgroundColor: "#15202B",
-    borderRadius: 28,
-    height: 56,
+    borderRadius: 27.5,
+    height: 55,
     paddingLeft: 14,
     paddingRight: 10,
   },
   inputPillIconsRow: { flexDirection: "row", alignItems: "center" },
+  // GroupChatScreen.tsx'teki gonder butonuyla BIREBIR AYNI (beyaz + 55x55).
   inputRoundBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.accentBright,
+    width: 55,
+    height: 55,
+    borderRadius: 27.5,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
   },
