@@ -759,6 +759,13 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
 
   const playerRef = useRef<MediaPlayerHandle>(null);
   const reactionsRef = useRef<ReactionsOverlayHandle>(null);
+  // Kullanici: "oda gizliliği kutusu yeni mesaj atıldıkça yukarı kayıcak ve
+  // belli bi mesaj geldiğinde tekrar en yukarı gelene kadar gözükmeyecek" -
+  // GroupChatScreen.tsx'teki AYNI desen (onContentSizeChange ->
+  // scrollToEnd): yeni mesaj/medya ekrana her girdiginde sohbet en alta
+  // kayar, RoomQuickCards (ListHeaderComponent) da boylece ekrandan yukari
+  // itilip gider - kullanici elle en yukari kaydirmadikca geri gelmez.
+  const chatListRef = useRef<FlatList<ChatMessage>>(null);
   const voice = useVoiceChat();
 
   const me = room.participants.find((p) => p.socketId === socket.id);
@@ -2657,6 +2664,8 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         <View style={[styles.chatCol, isDesktop && styles.chatColDesktop]}>
       {/* Sohbet - medyanin hemen altinda, gradyanla ona "batmis" gibi baslar */}
       <FlatList
+        ref={chatListRef}
+        onContentSizeChange={() => chatListRef.current?.scrollToEnd({ animated: false })}
         style={styles.chatList}
         contentContainerStyle={styles.chatContent}
         ListHeaderComponent={
