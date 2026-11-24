@@ -2695,13 +2695,15 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 end={{ x: 1, y: 0 }}
                 style={styles.handleBoxLineBottom}
               />
-              {/* Kullanici: "sekme çubuğa mikrofon ikonu ekleyelim" - alt
-                  composer bar'dan kaldirilan CANLI sesli sohbet ac/kapa
-                  butonunun yeni yeri (bkz. handleMicPress/handleMicLongPress).
-                  "Soldaki mikrofon ikonu yerine arama ekranında kullandığımız
-                  mikrofon ikonunu koyalım" - VideoCallScreen.tsx'teki AYNI
-                  heroicons outline MicrophoneIcon (tek glyph, acik/kapali
-                  farki sadece renkle - orada muted ? danger : beyaz). */}
+              {/* Kullanici: "Mikrofonla o pusula ikonunu yer değiştir" - pusula
+                  (harita) butonu artik solda. */}
+              <TouchableOpacity style={styles.videoHandleSideBtn} onPress={showMap} hitSlop={8}>
+                <Icon name="globe" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <View style={styles.videoHandleNotch} />
+              {/* Mikrofon butonu (bkz. handleMicPress/handleMicLongPress) artik
+                  sagda - VideoCallScreen.tsx'teki AYNI heroicons outline
+                  MicrophoneIcon, acik/kapali farki sadece renkle. */}
               <TouchableOpacity
                 style={styles.videoHandleSideBtn}
                 onPress={handleMicPress}
@@ -2713,13 +2715,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   color={voice.connected && !voice.muted ? theme.accent : "#FFFFFF"}
                   strokeWidth={1.8}
                 />
-              </TouchableOpacity>
-              <View style={styles.videoHandleNotch} />
-              {/* Kullanici: "Globe ikonunu sekme çubuğuna" - eskiden
-                  Katilimcilar panelinin alt barindaydi (bkz.
-                  ParticipantsModal.tsx), artik dogrudan burada. */}
-              <TouchableOpacity style={styles.videoHandleSideBtn} onPress={showMap} hitSlop={8}>
-                <Icon name="globe" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           )}
