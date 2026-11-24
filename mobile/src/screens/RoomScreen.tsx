@@ -18,7 +18,6 @@ import {
   ScrollView,
 } from "react-native";
 import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import { MicrophoneIcon as MicrophoneOutline } from "react-native-heroicons/outline";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
@@ -97,10 +96,6 @@ interface Props {
 }
 
 const DRIFT_TOLERANCE_SECONDS = 2;
-// Ust bardaki dekoratif cercevenin (sol/sag/ust cizgi) yuksekligi - ust
-// barin kendi yuksekliginden (paddingTop:38) BAGIMSIZ, alt ucu HER ZAMAN
-// videoya deyecek sekilde sabit kalir (bkz. topBoxLine* stilleri).
-const TOP_FRAME_HEIGHT = 44;
 const GUEST_RESYNC_INTERVAL_MS = 8000;
 const HOST_HEARTBEAT_INTERVAL_MS = 5000;
 const REPLY_SWIPE_TRIGGER = 48;
@@ -2410,29 +2405,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         style={[styles.topBar, isDesktop && styles.topBarDesktop]}
         onLayout={(e) => setTopBarHeight(e.nativeEvent.layout.height)}
       >
-        {/* Kullanici: "üsttekini kaldırıp alttakinin aynısını ters çevirerek
-            ... videoya değicek" - sekme cubugundaki kutu cizgisinin (sol/sag/
-            alt) DIKEY AYNASI: sol/sag cizgiler ust bardan asagi inip TAM
-            videonun basladigi yerde bitiyor (bkz. ayni mantik videoHandleBar
-            altindaki handleBoxLine*). */}
-        <LinearGradient
-          colors={[theme.accent, "rgba(255,255,255,0.9)"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.topBoxLineLeft}
-        />
-        <LinearGradient
-          colors={[theme.accent, "rgba(255,255,255,0.9)"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.topBoxLineRight}
-        />
-        <LinearGradient
-          colors={[theme.accent, "rgba(255,255,255,0.9)", theme.accent]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.topBoxLineTop}
-        />
         <TouchableOpacity style={styles.iconTouch} onPress={() => setLeaveConfirmVisible(true)} hitSlop={8}>
           <Icon name="close" size={28} color={theme.text} />
         </TouchableOpacity>
@@ -2669,29 +2641,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               suruklenince video geri acilir (bkz. videoHandlePanResponder). */}
           {!fullscreenVideo && (
             <View style={styles.videoHandleBar} {...videoHandlePanResponder.panHandlers}>
-              {/* Kullanici: "altbar... sağına soluna altına koysak kutucuk
-                  gibi gözükse" - sekme cubugunun sol/sag/alt kenarlarini
-                  saran, uclari kosede birbirine degen mavi-beyaz gradyanli
-                  cizgiler (ust bardaki kose ayraclarinin ayni mantikla
-                  devami, bkz. yukarisi). */}
-              <LinearGradient
-                colors={["rgba(255,255,255,0.9)", theme.accent]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.handleBoxLineLeft}
-              />
-              <LinearGradient
-                colors={["rgba(255,255,255,0.9)", theme.accent]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.handleBoxLineRight}
-              />
-              <LinearGradient
-                colors={[theme.accent, "rgba(255,255,255,0.9)", theme.accent]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.handleBoxLineBottom}
-              />
               <View style={styles.videoHandleSideGroup}>
                 {/* Kullanici: "Mikrofonla o pusula ikonunu yer değiştir" - pusula
                     (harita) butonu artik solda. "6yı deneyelim" - özel pusula
@@ -3385,21 +3334,6 @@ const styles = StyleSheet.create({
   videoHandleSideGroup: { flex: 1, flexDirection: "row", alignItems: "center", gap: 50 },
   videoHandleSideGroupRight: { justifyContent: "flex-end" },
   videoHandleSideBtn: { width: 24, height: 24, justifyContent: "center", alignItems: "center" },
-  // Kullanici: "Alttaki kutuda üstteki kutuyla aynı boyutta olsun" - artik
-  // sekme cubugunun TAM yuksekligini degil, ust bardaki cerceveyle AYNI
-  // sabit yuksekligi (TOP_FRAME_HEIGHT) kullanip, videoya deyen uctan
-  // (sekme cubugunun USTU) asagi dogru uzuyor.
-  handleBoxLineLeft: { position: "absolute", left: 0, top: 0, height: TOP_FRAME_HEIGHT, width: 2 },
-  handleBoxLineRight: { position: "absolute", right: 0, top: 0, height: TOP_FRAME_HEIGHT, width: 2 },
-  handleBoxLineBottom: { position: "absolute", left: 0, right: 0, top: TOP_FRAME_HEIGHT - 2, height: 2 },
-  // Kullanici: "üstteki çerçevenin yüksekliğini düşür" - cercevenin kendisi
-  // ust barin TUM yuksekligini KAPLAMIYOR artik, SADECE alt ucu (videoya
-  // deyen taraf) sabit kalip SABIT bir yukseklikte (TOP_FRAME_HEIGHT) yukari
-  // dogru kisaliyor - ust barin kendi yuksekligi (paddingTop:38) bundan
-  // ETKILENMIYOR.
-  topBoxLineLeft: { position: "absolute", left: 0, bottom: 0, height: TOP_FRAME_HEIGHT, width: 2 },
-  topBoxLineRight: { position: "absolute", right: 0, bottom: 0, height: TOP_FRAME_HEIGHT, width: 2 },
-  topBoxLineTop: { position: "absolute", left: 0, right: 0, bottom: TOP_FRAME_HEIGHT - 2, height: 2 },
   adultBlurFallbackBg: { backgroundColor: theme.surface },
   adultBlurHint: {
     position: "absolute",
@@ -3473,7 +3407,8 @@ const styles = StyleSheet.create({
   },
   iconTouch: { width: 32, height: 32, justifyContent: "center", alignItems: "center" },
   topIconDim: { opacity: 0.35 },
-  topBarLogoSlot: { width: 32, height: 32, justifyContent: "center", alignItems: "center" },
+  // Kullanici: "luna logosunu 5 px yukarı kaydır".
+  topBarLogoSlot: { width: 32, height: 32, justifyContent: "center", alignItems: "center", transform: [{ translateY: -5 }] },
   bufferingBanner: {
     marginHorizontal: 12,
     marginTop: 6,
