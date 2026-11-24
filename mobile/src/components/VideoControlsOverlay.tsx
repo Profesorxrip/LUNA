@@ -174,23 +174,14 @@ export default function VideoControlsOverlay({
           {canControlTransport && (
             <View style={styles.centerRow}>
               <TouchableOpacity style={styles.skipTouch} onPress={() => onSkip(-10)} hitSlop={10}>
-                {/* Kullanici: "Geri sar ileri sar ikonlarınıda butonlarına
-                    ortala" - rotateCcw/rotateCw glyph'inin ok ucu yuzunden
-                    GORSEL agirlik merkezi kutunun geometrik merkezinden
-                    hafif yukarida/solda kaliyor, bu yuzden ikon kucuk bir
-                    offsetle asagi/saga kaydirildi. */}
-                <View style={styles.skipIconWrap}>
-                  <Icon name="rotateCcw" size={22} color="#FFFFFF" />
-                </View>
+                <Icon name="rotateCcw" size={22} color="#FFFFFF" />
                 <Text style={styles.skipLabel}>10</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.playTouch} onPress={onPlayPause} hitSlop={10}>
                 <Icon name={isPlaying ? "pause" : "play"} size={30} color="#FFFFFF" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.skipTouch} onPress={() => onSkip(10)} hitSlop={10}>
-                <View style={styles.skipIconWrap}>
-                  <Icon name="rotateCw" size={22} color="#FFFFFF" />
-                </View>
+                <Icon name="rotateCw" size={22} color="#FFFFFF" />
                 <Text style={styles.skipLabel}>10</Text>
               </TouchableOpacity>
             </View>
@@ -281,13 +272,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Kullanici: "Geri sar ileri sar ikonlarınıda butonlarına ortala 10
-  // tam içlerinde ortalarında olsun" - rotateCcw/rotateCw glyph'inin ok
-  // ucu yuzunden GORSEL agirlik merkezi kutunun geometrik merkezinden
-  // hafif yukarida/solda kaliyor - ikon (skipIconWrap) VE yazi (skipLabel)
-  // AYNI telafi offsetiyle kaydirilip birbirleriyle her zaman hizali
-  // kalsin diye TEK bir transform kullaniliyor.
-  skipIconWrap: { transform: [{ translateX: 1 }, { translateY: 3 }] },
+  // Kullanici: "öncelikle ok ikonları butonlarını ortalamıyor" - piksel
+  // olcumuyle dogrulandi: rotateCcw/rotateCw'nin GERCEK cizim kutusu
+  // (bounding box) zaten TAM kutunun merkezinde - onceki manuel kaydirma
+  // (translateX/Y) onu merkezden UZAKLASTIRIYORDU, bu yuzden KALDIRILDI.
+  // Gorsel "kaymis" izlenimi sadece okun ucundaki gorsel agirliktan
+  // kaynaklaniyordu, gercek bir hizalama hatasi degildi.
   skipLabel: {
     position: "absolute",
     top: 0,
@@ -299,7 +289,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
     lineHeight: 44,
-    transform: [{ translateX: 1 }, { translateY: 3 }],
   },
   playTouch: {
     width: 56,
