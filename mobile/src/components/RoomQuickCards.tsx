@@ -25,7 +25,7 @@ export function getPrivacyOptions(t: (key: string) => string): { key: PrivacyLev
   return [
     { key: "open", icon: "worldOpen", label: t("discover.sectionOpen") },
     { key: "nearby", icon: "radar", label: t("discover.sectionNearby") },
-    { key: "friends", icon: "people", label: t("discover.sectionFriends") },
+    { key: "friends", icon: "friendsUsers", label: t("discover.sectionFriends") },
     { key: "invite", icon: "inviteKey", label: t("roomQuickCards.privacyInvite") },
   ];
 }
