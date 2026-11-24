@@ -3369,7 +3369,13 @@ const styles = StyleSheet.create({
   // icin sol/sag taraflar artik birer flex:1 grup, notch ikisinin arasinda
   // sabit boyutta duruyor (eskiden 3 cocuklu space-between'de notch
   // merkeziydi, 4. butonla bu dengeyi bozmamak icin boyle yapildi).
-  videoHandleSideGroup: { flex: 1, flexDirection: "row", alignItems: "center", gap: 20 },
+  // Kullanici: "sağ üstteki ikonla solundaki ikonun arasındaki mesafe
+  // nekadarsa sağ alttaki ikonla solundaki arasındaki mesafe öyle olsun" -
+  // ust bardaki (topBar, 5 esit genislikte ikon, space-between) iki ikon
+  // arasindaki bosluk ~50px (paddingHorizontal:14, iconTouch:32, 390
+  // genislikte) - sekme cubugundaki ikon ciftleri de (sol VE sag grup,
+  // "aynısı sağ içinde geçerli") ayni bosluga esitlendi.
+  videoHandleSideGroup: { flex: 1, flexDirection: "row", alignItems: "center", gap: 50 },
   videoHandleSideGroupRight: { justifyContent: "flex-end" },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   videoHandleSideBtn: { width: 24, height: 24, justifyContent: "center", alignItems: "center" },
