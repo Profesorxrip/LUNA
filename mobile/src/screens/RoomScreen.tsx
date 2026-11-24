@@ -3256,7 +3256,7 @@ const styles = StyleSheet.create({
   videoHandleBar: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
+    paddingVertical: 18,
     backgroundColor: theme.surface,
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
