@@ -2415,7 +2415,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
             butonu (eskiden burada, bkz. asagisi sekme cubugu) artik
             dekoratif LUNA logosu - tiklama eylemi yok. */}
         <View style={styles.topBarLogoSlot}>
-          <LunaLogo width={56} />
+          <LunaLogo width={64} />
         </View>
         {/* "büyüteç ikonu davet ikonunun yerinde olsun" - buyutec artik
             eskiden davetin oldugu yerde. */}
