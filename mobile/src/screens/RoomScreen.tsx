@@ -65,7 +65,9 @@ import { getRecentMusic, addRecentMusic } from "../utils/recentMusic";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
 import RoomMapSheet from "../components/RoomMapSheet";
 import RoomQuickCards, { getPrivacyOptions, getPlaybackInfo } from "../components/RoomQuickCards";
-import Avatar from "../components/Avatar";
+import Avatar, { colorForName } from "../components/Avatar";
+import Svg, { Path } from "react-native-svg";
+import { formatMessageTime } from "../utils/time";
 import CrownBadge from "../components/CrownBadge";
 import ModeratorBadge from "../components/ModeratorBadge";
 import AdultBadge from "../components/AdultBadge";
@@ -230,6 +232,28 @@ function ReactionChip({ emoji, reactors, onPress }: { emoji: string; reactors: R
   );
 }
 
+// GroupChatScreen.tsx'teki BUBBLE_MINE_COLOR ile BIREBIR AYNI - kullanici
+// "buraya atılan mesajlar gruptaki mesajlarla birebir aynısı şeklinde
+// görünsün" dedigi icin theme.* tokenlari DEGIL, oradaki sabit degerler
+// birebir kopyalandi.
+const ROOM_BUBBLE_MINE_COLOR = "#2E799E";
+const ROOM_BUBBLE_THEIRS_COLOR = "#1E293B";
+const ROOM_BUBBLE_TEXT_COLOR = "#F5F0E6";
+
+// GroupChatScreen.tsx'teki BubbleTail ile BIREBIR AYNI - balonun kosesinden
+// fiskiran WhatsApp tarzi kuyruk (sadece bir gondericiden gelen ilk balonda
+// gorunur).
+function RoomBubbleTail({ color, mine }: { color: string; mine: boolean }) {
+  const d = mine
+    ? "M0,0 L5.2,0 Q7,0 6.093,1.556 L0.605,10.963 Q0,12 0,10.8 L0,0 Z"
+    : "M7,0 L1.8,0 Q0,0 0.907,1.556 L6.395,10.963 Q7,12 7,10.8 L7,0 Z";
+  return (
+    <Svg width={7} height={12} viewBox="0 0 7 12" style={[styles.bubbleTailSvg, mine ? styles.bubbleTailSvgMine : styles.bubbleTailSvgTheirs]}>
+      <Path d={d} fill={color} />
+    </Svg>
+  );
+}
+
 /** Sohbetteki avatarin ustune, katilimcilar panelindekiyle AYNI konumda
  * (lider = tac, ustte / moderator = kalkan, sag altta) rozet ekler - bkz.
  * ParticipantsModal.tsx hostBadge/moderatorBadge. */
@@ -345,11 +369,92 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
   });
 
   const rowStyle = isOwn ? styles.messageRowOwn : styles.messageRow;
+  // GroupChatScreen.tsx'teki replyQuote ile BIREBIR AYNI - balonun USTUNDE
+  // DEGIL, balonun kendi renkli arka planinin ICINDE, yari saydam beyaz bir
+  // kutu (bu sayede hem kendi mavi balonumda hem baskasinin gri balonunda
+  // AYNI gorunur).
   const replyQuote = item.replyTo && (
-    <View style={[styles.replyQuote, isOwn && styles.replyQuoteOwn]}>
-      <Text style={styles.replyQuoteText} numberOfLines={1}>
+    <View style={styles.bubbleReplyQuote}>
+      <Text style={styles.bubbleReplyQuoteText} numberOfLines={1}>
         {item.replyTo.fromName}: {item.replyTo.text}
       </Text>
+    </View>
+  );
+
+  // GroupChatScreen.tsx'teki GroupBubbleRow ile BIREBIR AYNI "kind" bazli
+  // balon dolgusu/kuyruk/saat yerlesimi (sesli mesaj ve tek-gorunumluk
+  // haric - Room'da ikisi de yok).
+  const isGifSticker = item.kind === "sticker" && !!item.stickerId?.startsWith("gif-");
+  const isPlainSticker = item.kind === "sticker" && !isGifSticker;
+  const isPhotoLike = (item.kind === "video" || (!item.kind && !!item.mediaUrl)) && !isPlainSticker;
+  const bubblePad =
+    item.kind === "location"
+      ? styles.bubbleLocationPad
+      : item.kind === "file"
+        ? styles.bubbleFilePad
+        : item.kind === "poll"
+          ? styles.bubblePollPad
+          : item.kind === "contact"
+            ? styles.bubbleContactPad
+            : item.kind === "music"
+              ? styles.bubbleMusicPad
+              : isPhotoLike || isGifSticker
+                ? styles.bubblePhotoPad
+                : undefined;
+  // Video'da gercek bir yazi (caption) olabilir, foto/sticker/diger
+  // turlerde HICBIR ZAMAN ayri bir yazi yok (bkz. server/src/index.ts
+  // chat:sendVideo/sendImage - sadece video "caption"i gercekten alir).
+  const hasMediaCaption = item.kind === "video" && !!item.mediaUrl && !!item.text && item.text !== "🎥 Video";
+  const metaOverlayStyle =
+    item.kind !== "location" && item.kind !== "file" && item.kind !== "music" && item.kind !== "poll" && item.kind !== "contact" && (item.kind !== "sticker" || isGifSticker) && (item.mediaUrl || isGifSticker) && !hasMediaCaption
+      ? styles.metaRowPhotoOverlay
+      : item.kind === "music"
+        ? styles.metaRowMusicOverlay
+        : item.kind === "poll"
+          ? styles.metaRowPollOverlay
+          : item.kind === "contact"
+            ? styles.metaRowContactOverlay
+            : item.kind === "file" && !hasMediaCaption
+              ? styles.metaRowFileOverlay
+              : item.kind === "sticker" && !isGifSticker
+                ? styles.metaRowStickerOverlay
+                : undefined;
+
+  const bubbleInner = (
+    <View
+      style={[
+        styles.bubble,
+        isOwn ? styles.bubbleMine : styles.bubbleTheirs,
+        !groupedWithPrev && (isOwn ? styles.bubbleMineFirst : styles.bubbleTheirsFirst),
+        bubblePad,
+        isPlainSticker && styles.bubbleStickerNoBg,
+      ]}
+    >
+      {!groupedWithPrev && (item.kind !== "sticker" || isGifSticker) && (
+        <RoomBubbleTail color={isOwn ? ROOM_BUBBLE_MINE_COLOR : ROOM_BUBBLE_THEIRS_COLOR} mine={isOwn} />
+      )}
+      {!isOwn && !groupedWithPrev && <Text style={[styles.senderName, { color: colorForName(item.from || "?") }]}>{item.from}</Text>}
+      <View style={!isOwn && !groupedWithPrev ? styles.bubbleContentBelowSenderName : undefined}>
+        {replyQuote}
+        {mediaContent ? (
+          mediaContent
+        ) : (
+          <>
+            <Text style={styles.bubbleText} selectable={false}>
+              {displayText}
+            </Text>
+            {translation && (
+              <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
+                <Text style={styles.translatedHint}>{showOriginal ? t("room.showTranslation") : t("room.showOriginal")}</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+        {hasMediaCaption && <Text style={styles.mediaCaption}>{item.text}</Text>}
+        <View style={[styles.metaRow, metaOverlayStyle]}>
+          <Text style={styles.metaTime}>{formatMessageTime(item.ts, i18n.language)}</Text>
+        </View>
+      </View>
     </View>
   );
 
@@ -363,22 +468,10 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
       </Animated.View>
       {isOwn ? (
         <>
-          <View style={styles.messageTextCol}>
-            {replyQuote}
-            {mediaContent ? (
-              mediaContent
-            ) : (
-              <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
-                <Text style={styles.chatMsgOwn} selectable={false}>
-                  {displayText}
-                </Text>
-                {translation && (
-                  <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
-                    <Text style={styles.translatedHint}>{showOriginal ? t("room.showTranslation") : t("room.showOriginal")}</Text>
-                  </TouchableOpacity>
-                )}
-              </TouchableOpacity>
-            )}
+          <View style={styles.bubbleCol}>
+            <TouchableOpacity activeOpacity={0.85} onPress={handleTap} onLongPress={onLongPressMessage} style={styles.bubbleWrap}>
+              {bubbleInner}
+            </TouchableOpacity>
             {reactionBadges}
           </View>
           {!groupedWithPrev ? (
@@ -394,29 +487,10 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
           ) : (
             <View style={styles.avatarSpacer} />
           )}
-          <View style={styles.messageTextCol}>
-            {replyQuote}
-            {mediaContent ? (
-              <>
-                {!groupedWithPrev && (
-                  <Text style={styles.nameBadgeInline}>{item.from}</Text>
-                )}
-                {mediaContent}
-              </>
-            ) : (
-              <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
-                <Text style={styles.chatMsg} selectable={false}>
-                  {!groupedWithPrev && <Text style={styles.nameBadgeInline}>{item.from}</Text>}
-                  {!groupedWithPrev ? ": " : ""}
-                  {displayText}
-                </Text>
-                {translation && (
-                  <TouchableOpacity onPress={() => setShowOriginal((v) => !v)} hitSlop={6}>
-                    <Text style={styles.translatedHint}>{showOriginal ? t("room.showTranslation") : t("room.showOriginal")}</Text>
-                  </TouchableOpacity>
-                )}
-              </TouchableOpacity>
-            )}
+          <View style={styles.bubbleCol}>
+            <TouchableOpacity activeOpacity={0.85} onPress={handleTap} onLongPress={onLongPressMessage} style={styles.bubbleWrap}>
+              {bubbleInner}
+            </TouchableOpacity>
             {reactionBadges}
           </View>
         </>
@@ -3293,8 +3367,69 @@ const styles = StyleSheet.create({
   // ayrica native'de de render sonrasi "ziplama" yaratiyordu) ihtiyac
   // birakmiyor.
   messageTextCol: { flexShrink: 1, minHeight: 32, justifyContent: "center" },
-  chatMsg: { color: theme.text, fontSize: 14 },
-  chatMsgOwn: { color: theme.text, fontSize: 14, textAlign: "right" },
+  // GroupChatScreen.tsx'teki mesaj balonu stilleriyle BIREBIR AYNI (kullanici:
+  // "buraya atılan mesajlarda gruptaki mesajlarla birebir aynısı şeklinde
+  // görünsün") - sabit renkler (ROOM_BUBBLE_MINE_COLOR vb.) kasitli olarak
+  // theme.* token'lari DEGIL, oradaki TAM AYNI hex degerler.
+  bubbleCol: { maxWidth: "75%" },
+  bubbleWrap: { position: "relative" },
+  bubble: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 8, position: "relative" },
+  bubbleMineFirst: { borderTopRightRadius: 0 },
+  bubbleTheirsFirst: { borderTopLeftRadius: 0 },
+  bubbleTailSvg: { position: "absolute", top: 0 },
+  bubbleTailSvgMine: { right: -6 },
+  bubbleTailSvgTheirs: { left: -6 },
+  bubbleMine: { backgroundColor: ROOM_BUBBLE_MINE_COLOR },
+  bubbleTheirs: { backgroundColor: ROOM_BUBBLE_THEIRS_COLOR },
+  bubbleText: { color: ROOM_BUBBLE_TEXT_COLOR, fontSize: 16, lineHeight: 21 },
+  mediaCaption: { color: ROOM_BUBBLE_TEXT_COLOR, fontSize: 14, marginTop: 6, paddingHorizontal: 2 },
+  senderName: { position: "absolute", top: 5, left: 7, fontSize: 13, fontWeight: "700", zIndex: 2 },
+  bubbleContentBelowSenderName: { paddingTop: 22 },
+  bubbleLocationPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3 },
+  bubbleFilePad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  bubblePollPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  bubbleContactPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  bubbleMusicPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3 },
+  bubblePhotoPad: { paddingLeft: 3, paddingRight: 3, paddingTop: 3, paddingBottom: 3, width: 286 },
+  bubbleStickerNoBg: { backgroundColor: "transparent", padding: 0 },
+  bubbleReplyQuote: {
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderLeftWidth: 3,
+    borderLeftColor: "rgba(255,255,255,0.85)",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginHorizontal: -7,
+    marginTop: -2,
+    marginBottom: 4,
+  },
+  bubbleReplyQuoteText: { color: ROOM_BUBBLE_TEXT_COLOR, fontSize: 12 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, alignSelf: "flex-end" },
+  metaRowPhotoOverlay: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    marginTop: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  metaRowMusicOverlay: { position: "absolute", bottom: 4, right: 10, marginTop: 0 },
+  metaRowPollOverlay: { position: "absolute", bottom: 8, right: 10, marginTop: 0 },
+  metaRowContactOverlay: { position: "absolute", bottom: 8, right: 10, marginTop: 0 },
+  metaRowFileOverlay: { position: "absolute", bottom: 8, right: 10, marginTop: 0 },
+  metaRowStickerOverlay: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    marginTop: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  metaTime: { color: "rgba(255,255,255,0.65)", fontSize: 11 },
   reactionBadgeRow: { flexDirection: "row", gap: 4, marginTop: 2 },
   // Her tepkinin cercevesi - tepki veren kisinin pp'si + emoji AYNI pill'in
   // icinde (bkz. reactionBadges).
@@ -3319,17 +3454,6 @@ const styles = StyleSheet.create({
   // USTUNE AYRI bir satir olarak koymak yerine, mesajla AYNI satirda akan
   // bir Text rozeti - Text ic ice gecebildigi icin satir icinde "akar", View
   // gibi kendi satirini acip yukarida durmaz (bkz. ChatBubbleRow her iki dal).
-  nameBadgeInline: {
-    color: theme.text,
-    fontSize: 12,
-    fontWeight: "700",
-    backgroundColor: theme.surfaceAlt,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-  },
   // Kendi mesajimda rozeti govdenin flex-kardesi (yan yana) ya da govdenin
   // UZERINE mutlak konumla bindirilen ayri bir eleman yapmak iki yoldan da
   // calismadi: RN'de CSS "float" olmadigi icin govde ya TUM satirlar icin
