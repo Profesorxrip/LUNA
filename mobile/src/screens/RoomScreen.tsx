@@ -67,7 +67,7 @@ import { getRecentFiles, addRecentFile, type PickedFileAsset, type RecentFileEnt
 import { getRecentMusic, addRecentMusic } from "../utils/recentMusic";
 import { uploadWithProgress } from "../utils/uploadWithProgress";
 import RoomMapSheet from "../components/RoomMapSheet";
-import RoomQuickCards, { getPrivacyOptions, getPlaybackInfo } from "../components/RoomQuickCards";
+import { getPrivacyOptions, getPlaybackInfo } from "../components/RoomQuickCards";
 import Avatar, { colorForName } from "../components/Avatar";
 import Svg, { Path } from "react-native-svg";
 import { formatMessageTime } from "../utils/time";
@@ -2735,16 +2735,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onContentSizeChange={() => chatListRef.current?.scrollToEnd({ animated: false })}
         style={styles.chatList}
         contentContainerStyle={styles.chatContent}
-        ListHeaderComponent={
-          <RoomQuickCards
-            isHost={isHost}
-            privacy={room.privacy}
-            onChangePrivacy={changePrivacy}
-            friends={friends}
-            sentIds={quickInviteSentIds}
-            onInviteFriend={quickInviteFriend}
-          />
-        }
         data={messages}
         keyExtractor={(_, i) => String(i)}
         renderItem={({ item, index }) => {
