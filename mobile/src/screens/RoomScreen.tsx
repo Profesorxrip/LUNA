@@ -2395,7 +2395,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         <TouchableOpacity style={styles.iconTouch} onPress={() => setSettingsVisible(true)} hitSlop={8}>
           <Icon name="settings" size={30} color={theme.text} />
         </TouchableOpacity>
-        <Image source={require("../../assets/lavin-icon-mark.png")} style={styles.logo} resizeMode="contain" />
         <TouchableOpacity style={[styles.iconTouch, !canPickMedia && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
           <Icon name="search" size={30} color={theme.text} />
         </TouchableOpacity>
@@ -3281,8 +3280,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "space-between",
     paddingHorizontal: 14,
-    paddingTop: 50,
-    paddingBottom: 10,
+    paddingTop: 44,
+    paddingBottom: 6,
     // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor -
     // videoColFullscreen'in AKSINE (bkz. asagisi) burasi video degil, ust
     // bar oldugu icin seffaf kalip degradeyle kaynasmasi tercih edildi.
@@ -3321,13 +3320,6 @@ const styles = StyleSheet.create({
   },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   topIconDim: { opacity: 0.35 },
-  // topBar "flex-end" (alttan hizali) - ama ikon GLYPH'leri kendi 38x38
-  // kutusunun icinde tabanindan boslukluyken logo PNG'sindeki "LUNA" yazisi
-  // kendi 34'luk kutusunun neredeyse tabanina kadar uzaniyor - kutular
-  // alttan hizlansa bile yazi ikon glyph'inden daha asagida GORUNUYORDU
-  // (piksel olculdu, ~7-8px, bkz. DiscoverScreen.tsx headerLogo AYNI olcum).
-  // marginBottom bunu yukari kaydirip gercek GORSEL tabanlari esitliyor.
-  logo: { width: 74, height: 34, marginBottom: 7, tintColor: "#FFFFFF" },
   participantsBadge: { position: "relative", width: 38, height: 38, justifyContent: "center", alignItems: "center" },
   countBubble: {
     position: "absolute",
