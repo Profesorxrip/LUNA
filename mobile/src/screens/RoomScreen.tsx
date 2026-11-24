@@ -2404,34 +2404,28 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         style={[styles.topBar, isDesktop && styles.topBarDesktop]}
         onLayout={(e) => setTopBarHeight(e.nativeEvent.layout.height)}
       >
-        {/* Kullanici: "Üstbarın sağına soluna dikey üstüne yatay bir çizgi
-            koysak" - video kapanmadikca alt sekme cubugundaki cizgilere
-            DEGMEYEN, sadece ust barin kendi sol/sag kenarinda duran mavi-
-            beyaz gradyanli kose ayraclari (bkz. ayni mantikla videoHandleBar
-            altindaki kutu cizgileri). */}
+        {/* Kullanici: "üsttekini kaldırıp alttakinin aynısını ters çevirerek
+            ... videoya değicek" - sekme cubugundaki kutu cizgisinin (sol/sag/
+            alt) DIKEY AYNASI: sol/sag cizgiler ust bardan asagi inip TAM
+            videonun basladigi yerde bitiyor (bkz. ayni mantik videoHandleBar
+            altindaki handleBoxLine*). */}
         <LinearGradient
           colors={[theme.accent, "rgba(255,255,255,0.9)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.topBoxLineLeft}
+        />
+        <LinearGradient
+          colors={[theme.accent, "rgba(255,255,255,0.9)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.topBoxLineRight}
+        />
+        <LinearGradient
+          colors={[theme.accent, "rgba(255,255,255,0.9)", theme.accent]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.cornerBracketTopLeftH}
-        />
-        <LinearGradient
-          colors={[theme.accent, "rgba(255,255,255,0.9)"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.cornerBracketTopLeftV}
-        />
-        <LinearGradient
-          colors={[theme.accent, "rgba(255,255,255,0.9)"]}
-          start={{ x: 1, y: 0 }}
-          end={{ x: 0, y: 0 }}
-          style={styles.cornerBracketTopRightH}
-        />
-        <LinearGradient
-          colors={[theme.accent, "rgba(255,255,255,0.9)"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.cornerBracketTopRightV}
+          style={styles.topBoxLineTop}
         />
         <TouchableOpacity style={styles.iconTouch} onPress={() => setLeaveConfirmVisible(true)} hitSlop={8}>
           <Icon name="close" size={28} color={theme.text} />
@@ -3341,10 +3335,9 @@ const styles = StyleSheet.create({
   handleBoxLineLeft: { position: "absolute", left: 0, top: 0, bottom: 0, width: 2 },
   handleBoxLineRight: { position: "absolute", right: 0, top: 0, bottom: 0, width: 2 },
   handleBoxLineBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: 2 },
-  cornerBracketTopLeftH: { position: "absolute", top: 0, left: 0, width: 28, height: 2 },
-  cornerBracketTopLeftV: { position: "absolute", top: 0, left: 0, width: 2, height: 28 },
-  cornerBracketTopRightH: { position: "absolute", top: 0, right: 0, width: 28, height: 2 },
-  cornerBracketTopRightV: { position: "absolute", top: 0, right: 0, width: 2, height: 28 },
+  topBoxLineLeft: { position: "absolute", left: 0, top: 0, bottom: 0, width: 2 },
+  topBoxLineRight: { position: "absolute", right: 0, top: 0, bottom: 0, width: 2 },
+  topBoxLineTop: { position: "absolute", left: 0, right: 0, top: 0, height: 2 },
   adultBlurFallbackBg: { backgroundColor: theme.surface },
   adultBlurHint: {
     position: "absolute",
