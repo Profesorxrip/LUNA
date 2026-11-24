@@ -2930,7 +2930,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 setAttachSheetVisible((v) => !v);
               }}
               hitSlop={6}
-              style={{ transform: [{ translateX: -7 }] }}
+              style={{ transform: [{ translateX: -10 }] }}
             >
               <View style={{ transform: [{ rotate: "-45deg" }] }}>
                 <Paperclip size={23} color="#9CA3AF" strokeWidth={1.7} />
