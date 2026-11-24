@@ -318,6 +318,16 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
   const { t, i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
+  // bubbleCol'daki "maxWidth: '75%'" GroupChatScreen.tsx'te satirin kendisi
+  // TAM GENISLIKTE oldugu icin (justifyContent ile hizalaniyor) dogru
+  // calisiyor, ama Room'un satiri (messageRowOwn/messageRow) KASITLI olarak
+  // icerigi kadar genis (alignSelf:flex-end/start, kaydirarak-yanitlama
+  // ipucu balonun hemen kenarinda dursun diye) - yani '%'nin dayanacagi
+  // SABIT bir genislik yok, bu da genis kartlarin (anket/konum/dosya vb.)
+  // ekran disina tasmasina yol aciyordu. Ekran genisligi uzerinden SABIT bir
+  // piksel degeri hesaplayip bubbleCol'a dogrudan veriyoruz.
+  const { width: windowWidth } = useWindowDimensions();
+  const bubbleColMaxWidth = (windowWidth - 24) * 0.75;
   // "Chat Mesajlarini Otomatik Cevir" - ceviri varsa varsayilan GOSTERILIR,
   // dokununca orijinal metne gecilip geri donulebilir (Instagram/WhatsApp'taki
   // "Cevirisini gor / Orijinali gor" deseniyle ayni mantik).
@@ -471,7 +481,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
         // mesajimda HIC avatar yok (kullanici: "benim ppm grup mesajında
         // gözükmüyor buradada gözükmesin istiyorum") - sadece baloncuk,
         // sagdan hizali.
-        <View style={styles.bubbleCol}>
+        <View style={[styles.bubbleCol, { maxWidth: bubbleColMaxWidth }]}>
           <TouchableOpacity activeOpacity={0.85} onPress={handleTap} onLongPress={onLongPressMessage} style={styles.bubbleWrap}>
             {bubbleInner}
           </TouchableOpacity>
@@ -492,7 +502,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
               <ChatAvatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} isFriend={isFriend} isHost={senderIsHost} isModerator={senderIsModerator} />
             </View>
           }
-          <View style={styles.bubbleCol}>
+          <View style={[styles.bubbleCol, { maxWidth: bubbleColMaxWidth }]}>
             <TouchableOpacity activeOpacity={0.85} onPress={handleTap} onLongPress={onLongPressMessage} style={styles.bubbleWrap}>
               {bubbleInner}
             </TouchableOpacity>
