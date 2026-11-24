@@ -199,11 +199,16 @@ const styles = StyleSheet.create({
   // NowPlayingBar'daki "hap" cercevesiyle (wrap stili) BIREBIR AYNI gorunum -
   // onceki/begeni/sonraki ve geri-oynat-ileri gruplari artik ayri ayri
   // dairesel butonlar degil, TEK bir cerceve icinde toplaniyor.
+  // Kullanici: "sağ üstteki çark ikonu siyah çerçeveyi ortalasın, o
+  // çerçevenin yüksekliği nekadarsa sol taraftaki ... çerçevenin
+  // yüksekliğinide öyle küçült" - bu hap (onceki/begeni/sonraki) artik
+  // smallIconTouch (ayarlar carkinin dairesi) ile AYNI sabit yukseklikte
+  // (32), paddingVertical kaldirildi.
   frame: {
+    height: 32,
     borderRadius: 999,
     backgroundColor: "rgba(20,18,16,0.95)",
     paddingHorizontal: 10,
-    paddingVertical: 2,
   },
   smallIconTouch: {
     width: 32,
@@ -267,9 +272,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // Kullanici: "10 yazılarıda içindeki ikonlarla ortalansın birkaç px
+  // aşşağı indir" - ikonun (rotateCcw/rotateCw) GORSEL agirlik merkezi
+  // kutunun TAM ortasindan biraz asagida kaldigi icin yazi da asagi
+  // kaydirildi (top/bottom simetrisi bozularak).
   skipLabel: {
     position: "absolute",
-    top: 0,
+    top: 4,
     left: 0,
     right: 0,
     bottom: 0,
