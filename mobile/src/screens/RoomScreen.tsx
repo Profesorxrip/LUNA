@@ -98,7 +98,7 @@ const DRIFT_TOLERANCE_SECONDS = 2;
 // Ust bardaki dekoratif cercevenin (sol/sag/ust cizgi) yuksekligi - ust
 // barin kendi yuksekliginden (paddingTop:38) BAGIMSIZ, alt ucu HER ZAMAN
 // videoya deyecek sekilde sabit kalir (bkz. topBoxLine* stilleri).
-const TOP_FRAME_HEIGHT = 28;
+const TOP_FRAME_HEIGHT = 36;
 const GUEST_RESYNC_INTERVAL_MS = 8000;
 const HOST_HEARTBEAT_INTERVAL_MS = 5000;
 const REPLY_SWIPE_TRIGGER = 48;
