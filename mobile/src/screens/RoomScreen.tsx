@@ -2390,16 +2390,16 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onLayout={(e) => setTopBarHeight(e.nativeEvent.layout.height)}
       >
         <TouchableOpacity style={styles.iconTouch} onPress={() => setLeaveConfirmVisible(true)} hitSlop={8}>
-          <Icon name="close" size={36} color={theme.text} />
+          <Icon name="close" size={28} color={theme.text} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconTouch} onPress={() => setSettingsVisible(true)} hitSlop={8}>
-          <Icon name="settings" size={30} color={theme.text} />
+          <Icon name="settings" size={24} color={theme.text} />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.iconTouch, !canPickMedia && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
-          <Icon name="search" size={30} color={theme.text} />
+          <Icon name="search" size={24} color={theme.text} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.participantsBadge} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
-          <Icon name="people" size={30} color={theme.text} />
+          <Icon name="people" size={24} color={theme.text} />
           <View style={styles.countBubble}>
             <Text style={styles.countText}>{room.participants.length}</Text>
           </View>
@@ -3273,15 +3273,11 @@ const styles = StyleSheet.create({
   adultSkipBtnText: { color: "#FFFFFF", fontWeight: "700", fontSize: 14 },
   topBar: {
     flexDirection: "row",
-    // "flex-end" (alttan hizali) - ikonlar (iconTouch/participantsBadge,
-    // 38x38) ile logo FARKLI yukseklikte (34) oldugu icin "center" ile
-    // ortalanirlarsa gorsel olarak ayni hizada DURMUYORLARDI, kullanici
-    // ozellikle alttan hizalanmasini istedi (bkz. logo stilindeki marginTop).
     alignItems: "flex-end",
     justifyContent: "space-between",
     paddingHorizontal: 14,
-    paddingTop: 44,
-    paddingBottom: 6,
+    paddingTop: 38,
+    paddingBottom: 4,
     // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor -
     // videoColFullscreen'in AKSINE (bkz. asagisi) burasi video degil, ust
     // bar oldugu icin seffaf kalip degradeyle kaynasmasi tercih edildi.
@@ -3318,9 +3314,9 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
     paddingTop: 8,
   },
-  iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
+  iconTouch: { width: 32, height: 32, justifyContent: "center", alignItems: "center" },
   topIconDim: { opacity: 0.35 },
-  participantsBadge: { position: "relative", width: 38, height: 38, justifyContent: "center", alignItems: "center" },
+  participantsBadge: { position: "relative", width: 32, height: 32, justifyContent: "center", alignItems: "center" },
   countBubble: {
     position: "absolute",
     top: 1,
