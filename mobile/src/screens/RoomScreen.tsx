@@ -18,6 +18,7 @@ import {
   ScrollView,
 } from "react-native";
 import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
@@ -2403,6 +2404,35 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         style={[styles.topBar, isDesktop && styles.topBarDesktop]}
         onLayout={(e) => setTopBarHeight(e.nativeEvent.layout.height)}
       >
+        {/* Kullanici: "Üstbarın sağına soluna dikey üstüne yatay bir çizgi
+            koysak" - video kapanmadikca alt sekme cubugundaki cizgilere
+            DEGMEYEN, sadece ust barin kendi sol/sag kenarinda duran mavi-
+            beyaz gradyanli kose ayraclari (bkz. ayni mantikla videoHandleBar
+            altindaki kutu cizgileri). */}
+        <LinearGradient
+          colors={[theme.accent, "rgba(255,255,255,0.9)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.cornerBracketTopLeftH}
+        />
+        <LinearGradient
+          colors={[theme.accent, "rgba(255,255,255,0.9)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.cornerBracketTopLeftV}
+        />
+        <LinearGradient
+          colors={[theme.accent, "rgba(255,255,255,0.9)"]}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0, y: 0 }}
+          style={styles.cornerBracketTopRightH}
+        />
+        <LinearGradient
+          colors={[theme.accent, "rgba(255,255,255,0.9)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.cornerBracketTopRightV}
+        />
         <TouchableOpacity style={styles.iconTouch} onPress={() => setLeaveConfirmVisible(true)} hitSlop={8}>
           <Icon name="close" size={28} color={theme.text} />
         </TouchableOpacity>
@@ -2636,6 +2666,29 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               suruklenince video geri acilir (bkz. videoHandlePanResponder). */}
           {!fullscreenVideo && (
             <View style={styles.videoHandleBar} {...videoHandlePanResponder.panHandlers}>
+              {/* Kullanici: "altbar... sağına soluna altına koysak kutucuk
+                  gibi gözükse" - sekme cubugunun sol/sag/alt kenarlarini
+                  saran, uclari kosede birbirine degen mavi-beyaz gradyanli
+                  cizgiler (ust bardaki kose ayraclarinin ayni mantikla
+                  devami, bkz. yukarisi). */}
+              <LinearGradient
+                colors={["rgba(255,255,255,0.9)", theme.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.handleBoxLineLeft}
+              />
+              <LinearGradient
+                colors={["rgba(255,255,255,0.9)", theme.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.handleBoxLineRight}
+              />
+              <LinearGradient
+                colors={[theme.accent, "rgba(255,255,255,0.9)", theme.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.handleBoxLineBottom}
+              />
               {/* Kullanici: "sekme çubuğa mikrofon ikonu ekleyelim" - alt
                   composer bar'dan kaldirilan CANLI sesli sohbet ac/kapa
                   butonunun yeni yeri (bkz. handleMicPress/handleMicLongPress). */}
@@ -3285,6 +3338,13 @@ const styles = StyleSheet.create({
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   videoHandleSideBtn: { width: 22, height: 22, justifyContent: "center", alignItems: "center" },
+  handleBoxLineLeft: { position: "absolute", left: 0, top: 0, bottom: 0, width: 2 },
+  handleBoxLineRight: { position: "absolute", right: 0, top: 0, bottom: 0, width: 2 },
+  handleBoxLineBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: 2 },
+  cornerBracketTopLeftH: { position: "absolute", top: 0, left: 0, width: 28, height: 2 },
+  cornerBracketTopLeftV: { position: "absolute", top: 0, left: 0, width: 2, height: 28 },
+  cornerBracketTopRightH: { position: "absolute", top: 0, right: 0, width: 28, height: 2 },
+  cornerBracketTopRightV: { position: "absolute", top: 0, right: 0, width: 2, height: 28 },
   adultBlurFallbackBg: { backgroundColor: theme.surface },
   adultBlurHint: {
     position: "absolute",
