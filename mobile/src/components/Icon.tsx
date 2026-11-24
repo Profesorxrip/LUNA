@@ -5,9 +5,9 @@ import {
   AtSymbolIcon as AtSymbolIconOutline,
   ArrowRightOnRectangleIcon as ArrowRightOnRectangleIconOutline,
   NoSymbolIcon as NoSymbolIconOutline,
+  Cog6ToothIcon as Cog6ToothIconOutline,
 } from "react-native-heroicons/outline";
 import {
-  Cog6ToothIcon,
   PlusIcon,
   PencilIcon,
   ChevronRightIcon,
@@ -131,7 +131,6 @@ interface Props {
 // react-native'den (zaten kurulu) geliyor - gorsel olarak farkli bir aile
 // ama ayni "dolu/net" agirlikta oldugu icin yan yana durunca fark etmiyor.
 const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; color?: string }>>> = {
-  settings: Cog6ToothIcon,
   plus: PlusIcon,
   edit: PencilIcon,
   chevronRight: ChevronRightIcon,
@@ -209,8 +208,11 @@ export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
   // Ikon gozden gecirmesinde outline'a cevrilen ilk ikon - "kalin" istegi
   // uzerine 2.2 strokeWidth veriliyor (lucide ikonlarinda da ayni kalinlik
   // kullaniliyor, bkz. LUCIDE_FALLBACK render'i asagida - tutarli dursun diye).
-  if (name === "close") return <XMarkIconOutline size={size} color={color} strokeWidth={2.8} />;
+  if (name === "close") return <XMarkIconOutline size={size} color={color} strokeWidth={2} />;
   if (name === "search") return <MagnifyingGlassIconOutline size={size} color={color} strokeWidth={2.8} />;
+  // Kullanici: "Çark ikonu içi boş çark ikonu kullanmıştık ya burdakide o
+  // olsun" - dolu (solid) Cog6ToothIcon yerine outline/icici bos hali.
+  if (name === "settings") return <Cog6ToothIconOutline size={size} color={color} strokeWidth={2} />;
   if (name === "mention") return <AtSymbolIconOutline size={size} color={color} strokeWidth={2.1} />;
   if (name === "kicked") return <ArrowRightOnRectangleIconOutline size={size} color={color} strokeWidth={2} />;
   // Alt sekme cubugundaki "Profil" ikonuyla (bkz. TabGlowIcon.tsx) AYNI

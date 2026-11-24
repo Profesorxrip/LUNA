@@ -26,7 +26,7 @@ import * as Location from "expo-location";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Clipboard from "expo-clipboard";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon } from "lucide-react-native";
+import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon, Users } from "lucide-react-native";
 import { SimpleLineIcons, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import i18n from "../i18n";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
@@ -2437,20 +2437,26 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         <TouchableOpacity style={styles.iconTouch} onPress={() => setSettingsVisible(true)} hitSlop={8}>
           <Icon name="settings" size={24} color={theme.text} />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.iconTouch, !canPickMedia && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
-          <Icon name="search" size={24} color={theme.text} />
-        </TouchableOpacity>
-        {/* Kullanici: "Davet ikonunu üst bara koyalım" - eskiden Katilimcilar
-            panelinin alt barindaydi (bkz. ParticipantsModal.tsx), artik
-            dogrudan burada. */}
-        <TouchableOpacity style={styles.iconTouch} onPress={() => setInviteFriendsVisible(true)} hitSlop={8}>
-          <Icon name="invite" size={24} color={theme.text} />
-        </TouchableOpacity>
+        {/* Kullanici: "Odadakiler ikonu grup ikonu olsun ve büyüteç ikonunun
+            yerinde olsun" - katilimcilar butonu (ikonu artik lucide "grup"
+            ikonu Users) eskiden buyutecin oldugu yere tasindi. */}
         <TouchableOpacity style={styles.participantsBadge} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
-          <Icon name="people" size={24} color={theme.text} />
+          <Users size={24} color={theme.text} />
           <View style={styles.countBubble}>
             <Text style={styles.countText}>{room.participants.length}</Text>
           </View>
+        </TouchableOpacity>
+        {/* "büyüteç ikonu davet ikonunun yerinde olsun" - buyutec artik
+            eskiden davetin oldugu yerde. */}
+        <TouchableOpacity style={[styles.iconTouch, !canPickMedia && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
+          <Icon name="search" size={24} color={theme.text} />
+        </TouchableOpacity>
+        {/* "davet ikonu lucide kişi artı ikonu olsun" - davet butonu
+            (eskiden buyutecin oldugu yerdeki ParticipantsModal.tsx alt
+            barindan tasinan davet) artik katilimcilarin eskiden durdugu
+            yerde, ikonu da lucide UserPlus ("personAdd", bkz. Icon.tsx). */}
+        <TouchableOpacity style={styles.iconTouch} onPress={() => setInviteFriendsVisible(true)} hitSlop={8}>
+          <Icon name="personAdd" size={24} color={theme.text} />
         </TouchableOpacity>
       </View>
       )}
