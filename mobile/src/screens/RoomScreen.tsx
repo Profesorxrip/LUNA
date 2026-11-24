@@ -3280,7 +3280,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingVertical: 10,
     backgroundColor: theme.surface,
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
