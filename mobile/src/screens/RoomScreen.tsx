@@ -27,7 +27,7 @@ import * as Location from "expo-location";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Clipboard from "expo-clipboard";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon, UserGroup } from "lucide-react-native";
+import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon, UserGroup, LocateFixed } from "lucide-react-native";
 import { SimpleLineIcons, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import i18n from "../i18n";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
@@ -2696,9 +2696,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 style={styles.handleBoxLineBottom}
               />
               {/* Kullanici: "Mikrofonla o pusula ikonunu yer değiştir" - pusula
-                  (harita) butonu artik solda. */}
+                  (harita) butonu artik solda. "6yı deneyelim" - özel pusula
+                  (CompassBadgeIcon) yerine lucide LocateFixed. */}
               <TouchableOpacity style={styles.videoHandleSideBtn} onPress={showMap} hitSlop={8}>
-                <Icon name="globe" size={24} color="#FFFFFF" />
+                <LocateFixed size={24} color="#FFFFFF" strokeWidth={1.8} />
               </TouchableOpacity>
               <View style={styles.videoHandleNotch} />
               {/* Mikrofon butonu (bkz. handleMicPress/handleMicLongPress) artik
