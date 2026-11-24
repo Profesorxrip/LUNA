@@ -2705,7 +2705,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               >
                 <Icon
                   name={voice.connected && voice.muted ? "micOff" : "mic"}
-                  size={18}
+                  size={24}
                   color={voice.connected && !voice.muted ? theme.accent : "#FFFFFF"}
                 />
               </TouchableOpacity>
@@ -2714,7 +2714,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   Katilimcilar panelinin alt barindaydi (bkz.
                   ParticipantsModal.tsx), artik dogrudan burada. */}
               <TouchableOpacity style={styles.videoHandleSideBtn} onPress={showMap} hitSlop={8}>
-                <Icon name="globe" size={18} color="#FFFFFF" />
+                <Icon name="globe" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           )}
@@ -3333,16 +3333,21 @@ const styles = StyleSheet.create({
   // Kullanici: "sekme çubuğu" - artik video acik/kapali fark etmeksizin
   // HER ZAMAN gorunen, kendi ince arka planiyla ayri bir serit (eskiden
   // sadece video gizliyken gorunen, arka plansiz "centik"ti).
+  // Kullanici: "alttaki ikonların boyutuda üsttekilerle aynı olsun ve alt
+  // kutuya yüksekliği ortalansın" - ikon boyutu ust bardakiyle (24) esitlendi,
+  // paddingVertical de TAM TOP_FRAME_HEIGHT'a (44) oturacak sekilde
+  // ayarlandi: 10+24+10=44, boylece ikonlar dekoratif kutunun icinde
+  // dikey olarak tam ortalaniyor.
   videoHandleBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 6,
+    paddingVertical: 10,
     backgroundColor: theme.surface,
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
-  videoHandleSideBtn: { width: 22, height: 22, justifyContent: "center", alignItems: "center" },
+  videoHandleSideBtn: { width: 24, height: 24, justifyContent: "center", alignItems: "center" },
   // Kullanici: "Alttaki kutuda üstteki kutuyla aynı boyutta olsun" - artik
   // sekme cubugunun TAM yuksekligini degil, ust bardaki cerceveyle AYNI
   // sabit yuksekligi (TOP_FRAME_HEIGHT) kullanip, videoya deyen uctan
