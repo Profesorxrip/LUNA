@@ -3444,6 +3444,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    transform: [{ translateY: -4 }], // mikrofon/mesaj kutusu/gonder - ucu de biraz yukari kaydirildi
   },
   micButton: {
     width: 56,
@@ -3506,8 +3507,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     backgroundColor: theme.surfaceAlt,
-    borderRadius: 27.5,
-    height: 55,
+    borderRadius: 28,
+    height: 56,
     paddingLeft: 14,
     paddingRight: 10,
   },
