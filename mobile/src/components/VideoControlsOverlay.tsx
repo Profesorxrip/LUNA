@@ -174,14 +174,23 @@ export default function VideoControlsOverlay({
           {canControlTransport && (
             <View style={styles.centerRow}>
               <TouchableOpacity style={styles.skipTouch} onPress={() => onSkip(-10)} hitSlop={10}>
-                <Icon name="rotateCcw" size={22} color="#FFFFFF" />
+                {/* Kullanici: "Geri sar ileri sar ikonlarınıda butonlarına
+                    ortala" - rotateCcw/rotateCw glyph'inin ok ucu yuzunden
+                    GORSEL agirlik merkezi kutunun geometrik merkezinden
+                    hafif yukarida/solda kaliyor, bu yuzden ikon kucuk bir
+                    offsetle asagi/saga kaydirildi. */}
+                <View style={styles.skipIconWrap}>
+                  <Icon name="rotateCcw" size={22} color="#FFFFFF" />
+                </View>
                 <Text style={styles.skipLabel}>10</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.playTouch} onPress={onPlayPause} hitSlop={10}>
                 <Icon name={isPlaying ? "pause" : "play"} size={30} color="#FFFFFF" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.skipTouch} onPress={() => onSkip(10)} hitSlop={10}>
-                <Icon name="rotateCw" size={22} color="#FFFFFF" />
+                <View style={styles.skipIconWrap}>
+                  <Icon name="rotateCw" size={22} color="#FFFFFF" />
+                </View>
                 <Text style={styles.skipLabel}>10</Text>
               </TouchableOpacity>
             </View>
@@ -272,13 +281,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Kullanici: "10 yazılarıda içindeki ikonlarla ortalansın birkaç px
-  // aşşağı indir" - ikonun (rotateCcw/rotateCw) GORSEL agirlik merkezi
-  // kutunun TAM ortasindan biraz asagida kaldigi icin yazi da asagi
-  // kaydirildi (top/bottom simetrisi bozularak).
+  // Kullanici: "Geri sar ileri sar ikonlarınıda butonlarına ortala 10
+  // tam içlerinde ortalarında olsun" - rotateCcw/rotateCw glyph'inin ok
+  // ucu yuzunden GORSEL agirlik merkezi kutunun geometrik merkezinden
+  // hafif yukarida/solda kaliyor - ikon (skipIconWrap) VE yazi (skipLabel)
+  // AYNI telafi offsetiyle kaydirilip birbirleriyle her zaman hizali
+  // kalsin diye TEK bir transform kullaniliyor.
+  skipIconWrap: { transform: [{ translateX: 1 }, { translateY: 3 }] },
   skipLabel: {
     position: "absolute",
-    top: 4,
+    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
@@ -287,6 +299,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
     lineHeight: 44,
+    transform: [{ translateX: 1 }, { translateY: 3 }],
   },
   playTouch: {
     width: 56,
