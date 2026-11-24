@@ -3380,7 +3380,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "space-between",
     paddingHorizontal: 14,
-    paddingTop: 38,
+    paddingTop: 46,
     paddingBottom: 4,
     // Artik App.tsx'teki paylasilan AppBackground (degrade) arkada duruyor -
     // videoColFullscreen'in AKSINE (bkz. asagisi) burasi video degil, ust
