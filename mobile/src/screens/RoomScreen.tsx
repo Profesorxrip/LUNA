@@ -27,7 +27,7 @@ import * as Location from "expo-location";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Clipboard from "expo-clipboard";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon, UserGroup, LocateFixed, Key } from "lucide-react-native";
+import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon, UserGroup, LocateFixed, Key, DoorClosed } from "lucide-react-native";
 import { SimpleLineIcons, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import i18n from "../i18n";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
@@ -2707,6 +2707,12 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                     setInviteFriendsVisible), ikonu lucide Key. */}
                 <TouchableOpacity style={styles.videoHandleSideBtn} onPress={() => setInviteFriendsVisible(true)} hitSlop={8}>
                   <Key size={24} color="#FFFFFF" strokeWidth={1.8} />
+                </TouchableOpacity>
+                {/* Kullanici: "Davetli kısmının closedoor ikonuda mikrofonun
+                    solunda olsa" - oda gizliligini dogrudan "Davetli"ye
+                    ceviren hizli kisayol (sadece lider degistirebilir). */}
+                <TouchableOpacity style={styles.videoHandleSideBtn} onPress={() => isHost && changePrivacy("invite")} hitSlop={8}>
+                  <DoorClosed size={24} color="#FFFFFF" strokeWidth={1.8} />
                 </TouchableOpacity>
               </View>
               <View style={styles.videoHandleNotch} />
