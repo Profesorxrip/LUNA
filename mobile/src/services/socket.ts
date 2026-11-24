@@ -162,7 +162,29 @@ export interface ChatMessage {
   /** "text" her zaman duz bir yedek ozet tasir (bildirim/erisilebilirlik icin) -
    * "kind" verilmisse istemci asagidaki alanlarla Rave'deki gibi zengin
    * (ikonlu, kalin isimli) bir sistem mesaji ciziyor. */
-  kind?: "nowPlaying" | "kicked" | "settings" | "joined" | "left";
+  // Kullanici: "Mesaj gönderdiğimiz altbar grup mesajındakinin birebir
+  // aynısı olsun" - grup/DM mesajlarindaki (GroupMessage) AYNI "kind"
+  // degerleri ve alan isimleri (video/location/file/contact/poll/music/
+  // sticker) buraya da eklendi (bkz. server/src/index.ts yeni chat:send*
+  // olaylari) - SADECE "voice" (sesli mesaj) KASITLI OLARAK YOK, kullanici
+  // odada bu ozellik istemedi.
+  kind?: "nowPlaying" | "kicked" | "settings" | "joined" | "left" | "video" | "location" | "file" | "contact" | "poll" | "music" | "sticker";
+  durationMs?: number; // video
+  latitude?: number; // location
+  longitude?: number; // location
+  fileName?: string; // file, music
+  fileSize?: number; // file, music
+  mimeType?: string; // file, music
+  sharedUserId?: string; // contact
+  sharedUserName?: string; // contact
+  sharedUserHandle?: string | null; // contact
+  sharedUserAvatarUrl?: string | null; // contact
+  pollQuestion?: string; // poll
+  pollOptions?: string[]; // poll
+  pollOptionImages?: (string | null)[]; // poll
+  pollVotes?: number[]; // poll
+  myPollVote?: number | null; // poll - sadece client tarafinda tutulur
+  stickerId?: string | null; // sticker (gif de "gif-" onekiyle sticker sayilir)
   title?: string; // nowPlaying
   // nowPlaying - buyuk ikon/aciklama secimi icin (bkz. RoomScreen.tsx
   // NOW_PLAYING_META) - "picked"/"previous" kisiye ozel (byName dolu),

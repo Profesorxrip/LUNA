@@ -20,9 +20,13 @@ import {
 import { BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import * as Location from "expo-location";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Clipboard from "expo-clipboard";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { Laugh, Paperclip, Send, MapPin, FileText as FileTextIcon, BarChart2, Music, User as UserIcon, Image as ImageIcon } from "lucide-react-native";
+import { SimpleLineIcons, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import i18n from "../i18n";
 import { getSocket, RoomState, ChatMessage } from "../services/socket";
 import type { MediaSource, DMReply, FriendUser, Participant } from "../services/socket";
@@ -39,6 +43,26 @@ import VideoSettingsSheet from "../components/VideoSettingsSheet";
 import MessageOptionsSheet from "../components/MessageOptionsSheet";
 import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
+import VideoMessageBubble from "../components/VideoMessageBubble";
+import LocationMessageBubble from "../components/LocationMessageBubble";
+import FileMessageBubble from "../components/FileMessageBubble";
+import ContactMessageBubble from "../components/ContactMessageBubble";
+import PollMessageBubble from "../components/PollMessageBubble";
+import MusicMessageBubble from "../components/MusicMessageBubble";
+import StickerMessageBubble from "../components/StickerMessageBubble";
+import GifMessageBubble from "../components/GifMessageBubble";
+import SendVideoSheet from "../components/SendVideoSheet";
+import LocationPickerModal, { type PickedLocation } from "../components/LocationPickerModal";
+import FilePreviewModal from "../components/FilePreviewModal";
+import PollComposerModal from "../components/PollComposerModal";
+import CameraFilmstrip, { type FilmstripPickedAsset } from "../components/CameraFilmstrip";
+import GalleryPickerModal, { type GalleryPickedAsset } from "../components/GalleryPickerModal";
+import EmojiKeyboardPanel, { PANEL_HEIGHT as EMOJI_PANEL_BASE_HEIGHT } from "../components/EmojiKeyboardPanel";
+import { getCustomStickers, addCustomSticker, CustomSticker } from "../utils/customStickers";
+import { getCustomGifs, addCustomGif, CustomGif } from "../utils/customGifs";
+import { getRecentFiles, addRecentFile, type PickedFileAsset, type RecentFileEntry } from "../utils/recentFiles";
+import { getRecentMusic, addRecentMusic } from "../utils/recentMusic";
+import { uploadWithProgress } from "../utils/uploadWithProgress";
 import RoomMapSheet from "../components/RoomMapSheet";
 import RoomQuickCards, { getPrivacyOptions, getPlaybackInfo } from "../components/RoomQuickCards";
 import Avatar from "../components/Avatar";
@@ -99,6 +123,61 @@ interface ChatBubbleRowProps {
   // RoomScreen.tsx reactToMessageWithEmoji, server/src/index.ts message:react
   // - sunucu zaten ayni emojiyle ikinci tepkiyi toggle/geri aliyor).
   onReactWithEmoji: (emoji: string) => void;
+  // Anket mesajinda bir secenege basinca (bkz. RoomScreen.tsx votePoll).
+  onVotePoll: (messageId: string, optionIndex: number) => void;
+}
+
+// GroupChatScreen.tsx'teki AYNI yardimci - hizli kamera cekiminde video
+// kayit suresini mm:ss olarak gosteriyor.
+function formatRecordingTime(ms: number): string {
+  const totalSec = Math.floor(Math.max(0, ms) / 1000);
+  const mm = Math.floor(totalSec / 60);
+  const ss = totalSec % 60;
+  return `${mm}:${ss.toString().padStart(2, "0")}`;
+}
+
+// Kullanici: "Mesaj gönderdiğimiz altbar grup mesajındakinin birebir
+// aynısı olsun" - GroupChatScreen.tsx'teki AYNI "kind" bazli medya
+// gosterimi (sesli mesaj HARIC). Hem kendi hem baskasinin balonunda
+// tekrar kullanilsin diye ortak bir fonksiyona cikarildi.
+function renderMediaContent(item: ChatMessage, onReply: () => void, onVotePoll: (messageId: string, optionIndex: number) => void) {
+  if (item.kind === "location" && item.latitude != null && item.longitude != null) {
+    return <LocationMessageBubble latitude={item.latitude} longitude={item.longitude} />;
+  }
+  if (item.kind === "file" && item.mediaUrl) {
+    return <FileMessageBubble uri={item.mediaUrl} fileName={item.fileName || item.text} fileSize={item.fileSize} mimeType={item.mimeType} />;
+  }
+  if (item.kind === "contact" && item.sharedUserName) {
+    return <ContactMessageBubble name={item.sharedUserName} handle={item.sharedUserHandle} avatarUrl={item.sharedUserAvatarUrl} />;
+  }
+  if (item.kind === "poll" && item.pollQuestion && item.pollOptions) {
+    return (
+      <PollMessageBubble
+        question={item.pollQuestion}
+        options={item.pollOptions}
+        optionImages={item.pollOptionImages}
+        votes={item.pollVotes ?? new Array(item.pollOptions.length).fill(0)}
+        myVote={item.myPollVote ?? null}
+        onVote={(optionIndex) => onVotePoll(item.id!, optionIndex)}
+      />
+    );
+  }
+  if (item.kind === "music" && item.mediaUrl) {
+    return <MusicMessageBubble uri={item.mediaUrl} title={item.fileName || item.text} />;
+  }
+  if (item.kind === "sticker" && item.stickerId?.startsWith("gif-")) {
+    return <GifMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />;
+  }
+  if (item.kind === "sticker") {
+    return <StickerMessageBubble stickerId={item.stickerId ?? null} mediaUrl={item.mediaUrl ?? null} />;
+  }
+  if (item.kind === "video" && item.mediaUrl) {
+    return <VideoMessageBubble uri={item.mediaUrl} size={280} borderRadius={8} senderName={item.from} sentAt={item.ts} onReply={onReply} />;
+  }
+  if (item.mediaUrl) {
+    return <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} senderName={item.from} sentAt={item.ts} onReply={onReply} />;
+  }
+  return null;
 }
 
 type Reaction = { emoji: string; fromSocketId: string; fromName: string; fromAvatarUrl?: string | null };
@@ -211,7 +290,7 @@ function PendingImageThumb({ uri, onRemove, disabled }: { uri: string; onRemove:
  * doldurup tasdigi icin ustten baslamaya devam ediyor. Bu sayede react-
  * native-web'de desteklenmeyen onTextLayout'a bagli kalinmiyor ve native'de
  * de ilk render'da dogru pozisyonla cikiyor - sonradan "ziplama" olmuyor. */
-function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onLongPressMessage, isFriend, senderIsHost, senderIsModerator, onReactWithEmoji }: ChatBubbleRowProps) {
+function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onLongPressMessage, isFriend, senderIsHost, senderIsModerator, onReactWithEmoji, onVotePoll }: ChatBubbleRowProps) {
   const { t, i18n } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
@@ -231,6 +310,7 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
 
   // Ayni emojiyi veren herkes TEK bir kartta toplanir (bkz.
   // groupReactionsByEmoji) - farkli emoji farkli kart acar.
+  const mediaContent = renderMediaContent(item, onReply, onVotePoll);
   const reactionGroups = item.reactions && item.reactions.length > 0 ? groupReactionsByEmoji(item.reactions) : [];
   const reactionBadges = reactionGroups.length > 0 && (
     <View style={styles.reactionBadgeRow}>
@@ -285,8 +365,8 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
         <>
           <View style={styles.messageTextCol}>
             {replyQuote}
-            {item.mediaUrl ? (
-              <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} senderName={item.from} sentAt={item.ts} onReply={onReply} />
+            {mediaContent ? (
+              mediaContent
             ) : (
               <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
                 <Text style={styles.chatMsgOwn} selectable={false}>
@@ -316,12 +396,12 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
           )}
           <View style={styles.messageTextCol}>
             {replyQuote}
-            {item.mediaUrl ? (
+            {mediaContent ? (
               <>
                 {!groupedWithPrev && (
                   <Text style={styles.nameBadgeInline}>{item.from}</Text>
                 )}
-                <ChatImageBubble uri={item.mediaUrl} isAdult={item.isAdult} senderName={item.from} sentAt={item.ts} onReply={onReply} />
+                {mediaContent}
               </>
             ) : (
               <TouchableOpacity activeOpacity={1} onPress={handleTap} onLongPress={onLongPressMessage}>
@@ -405,6 +485,58 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   const [pendingImages, setPendingImages] = useState<{ id: string; uri: string }[]>([]);
   const [mapVisible, setMapVisible] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Kullanici: "Mesaj gönderdiğimiz altbar grup mesajındakinin birebir
+  // aynısı olsun ama sesli mesaj gönderme özelliği odada olmasın" -
+  // GroupChatScreen.tsx'teki composer state'inin TAMAMI (sesli mesaj kaydi
+  // HARIC) buraya tasindi. Yazi/fotograf gonderme zaten calisiyordu, bunlar
+  // EK (emoji/sticker/gif, ek dosya menusu: galeri-video/konum/dosya/muzik/
+  // kisi/anket, ani kamera cekimi).
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [attachSheetVisible, setAttachSheetVisible] = useState(false);
+  const [emojiPanelVisible, setEmojiPanelVisible] = useState(false);
+  const [contactPickerVisible, setContactPickerVisible] = useState(false);
+  const [galleryPickerVisible, setGalleryPickerVisible] = useState(false);
+  const [galleryPickerMode, setGalleryPickerMode] = useState<"default" | "sticker" | "gif">("default");
+  const [videoQueue, setVideoQueue] = useState<{ uri: string; mimeType?: string | null }[]>([]);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [quickCaptureActive, setQuickCaptureActive] = useState(false);
+  const [quickCameraReady, setQuickCameraReady] = useState(false);
+  const [quickCameraFacing, setQuickCameraFacing] = useState<"back" | "front">("back");
+  const [quickCameraFlash, setQuickCameraFlash] = useState<"off" | "on">("off");
+  const [quickCameraMode, setQuickCameraMode] = useState<"photo" | "video">("photo");
+  const [capturingQuickPhoto, setCapturingQuickPhoto] = useState(false);
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [recordingElapsedSec, setRecordingElapsedSec] = useState(0);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cameraRef = useRef<CameraView>(null);
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+  const [filePreviewVisible, setFilePreviewVisible] = useState(false);
+  const [pendingAttachKind, setPendingAttachKind] = useState<"file" | "music">("file");
+  const [pendingFiles, setPendingFiles] = useState<PickedFileAsset[]>([]);
+  const [fileCaption, setFileCaption] = useState("");
+  const [fileUploadProgress, setFileUploadProgress] = useState(0);
+  const [sendingFile, setSendingFile] = useState(false);
+  const [recentFiles, setRecentFiles] = useState<RecentFileEntry[]>([]);
+  const [recentSelectionMode, setRecentSelectionMode] = useState(false);
+  const [selectedRecentUris, setSelectedRecentUris] = useState<string[]>([]);
+  const [recentMusic, setRecentMusic] = useState<RecentFileEntry[]>([]);
+  const [musicSelectionMode, setMusicSelectionMode] = useState(false);
+  const [selectedMusicUris, setSelectedMusicUris] = useState<string[]>([]);
+  const [pollComposerVisible, setPollComposerVisible] = useState(false);
+  const [sendingPoll, setSendingPoll] = useState(false);
+  const [customStickers, setCustomStickers] = useState<CustomSticker[]>([]);
+  const [customGifs, setCustomGifs] = useState<CustomGif[]>([]);
+  const [creatingSticker, setCreatingSticker] = useState(false);
+  const [creatingGif, setCreatingGif] = useState(false);
+
+  useEffect(() => {
+    getCustomStickers().then(setCustomStickers);
+    getCustomGifs().then(setCustomGifs);
+    supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
+  }, []);
   const [participantsVisible, setParticipantsVisible] = useState(false);
   // Katilimcilar paneli (Modal, kendi ayri agacinda render edilir) ust barin
   // ALTINDAN baslasin diye - gercek yukseklik cihaza/masaustu-telefon
@@ -651,16 +783,24 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       showAlert(t("room.kickedTitle"), t("room.kickedBody"));
       onLeave();
     }
+    // Ankette oy verme/degistirme - digerlerinin (benim degil, bkz. votePoll
+    // kendi oyunu zaten iyimser guncelliyor) oylarini da yansitir (bkz.
+    // server/src/index.ts chat:votePoll).
+    function handlePollVote({ messageId, votes }: { messageId: string; votes: number[] }) {
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, pollVotes: votes } : m)));
+    }
     socket.on("room:state", handleRoomState);
     socket.on("room:chat", handleChat);
     socket.on("room:chatTranslation", handleChatTranslation);
     socket.on("room:messageReaction", handleMessageReaction);
+    socket.on("room:pollVote", handlePollVote);
     socket.on("room:kicked", handleKicked);
     return () => {
       socket.off("room:state", handleRoomState);
       socket.off("room:chat", handleChat);
       socket.off("room:chatTranslation", handleChatTranslation);
       socket.off("room:messageReaction", handleMessageReaction);
+      socket.off("room:pollVote", handlePollVote);
       socket.off("room:kicked", handleKicked);
       if (fullscreenCaptionTimerRef.current) clearTimeout(fullscreenCaptionTimerRef.current);
     };
@@ -1219,29 +1359,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     return () => clearInterval(timer);
   }, [room.poll]);
 
-  function insertMention() {
-    setChatInput((prev) => (prev.endsWith("@") || prev.length === 0 ? prev + "@" : prev + " @"));
-  }
-
-  async function pickImage() {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.7,
-      allowsMultipleSelection: true,
-      selectionLimit: 10,
-    });
-    if (result.canceled || !result.assets?.length) return;
-    setPendingImages((prev) => [
-      ...prev,
-      ...result.assets.map((a) => ({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, uri: a.uri })),
-    ]);
-  }
-
   function removePendingImage(id: string) {
     setPendingImages((prev) => prev.filter((img) => img.id !== id));
   }
@@ -1326,6 +1443,508 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     });
     setChatInput("");
     setReplyingTo(null);
+  }
+
+  // Kullanici: "Mesaj gönderdiğimiz altbar grup mesajındakinin birebir
+  // aynısı olsun ama sesli mesaj gönderme özelliği olmasın" -
+  // GroupChatScreen.tsx'teki AYNI composer handler'lari (sesli mesaj kaydi
+  // HARIC), server/src/index.ts'teki yeni chat:send* olaylarina baglaniyor.
+  // Oda mesajlari hicbir yerde kalici SAKLANMADIGI icin GroupChatScreen'in
+  // aksine "res.message" ile elle setMessages YAPILMIYOR - sunucu zaten
+  // "room:chat" ile HERKESE (gonderen dahil) yayinliyor, yukaridaki
+  // handleChat listener'i bunu otomatik mesaj listesine ekliyor.
+  function insertEmoji(emoji: string) {
+    setChatInput((prev) => prev + emoji);
+  }
+
+  function openContactPicker() {
+    setAttachSheetVisible(false);
+    setContactPickerVisible(true);
+  }
+  function sendContacts(userIds: string[]) {
+    if (!userIds.length) return;
+    setContactPickerVisible(false);
+    userIds.forEach((sharedUserId) => {
+      socket.emit("chat:sendContact", { sharedUserId }, (res: any) => {
+        if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+      });
+    });
+  }
+
+  function openPollComposer() {
+    setAttachSheetVisible(false);
+    setPollComposerVisible(true);
+  }
+  async function sendPoll(question: string, options: string[], optionImages: (string | null)[]) {
+    if (!myUserId || sendingPoll) return;
+    setSendingPoll(true);
+    try {
+      const uploadedImages: (string | null)[] = [];
+      for (const uri of optionImages) {
+        if (!uri) {
+          uploadedImages.push(null);
+          continue;
+        }
+        const arrayBuffer = await uriToArrayBuffer(uri);
+        const ext = uri.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${myUserId}/${Date.now()}-poll-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, "image/jpeg", () => {});
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        uploadedImages.push(publicUrlData.publicUrl);
+      }
+      const hasImages = uploadedImages.some((u) => u !== null);
+      socket.emit("chat:sendPoll", { question, options, optionImages: hasImages ? uploadedImages : undefined }, (res: any) => {
+        if (res?.ok) setPollComposerVisible(false);
+        else showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+      });
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingPoll(false);
+    }
+  }
+  function votePoll(messageId: string, optionIndex: number) {
+    const target = messages.find((m) => m.id === messageId);
+    const optionsCount = target?.pollOptions?.length ?? 0;
+    if (!optionsCount) return;
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== messageId || !m.pollOptions) return m;
+        const prevVote = m.myPollVote;
+        if (prevVote === optionIndex) return m;
+        const votes = [...(m.pollVotes ?? new Array(m.pollOptions.length).fill(0))];
+        if (prevVote != null) votes[prevVote] = Math.max(0, votes[prevVote] - 1);
+        votes[optionIndex] = (votes[optionIndex] ?? 0) + 1;
+        return { ...m, myPollVote: optionIndex, pollVotes: votes };
+      })
+    );
+    socket.emit("chat:votePoll", { messageId, optionIndex, optionsCount }, () => {});
+  }
+
+  function openLocationPicker() {
+    setAttachSheetVisible(false);
+    setLocationPickerVisible(true);
+  }
+  function handleLocationPickerConfirm(loc: PickedLocation) {
+    setLocationPickerVisible(false);
+    socket.emit("chat:sendLocation", { latitude: loc.latitude, longitude: loc.longitude }, (res: any) => {
+      if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+    });
+  }
+
+  function openFilePreview() {
+    setAttachSheetVisible(false);
+    setPendingAttachKind("file");
+    setPendingFiles([]);
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
+    setFilePreviewVisible(true);
+    getRecentFiles().then(setRecentFiles);
+  }
+  function openMusicPicker() {
+    setAttachSheetVisible(false);
+    setPendingAttachKind("music");
+    setPendingFiles([]);
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+    setFilePreviewVisible(true);
+    getRecentMusic().then(setRecentMusic);
+  }
+  function pickFile() {
+    DocumentPicker.getDocumentAsync({ multiple: false }).then((result) => {
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      setPendingFiles([{ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }]);
+      setFileCaption("");
+      addRecentFile({ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }).then(setRecentFiles);
+    });
+  }
+  function pickMusicFile() {
+    DocumentPicker.getDocumentAsync({ type: "audio/*", multiple: false }).then((result) => {
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      setPendingFiles([{ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }]);
+      setFileCaption("");
+      addRecentMusic({ uri: asset.uri, name: asset.name, size: asset.size, mimeType: asset.mimeType }).then(setRecentMusic);
+    });
+  }
+  function toggleRecentSelection(uri: string) {
+    setSelectedRecentUris((prev) => {
+      const next = prev.includes(uri) ? prev.filter((u) => u !== uri) : [...prev, uri];
+      if (next.length === 0) setRecentSelectionMode(false);
+      return next;
+    });
+  }
+  function handlePressRecent(file: RecentFileEntry) {
+    if (recentSelectionMode) return toggleRecentSelection(file.uri);
+    setPendingFiles([{ uri: file.uri, name: file.name, size: file.size, mimeType: file.mimeType }]);
+    setFileCaption("");
+  }
+  function handleLongPressRecent(file: RecentFileEntry) {
+    if (!recentSelectionMode) setRecentSelectionMode(true);
+    toggleRecentSelection(file.uri);
+  }
+  function exitRecentSelection() {
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
+  }
+  function confirmRecentSelection() {
+    const chosen = recentFiles.filter((f) => selectedRecentUris.includes(f.uri)).map((f) => ({ uri: f.uri, name: f.name, size: f.size, mimeType: f.mimeType }));
+    if (chosen.length) sendFilesDirect(chosen);
+  }
+  async function sendFilesDirect(filesToSend: PickedFileAsset[]) {
+    if (!filesToSend.length || !myUserId || sendingFile) return;
+    setFilePreviewVisible(false);
+    setPendingFiles([]);
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
+    setSendingFile(true);
+    try {
+      for (const asset of filesToSend) {
+        const arrayBuffer = await uriToArrayBuffer(asset.uri);
+        const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
+        const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", () => {});
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        await new Promise<void>((resolve) => {
+          socket.emit("chat:sendFile", { mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType }, (res: any) => {
+            if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+            resolve();
+          });
+        });
+      }
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingFile(false);
+    }
+  }
+  function toggleMusicSelection(uri: string) {
+    setSelectedMusicUris((prev) => {
+      const next = prev.includes(uri) ? prev.filter((u) => u !== uri) : [...prev, uri];
+      if (next.length === 0) setMusicSelectionMode(false);
+      return next;
+    });
+  }
+  function handlePressRecentMusic(file: RecentFileEntry) {
+    if (musicSelectionMode) return toggleMusicSelection(file.uri);
+    setPendingFiles([{ uri: file.uri, name: file.name, size: file.size, mimeType: file.mimeType }]);
+    setFileCaption("");
+  }
+  function handleLongPressRecentMusic(file: RecentFileEntry) {
+    if (!musicSelectionMode) setMusicSelectionMode(true);
+    toggleMusicSelection(file.uri);
+  }
+  function exitMusicSelection() {
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+  }
+  function confirmMusicSelection() {
+    const chosen = recentMusic.filter((f) => selectedMusicUris.includes(f.uri)).map((f) => ({ uri: f.uri, name: f.name, size: f.size, mimeType: f.mimeType }));
+    if (chosen.length) sendMusicFilesDirect(chosen);
+  }
+  async function sendMusicFilesDirect(filesToSend: PickedFileAsset[]) {
+    if (!filesToSend.length || !myUserId || sendingFile) return;
+    setFilePreviewVisible(false);
+    setPendingFiles([]);
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+    setSendingFile(true);
+    try {
+      for (const asset of filesToSend) {
+        const arrayBuffer = await uriToArrayBuffer(asset.uri);
+        const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
+        const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", () => {});
+        const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+        await new Promise<void>((resolve) => {
+          socket.emit("chat:sendMusic", { mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType }, (res: any) => {
+            if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+            resolve();
+          });
+        });
+      }
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingFile(false);
+    }
+  }
+  function cancelPendingFile() {
+    if (sendingFile) return;
+    setFilePreviewVisible(false);
+    setPendingFiles([]);
+    setFileCaption("");
+    setRecentSelectionMode(false);
+    setSelectedRecentUris([]);
+    setMusicSelectionMode(false);
+    setSelectedMusicUris([]);
+  }
+  function backToFileList() {
+    if (sendingFile) return;
+    setPendingFiles([]);
+    setFileCaption("");
+  }
+  async function confirmSendFile() {
+    const asset = pendingFiles[0];
+    if (!asset || !myUserId || sendingFile) return;
+    setSendingFile(true);
+    setFileUploadProgress(0);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(asset.uri);
+      const ext = asset.name.split(".").pop()?.toLowerCase() || "bin";
+      const path = `${myUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, asset.mimeType || "application/octet-stream", (pct) => setFileUploadProgress(pct));
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      const event = pendingAttachKind === "music" ? "chat:sendMusic" : "chat:sendFile";
+      await new Promise<void>((resolve, reject) => {
+        socket.emit(event, { mediaUrl: publicUrlData.publicUrl, fileName: asset.name, fileSize: asset.size, mimeType: asset.mimeType }, (res: any) => {
+          if (res?.ok) resolve();
+          else reject(new Error(res?.error || t("dm.genericSendErrorBody")));
+        });
+      });
+      setFilePreviewVisible(false);
+      setPendingFiles([]);
+      setFileCaption("");
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setSendingFile(false);
+      setFileUploadProgress(0);
+    }
+  }
+
+  function sendSticker(stickerId: string | null, mediaUrl: string | null) {
+    setEmojiPanelVisible(false);
+    socket.emit("chat:sendSticker", { stickerId: stickerId ?? undefined, mediaUrl: mediaUrl ?? undefined }, (res: any) => {
+      if (!res?.ok) showAlert(t("dm.sendFailedTitle"), res?.error || t("dm.genericSendErrorBody"));
+    });
+  }
+  async function uploadCustomSticker(uri: string) {
+    if (!myUserId) return;
+    setCreatingSticker(true);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "png";
+      const path = `${myUserId}/${Date.now()}-sticker-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, ext === "png" ? "image/png" : "image/jpeg", () => {});
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      const next = await addCustomSticker(publicUrlData.publicUrl);
+      setCustomStickers(next);
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setCreatingSticker(false);
+    }
+  }
+  async function createSticker() {
+    if (!myUserId || creatingSticker) return;
+    if (Platform.OS !== "web") {
+      setGalleryPickerMode("sticker");
+      setGalleryPickerVisible(true);
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.9 });
+    if (result.canceled || !result.assets?.[0]) return;
+    uploadCustomSticker(result.assets[0].uri);
+  }
+  async function uploadCustomGif(uri: string) {
+    if (!myUserId) return;
+    setCreatingGif(true);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "gif";
+      const path = `${myUserId}/${Date.now()}-gif-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, "image/gif", () => {});
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      const next = await addCustomGif(publicUrlData.publicUrl);
+      setCustomGifs(next);
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setCreatingGif(false);
+    }
+  }
+  async function createGif() {
+    if (!myUserId || creatingGif) return;
+    if (Platform.OS !== "web") {
+      setGalleryPickerMode("gif");
+      setGalleryPickerVisible(true);
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
+    if (result.canceled || !result.assets?.[0]) return;
+    uploadCustomGif(result.assets[0].uri);
+  }
+
+  function pickImage() {
+    if (Platform.OS === "web") {
+      pickImageViaOsLibrary();
+      return;
+    }
+    setAttachSheetVisible(false);
+    setGalleryPickerVisible(true);
+  }
+  async function pickImageViaOsLibrary() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(t("dm.permissionRequiredTitle"), t("dm.permissionRequiredBody"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      quality: 0.7,
+      allowsMultipleSelection: true,
+      selectionLimit: 10,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    setAttachSheetVisible(false);
+    const videos = result.assets.filter((a) => a.type === "video");
+    const images = result.assets.filter((a) => a.type !== "video");
+    if (images.length) setPendingImages((prev) => [...prev, ...images.map((a) => ({ id: `${Date.now()}-${Math.random()}`, uri: a.uri }))]);
+    if (videos.length) setVideoQueue((prev) => [...prev, ...videos.map((a) => ({ uri: a.uri, mimeType: a.mimeType }))]);
+  }
+  function handleGalleryPickerConfirm(picked: GalleryPickedAsset[]) {
+    setGalleryPickerVisible(false);
+    if (galleryPickerMode === "sticker") {
+      setGalleryPickerMode("default");
+      if (picked[0]) uploadCustomSticker(picked[0].uri);
+      return;
+    }
+    if (galleryPickerMode === "gif") {
+      setGalleryPickerMode("default");
+      if (picked[0]) uploadCustomGif(picked[0].uri);
+      return;
+    }
+    const videos = picked.filter((a) => a.type === "video");
+    const images = picked.filter((a) => a.type === "image");
+    if (images.length) setPendingImages((prev) => [...prev, ...images.map((a) => ({ id: `${Date.now()}-${Math.random()}`, uri: a.uri }))]);
+    if (videos.length) setVideoQueue((prev) => [...prev, ...videos.map((a) => ({ uri: a.uri, mimeType: a.mimeType }))]);
+  }
+
+  async function sendPickedVideo(uri: string, mimeType: string | null | undefined, caption: string) {
+    if (!myUserId) return;
+    setUploadingVideo(true);
+    setVideoUploadProgress(0);
+    try {
+      const arrayBuffer = await uriToArrayBuffer(uri);
+      const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "mp4";
+      const contentType = mimeType || (ext === "mov" ? "video/quicktime" : "video/mp4");
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const path = `${myUserId}/${fileName}`;
+      await uploadWithProgress("chat-media", path, arrayBuffer, contentType, (pct) => setVideoUploadProgress(pct));
+      const { data: publicUrlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      await new Promise<void>((resolve, reject) => {
+        socket.emit("chat:sendVideo", { mediaUrl: publicUrlData.publicUrl, caption: caption || undefined }, (res: any) => {
+          if (res?.ok) resolve();
+          else reject(new Error(res?.error || t("dm.genericSendErrorBody")));
+        });
+      });
+      setVideoQueue((prev) => prev.slice(1));
+    } catch (err: any) {
+      showAlert(t("dm.sendFailedTitle"), err?.message || t("dm.genericSendErrorBody"));
+    } finally {
+      setUploadingVideo(false);
+      setVideoUploadProgress(0);
+    }
+  }
+
+  async function startQuickCapture() {
+    if (!cameraPermission?.granted) {
+      const res = await requestCameraPermission();
+      if (!res.granted) {
+        showAlert(t("dm.permissionRequiredTitle"), t("dm.cameraPermissionRequiredBody"));
+        return;
+      }
+    }
+    setQuickCameraReady(false);
+    setQuickCameraFacing("back");
+    setQuickCameraFlash("off");
+    setQuickCameraMode("photo");
+    setCapturingQuickPhoto(false);
+    setIsRecordingVideo(false);
+    setRecordingElapsedSec(0);
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    setAttachSheetVisible(false);
+    setQuickCaptureActive(true);
+  }
+  function handleQuickCameraReady() {
+    setQuickCameraReady(true);
+  }
+  function toggleQuickCameraFacing() {
+    setQuickCameraFacing((f) => (f === "back" ? "front" : "back"));
+  }
+  function toggleQuickCameraFlash() {
+    setQuickCameraFlash((f) => (f === "off" ? "on" : "off"));
+  }
+  function handleQuickGalleryPress() {
+    setQuickCaptureActive(false);
+    pickImage();
+  }
+  function handleFilmstripPickAsset(asset: FilmstripPickedAsset) {
+    setQuickCaptureActive(false);
+    handleGalleryPickerConfirm([{ uri: asset.uri, type: asset.type, mimeType: asset.type === "video" ? "video/mp4" : "image/jpeg" }]);
+  }
+  function handleQuickShutterPress() {
+    if (quickCameraMode === "video") handleQuickVideoShutterPress();
+    else handleQuickPhotoShutterPress();
+  }
+  async function handleQuickPhotoShutterPress() {
+    if (capturingQuickPhoto || !quickCameraReady) return;
+    setCapturingQuickPhoto(true);
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const photo = await cameraRef.current?.takePictureAsync({ quality: 0.7 });
+        if (photo?.uri) {
+          setQuickCaptureActive(false);
+          setCapturingQuickPhoto(false);
+          setPendingImages((prev) => [...prev, { id: `${Date.now()}-${Math.random()}`, uri: photo.uri }]);
+          return;
+        }
+      } catch {
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
+    setCapturingQuickPhoto(false);
+  }
+  async function handleQuickVideoShutterPress() {
+    if (!quickCameraReady) return;
+    if (isRecordingVideo) {
+      cameraRef.current?.stopRecording();
+      return;
+    }
+    setIsRecordingVideo(true);
+    setRecordingElapsedSec(0);
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    recordingIntervalRef.current = setInterval(() => setRecordingElapsedSec((s) => s + 1), 1000);
+    try {
+      const video = await cameraRef.current?.recordAsync({ maxDuration: 60 });
+      if (video?.uri) {
+        setQuickCaptureActive(false);
+        setVideoQueue((prev) => [...prev, { uri: video.uri, mimeType: "video/mp4" }]);
+      }
+    } catch {
+      // kayit basarisiz/iptal - ekran acik kalir
+    } finally {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+      setIsRecordingVideo(false);
+    }
   }
 
   function startReply(item: ChatMessage) {
@@ -1951,6 +2570,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               senderIsHost={Boolean(sender?.isHost)}
               senderIsModerator={Boolean(sender?.isModerator)}
               onReactWithEmoji={(emoji) => reactToMessageWithEmoji(item, emoji)}
+              onVotePoll={votePoll}
             />
           ) : item.kind === "joined" || item.kind === "left" ? (
             (() => {
@@ -2069,7 +2689,16 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         </ScrollView>
       )}
 
-      {/* Alt bar - mikrofon / mesaj kutusu / etiket / galeri / davet / paylas / gonder (Rave'deki alt bar duzeni) */}
+      {/* Alt bar - mikrofon (CANLI sesli sohbet acma/kapama, "sesli mesaj"
+          ile KARISTIRILMASIN) / mesaj kutusu (emoji + yazi + ek dosya +
+          kamera) / gonder. Kullanici: "Mesaj gönderdiğimiz altbar grup
+          mesajındakinin birebir aynısı olsun ama sesli mesaj gönderme
+          özelliği odada olmasın yani yalnızca gönder butonu çıksın" -
+          GroupChatScreen.tsx'teki composer GORUNUMU/duzeni birebir
+          tasindi, ama sag taraftaki yuvarlak buton ORADA oldugu gibi
+          bos yazarken mikrofona (sesli mesaj kaydi) DONUSMUYOR - HER
+          ZAMAN gonder oku olarak kalıyor (bos/yaziyorken aynı buton,
+          disabled degil - bos basinca sendChat zaten no-op). */}
       <View style={styles.bottomBar}>
         {!chatFocused && (
           <TouchableOpacity
@@ -2084,51 +2713,224 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
             />
           </TouchableOpacity>
         )}
-        <TextInput
-          style={styles.chatInput}
-          placeholder={me?.chatBanned ? t("room.chatDisabledPlaceholder") : t("room.messagePlaceholder")}
-          placeholderTextColor={theme.textMuted}
-          value={chatInput}
-          onChangeText={setChatInput}
-          onSubmitEditing={() => sendPendingImagesAndText()}
-          onFocus={() => setChatFocused(true)}
-          onBlur={() => setChatFocused(false)}
-          editable={!me?.chatBanned}
-        />
-        {pendingImages.length > 0 ? (
-          // Bekleyen fotograf(lar) varsa gonder oku METNI DEGIL onlari yollar.
+        <View style={styles.inputPill}>
           <TouchableOpacity
-            style={styles.iconTouchSm}
-            onPress={() => sendPendingImagesAndText()}
-            hitSlop={4}
-            disabled={uploadingImage}
+            onPress={() => {
+              Keyboard.dismiss();
+              setAttachSheetVisible(false);
+              setEmojiPanelVisible((v) => !v);
+            }}
+            hitSlop={6}
           >
-            {uploadingImage ? (
-              <ActivityIndicator color={theme.accentBright} size="small" />
-            ) : (
-              <Icon name="send" size={30} color={theme.accentBright} />
-            )}
+            <Laugh size={25} color="#9CA3AF" />
           </TouchableOpacity>
-        ) : chatFocused ? (
-          // Yaziyorken: Rave'deki gibi sadece gonder oku gorunur.
-          <TouchableOpacity style={styles.iconTouchSm} onPress={sendChat} hitSlop={4}>
-            <Icon name="send" size={30} color={theme.accentBright} />
-          </TouchableOpacity>
-        ) : (
-          // Yazmiyorken: etiket/galeri ikonlari gorunur - paylas ikonu
-          // kaldirildi, harita (dunya) ikonu artik burada degil, Katilimcilar
-          // panelinin alt barinda, davet ikonunun solunda (bkz.
-          // ParticipantsModal.tsx onShowMap/onInvite).
-          <View style={styles.actionGroup}>
-            <TouchableOpacity style={styles.iconTouchSm} onPress={insertMention} hitSlop={4}>
-              <Icon name="mention" size={30} color="#FFFFFF" />
+          <TextInput
+            style={styles.chatInput}
+            placeholder={me?.chatBanned ? t("room.chatDisabledPlaceholder") : t("room.messagePlaceholder")}
+            placeholderTextColor={theme.textMuted}
+            value={chatInput}
+            onChangeText={setChatInput}
+            onSubmitEditing={() => sendPendingImagesAndText()}
+            onFocus={() => {
+              setChatFocused(true);
+              setAttachSheetVisible(false);
+              setEmojiPanelVisible(false);
+            }}
+            onBlur={() => setChatFocused(false)}
+            editable={!me?.chatBanned}
+          />
+          <View style={styles.inputPillIconsRow}>
+            <TouchableOpacity
+              onPress={() => {
+                Keyboard.dismiss();
+                setEmojiPanelVisible(false);
+                setAttachSheetVisible((v) => !v);
+              }}
+              hitSlop={6}
+            >
+              <View style={{ transform: [{ rotate: "-45deg" }] }}>
+                <Paperclip size={23} color="#9CA3AF" strokeWidth={1.7} />
+              </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconTouchSm} onPress={pickImage} hitSlop={4}>
-              <Icon name="image" size={30} color="#FFFFFF" />
+            <TouchableOpacity onPress={startQuickCapture} hitSlop={6} style={{ marginLeft: 5 }}>
+              <SimpleLineIcons name="camera" size={25} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
-        )}
+        </View>
+        <TouchableOpacity style={styles.inputRoundBtn} onPress={() => sendPendingImagesAndText()} hitSlop={8} disabled={uploadingImage}>
+          {uploadingImage ? <ActivityIndicator color="#04140D" size="small" /> : <Send size={20} color="#04140D" />}
+        </TouchableOpacity>
       </View>
+
+      {attachSheetVisible && (
+        <View style={styles.attachSheet}>
+          <View style={styles.attachGrid}>
+            <TouchableOpacity style={styles.attachGridItem} onPress={pickImage}>
+              <View style={styles.attachIconWrap}>
+                <ImageIcon size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachGallery")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openLocationPicker}>
+              <View style={styles.attachIconWrap}>
+                <MapPin size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachLocation")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openFilePreview}>
+              <View style={styles.attachIconWrap}>
+                <FileTextIcon size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachFile")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openPollComposer}>
+              <View style={styles.attachIconWrap}>
+                <BarChart2 size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachPoll")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openMusicPicker}>
+              <View style={styles.attachIconWrap}>
+                <Music size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachMusic")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachGridItem} onPress={openContactPicker}>
+              <View style={styles.attachIconWrap}>
+                <UserIcon size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.attachGridText}>{t("dm.attachContact")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {emojiPanelVisible && <View style={{ height: EMOJI_PANEL_BASE_HEIGHT }} />}
+      {emojiPanelVisible && (
+        <EmojiKeyboardPanel
+          onSelect={insertEmoji}
+          onSendSticker={sendSticker}
+          customStickers={customStickers}
+          onCreateSticker={createSticker}
+          creatingSticker={creatingSticker}
+          customGifs={customGifs}
+          onCreateGif={createGif}
+          creatingGif={creatingGif}
+        />
+      )}
+
+      {quickCaptureActive && cameraPermission?.granted && (
+        <View style={styles.quickCameraOverlay}>
+          <CameraView ref={cameraRef} style={styles.quickCameraView} facing={quickCameraFacing} flash={quickCameraFlash} onCameraReady={handleQuickCameraReady} />
+          <View style={styles.quickCameraTopBar}>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={() => setQuickCaptureActive(false)} hitSlop={10}>
+              <Icon name="close" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFlash} hitSlop={10}>
+              <Ionicons name={quickCameraFlash === "on" ? "flash-outline" : "flash-off-outline"} size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          {isRecordingVideo && (
+            <View style={styles.quickCameraRecTimerWrap} pointerEvents="none">
+              <View style={styles.quickCameraRecTimerPill}>
+                <View style={styles.quickCameraRecDot} />
+                <Text style={styles.quickCameraRecTimerText}>{formatRecordingTime(recordingElapsedSec * 1000)}</Text>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.quickCameraFilmstripWrap} pointerEvents="box-none">
+            <CameraFilmstrip visible={quickCaptureActive} onOpenGallery={handleQuickGalleryPress} onPickAsset={handleFilmstripPickAsset} />
+          </View>
+
+          <View style={styles.quickCameraBottomBar}>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={handleQuickGalleryPress} hitSlop={10}>
+              <ImageIcon size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickCameraShutterOuter, quickCameraMode === "video" && styles.quickCameraShutterOuterVideo]}
+              onPress={handleQuickShutterPress}
+              disabled={!quickCameraReady || (quickCameraMode === "photo" && capturingQuickPhoto)}
+              hitSlop={8}
+            >
+              <View
+                style={[
+                  styles.quickCameraShutterInner,
+                  quickCameraMode === "video" && styles.quickCameraShutterInnerVideo,
+                  capturingQuickPhoto && styles.quickCameraShutterInnerActive,
+                  isRecordingVideo && styles.quickCameraShutterInnerRecording,
+                ]}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickCameraTopBtn} onPress={toggleQuickCameraFacing} disabled={isRecordingVideo} hitSlop={10}>
+              <MaterialCommunityIcons name="camera-flip-outline" size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.quickCameraModeRow}>
+            <TouchableOpacity onPress={() => !isRecordingVideo && setQuickCameraMode("video")} hitSlop={10}>
+              <Text style={[styles.quickCameraModeText, quickCameraMode === "video" && styles.quickCameraModeTextActive]}>{t("dm.cameraModeVideo")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => !isRecordingVideo && setQuickCameraMode("photo")} hitSlop={10}>
+              <Text style={[styles.quickCameraModeText, quickCameraMode === "photo" && styles.quickCameraModeTextActive]}>{t("dm.cameraModePhoto")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      <SendVideoSheet
+        visible={videoQueue.length > 0}
+        uri={videoQueue[0]?.uri ?? null}
+        uploading={uploadingVideo}
+        uploadProgress={videoUploadProgress}
+        onCancel={() => setVideoQueue((prev) => prev.slice(1))}
+        onSend={(caption) => sendPickedVideo(videoQueue[0].uri, videoQueue[0].mimeType, caption)}
+      />
+
+      <GalleryPickerModal visible={galleryPickerVisible} onClose={() => setGalleryPickerVisible(false)} onConfirm={handleGalleryPickerConfirm} />
+
+      <LocationPickerModal visible={locationPickerVisible} onClose={() => setLocationPickerVisible(false)} onConfirm={handleLocationPickerConfirm} />
+
+      <FilePreviewModal
+        visible={filePreviewVisible}
+        title={pendingAttachKind === "music" ? t("dm.musicPreviewTitle") : undefined}
+        recentSectionLabel={pendingAttachKind === "music" ? t("dm.musicRecentSection") : undefined}
+        selectedCountLabel={pendingAttachKind === "music" ? t("dm.musicSelectedCount", { count: selectedMusicUris.length }) : undefined}
+        files={pendingFiles}
+        caption={fileCaption}
+        onChangeCaption={setFileCaption}
+        uploading={sendingFile}
+        uploadProgress={fileUploadProgress}
+        recentFiles={pendingAttachKind === "music" ? recentMusic : recentFiles}
+        selectionMode={pendingAttachKind === "music" ? musicSelectionMode : recentSelectionMode}
+        selectedUris={pendingAttachKind === "music" ? selectedMusicUris : selectedRecentUris}
+        onPressRecent={pendingAttachKind === "music" ? handlePressRecentMusic : handlePressRecent}
+        onLongPressRecent={pendingAttachKind === "music" ? handleLongPressRecentMusic : handleLongPressRecent}
+        onExitSelection={pendingAttachKind === "music" ? exitMusicSelection : exitRecentSelection}
+        onConfirmSelection={pendingAttachKind === "music" ? confirmMusicSelection : confirmRecentSelection}
+        onPickFile={pendingAttachKind === "music" ? pickMusicFile : pickFile}
+        onBackToList={backToFileList}
+        onCancel={cancelPendingFile}
+        onSend={confirmSendFile}
+      />
+
+      <PollComposerModal visible={pollComposerVisible} sending={sendingPoll} onCancel={() => setPollComposerVisible(false)} onSend={sendPoll} />
+
+      <Modal visible={contactPickerVisible} animationType="slide" onRequestClose={() => setContactPickerVisible(false)} statusBarTranslucent>
+        <FriendsScreen
+          onBack={() => setContactPickerVisible(false)}
+          onOpenDM={() => {}}
+          onOpenParticipant={() => {}}
+          inviteMode
+          hideInviteExtras
+          excludeUserIds={[]}
+          headerTitle={t("dm.contactPickerTitle")}
+          confirmButtonLabel={(count) => t("dm.contactShareSendCount", { count })}
+          onSendInvites={sendContacts}
+        />
+      </Modal>
+
       {voice.error && <Text style={styles.errorText}>{voice.error}</Text>}
         </View>
         )}
@@ -2392,8 +3194,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   iconTouch: { width: 38, height: 38, justifyContent: "center", alignItems: "center" },
-  actionGroup: { flexDirection: "row", alignItems: "center" },
-  iconTouchSm: { width: 30, height: 38, justifyContent: "center", alignItems: "center", flexShrink: 0 },
   topIconDim: { opacity: 0.35 },
   // topBar "flex-end" (alttan hizali) - ama ikon GLYPH'leri kendi 38x38
   // kutusunun icinde tabanindan boslukluyken logo PNG'sindeki "LUNA" yazisi
@@ -2702,4 +3502,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // GroupChatScreen.tsx composer'inin birebir aynisi (sesli mesaj disinda) -
+  // Room'un kendi theme.* renk tonlarina uyarlandi.
+  inputPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: theme.surfaceAlt,
+    borderRadius: 27.5,
+    height: 55,
+    paddingLeft: 14,
+    paddingRight: 10,
+  },
+  inputPillIconsRow: { flexDirection: "row", alignItems: "center" },
+  inputRoundBtn: {
+    width: 55,
+    height: 55,
+    borderRadius: 27.5,
+    backgroundColor: theme.accentBright,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  attachSheet: { backgroundColor: theme.surface, height: 300, paddingTop: 18, paddingHorizontal: 20, alignItems: "center" },
+  attachGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap" },
+  attachGridItem: { width: "33.33%", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
+  attachIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: "rgba(14,165,233,0.12)", alignItems: "center", justifyContent: "center" },
+  attachGridText: { color: theme.text, fontSize: 13, fontWeight: "600" },
+  quickCameraOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#000000" },
+  quickCameraView: { flex: 1, marginTop: 50, marginBottom: 70 },
+  quickCameraTopBar: { position: "absolute", top: 70, left: 16, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  quickCameraRecTimerWrap: { position: "absolute", top: 70, left: 0, right: 0, height: 36, alignItems: "center", justifyContent: "center" },
+  quickCameraRecTimerPill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 },
+  quickCameraRecDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.danger },
+  quickCameraRecTimerText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  quickCameraTopBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
+  quickCameraFilmstripWrap: { position: "absolute", bottom: 168, left: 0, right: 0 },
+  quickCameraBottomBar: { position: "absolute", bottom: 86, left: 16, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  quickCameraShutterOuter: { width: 72, height: 72, borderRadius: 36, borderWidth: 4, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  quickCameraShutterInner: { width: 58, height: 58, borderRadius: 29, backgroundColor: "#FFFFFF" },
+  quickCameraShutterInnerActive: { backgroundColor: "rgba(255,255,255,0.5)" },
+  quickCameraShutterOuterVideo: { borderColor: theme.danger },
+  quickCameraShutterInnerVideo: { backgroundColor: theme.danger },
+  quickCameraShutterInnerRecording: { width: 28, height: 28, borderRadius: 6 },
+  quickCameraModeRow: { position: "absolute", bottom: 50, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 24 },
+  quickCameraModeText: { color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: "700" },
+  quickCameraModeTextActive: { color: "#FFFFFF" },
 });

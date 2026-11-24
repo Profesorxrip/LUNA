@@ -2933,6 +2933,255 @@ io.on("connection", (socket: Socket) => {
     ack?.();
   });
 
+  // Asagidaki chat:sendVideo/sendLocation/sendFile/sendMusic/sendContact/
+  // sendPoll/votePoll/sendSticker - grup sohbetindeki (group.ts) AYNI
+  // ozelliklerin oda (Room) karsiligi. Kullanici: "Mesaj gönderdiğimiz
+  // altbar grup mesajındakinin birebir aynısı olsun" - ama chat:send/
+  // chat:sendImage ile AYNI desende: oda mesajlari HICBIR YERDE kalici
+  // SAKLANMIYOR (DB yok), sadece su an odada olanlara anlik yayinlaniyor
+  // (bkz. yukarisi "Mesaj kalici degil" yorumu). Bu yuzden grup.ts'teki
+  // gibi ayri bir DB/RPC katmani yerine, dogrudan burada (metin/fotograf
+  // ile AYNI basitlikte) broadcast ediliyor.
+
+  // Oda sohbetinde video mesaji - foto ile AYNI desen (nsfw taramasi
+  // sadece fotografta var, grup/DM'deki videoda da olmadigi icin burada da
+  // atlaniyor).
+  socket.on(
+    "chat:sendVideo",
+    ({ mediaUrl, durationMs, caption }: { mediaUrl: string; durationMs?: number; caption?: string }, ack) => {
+      if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000)) return ack?.({ ok: false });
+      if (durationMs !== undefined && !isFiniteNumber(durationMs, 0, 24 * 60 * 60 * 1000)) return ack?.({ ok: false });
+      if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
+      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
+      const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+      io.to(currentRoomCode).emit("room:chat", {
+        id: randomUUID(),
+        system: false,
+        from: participant?.name || "?",
+        fromSocketId: socket.id,
+        fromAvatarUrl: participant?.avatarUrl ?? null,
+        text: caption || "🎥 Video",
+        kind: "video",
+        mediaUrl,
+        durationMs,
+        ts: Date.now(),
+      });
+      ack?.({ ok: true });
+    }
+  );
+
+  // Oda sohbetinde konum paylasimi - dosya yok, sadece iki koordinat.
+  socket.on(
+    "chat:sendLocation",
+    ({ latitude, longitude }: { latitude: number; longitude: number }, ack) => {
+      if (!currentRoomCode || !isFiniteNumber(latitude, -90, 90) || !isFiniteNumber(longitude, -180, 180)) {
+        return ack?.({ ok: false });
+      }
+      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
+      const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+      io.to(currentRoomCode).emit("room:chat", {
+        id: randomUUID(),
+        system: false,
+        from: participant?.name || "?",
+        fromSocketId: socket.id,
+        fromAvatarUrl: participant?.avatarUrl ?? null,
+        text: "📍 Konum",
+        kind: "location",
+        latitude,
+        longitude,
+        ts: Date.now(),
+      });
+      ack?.({ ok: true });
+    }
+  );
+
+  // Oda sohbetinde genel dosya - client "chat-media" bucket'ina kendisi yukler.
+  socket.on(
+    "chat:sendFile",
+    (
+      { mediaUrl, fileName, fileSize, mimeType }: { mediaUrl: string; fileName: string; fileSize?: number; mimeType?: string },
+      ack
+    ) => {
+      if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000) || !isNonEmptyString(fileName, 255)) return ack?.({ ok: false });
+      if (fileSize !== undefined && !isFiniteNumber(fileSize, 0, 500 * 1024 * 1024)) return ack?.({ ok: false });
+      if (mimeType !== undefined && !isOptionalString(mimeType, 150)) return ack?.({ ok: false });
+      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
+      const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+      io.to(currentRoomCode).emit("room:chat", {
+        id: randomUUID(),
+        system: false,
+        from: participant?.name || "?",
+        fromSocketId: socket.id,
+        fromAvatarUrl: participant?.avatarUrl ?? null,
+        text: `📎 ${fileName}`,
+        kind: "file",
+        mediaUrl,
+        fileName,
+        fileSize,
+        mimeType,
+        ts: Date.now(),
+      });
+      ack?.({ ok: true });
+    }
+  );
+
+  // Oda sohbetinde muzik paylasma - dosya ile AYNI desen, sadece kind='music'.
+  socket.on(
+    "chat:sendMusic",
+    (
+      { mediaUrl, fileName, fileSize, mimeType }: { mediaUrl: string; fileName: string; fileSize?: number; mimeType?: string },
+      ack
+    ) => {
+      if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000) || !isNonEmptyString(fileName, 255)) return ack?.({ ok: false });
+      if (fileSize !== undefined && !isFiniteNumber(fileSize, 0, 500 * 1024 * 1024)) return ack?.({ ok: false });
+      if (mimeType !== undefined && !isOptionalString(mimeType, 150)) return ack?.({ ok: false });
+      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
+      const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+      io.to(currentRoomCode).emit("room:chat", {
+        id: randomUUID(),
+        system: false,
+        from: participant?.name || "?",
+        fromSocketId: socket.id,
+        fromAvatarUrl: participant?.avatarUrl ?? null,
+        text: `🎵 ${fileName}`,
+        kind: "music",
+        mediaUrl,
+        fileName,
+        fileSize,
+        mimeType,
+        ts: Date.now(),
+      });
+      ack?.({ ok: true });
+    }
+  );
+
+  // Oda sohbetinde bir kullanicinin kisi kartini paylasma - gercek profil
+  // sorgusu gerektigi icin (grup.ts sendGroupContact ile AYNI kaynak
+  // fonksiyonu, getPublicProfile) giris yapmis olmak sart.
+  socket.on("chat:sendContact", async ({ sharedUserId }: { sharedUserId: string }, ack) => {
+    if (!currentRoomCode || !isNonEmptyString(sharedUserId, 200)) return ack?.({ ok: false });
+    if (!myDb || !myUserId) return ack?.({ ok: false, error: "Giriş yapmalısın." });
+    if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
+    const profile = await getPublicProfile(myDb, sharedUserId);
+    if (!profile) return ack?.({ ok: false });
+    const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+    io.to(currentRoomCode).emit("room:chat", {
+      id: randomUUID(),
+      system: false,
+      from: participant?.name || "?",
+      fromSocketId: socket.id,
+      fromAvatarUrl: participant?.avatarUrl ?? null,
+      text: "👤 Kişi paylaştı",
+      kind: "contact",
+      sharedUserId,
+      sharedUserName: profile.name,
+      sharedUserHandle: profile.handle ?? null,
+      sharedUserAvatarUrl: profile.avatarUrl ?? null,
+      ts: Date.now(),
+    });
+    ack?.({ ok: true });
+  });
+
+  // Oda sohbetinde anket olusturma - en az 2, en fazla 10 secenek.
+  socket.on(
+    "chat:sendPoll",
+    (
+      { question, options, optionImages }: { question: string; options: string[]; optionImages?: (string | null)[] },
+      ack
+    ) => {
+      if (
+        !currentRoomCode ||
+        !isNonEmptyString(question, 300) ||
+        !Array.isArray(options) ||
+        options.length < 2 ||
+        options.length > 10 ||
+        !options.every((o) => isNonEmptyString(o, 100))
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (
+        optionImages !== undefined &&
+        (!Array.isArray(optionImages) ||
+          optionImages.length !== options.length ||
+          !optionImages.every((u) => u === null || isNonEmptyString(u, 2000)))
+      ) {
+        return ack?.({ ok: false });
+      }
+      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
+      const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+      io.to(currentRoomCode).emit("room:chat", {
+        id: randomUUID(),
+        system: false,
+        from: participant?.name || "?",
+        fromSocketId: socket.id,
+        fromAvatarUrl: participant?.avatarUrl ?? null,
+        text: "📊 Anket",
+        kind: "poll",
+        pollQuestion: question,
+        pollOptions: options,
+        pollOptionImages: optionImages,
+        pollVotes: new Array(options.length).fill(0),
+        ts: Date.now(),
+      });
+      ack?.({ ok: true });
+    }
+  );
+
+  // Ankette oy verme/degistirme - messageReactions ile AYNI "oda hafizasinda,
+  // kalici degil" deseni (bkz. rooms.ts messagePollVotes). "optionsCount"
+  // client'tan geliyor cunku sunucu anket mesajinin kendisini SAKLAMIYOR,
+  // kac secenegi oldugunu baska turlu bilemez.
+  socket.on(
+    "chat:votePoll",
+    ({ messageId, optionIndex, optionsCount }: { messageId: string; optionIndex: number; optionsCount: number }, ack) => {
+      if (
+        !currentRoomCode ||
+        !isNonEmptyString(messageId, 100) ||
+        !isFiniteNumber(optionIndex, 0, 9) ||
+        !isFiniteNumber(optionsCount, 2, 10)
+      ) {
+        return ack?.({ ok: false });
+      }
+      const room = getRoom(currentRoomCode);
+      if (!room) return ack?.({ ok: false });
+      let votesForMessage = room.messagePollVotes.get(messageId);
+      if (!votesForMessage) {
+        votesForMessage = new Map();
+        room.messagePollVotes.set(messageId, votesForMessage);
+      }
+      votesForMessage.set(socket.id, optionIndex);
+      const counts = new Array(optionsCount).fill(0);
+      for (const idx of votesForMessage.values()) if (idx < optionsCount) counts[idx] += 1;
+      io.to(currentRoomCode).emit("room:pollVote", { messageId, votes: counts });
+      ack?.({ ok: true });
+    }
+  );
+
+  // Oda sohbetinde cikartma/gif (bundle edilmis VEYA kullanicinin kendi
+  // yukledigi - gif'ler stickerId "gif-" ile baslayan sticker'lar olarak
+  // gonderilir, bkz. mobile/src/components/GifMessageBubble.tsx).
+  socket.on("chat:sendSticker", ({ stickerId, mediaUrl }: { stickerId?: string; mediaUrl?: string }, ack) => {
+    if (!currentRoomCode) return ack?.({ ok: false });
+    if (stickerId !== undefined && !isOptionalString(stickerId, 100)) return ack?.({ ok: false });
+    if (mediaUrl !== undefined && !isOptionalString(mediaUrl, 2000)) return ack?.({ ok: false });
+    if (!stickerId && !mediaUrl) return ack?.({ ok: false });
+    if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
+    const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+    io.to(currentRoomCode).emit("room:chat", {
+      id: randomUUID(),
+      system: false,
+      from: participant?.name || "?",
+      fromSocketId: socket.id,
+      fromAvatarUrl: participant?.avatarUrl ?? null,
+      text: "🏷️ Çıkartma",
+      kind: "sticker",
+      stickerId: stickerId ?? null,
+      mediaUrl: mediaUrl ?? null,
+      ts: Date.now(),
+    });
+    ack?.({ ok: true });
+  });
+
   // Oda sohbetinde bir mesaja (cift-tiklayarak VEYA bir tepki kartina
   // dokunarak) gonderilen tepki - DM'deki message:react ile ayni mantik,
   // ama hicbir yerde kalici olarak saklanmiyor (oda hafizadan silinince bu

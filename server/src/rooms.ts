@@ -151,6 +151,11 @@ export interface Room {
   // FARKLI emojilerle verdigi tepkiler, en fazla MAX_REACTIONS_PER_USER tane -
   // bkz. index.ts message:react).
   messageReactions: Map<string, Map<string, { emoji: string; fromName: string; fromAvatarUrl?: string | null }[]>>;
+  // Sohbetteki anket mesajlarina verilen oylar - messageReactions ile AYNI
+  // desen (kalici degil, oda hafizadan silinince gider): messageId ->
+  // socketId -> secilen secenek indeksi (bkz. index.ts chat:sendPoll/
+  // chat:votePoll).
+  messagePollVotes: Map<string, Map<string, number>>;
   // Host odayi "18+ icerik" olarak isaretleyebilir - Ayarlar ekranindaki
   // "Yetiskin Icerigini Gizle" acik olan kullanicilarin Discover listesinde
   // bu oda hic gorunmez (bkz. visibleToViewer).
@@ -252,6 +257,7 @@ export function createRoom(
     createdAtMs: Date.now(),
     bufferingSocketIds: new Set(),
     messageReactions: new Map(),
+    messagePollVotes: new Map(),
     isAdult: isAdult ?? false,
     videoHistory: [],
     videoQueue: [],
