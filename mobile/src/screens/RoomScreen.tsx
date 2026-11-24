@@ -1278,23 +1278,37 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     })
   ).current;
 
-  // Video GIZLIYKEN, onun eski yerinde kalan kucuk "centik"i asagi
-  // suruklemek videoyu geri acar - ayna mantik, ters yonde.
-  const showVideoPanResponder = useRef(
+  // Kullanici: "o hap yerine bir sekme çubuğu koysak video kapalıykende
+  // açıkkende o gözükse sekme çubuğunu yukarı kaydırınca video gizlense
+  // aşşağı indirince video görünse" - eskiden bu centik SADECE video
+  // gizliyken gorunuyordu (video acikken yerine video alaninin KENDISI
+  // suruklenirdi, bkz. hideVideoPanResponder). Artik videonun ACIK/KAPALI
+  // durumuna gore YON degistiren TEK bir surukleme - centik HER ZAMAN
+  // (acikken de, kapaliyken de) gorunuyor.
+  const videoHandlePanResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponderCapture: (_evt, g) =>
-        videoHiddenRef.current && Math.abs(g.dy) > 8 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
+      onMoveShouldSetPanResponderCapture: (_evt, g) => Math.abs(g.dy) > 8 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
       onPanResponderMove: (_evt, g) => {
         const h = videoNaturalHeightRef.current;
         if (!h) return;
-        const downward = Math.max(0, g.dy); // yukari suruklemeyi yoksay, sadece asagi
-        videoCollapseAnim.setValue(Math.max(0, Math.min(1, downward / h)));
+        if (videoHiddenRef.current) {
+          const downward = Math.max(0, g.dy); // yukari suruklemeyi yoksay, sadece asagi
+          videoCollapseAnim.setValue(Math.max(0, Math.min(1, downward / h)));
+        } else {
+          const upward = Math.min(0, g.dy); // asagi suruklemeyi yoksay, sadece yukari
+          videoCollapseAnim.setValue(Math.max(0, Math.min(1, 1 + upward / h)));
+        }
       },
       onPanResponderRelease: (_evt, g) => {
         const h = videoNaturalHeightRef.current;
         if (!h) return;
-        const passedThreshold = g.dy > h * 0.25 || g.vy > 0.6;
-        finishVideoDrag(!passedThreshold);
+        if (videoHiddenRef.current) {
+          const passedThreshold = g.dy > h * 0.25 || g.vy > 0.6;
+          finishVideoDrag(!passedThreshold);
+        } else {
+          const passedThreshold = -g.dy > h * 0.25 || g.vy < -0.6;
+          finishVideoDrag(passedThreshold);
+        }
       },
       onPanResponderTerminate: () => finishVideoDrag(videoHiddenRef.current),
     })
@@ -2609,14 +2623,13 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
             </View>
           </Animated.View>
 
-          {/* Video yukari kayip kaybolunca, onu geri getirecek cark da
-              ONUNLA BIRLIKTE gizlenmis oluyordu - kullanici sikisip
-              kalmasin diye kalici, HIC collapse olmayan minik bir "centik"
-              (asagi surukleyince video geri acilir, bkz. showVideoPanResponder).
-              Video ACIKKEN bu centik HIC gorunmez - oradaki kapatma
-              hareketi videonun KENDISINI yukari suruklemektir. */}
-          {videoHidden && !fullscreenVideo && (
-            <View style={styles.videoHandleBar} {...showVideoPanResponder.panHandlers}>
+          {/* Kullanici: "o hap yerine bir sekme çubuğu koysak video
+              kapalıykende açıkkende o gözükse" - bu sekme çubuğu artik
+              video ACIK/KAPALI FARK ETMEKSIZIN HER ZAMAN gorunuyor: yukari
+              suruklenince video gizlenir, (video zaten gizliyken) asagi
+              suruklenince video geri acilir (bkz. videoHandlePanResponder). */}
+          {!fullscreenVideo && (
+            <View style={styles.videoHandleBar} {...videoHandlePanResponder.panHandlers}>
               <View style={styles.videoHandleNotch} />
             </View>
           )}
@@ -3237,10 +3250,14 @@ const styles = StyleSheet.create({
   fullscreenCaptionBarRaised: { bottom: 78 },
   fullscreenCaptionText: { color: "#FFFFFF", fontSize: 13, lineHeight: 18 },
   fullscreenCaptionName: { fontWeight: "700", color: theme.accent },
+  // Kullanici: "sekme çubuğu" - artik video acik/kapali fark etmeksizin
+  // HER ZAMAN gorunen, kendi ince arka planiyla ayri bir serit (eskiden
+  // sadece video gizliyken gorunen, arka plansiz "centik"ti).
   videoHandleBar: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
+    backgroundColor: theme.surface,
   },
   videoHandleNotch: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" },
   adultBlurFallbackBg: { backgroundColor: theme.surface },
