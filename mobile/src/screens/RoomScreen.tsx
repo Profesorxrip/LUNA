@@ -479,11 +479,19 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
         </View>
       ) : (
         <>
-          {!groupedWithPrev ? (
-            <ChatAvatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} isFriend={isFriend} isHost={senderIsHost} isModerator={senderIsModerator} />
-          ) : (
-            <View style={styles.avatarSpacer} />
-          )}
+          {
+            // Kullanici: "Karşımdakilerin mesajlarında bir kayma var" - ayni
+            // genislikte SABIT bir yedek kutu (eskiden avatarSpacer: width 32)
+            // ile GERCEK avatarin genisligi (Avatar.tsx'teki halka -
+            // isFriend'e gore 2 ya da 1px ekliyor - bazen 32, bazen 34/36px)
+            // TAM OLARAK ES DEGILDI, bu yuzden gruplanmis/gruplanmamis
+            // mesajlar arasinda balon birkac piksel kayiyordu. Artik
+            // gruplanmisken de AYNI ChatAvatar GERCEKTEN render ediliyor
+            // (sadece gorunmez) - genislik HER ZAMAN birebir ayni.
+            <View style={groupedWithPrev ? styles.avatarHidden : undefined}>
+              <ChatAvatar name={item.from || "?"} avatarUrl={item.fromAvatarUrl} isFriend={isFriend} isHost={senderIsHost} isModerator={senderIsModerator} />
+            </View>
+          }
           <View style={styles.bubbleCol}>
             <TouchableOpacity activeOpacity={0.85} onPress={handleTap} onLongPress={onLongPressMessage} style={styles.bubbleWrap}>
               {bubbleInner}
@@ -3347,7 +3355,11 @@ const styles = StyleSheet.create({
   // Ayni gondericiden arka arkaya gelen mesajlarda avatar sadece grubun
   // ilkinde gosterilir - devam eden satirlar avatarin genisligi kadar
   // bosluk birakip metnin hizasini korur (Rave'deki gruplama davranisi).
-  avatarSpacer: { width: 32 },
+  // Gruplanmis (ayni gonderenden art arda gelen) mesajlarda avatar GERCEKTEN
+  // render ediliyor ama gorunmez - "width: 32" gibi sabit bir yedek kutu
+  // DEGIL, boylece halka/arkadas cercevesi yuzunden degisen gercek genislikle
+  // (bkz. Avatar.tsx) HER ZAMAN birebir ayni kaliyor (kayma yapmiyor).
+  avatarHidden: { opacity: 0 },
   // ParticipantsModal.tsx avatarWrap/hostBadge/moderatorBadge ile AYNI
   // konumlandirma, sadece 32'lik sohbet avatarina oranli kucultulmus.
   chatAvatarWrap: { position: "relative" },
