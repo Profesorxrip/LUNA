@@ -3444,19 +3444,15 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderTopWidth: 1,
-    borderTopColor: theme.border,
   },
   micButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    marginVertical: -8, // alt bar'in yuksekligini artirmasin diye disariya tasiriyoruz
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
-    transform: [{ translateX: -4 }, { translateY: -4 }], // hafif sola/yukari - yuvarlak sekil bozulmadan (kliplenmeden) kaydiriliyor
   },
   micButtonMuted: { backgroundColor: theme.danger },
   chatInput: {
