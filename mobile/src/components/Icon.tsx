@@ -35,7 +35,7 @@ import {
   GlobeEuropeAfricaIcon,
   LanguageIcon,
 } from "react-native-heroicons/solid";
-import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, User, UserPlus, UserX, UserMinus, UserCheck } from "lucide-react-native";
+import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, User, UserPlus, UserX, UserMinus, UserCheck, Users } from "lucide-react-native";
 import { PaperPlaneIcon, ParticipantsIcon, PersonBlockIcon, PersonBanIcon, MicIcon, MicOffIcon, VideoIcon, VideoOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, OrnateKeyIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon, VolumeOnIcon, VolumeOffIcon, UndoArrowIcon } from "./CustomIcons";
 import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
@@ -46,6 +46,7 @@ export type IconName =
   | "settings"
   | "search"
   | "people"
+  | "friendsUsers"
   | "mic"
   | "micOff"
   | "video"
@@ -222,6 +223,10 @@ export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
   if (name === "personRemove") return <UserX size={size} color={color} strokeWidth={1.8} />;
   if (name === "personMinus") return <UserMinus size={size} color={color} strokeWidth={1.8} />;
   if (name === "personCheck") return <UserCheck size={size} color={color} strokeWidth={1.8} />;
+  // Kullanici: "Oda gizliliği kısmındaki arkadaşlar ikonu lucide arkadaşlar
+  // ikonu olsun" - UserProfileScreen.tsx'teki "Arkadaşlar" gorunurluk
+  // secenegiyle AYNI lucide Users glyph'i (varsayilan strokeWidth).
+  if (name === "friendsUsers") return <Users size={size} color={color} />;
   if (name === "block") return <NoSymbolIconOutline size={size} color={color} strokeWidth={2} />;
   // "Bekleniyor" (hourglass) - lucide'nin varsayilan cizgi (fill=none) hali
   // yerine dolgulu istendi - digerlerinden (hourglass DISI lucide ikonlar)

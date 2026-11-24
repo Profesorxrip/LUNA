@@ -53,7 +53,7 @@ function getPrivacyOptions(t: (key: string) => string): { key: PrivacyLevel; ico
   return [
     { key: "open", icon: "worldOpen", label: t("roomSettings.privacyOpen") },
     { key: "nearby", icon: "radar", label: t("roomSettings.privacyNearby") },
-    { key: "friends", icon: "people", label: t("roomSettings.privacyFriends") },
+    { key: "friends", icon: "friendsUsers", label: t("roomSettings.privacyFriends") },
     { key: "invite", icon: "inviteKey", label: t("roomSettings.privacyInvite") },
   ];
 }
