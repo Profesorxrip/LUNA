@@ -481,7 +481,7 @@
     "pollVotes": "{{count}} oy",
     "changeChoice": "Seçimini değiştir",
     "bufferingText": "⏳ {{names}} için bekleniyor (tamponlanıyor)...",
-    "messagePlaceholder": "Mesaj yaz...",
+    "messagePlaceholder": "MESAJ...",
     "chatDisabledPlaceholder": "Sohbete yazman kapatıldı",
     "leaveConfirmText": "Çıkıyor musun?",
     "adultWarning": "Bu video +18 içerik barındırıyor",

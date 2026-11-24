@@ -3705,7 +3705,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
     alignSelf: "stretch",
     color: theme.text,
-    paddingHorizontal: 10,
+    paddingLeft: 3,
+    paddingRight: 10,
     // Web onizlemesindeki varsayilan odak cercevesini (beyaz kare) kapatiyor -
     // gercek Android/iOS'ta zaten yok, sadece tarayici davranisi.
     outlineWidth: 0,
