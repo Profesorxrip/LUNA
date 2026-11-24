@@ -43,6 +43,7 @@ import VideoSettingsSheet from "../components/VideoSettingsSheet";
 import MessageOptionsSheet from "../components/MessageOptionsSheet";
 import ProfileOptionsSheet, { ProfileOptionsTarget } from "../components/ProfileOptionsSheet";
 import ChatImageBubble from "../components/ChatImageBubble";
+import ReplyPreviewContent from "../components/ReplyPreviewContent";
 import VideoMessageBubble from "../components/VideoMessageBubble";
 import LocationMessageBubble from "../components/LocationMessageBubble";
 import FileMessageBubble from "../components/FileMessageBubble";
@@ -385,9 +386,14 @@ function ChatBubbleRow({ item, isOwn, groupedWithPrev, onReply, onDoubleTap, onL
   // AYNI gorunur).
   const replyQuote = item.replyTo && (
     <View style={styles.bubbleReplyQuote}>
-      <Text style={styles.bubbleReplyQuoteText} numberOfLines={1}>
-        {item.replyTo.fromName}: {item.replyTo.text}
-      </Text>
+      <ReplyPreviewContent
+        fromName={item.replyTo.fromName}
+        text={item.replyTo.text}
+        kind={item.replyTo.kind}
+        mediaUrl={item.replyTo.mediaUrl}
+        stickerId={item.replyTo.stickerId}
+        variant="bubble"
+      />
     </View>
   );
 
@@ -2037,7 +2043,32 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   }
 
   function startReply(item: ChatMessage) {
-    setReplyingTo({ text: item.text, fromName: item.fromSocketId === socket.id ? t("dm.you") : item.from || "?" });
+    // Kullanici: "grupta üstte isim altta emojisiz mesaj çıkıyordu bazılarında
+    // ikon oluyordu" - ReplyPreviewContent (GroupChatScreen.tsx'teki AYNI
+    // bilesen) kind/mediaUrl/stickerId olmadan sadece duz metne doner, bu
+    // yuzden hangi turden yanitlandigi burada da yakalanip tasiniyor. Room'da
+    // duz fotografin (item.kind yok, sadece mediaUrl var) ayri bir "kind"
+    // etiketi yok - ReplyPreviewContent'in kucuk resim/ikon secebilmesi icin
+    // burada "photo" olarak tamamlaniyor.
+    const kind: DMReply["kind"] =
+      item.kind === "video" ||
+      item.kind === "location" ||
+      item.kind === "file" ||
+      item.kind === "contact" ||
+      item.kind === "poll" ||
+      item.kind === "music" ||
+      item.kind === "sticker"
+        ? item.kind
+        : item.mediaUrl
+          ? "photo"
+          : undefined;
+    setReplyingTo({
+      text: item.text,
+      fromName: item.fromSocketId === socket.id ? t("dm.you") : item.from || "?",
+      kind,
+      mediaUrl: item.mediaUrl ?? null,
+      stickerId: item.stickerId ?? null,
+    });
   }
 
   function sendReaction(emoji: string) {
@@ -2746,10 +2777,14 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         <View style={styles.replyBar}>
           <Icon name="reply" size={16} color={theme.accent} />
           <View style={styles.replyBarText}>
-            <Text style={styles.replyBarFrom}>{replyingTo.fromName}</Text>
-            <Text style={styles.replyBarBody} numberOfLines={1}>
-              {replyingTo.text}
-            </Text>
+            <ReplyPreviewContent
+              fromName={replyingTo.fromName}
+              text={replyingTo.text}
+              kind={replyingTo.kind}
+              mediaUrl={replyingTo.mediaUrl}
+              stickerId={replyingTo.stickerId}
+              variant="composer"
+            />
           </View>
           <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8}>
             <Icon name="close" size={16} color={theme.textMuted} />
@@ -3422,7 +3457,6 @@ const styles = StyleSheet.create({
     marginTop: -2,
     marginBottom: 4,
   },
-  bubbleReplyQuoteText: { color: ROOM_BUBBLE_TEXT_COLOR, fontSize: 12 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, alignSelf: "flex-end" },
   metaRowPhotoOverlay: {
     position: "absolute",
@@ -3527,8 +3561,6 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
   },
   replyBarText: { flex: 1 },
-  replyBarFrom: { color: theme.accent, fontSize: 12, fontWeight: "700" },
-  replyBarBody: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
   // replyBar ile AYNI desen - secilen fotograflarin alt barin HEMEN
   // UZERINDE uzanan, yatayda kayan onizleme seridi (bkz. pendingImages).
   // "height" SABIT verilmezse ScrollView (horizontal olsa bile) native'de
