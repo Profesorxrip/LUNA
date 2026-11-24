@@ -3444,7 +3444,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    transform: [{ translateY: -4 }], // mikrofon/mesaj kutusu/gonder - ucu de biraz yukari kaydirildi
+    transform: [{ translateY: -7 }], // mikrofon/mesaj kutusu/gonder - ucu de biraz yukari kaydirildi
   },
   micButton: {
     width: 56,
@@ -3506,7 +3506,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: theme.surfaceAlt,
+    // GroupChatScreen.tsx'teki mesaj kutusuyla BIREBIR AYNI renk (#15202B).
+    backgroundColor: "#15202B",
     borderRadius: 28,
     height: 56,
     paddingLeft: 14,
