@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   // kaynaklaniyordu, gercek bir hizalama hatasi degildi.
   skipLabel: {
     position: "absolute",
-    top: 0,
+    top: 3,
     left: 0,
     right: 0,
     bottom: 0,
