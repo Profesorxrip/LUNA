@@ -2930,12 +2930,13 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                 setAttachSheetVisible((v) => !v);
               }}
               hitSlop={6}
+              style={{ transform: [{ translateX: -7 }] }}
             >
               <View style={{ transform: [{ rotate: "-45deg" }] }}>
                 <Paperclip size={23} color="#9CA3AF" strokeWidth={1.7} />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity onPress={startQuickCapture} hitSlop={6} style={{ marginLeft: 5 }}>
+            <TouchableOpacity onPress={startQuickCapture} hitSlop={6} style={{ marginLeft: 5, transform: [{ translateX: -5 }] }}>
               <SimpleLineIcons name="camera" size={25} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
