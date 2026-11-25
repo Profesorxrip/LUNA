@@ -2713,19 +2713,9 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   </View>
                 </View>
               ) : (
-                <View style={{ flex: 1, alignItems: "flex-end" }}>
-                  <TouchableOpacity
-                    style={[styles.videoHandleMicCircle, { transform: [{ translateY: 25 }] }]}
-                    onPress={() => setVoiceBarVisible(true)}
-                    hitSlop={8}
-                  >
-                    <MicrophoneOutline
-                      size={16}
-                      color={voice.connected && !voice.muted ? theme.accent : "#141416"}
-                      strokeWidth={1.8}
-                    />
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity style={styles.videoHandleEdgeHandle} onPress={() => setVoiceBarVisible(true)} hitSlop={8}>
+                  <Icon name="chevronLeft" size={14} color={voice.connected && !voice.muted ? theme.accent : "#141416"} />
+                </TouchableOpacity>
               )}
             </View>
           )}
@@ -3377,6 +3367,20 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // Deneme: mikrofon yerine ekran kenarına yapışık, kompakt yarım daire tutamaç.
+  videoHandleEdgeHandle: {
+    position: "absolute",
+    right: 0,
+    top: "50%",
+    marginTop: -19,
+    width: 22,
+    height: 38,
+    borderTopLeftRadius: 19,
+    borderBottomLeftRadius: 19,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
