@@ -3345,6 +3345,7 @@ const styles = StyleSheet.create({
   videoHandleBar: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: 54,
     paddingHorizontal: 20,
     paddingVertical: 10,
     backgroundColor: "transparent",
@@ -3375,8 +3376,7 @@ const styles = StyleSheet.create({
   videoHandleEdgeHandle: {
     position: "absolute",
     right: 0,
-    top: "50%",
-    marginTop: 6,
+    top: 33,
     width: 22,
     height: 38,
     borderTopLeftRadius: 19,
