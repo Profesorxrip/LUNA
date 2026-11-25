@@ -1359,6 +1359,22 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       onPanResponderTerminate: () => finishVideoDrag(videoHiddenRef.current),
     })
   ).current;
+  // Kullanici: "balonu sağa kaydırınca ses kutusu değil mikrofon butonu
+  // açılmalı" - kenar tutamacina (videoHandleEdgeHandle) dokunup birakmak
+  // kutuyu acar, SAGA dogru belirgin bir surukleme ise dogrudan mikrofonu
+  // ac/kapat (kutuyu hic acmadan).
+  const micEdgePanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderRelease: (_evt, g) => {
+        if (g.dx > 12) {
+          handleMicPress();
+        } else if (Math.abs(g.dx) < 10 && Math.abs(g.dy) < 10) {
+          setVoiceBarVisible(true);
+        }
+      },
+    })
+  ).current;
   function changePlaybackRate(rate: number) {
     if (!isHost) return;
     socket.emit("playback:setRate", { rate }, () => {});
@@ -2713,9 +2729,9 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                   </View>
                 </View>
               ) : (
-                <TouchableOpacity style={styles.videoHandleEdgeHandle} onPress={() => setVoiceBarVisible(true)} hitSlop={8}>
+                <View style={styles.videoHandleEdgeHandle} {...micEdgePanResponder.panHandlers}>
                   <Icon name="chevronLeft" size={14} color={voice.connected && !voice.muted ? theme.accent : "#141416"} />
-                </TouchableOpacity>
+                </View>
               )}
             </View>
           )}
