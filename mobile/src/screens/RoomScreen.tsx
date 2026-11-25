@@ -585,7 +585,7 @@ function VoiceAvatarPulse({ name, avatarUrl, level = 0 }: { name: string; avatar
           width: 36,
           height: 36,
           borderRadius: 18,
-          borderWidth: 9,
+          borderWidth: 7,
           borderColor: "#FFFFFF",
           opacity,
           transform: [{ scale: Animated.multiply(waveScale, levelScale) }],
