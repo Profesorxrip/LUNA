@@ -553,6 +553,49 @@ const NOW_PLAYING_META: Record<NonNullable<ChatMessage["nowPlayingReason"]>, { i
   autoplay: { icon: "autoplayQueue", desc: () => i18n.t("room.npAutoplay") },
 };
 
+// Sesteki kisinin avatarinin etrafinda konusurken dalgalanan halka -
+// "ses dalgalari dalgalanmali" istegi, speakingSocketIds'teki kisiler icin.
+function VoiceAvatarPulse({ name, avatarUrl, level = 0 }: { name: string; avatarUrl?: string | null; level?: number }) {
+  // Surekli dalgalanma (opacity + hafif boyut) - her zaman doner.
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+  // Gercek ses kademesi (0-1, bkz. useVoiceChat.ts speakingLevels) - konusma
+  // seviyesi yukseldikce cercevenin (48x48 kapsayici) sinirina kadar buyur.
+  const levelAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(levelAnim, { toValue: level, duration: 150, useNativeDriver: true }).start();
+  }, [level, levelAnim]);
+  const waveScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] });
+  const levelScale = levelAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2], extrapolate: "clamp" });
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.5] });
+  return (
+    <View style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}>
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          borderWidth: 9,
+          borderColor: "#FFFFFF",
+          opacity,
+          transform: [{ scale: Animated.multiply(waveScale, levelScale) }],
+        }}
+      />
+      <Avatar name={name} size={36} avatarUrl={avatarUrl} ring={false} />
+    </View>
+  );
+}
+
 export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: Props) {
   const { t } = useTranslation();
   const socket = getSocket();
@@ -635,6 +678,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
   }, []);
   const [participantsVisible, setParticipantsVisible] = useState(false);
+  const [voiceBarVisible, setVoiceBarVisible] = useState(false);
   // Katilimcilar paneli (Modal, kendi ayri agacinda render edilir) ust barin
   // ALTINDAN baslasin diye - gercek yukseklik cihaza/masaustu-telefon
   // duzenine gore degistigi icin olculup burada tutuluyor.
@@ -2394,6 +2438,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       }
     : null;
 
+  // Deneme: "sese basınca açılan kutu" - sesteki (mikrofonu açık) kişiler.
+  const voiceMicOnBySocket = socket.id ? { ...voice.remoteMicOn, [socket.id]: voice.connected && !voice.muted } : voice.remoteMicOn;
+  const voiceBarParticipants = room.participants.filter((p) => voiceMicOnBySocket[p.socketId]);
+
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       {/* Ust bar (Rave'deki X / ayarlar / logo / ara / katilimci duzeni) - medya
@@ -2411,23 +2459,16 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         <TouchableOpacity style={styles.iconTouch} onPress={() => setSettingsVisible(true)} hitSlop={8}>
           <Icon name="settings" size={24} color={theme.text} />
         </TouchableOpacity>
-        {/* Kullanici: "grup ikonunun yerine luna logosu koy" - katilimcilar
-            butonu (eskiden burada, bkz. asagisi sekme cubugu) artik
-            dekoratif LUNA logosu - tiklama eylemi yok. */}
+        {/* Deneme: logo geri geldi. */}
         <View style={styles.topBarLogoSlot}>
           <LunaLogo width={64} />
         </View>
-        {/* "büyüteç ikonu davet ikonunun yerinde olsun" - buyutec artik
-            eskiden davetin oldugu yerde. */}
         <TouchableOpacity style={[styles.iconTouch, !canPickMedia && styles.topIconDim]} onPress={openMediaPicker} hitSlop={8}>
           <Icon name="search" size={24} color={theme.text} />
         </TouchableOpacity>
-        {/* "davet ikonu lucide kişi artı ikonu olsun" - davet butonu
-            (eskiden buyutecin oldugu yerdeki ParticipantsModal.tsx alt
-            barindan tasinan davet) artik katilimcilarin eskiden durdugu
-            yerde, ikonu da lucide UserPlus ("personAdd", bkz. Icon.tsx). */}
-        <TouchableOpacity style={styles.iconTouch} onPress={() => setInviteFriendsVisible(true)} hitSlop={8}>
-          <Icon name="personAdd" size={24} color={theme.text} />
+        {/* Deneme: grup ikonu mikrofonun eski yerinde. */}
+        <TouchableOpacity style={styles.iconTouch} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
+          <UserGroup size={24} color={theme.text} strokeWidth={1.8} />
         </TouchableOpacity>
       </View>
       )}
@@ -2641,51 +2682,51 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
               suruklenince video geri acilir (bkz. videoHandlePanResponder). */}
           {!fullscreenVideo && (
             <View style={styles.videoHandleBar} {...videoHandlePanResponder.panHandlers}>
-              <View style={styles.videoHandleSideGroup}>
-                {/* Kullanici: "Mikrofonla o pusula ikonunu yer değiştir" - pusula
-                    (harita) butonu artik solda. "6yı deneyelim" - özel pusula
-                    (CompassBadgeIcon) yerine lucide LocateFixed. */}
-                <TouchableOpacity style={styles.videoHandleSideBtn} onPress={showMap} hitSlop={8}>
-                  <LocateFixed size={24} color="#FFFFFF" strokeWidth={1.8} />
-                </TouchableOpacity>
-                {/* Kullanici: "Davetli ikonunu ... oda haritayı açan ikonun
-                    sağına gelse" - davet butonu (ust bardakiyle AYNI eylem,
-                    setInviteFriendsVisible), ikonu lucide Key. */}
-                <TouchableOpacity style={styles.videoHandleSideBtn} onPress={() => setInviteFriendsVisible(true)} hitSlop={8}>
-                  <Key size={24} color="#FFFFFF" strokeWidth={1.8} />
-                </TouchableOpacity>
-              </View>
-              {/* Kullanici: "hapın yerine üst ortadaki grup ikonunu koy" -
-                  surukleme hapi kaldirildi, yerine katilimcilar butonu
-                  (eskiden ust bardaydi) geldi - ikonu AYNI UserGroup. */}
-              <TouchableOpacity style={styles.videoHandleSideBtn} onPress={() => setParticipantsVisible(true)} hitSlop={8}>
-                <UserGroup size={24} color="#FFFFFF" strokeWidth={1.8} />
-              </TouchableOpacity>
-              <View style={[styles.videoHandleSideGroup, styles.videoHandleSideGroupRight]}>
-                {/* Kullanici: "mikrofonun soluna koy demiştim" - DoorClosed
-                    artik TAM mikrofonun solunda (sag grubun ilk elemani),
-                    notch'un solunda degil. Oda gizliligini dogrudan
-                    "Davetli"ye ceviren hizli kisayol (sadece lider
-                    degistirebilir). */}
-                <TouchableOpacity style={styles.videoHandleSideBtn} onPress={() => isHost && changePrivacy("invite")} hitSlop={8}>
-                  <DoorClosed size={24} color="#FFFFFF" strokeWidth={1.8} />
-                </TouchableOpacity>
-                {/* Mikrofon butonu (bkz. handleMicPress/handleMicLongPress) artik
-                    sagda - VideoCallScreen.tsx'teki AYNI heroicons outline
-                    MicrophoneIcon, acik/kapali farki sadece renkle. */}
-                <TouchableOpacity
-                  style={styles.videoHandleSideBtn}
-                  onPress={handleMicPress}
-                  onLongPress={handleMicLongPress}
-                  hitSlop={8}
-                >
-                  <MicrophoneOutline
-                    size={24}
-                    color={voice.connected && !voice.muted ? theme.accent : "#FFFFFF"}
-                    strokeWidth={1.8}
-                  />
-                </TouchableOpacity>
-              </View>
+              {voiceBarVisible ? (
+                <View style={styles.voiceBar}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={{ flex: 1 }}
+                    contentContainerStyle={styles.voiceBarAvatarsRow}
+                  >
+                    {voiceBarParticipants.map((p) => (
+                      <VoiceAvatarPulse
+                        key={p.socketId}
+                        name={p.name}
+                        avatarUrl={p.avatarUrl}
+                        level={voice.speakingLevels[p.socketId] ?? 0}
+                      />
+                    ))}
+                  </ScrollView>
+                  <View style={styles.voiceBarControls}>
+                    <TouchableOpacity style={styles.videoHandleMicCircle} onPress={handleMicPress} onLongPress={handleMicLongPress} hitSlop={8}>
+                      <MicrophoneOutline
+                        size={16}
+                        color={voice.connected && !voice.muted ? theme.accent : "#141416"}
+                        strokeWidth={1.8}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.videoHandleMicCircle} onPress={() => setVoiceBarVisible(false)} hitSlop={8}>
+                      <Icon name="close" size={16} color="#141416" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={{ flex: 1, alignItems: "flex-end" }}>
+                  <TouchableOpacity
+                    style={[styles.videoHandleMicCircle, { transform: [{ translateY: 25 }] }]}
+                    onPress={() => setVoiceBarVisible(true)}
+                    hitSlop={8}
+                  >
+                    <MicrophoneOutline
+                      size={16}
+                      color={voice.connected && !voice.muted ? theme.accent : "#141416"}
+                      strokeWidth={1.8}
+                    />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
 
@@ -2938,6 +2979,10 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
             </TouchableOpacity>
             <TouchableOpacity onPress={startQuickCapture} hitSlop={6} style={{ marginLeft: 5, transform: [{ translateX: -5 }] }}>
               <SimpleLineIcons name="camera" size={25} color="#9CA3AF" />
+            </TouchableOpacity>
+            {/* Deneme: davet ikonu üst bardan mesaj çubuğuna taşındı. */}
+            <TouchableOpacity onPress={() => setInviteFriendsVisible(true)} hitSlop={6} style={{ marginLeft: 5 }}>
+              <Icon name="personAdd" size={22} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -3328,6 +3373,27 @@ const styles = StyleSheet.create({
   videoHandleSideGroup: { flex: 1, flexDirection: "row", alignItems: "center", gap: 50 },
   videoHandleSideGroupRight: { justifyContent: "flex-end" },
   videoHandleSideBtn: { width: 24, height: 24, justifyContent: "center", alignItems: "center" },
+  videoHandleMicCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // Deneme: "sese basınca açılan kutu" - lacivert, ekran genişliğini kaplayan bar.
+  voiceBar: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: -15,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#122238",
+  },
+  voiceBarAvatarsRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingRight: 12 },
+  voiceBarControls: { flexDirection: "row", alignItems: "center", gap: 16, paddingLeft: 10 },
   adultBlurFallbackBg: { backgroundColor: theme.surface },
   adultBlurHint: {
     position: "absolute",

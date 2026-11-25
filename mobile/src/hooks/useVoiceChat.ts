@@ -28,6 +28,10 @@ export function useVoiceChat() {
   // SpeakingPulse). Yerel katilimci da (kendimiz) bu listeye LiveKit
   // tarafindan otomatik dahil edilir.
   const [speakingIds, setSpeakingIds] = useState<string[]>([]);
+  // Konusan katilimcilarin O ANKI ses seviyesi (LiveKit ActiveSpeakersChanged
+  // olayinin verdigi audioLevel, 0-1 arasi) - avatar etrafindaki dalgalanmanin
+  // ses kademesine gore BUYUMESI icin (bkz. RoomScreen.tsx VoiceAvatarPulse).
+  const [speakingLevels, setSpeakingLevels] = useState<Record<string, number>>({});
   // "Sessize Al" (bkz. ProfileOptionsSheet.tsx) - belirli bir katilimcinin
   // sesini SADECE BENIM icin kisan kimlikler (LiveKit identity = socketId,
   // bkz. server/src/livekit.ts). Katilimci henuz ses yayinina baslamamissa
@@ -68,6 +72,7 @@ export function useVoiceChat() {
         setConnected(false);
         setRemoteMicOn({});
         setSpeakingIds([]);
+        setSpeakingLevels({});
       });
       room.on(livekitClient.RoomEvent.TrackSubscribed, (track: any, _pub: any, participant: any) => {
         if (track?.kind === livekitClient.Track.Kind.Audio && mutedIdentitiesRef.current.has(participant.identity)) {
@@ -98,9 +103,15 @@ export function useVoiceChat() {
           return next;
         });
         setSpeakingIds((prev) => prev.filter((id) => id !== participant.identity));
+        setSpeakingLevels((prev) => {
+          const next = { ...prev };
+          delete next[participant.identity];
+          return next;
+        });
       });
       room.on(livekitClient.RoomEvent.ActiveSpeakersChanged, (speakers: any[]) => {
         setSpeakingIds(speakers.map((p: any) => p.identity));
+        setSpeakingLevels(Object.fromEntries(speakers.map((p: any) => [p.identity, p.audioLevel ?? 0])));
       });
       await room.connect(res.livekitUrl, res.token);
       // Biz baglanmadan ONCE odada zaten bulunan katilimcilarin o anki
@@ -138,6 +149,7 @@ export function useVoiceChat() {
     setConnected(false);
     setRemoteMicOn({});
     setSpeakingIds([]);
+    setSpeakingLevels({});
   }, []);
 
   const toggleMute = useCallback(async () => {
@@ -185,5 +197,6 @@ export function useVoiceChat() {
     setParticipantVolume,
     remoteMicOn,
     speakingIds,
+    speakingLevels,
   };
 }
