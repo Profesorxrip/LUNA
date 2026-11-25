@@ -576,7 +576,7 @@ function VoiceAvatarPulse({ name, avatarUrl, level = 0 }: { name: string; avatar
   }, [level, levelAnim]);
   const waveScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] });
   const levelScale = levelAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2], extrapolate: "clamp" });
-  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0.5] });
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0.4] });
   return (
     <View style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}>
       <Animated.View
