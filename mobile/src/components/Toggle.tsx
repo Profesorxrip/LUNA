@@ -1,5 +1,4 @@
 import { TouchableOpacity, View, StyleSheet } from "react-native";
-import { theme } from "../theme";
 
 interface Props {
   value: boolean;
@@ -17,7 +16,7 @@ export default function Toggle({ value, onValueChange, disabled }: Props) {
       activeOpacity={0.8}
       disabled={disabled}
       onPress={() => onValueChange(!value)}
-      style={[styles.track, { backgroundColor: value ? theme.accent : theme.border }, disabled && styles.disabled]}
+      style={[styles.track, { backgroundColor: value ? "#2A3F5F" : "#0B1526" }, disabled && styles.disabled]}
     >
       <View style={[styles.thumb, value && styles.thumbOn]} />
     </TouchableOpacity>

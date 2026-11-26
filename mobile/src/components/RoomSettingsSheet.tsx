@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
 import Icon, { IconName } from "./Icon";
-import SimpleSlider from "./SimpleSlider";
+import VerticalVolumeBar from "./VerticalVolumeBar";
 import Toggle from "./Toggle";
 import { theme } from "../theme";
 
@@ -114,6 +114,7 @@ export default function RoomSettingsSheet({
 }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const [expanded, setExpanded] = useState<"privacy" | "playback" | "mic" | null>(null);
 
   const PRIVACY_OPTIONS = getPrivacyOptions(t);
@@ -134,24 +135,19 @@ export default function RoomSettingsSheet({
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity
           activeOpacity={1}
-          style={[styles.sheet, { top: topOffset, paddingBottom: 30 + insets.bottom }]}
+          style={[
+            styles.sheet,
+            { top: topOffset, height: Math.max(0, windowHeight - topOffset), paddingBottom: 30 + insets.bottom },
+          ]}
           onPress={() => {}}
         >
+          {/* Deneme: hap şeklinde sürükleme tutamacı. */}
+          <View style={styles.dragHandle} />
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.header}>{t("roomSettings.header")}</Text>
+            <Text style={styles.header}>GİZLİLİK</Text>
 
-            <TouchableOpacity style={styles.row} onPress={() => toggle("privacy")} disabled={!isHost}>
-              <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>{t("roomSettings.access")}</Text>
-                <Text style={styles.rowDesc}>{PRIVACY_DESC[privacy]}</Text>
-              </View>
-              {isHost && <Icon name={expanded === "privacy" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
-              <View style={styles.rowValue}>
-                <Icon name={currentPrivacy.icon} size={26} color={theme.text} />
-                <Text style={styles.rowValueLabel}>{currentPrivacy.label.replace("\n", " ")}</Text>
-              </View>
-            </TouchableOpacity>
-            {expanded === "privacy" && (
+            {/* Deneme: Erişim kutusu (başlık satırı) gizlendi, seçenekler sürekli açık duruyor. */}
+            {true && (
               <View style={styles.optionsRow}>
                 {PRIVACY_OPTIONS.map((opt) => (
                   <TouchableOpacity
@@ -162,25 +158,16 @@ export default function RoomSettingsSheet({
                       setExpanded(null);
                     }}
                   >
-                    <Icon name={opt.icon} size={28} color={opt.key === privacy ? theme.accent : theme.text} />
-                    <Text style={[styles.optionLabel, opt.key === privacy && { color: theme.accent }]}>{opt.label}</Text>
+                    <Icon name={opt.icon} size={28} color={opt.key === privacy ? theme.text : theme.textMuted} />
+                    <Text style={[styles.optionLabel, opt.key !== privacy && { color: theme.textMuted }]}>{opt.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             )}
 
-            <TouchableOpacity style={styles.row} onPress={() => toggle("playback")} disabled={!isHost}>
-              <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>{t("roomSettings.control")}</Text>
-                <Text style={styles.rowDesc}>{PLAYBACK_DESC[playbackMode]}</Text>
-              </View>
-              {isHost && <Icon name={expanded === "playback" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
-              <View style={styles.rowValue}>
-                <Icon name={currentPlayback.icon} size={26} color={theme.text} />
-                <Text style={styles.rowValueLabel}>{currentPlayback.label.replace("\n", " ")}</Text>
-              </View>
-            </TouchableOpacity>
-            {expanded === "playback" && (
+            {/* Deneme: Kontrol kutusu (başlık satırı) gizlendi, seçenekler sürekli açık duruyor. */}
+            <Text style={styles.header}>KONTROL</Text>
+            {true && (
               <View style={styles.optionsRow}>
                 {PLAYBACK_OPTIONS.map((opt) => (
                   <TouchableOpacity
@@ -191,8 +178,8 @@ export default function RoomSettingsSheet({
                       setExpanded(null);
                     }}
                   >
-                    <Icon name={opt.icon} size={28} color={opt.key === playbackMode ? theme.accent : theme.text} />
-                    <Text style={[styles.optionLabel, opt.key === playbackMode && { color: theme.accent }]}>{opt.label}</Text>
+                    <Icon name={opt.icon} size={28} color={opt.key === playbackMode ? theme.text : theme.textMuted} />
+                    <Text style={[styles.optionLabel, opt.key !== playbackMode && { color: theme.textMuted }]}>{opt.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -206,21 +193,12 @@ export default function RoomSettingsSheet({
                 mikrofonu ONAYI olmadan dogrudan acmak mumkun degil). Katilimcilarin
                 KENDI mikrofonunu acip kapatmasi icin ayri (VideoControlsOverlay'deki)
                 kisisel mikrofon butonu var. */}
-            <TouchableOpacity style={styles.row} onPress={() => toggle("mic")} disabled={!isHost}>
-              <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>{t("roomSettings.micRowLabel")}</Text>
-                <Text style={styles.rowDesc}>
-                  {micOpen ? t("roomSettings.micOpenDesc") : t("roomSettings.micClosedDesc")}
-                </Text>
-              </View>
-              {isHost && <Icon name={expanded === "mic" ? "chevronRight" : "chevronLeft"} size={16} color={theme.textMuted} />}
-              <View style={styles.rowValue}>
-                <Icon name={micOpen ? "mic" : "micOff"} size={26} color={theme.text} />
-                <Text style={styles.rowValueLabel}>{micOpen ? t("roomSettings.on") : t("roomSettings.off")}</Text>
-              </View>
-            </TouchableOpacity>
-            {expanded === "mic" && (
+            {/* Deneme: Sohbet kutusu (başlık satırı) gizlendi, seçenekler sürekli açık duruyor. */}
+            <Text style={styles.header}>GENEL</Text>
+            {true && (
               <View style={styles.optionsRow}>
+                <View style={styles.optionItem} />
+                <View style={styles.optionItem} />
                 <TouchableOpacity
                   style={styles.optionItem}
                   onPress={() => {
@@ -228,8 +206,8 @@ export default function RoomSettingsSheet({
                     setExpanded(null);
                   }}
                 >
-                  <Icon name="mic" size={28} color={micOpen ? theme.accent : theme.text} />
-                  <Text style={[styles.optionLabel, micOpen && { color: theme.accent }]}>{t("roomSettings.on")}</Text>
+                  <Icon name="mic" size={28} color={micOpen ? theme.text : theme.textMuted} />
+                  <Text style={[styles.optionLabel, !micOpen && { color: theme.textMuted }]}>{t("roomSettings.on")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.optionItem}
@@ -238,48 +216,53 @@ export default function RoomSettingsSheet({
                     setExpanded(null);
                   }}
                 >
-                  <Icon name="micOff" size={28} color={!micOpen ? theme.accent : theme.text} />
-                  <Text style={[styles.optionLabel, !micOpen && { color: theme.accent }]}>{t("roomSettings.off")}</Text>
+                  <Icon name="micOff" size={28} color={!micOpen ? theme.text : theme.textMuted} />
+                  <Text style={[styles.optionLabel, micOpen && { color: theme.textMuted }]}>{t("roomSettings.off")}</Text>
                 </TouchableOpacity>
               </View>
             )}
 
-            <Text style={styles.volumeLabel}>{t("roomSettings.voiceVolumeLabel")}</Text>
-            <View style={[styles.volumeRow, styles.volumeRowNoTopBorder]}>
-              <Icon name={voiceVolume <= VOLUME_MUTE_THRESHOLD ? "phoneOff" : "phoneDevice"} size={20} color={theme.textMuted} />
-              <View style={styles.volumeSlider}>
-                <SimpleSlider value={voiceVolume} onValueChange={onVoiceVolumeChange} />
+            {/* Deneme: ses çubukları yatay kaydırıcı yerine dikey hap (kapsül). */}
+            <View style={styles.verticalVolumeRow}>
+              <View style={styles.verticalVolumeItem}>
+                <VerticalVolumeBar
+                  value={voiceVolume}
+                  onValueChange={onVoiceVolumeChange}
+                  icon={voiceVolume <= VOLUME_MUTE_THRESHOLD ? "phoneOff" : "phoneDevice"}
+                  muted={voiceVolume <= VOLUME_MUTE_THRESHOLD}
+                />
+                <Text style={styles.volumeLabel}>{t("roomSettings.voiceVolumeLabel")}</Text>
               </View>
-              <TouchableOpacity onPress={onLeaveVoice} hitSlop={8}>
-                <Icon name="phoneDevice" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Video/medya sesi - sesli sohbet cubugunun hemen altinda, AYNI
-                gorsel stil - tek fark sagda "ayril" degil sabit bir ikon. */}
-            <Text style={styles.volumeLabel}>{t("roomSettings.videoVolumeLabel")}</Text>
-            <View style={[styles.volumeRow, styles.volumeRowNoTopBorder]}>
-              <Icon name="volumeOff" size={20} color={theme.textMuted} />
-              <View style={styles.volumeSlider}>
-                <SimpleSlider value={videoVolume} onValueChange={onVideoVolumeChange} />
+              <View style={styles.verticalVolumeItem}>
+                <VerticalVolumeBar
+                  value={videoVolume}
+                  onValueChange={onVideoVolumeChange}
+                  icon={videoVolume <= VOLUME_MUTE_THRESHOLD ? "sesKapali1" : "sesAcik1"}
+                  muted={videoVolume <= VOLUME_MUTE_THRESHOLD}
+                />
+                <Text style={styles.volumeLabel}>{t("roomSettings.videoVolumeLabel")}</Text>
               </View>
-              <Icon name={videoVolume <= VOLUME_MUTE_THRESHOLD ? "volumeOff" : "volume"} size={20} color="#FFFFFF" />
-            </View>
-
-            <View style={styles.translateRow}>
-              <View style={styles.translateLabelRow}>
-                <Icon name="language" size={18} color={theme.text} />
-                <Text style={styles.translateLabel}>{t("roomSettings.autoTranslateLabel")}</Text>
+              {/* Deneme: iki toggle küçültülüp ses çubuklarının yanına sıkıştırıldı. */}
+              <View style={styles.compactToggles}>
+                <View style={styles.compactToggleRow}>
+                  <Icon name="language" size={13} color={theme.text} />
+                  <Text style={styles.compactToggleLabel} numberOfLines={2}>
+                    {t("roomSettings.autoTranslateLabel")}
+                  </Text>
+                  <View style={styles.compactToggleSwitch}>
+                    <Toggle value={autoTranslateChat} onValueChange={onToggleAutoTranslate} />
+                  </View>
+                </View>
+                <View style={styles.compactToggleRow}>
+                  <Icon name="adultOff" size={13} color={theme.text} />
+                  <Text style={styles.compactToggleLabel} numberOfLines={2}>
+                    {t("roomSettings.hideAdultLabel")}
+                  </Text>
+                  <View style={styles.compactToggleSwitch}>
+                    <Toggle value={hideAdultContent} onValueChange={onToggleHideAdultContent} />
+                  </View>
+                </View>
               </View>
-              <Toggle value={autoTranslateChat} onValueChange={onToggleAutoTranslate} />
-            </View>
-
-            <View style={styles.translateRow}>
-              <View style={styles.translateLabelRow}>
-                <Icon name="adultOff" size={18} color={theme.text} />
-                <Text style={styles.translateLabel}>{t("roomSettings.hideAdultLabel")}</Text>
-              </View>
-              <Toggle value={hideAdultContent} onValueChange={onToggleHideAdultContent} />
             </View>
 
           </ScrollView>
@@ -290,14 +273,13 @@ export default function RoomSettingsSheet({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)" },
+  backdrop: { flex: 1, backgroundColor: "transparent" },
   // Panel artik sabit bir yuzde yukseklik yerine, videonun ALT KENARINDAN
   // (topOffset, inline style ile verilir) ekranin gercek altina kadar
   // uzaniyor - koseler de video ile ayni hizada SIVRI (yuvarlatma yok).
   sheet: {
     position: "absolute",
     top: 0,
-    bottom: 0,
     width: "100%",
     maxWidth: 480,
     alignSelf: "center",
@@ -305,10 +287,19 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 30,
   },
+  // Deneme: panelin en üstünde, hap şeklinde bir sürükleme tutamacı.
+  dragHandle: {
+    alignSelf: "center",
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    marginBottom: 10,
+  },
   // DIKKAT: yatay padding artik "sheet"te DEGIL, her satirin KENDI
   // stilinde - boylece asagidaki ayirici cizgiler (borderTopWidth) sheet'in
   // TAM kenarina kadar uzaniyor, sadece icerik (yazi/ikon) ortalanmis kaliyor.
-  header: { color: theme.textMuted, fontSize: 12, fontWeight: "700", letterSpacing: 1, marginBottom: 8, paddingHorizontal: 20 },
+  header: { color: "#FFFFFF", fontSize: 12, fontWeight: "700", letterSpacing: 1, marginBottom: 8, paddingHorizontal: 20, paddingLeft: 34 },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -344,9 +335,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textAlign: "center",
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 1,
   },
   volumeSlider: { flex: 1 },
+  verticalVolumeRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "flex-start",
+    gap: 20,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    marginTop: -65,
+  },
+  verticalVolumeItem: { alignItems: "center", gap: 10, width: 70 },
   translateRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -356,4 +357,10 @@ const styles = StyleSheet.create({
   },
   translateLabelRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   translateLabel: { color: theme.text, fontSize: 14, fontWeight: "600" },
+  // Deneme: "Sohbeti otomatik çevir" / "Yetişkin içeriğini gizle" küçültülüp
+  // ses çubuklarının yanındaki boş alana sıkıştırıldı.
+  compactToggles: { flex: 1, minWidth: 0, gap: 12, justifyContent: "flex-start", alignSelf: "flex-start", marginTop: 65 },
+  compactToggleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  compactToggleLabel: { flex: 1, minWidth: 0, color: theme.text, fontSize: 10, fontWeight: "600" },
+  compactToggleSwitch: { transform: [{ scale: 0.6 }] },
 });
