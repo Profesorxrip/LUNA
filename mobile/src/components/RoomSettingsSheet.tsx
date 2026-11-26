@@ -245,7 +245,9 @@ export default function RoomSettingsSheet({
               {/* Deneme: iki toggle küçültülüp ses çubuklarının yanına sıkıştırıldı. */}
               <View style={styles.compactToggles}>
                 <View style={styles.compactToggleRow}>
-                  <Icon name="language" size={13} color={theme.text} />
+                  <View style={styles.compactToggleIcon}>
+                    <Icon name="language" size={18} color={theme.text} />
+                  </View>
                   <Text style={styles.compactToggleLabel} numberOfLines={2}>
                     {t("roomSettings.autoTranslateLabel")}
                   </Text>
@@ -254,7 +256,9 @@ export default function RoomSettingsSheet({
                   </View>
                 </View>
                 <View style={styles.compactToggleRow}>
-                  <Icon name="adultOff" size={13} color={theme.text} />
+                  <View style={styles.compactToggleIcon}>
+                    <Icon name="adultOff" size={18} color={theme.text} />
+                  </View>
                   <Text style={styles.compactToggleLabel} numberOfLines={2}>
                     {t("roomSettings.hideAdultLabel")}
                   </Text>
@@ -361,6 +365,14 @@ const styles = StyleSheet.create({
   // ses çubuklarının yanındaki boş alana sıkıştırıldı.
   compactToggles: { flex: 1, minWidth: 0, gap: 12, justifyContent: "flex-start", alignSelf: "flex-start", marginTop: 65 },
   compactToggleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  compactToggleLabel: { flex: 1, minWidth: 0, color: theme.text, fontSize: 10, fontWeight: "600" },
+  compactToggleIcon: { marginLeft: -5 },
+  compactToggleLabel: {
+    flex: 1,
+    minWidth: 0,
+    color: theme.text,
+    fontSize: 9,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
   compactToggleSwitch: { transform: [{ scale: 0.6 }] },
 });
