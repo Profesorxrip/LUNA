@@ -588,6 +588,8 @@
     "micRowLabel": "SOHBET",
     "on": "AÇIK",
     "off": "KAPALI",
+    "micOnOptionLabel": "MİKROFON\nAÇIK",
+    "micOffOptionLabel": "MİKROFON\nKAPALI",
     "micOpenDesc": "Sesli sohbet açık, herkes mikrofonunu açabilir",
     "micClosedDesc": "Sesli sohbet kapalı, kimse mikrofonunu açamaz",
     "voiceVolumeLabel": "SOHBET SESİ",

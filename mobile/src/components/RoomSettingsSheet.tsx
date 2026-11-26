@@ -207,7 +207,7 @@ export default function RoomSettingsSheet({
                   }}
                 >
                   <Icon name="mic" size={28} color={micOpen ? theme.text : theme.textMuted} />
-                  <Text style={[styles.optionLabel, !micOpen && { color: theme.textMuted }]}>{t("roomSettings.on")}</Text>
+                  <Text style={[styles.optionLabel, !micOpen && { color: theme.textMuted }]}>{t("roomSettings.micOnOptionLabel")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.optionItem}
@@ -217,7 +217,7 @@ export default function RoomSettingsSheet({
                   }}
                 >
                   <Icon name="micOff" size={28} color={!micOpen ? theme.text : theme.textMuted} />
-                  <Text style={[styles.optionLabel, micOpen && { color: theme.textMuted }]}>{t("roomSettings.off")}</Text>
+                  <Text style={[styles.optionLabel, micOpen && { color: theme.textMuted }]}>{t("roomSettings.micOffOptionLabel")}</Text>
                 </TouchableOpacity>
               </View>
             )}
