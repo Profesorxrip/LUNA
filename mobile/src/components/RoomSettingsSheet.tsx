@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions } from "react-native";
+import React, { useRef, useState } from "react";
+import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions, PanResponder } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import type { PrivacyLevel, PlaybackMode } from "../services/socket";
@@ -44,6 +44,11 @@ interface Props {
   // topBarHeight + videoNaturalHeight) - video gizlendiginde (videoHidden)
   // bu deger topBarHeight'a duser, panel en yukari kadar cikar.
   topOffset: number;
+  // Panelin "tam ekran" durdugu sabit deger (= topBarHeight, video gizliyse
+  // zaten topOffset ile AYNI) - video GORUNURKEN kullanici tutamaci yukari
+  // suruklerse panel bu degere kadar genisler (bkz. asagidaki
+  // manuallyExpanded/dragPanResponder).
+  fullTopOffset: number;
 }
 
 // Kaydirici tam sola cekilince dokunma hassasiyeti yuzunden TAM 0 yerine
@@ -112,11 +117,46 @@ export default function RoomSettingsSheet({
   videoVolume,
   onVideoVolumeChange,
   topOffset,
+  fullTopOffset,
 }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [expanded, setExpanded] = useState<"privacy" | "playback" | "mic" | null>(null);
+
+  // Video gorunurken (topOffset > fullTopOffset, yani "yarim ekran" tabani)
+  // kullanici tutamaci yukari/asagi surukleyerek paneli tam ekrana
+  // genisletebilir/geri daraltabilir - video gizliyse (topOffset zaten
+  // fullTopOffset'e esit) bunun bir etkisi olmaz, panel HER ZAMAN tam kalir.
+  const [manuallyExpanded, setManuallyExpanded] = useState(false);
+  const effectiveTopOffset = manuallyExpanded ? fullTopOffset : topOffset;
+  // Suruklemenin HEMEN ardindan web'de dogan "click" olayi (RN-web'in
+  // Pressability'si PanResponder ile ayni anda tetiklenince) arka plandaki
+  // TouchableOpacity'nin onPress'ine (onClose) kadar sizip paneli
+  // KAPATABILIYOR - bu bayrak o tek tikı yutmak icin (bkz. backdrop onPress).
+  const isDraggingHandleRef = useRef(false);
+  // onPanResponderRelease ve onPanResponderTerminate'in ikisi de ayni
+  // (evt, gestureState) imzasina sahip - hangisi tetiklenirse tetiklensin
+  // ayni dy esigine gore karar veriyoruz.
+  const finishDrag = (g: { dy: number }) => {
+    if (g.dy < -24) setManuallyExpanded(true);
+    else if (g.dy > 24) setManuallyExpanded(false);
+    setTimeout(() => {
+      isDraggingHandleRef.current = false;
+    }, 50);
+  };
+  const dragPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_evt, g) => Math.abs(g.dy) > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        isDraggingHandleRef.current = true;
+      },
+      onPanResponderRelease: (_evt, g) => finishDrag(g),
+      onPanResponderTerminate: (_evt, g) => finishDrag(g),
+    })
+  ).current;
 
   const PRIVACY_OPTIONS = getPrivacyOptions(t);
   const PRIVACY_DESC = getPrivacyDesc(t);
@@ -133,17 +173,31 @@ export default function RoomSettingsSheet({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
+      <TouchableOpacity
+        style={styles.backdrop}
+        activeOpacity={1}
+        onPress={() => {
+          if (!isDraggingHandleRef.current) onClose();
+        }}
+      >
         <TouchableOpacity
           activeOpacity={1}
           style={[
             styles.sheet,
-            { top: topOffset, height: Math.max(0, windowHeight - topOffset), paddingBottom: 30 + insets.bottom },
+            {
+              top: effectiveTopOffset,
+              height: Math.max(0, windowHeight - effectiveTopOffset),
+              paddingBottom: 30 + insets.bottom,
+            },
           ]}
           onPress={() => {}}
         >
-          {/* Deneme: hap şeklinde sürükleme tutamacı. */}
-          <View style={styles.dragHandle} />
+          {/* Hap şeklinde sürükleme tutamacı - yukarı çekince tam ekrana
+              genişler, aşağı itince yarım ekrana döner (bkz. yukarıdaki
+              manuallyExpanded/dragPanResponder). */}
+          <View style={styles.dragHandleArea} {...dragPanResponder.panHandlers}>
+            <View style={styles.dragHandle} />
+          </View>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.header}>GİZLİLİK</Text>
 
@@ -300,14 +354,20 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 30,
   },
-  // Deneme: panelin en üstünde, hap şeklinde bir sürükleme tutamacı.
+  // Tutamacin GORSEL boyutundan daha genis bir dokunma alani - yukari/asagi
+  // surukleme (bkz. dragPanResponder) parmagin tam o 5px'lik cizgiye
+  // denk gelmesini beklemesin diye.
+  dragHandleArea: {
+    paddingVertical: 10,
+    marginBottom: 2,
+  },
+  // Panelin en üstünde, hap şeklinde bir sürükleme tutamacı.
   dragHandle: {
     alignSelf: "center",
     width: 40,
     height: 5,
     borderRadius: 3,
     backgroundColor: "rgba(255,255,255,0.3)",
-    marginBottom: 10,
   },
   // DIKKAT: yatay padding artik "sheet"te DEGIL, her satirin KENDI
   // stilinde - boylece asagidaki ayirici cizgiler (borderTopWidth) sheet'in
