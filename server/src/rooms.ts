@@ -74,9 +74,13 @@ export type PrivacyLevel = "open" | "nearby" | "friends" | "invite";
 // - leader: sadece host video secebilir VE oynat/duraklat/sarabilir (varsayilan).
 // - playOnly: video secimi hala sadece host'ta, ama HERKES oynat/duraklat/
 //   sarabilir (transport kontrolu serbest).
-// - autoplay: playOnly ile ayni transport serbestligi - ayrica bir video
-//   kuyrugu/otomatik-sonraki-video sistemimiz olmadigi icin su an pratikte
-//   playOnly'den farki yok (ileride kuyruk eklenince gercek anlam kazanacak).
+// - autoplay ("Akis Durmaz"): playOnly ile ayni transport serbestligi, AYRICA
+//   herkes video onerebilir/oy verebilir (vote ile AYNI oneri/oy mekanizmasi,
+//   bkz. index.ts "room:proposeSource") - TEK FARKI SURESIZ olmasi: video
+//   oynarken toplanan oylar video DOGAL bitince hemen uygulanir, bir sayac/
+//   bekleme ekrani YOK. Kimse oneri vermemisse (ne poll ne kuyruk varsa)
+//   YouTube kaynaklarda otomatik "ilgili video" onerisine duser (bkz.
+//   index.ts advancePastCurrentVideo) - akis boylece HICBIR ZAMAN durmaz.
 // - vote: video secimi lider'e ozel degil - HERKES aday onerebilir, oda oy
 //   verir, en cok oyu alan (esitlikte ilk onerilen) otomatik uygulanir.
 export type PlaybackMode = "leader" | "playOnly" | "autoplay" | "vote";
@@ -581,11 +585,12 @@ export function canSelectSource(room: Room, socketId: string): boolean {
   return isHost(room, socketId);
 }
 
-// Oynat/duraklat/sarma/ilerletme cubugu HER modda sadece lidere ozel (bkz.
-// mobile/src/screens/RoomScreen.tsx canControlTransport - istemci AYNI kurali
+// Oynat/duraklat/sarma/ilerletme cubugu normalde sadece lidere ozel - "Sadece
+// Oynat" ("playOnly") modunda ISTISNA: HERKES kullanabilir (bkz. mobile/src/
+// screens/RoomScreen.tsx canControlTransport - istemci AYNI kurali
 // uyguluyor, burasi onu sunucu tarafinda da zorunlu kiliyor).
 export function canControlTransport(room: Room, socketId: string): boolean {
-  return isHost(room, socketId);
+  return isHost(room, socketId) || room.playbackMode === "playOnly";
 }
 
 // Host kontrolu YAPMADAN dogrudan uygular - sadece bu dosya icindeki, zaten

@@ -418,6 +418,45 @@ async function advancePastCurrentVideo(room: Room, roomCode: string): Promise<vo
       broadcastRoom(roomCode);
     }
   } else if (room.playbackMode === "autoplay") {
+    // "Haydi Oylayalim" ile AYNI oneri/oy mekanizmasi (bkz. "room:proposeSource")
+    // ama SURESIZ: video oynarken biri oneride bulunduysa (room.poll dolu)
+    // burada - video DOGAL bittigi an - hemen sonuclandiriyoruz, kaybeden
+    // oneriler de "vote" modundaki gibi siraya giriyor (asagidaki
+    // advanceQueue). Kimse hic oneri vermediyse (ne poll ne kuyruk var)
+    // eski otomatik "ilgili YouTube videosu" davranisina duser - akis boylece
+    // HICBIR ZAMAN bir "oylama bekleniyor" ekraniyla durmaz.
+    if (room.poll) {
+      const winner = resolvePoll(room);
+      broadcastRoom(roomCode);
+      broadcastRoomsList();
+      if (winner) {
+        const title = winner.label || winner.type;
+        io.to(roomCode).emit("room:chat", {
+          system: true,
+          kind: "nowPlaying",
+          title,
+          nowPlayingReason: "vote",
+          text: `Simdi ${title} oynatiliyor`,
+          ts: Date.now(),
+        });
+      }
+      return;
+    }
+    const queuedNext = advanceQueue(room);
+    if (queuedNext) {
+      broadcastRoom(roomCode);
+      broadcastRoomsList();
+      const title = queuedNext.label || queuedNext.type;
+      io.to(roomCode).emit("room:chat", {
+        system: true,
+        kind: "nowPlaying",
+        title,
+        nowPlayingReason: "queue",
+        text: `Simdi ${title} oynatiliyor`,
+        ts: Date.now(),
+      });
+      return;
+    }
     const current = room.playback.source;
     if (!current) return;
     if (current.type !== "youtube") {
@@ -2710,22 +2749,36 @@ io.on("connection", (socket: Socket) => {
   // "Haydi Oylayalım" modunda normal medya secme ekranindan bir video/
   // platform SECER - bu secim o kisinin OYUDUR (bkz. rooms.ts proposeSource
   // aciklamasi). Aktif oylama yoksa 10sn'lik yenisini baslatir.
+  // "Akis Durmaz" modunda da AYNI mekanizma calisir ama SURESIZ: video daha
+  // oynarken toplanan oneriler/oylar, video DOGAL olarak bitince (bkz.
+  // advancePastCurrentVideo) uygulanir - burada ne bir sayac baslatiyoruz,
+  // ne de "herkes oy verdi" diye ERKEN sonuclandiriyoruz (o, SU AN OYNAYAN
+  // videoyu YARIDA KESERDI - "vote" modunda poll zaten video bittikten SONRA
+  // acildigi icin erken sonuclandirma orada guvenli).
   socket.on("room:proposeSource", ({ source }: { source: MediaSource }, ack) => {
     if (!currentRoomCode) return ack?.({ ok: false, error: "Bir odada degilsin." });
     if (!isValidMediaSource(source)) return ack?.({ ok: false, error: "Gecersiz medya kaynagi." });
     const room = getRoom(currentRoomCode);
     if (!room) return ack?.({ ok: false, error: "Oda bulunamadi." });
-    if (room.playbackMode !== "vote") return ack?.({ ok: false, error: "Oylama modu acik degil." });
+    if (room.playbackMode !== "vote" && room.playbackMode !== "autoplay")
+      return ack?.({ ok: false, error: "Oylama modu acik degil." });
+    // "Akis Durmaz"ta kesilecek bir akis yokken (henuz hic video oynamadiysa)
+    // oy mekanizmasina gerek yok - istemci bu durumda zaten dogrudan
+    // "playback:update" gonderir (bkz. RoomScreen.tsx selectSource), buraya
+    // hic gelmemesi gerekir.
+    if (room.playbackMode === "autoplay" && !room.playback.source)
+      return ack?.({ ok: false, error: "Henuz oynayan video yok." });
     const wasActive = Boolean(room.poll);
     const proposerName = room.participants.get(socket.id)?.name || myName;
     proposeSource(room, source, proposerName, socket.id);
-    if (!wasActive) {
+    if (!wasActive && room.playbackMode === "vote") {
       pollTimers.set(currentRoomCode, setTimeout(() => resolvePollAndBroadcast(currentRoomCode!), POLL_DURATION_MS));
     }
     ack?.({ ok: true });
     // Odadaki HERKES zaten secim/oy kullandiysa suresi dolmasini beklemeden
-    // hemen sonuclandir (room:vote handler'indaki ayni mantik).
-    if (room.poll && room.poll.votes.size >= room.participants.size) {
+    // hemen sonuclandir - SADECE "vote" modunda (poll orada video bittikten
+    // SONRA acilir, "autoplay"da ise video OYNARKEN acik olabilir).
+    if (room.playbackMode === "vote" && room.poll && room.poll.votes.size >= room.participants.size) {
       resolvePollAndBroadcast(currentRoomCode);
     } else {
       broadcastRoom(currentRoomCode);

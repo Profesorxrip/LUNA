@@ -609,7 +609,7 @@
     "playbackAutoplay": "AKIŞ\nDURMAZ",
     "playbackVote": "ODA\nOYLASIN",
     "playbackLeaderDesc": "Hangi videonun oynayacağına sadece lider karar verir",
-    "playbackPlayOnlyDesc": "Video seçimi liderde, oynat/durdur herkesin elinde",
+    "playbackPlayOnlyDesc": "Video seçimi herkeste, oynat/durdur liderde",
     "playbackAutoplayDesc": "Kesintisiz izleme, sıradaki video kendiliğinden gelir",
     "playbackVoteDesc": "Herkes video önerir, en çok oyu alan oynar"
   },

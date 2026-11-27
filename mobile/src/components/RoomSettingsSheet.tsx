@@ -27,9 +27,11 @@ interface Props {
   onToggleAutoTranslate: (v: boolean) => void;
   onToggleAdult: (v: boolean) => void;
   onToggleHideAdultContent: (v: boolean) => void;
-  micConnected: boolean;
-  micMuted: boolean;
-  onMicPress: () => void;
+  // Odanin mikrofon politikasi (bkz. server/src/rooms.ts micOpenToAll) -
+  // KISISEL bir durum DEGIL, SADECE lider degistirebilir (bkz.
+  // onSetMicOpenToAll/RoomScreen.tsx setRoomMicLock -> "voice:hostMicOpen").
+  micOpenToAll: boolean;
+  onSetMicOpenToAll: (open: boolean) => void;
   onLeaveVoice: () => void;
   // Sesli sohbetteki diger katilimcilarin sesi (mikrofon/telefon ikonlari
   // arasindaki cubuk).
@@ -102,9 +104,8 @@ export default function RoomSettingsSheet({
   onToggleAutoTranslate,
   onToggleAdult,
   onToggleHideAdultContent,
-  micConnected,
-  micMuted,
-  onMicPress,
+  micOpenToAll,
+  onSetMicOpenToAll,
   onLeaveVoice,
   voiceVolume,
   onVoiceVolumeChange,
@@ -123,7 +124,7 @@ export default function RoomSettingsSheet({
   const PLAYBACK_DESC = getPlaybackDesc(t);
   const currentPrivacy = PRIVACY_OPTIONS.find((o) => o.key === privacy)!;
   const currentPlayback = PLAYBACK_OPTIONS.find((o) => o.key === playbackMode)!;
-  const micOpen = micConnected && !micMuted;
+  const micOpen = micOpenToAll;
 
   function toggle(section: "privacy" | "playback" | "mic") {
     if (!isHost) return;
@@ -196,13 +197,14 @@ export default function RoomSettingsSheet({
             {/* Deneme: Sohbet kutusu (başlık satırı) gizlendi, seçenekler sürekli açık duruyor. */}
             <Text style={styles.header}>GENEL</Text>
             {true && (
-              <View style={styles.optionsRow}>
+              <View style={[styles.optionsRow, { marginTop: 5 }]}>
                 <View style={styles.optionItem} />
                 <View style={styles.optionItem} />
                 <TouchableOpacity
-                  style={styles.optionItem}
+                  style={[styles.optionItem, !isHost && styles.optionItemDisabled]}
+                  disabled={!isHost}
                   onPress={() => {
-                    if (!micOpen) onMicPress();
+                    if (!micOpen) onSetMicOpenToAll(true);
                     setExpanded(null);
                   }}
                 >
@@ -210,9 +212,10 @@ export default function RoomSettingsSheet({
                   <Text style={[styles.optionLabel, !micOpen && { color: theme.textMuted }]}>{t("roomSettings.micOnOptionLabel")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.optionItem}
+                  style={[styles.optionItem, !isHost && styles.optionItemDisabled]}
+                  disabled={!isHost}
                   onPress={() => {
-                    if (micOpen) onMicPress();
+                    if (micOpen) onSetMicOpenToAll(false);
                     setExpanded(null);
                   }}
                 >
@@ -243,23 +246,29 @@ export default function RoomSettingsSheet({
                 <Text style={styles.volumeLabel}>{t("roomSettings.videoVolumeLabel")}</Text>
               </View>
               {/* Deneme: iki toggle küçültülüp ses çubuklarının yanına sıkıştırıldı. */}
-              <View style={styles.compactToggles}>
-                <View style={styles.compactToggleRow}>
+              <View style={[styles.compactToggles, { marginTop: 70 }]}>
+                <View style={[styles.compactToggleRow, { marginTop: 10 }, !isHost && styles.optionItemDisabled]}>
                   <View style={styles.compactToggleIcon}>
-                    <Icon name="language" size={18} color={theme.text} />
+                    <Icon name="language" size={18} color={autoTranslateChat ? theme.text : theme.textMuted} />
                   </View>
-                  <Text style={styles.compactToggleLabel} numberOfLines={2}>
+                  <Text
+                    style={[styles.compactToggleLabel, !autoTranslateChat && { color: theme.textMuted }]}
+                    numberOfLines={2}
+                  >
                     {t("roomSettings.autoTranslateLabel")}
                   </Text>
                   <View style={styles.compactToggleSwitch}>
-                    <Toggle value={autoTranslateChat} onValueChange={onToggleAutoTranslate} />
+                    <Toggle value={autoTranslateChat} onValueChange={onToggleAutoTranslate} disabled={!isHost} />
                   </View>
                 </View>
-                <View style={styles.compactToggleRow}>
+                <View style={[styles.compactToggleRow, { marginTop: 5 }]}>
                   <View style={styles.compactToggleIcon}>
-                    <Icon name="adultOff" size={18} color={theme.text} />
+                    <Icon name="adultOff" size={18} color={hideAdultContent ? theme.text : theme.textMuted} />
                   </View>
-                  <Text style={styles.compactToggleLabel} numberOfLines={2}>
+                  <Text
+                    style={[styles.compactToggleLabel, !hideAdultContent && { color: theme.textMuted }]}
+                    numberOfLines={2}
+                  >
                     {t("roomSettings.hideAdultLabel")}
                   </Text>
                   <View style={styles.compactToggleSwitch}>
@@ -323,6 +332,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   optionItem: { alignItems: "center", width: 70, gap: 6 },
+  optionItemDisabled: { opacity: 0.4 },
   optionLabel: { color: theme.text, fontSize: 9, fontWeight: "700", textAlign: "center" },
   volumeRow: {
     flexDirection: "row",
@@ -349,7 +359,7 @@ const styles = StyleSheet.create({
     gap: 20,
     paddingHorizontal: 20,
     paddingTop: 4,
-    marginTop: -65,
+    marginTop: -81,
   },
   verticalVolumeItem: { alignItems: "center", gap: 10, width: 70 },
   translateRow: {

@@ -825,15 +825,19 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // kullanmiyorlar). Sunucu tarafi KENDI kontrolunu ayrica yapar, bu
   // client-side hesap sadece dogru satirlari gosterip gizlemek icin.
   const isModerator = me?.isModerator ?? false;
-  // Oynat/duraklat/sarma/ilerletme cubugu HER modda sadece lidere ozel -
-  // video SECME yetkisi (openMediaPicker/selectSource'ta ayrica kontrol
-  // edilir) modlara gore degisebilir ("vote"/"playOnly"), ama oynatmanin
-  // KENDISI (transport) hep host'ta kalir.
-  const canControlTransport = isHost;
+  // Oynat/duraklat/sarma/ilerletme cubugu normalde HER modda sadece lidere
+  // ozel - "Sadece Oynat" ("playOnly") modunda ISTISNA: adinin da soyledigi
+  // gibi HERKES oynatabilir/duraklatabilir/sarabilir (bkz. server/src/
+  // rooms.ts canControlTransport - sunucu tarafinda AYNI kural zorunlu
+  // kilinir). Video SECME yetkisi (openMediaPicker/selectSource'ta ayrica
+  // kontrol edilir) modlara gore baska turlu degisebilir ("vote"/"autoplay").
+  const canControlTransport = isHost || room.playbackMode === "playOnly";
   // "Sadece Oynat" modunda HERKES video ekleyebilir (siraya girer, bkz.
-  // selectSource) - "vote" modunda da herkes oneri sunabilir (oylamaya girer).
-  // Diger modlarda (leader/autoplay) secim hala sadece host'a ozel.
-  const canPickMedia = isHost || room.playbackMode === "vote" || room.playbackMode === "playOnly";
+  // selectSource) - "vote"/"autoplay" modlarinda da herkes oneri sunabilir
+  // (oylamaya girer, autoplay'de SURESIZ - bkz. selectSource ve server/src/
+  // index.ts "room:proposeSource"/advancePastCurrentVideo). Sadece "leader"
+  // modunda secim hala tek basina host'a ozel.
+  const canPickMedia = isHost || room.playbackMode === "vote" || room.playbackMode === "playOnly" || room.playbackMode === "autoplay";
   // "external" (Netflix/Disney+/Prime/HBO Max vb.) ARTIK syncable - gercek
   // oynaticisi var (bkz. DrmWebViewPlayer.tsx, uygulama ICI WebView'de
   // oynat/durdur/saniye yakalayip masaustu tarayici eklentimizle AYNI
@@ -1087,7 +1091,17 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   );
 
   function selectSource(source: MediaSource) {
-    if (room.playbackMode === "vote") {
+    // "Akis Durmaz"ta henuz HIC video oynamiyorsa (oda yeni acildi/mod yeni
+    // degisti) kesilecek bir "akis" zaten YOK - bu durumda oy/oneri
+    // mekanizmasina GIRMEDEN, ilk basilan video DOGRUDAN oynamaya baslar
+    // (asagidaki varsayilan dal). Bir video OYNAMAYA basladiktan SONRAKI
+    // secimler ise gercek birer oy/oneridir (bkz. asagisi).
+    if (room.playbackMode === "vote" || (room.playbackMode === "autoplay" && room.playback.source)) {
+      // "Akis Durmaz"ta da AYNI oneri/oy mekanizmasi (bkz. server/src/
+      // index.ts "room:proposeSource") - tek fark, SURESI YOK: video oynarken
+      // toplanan oylar, video DOGAL olarak bitince (bkz. advancePastCurrentVideo)
+      // hemen uygulanir, kimse oy vermemisse eski otomatik YouTube onerisine
+      // duser - akis HICBIR ZAMAN "oylama bekleniyor" ekraniyla durmaz.
       socket.emit("room:proposeSource", { source }, () => {});
       setPickerVisible(false);
       return;
@@ -2399,6 +2413,16 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     voice.toggleMute();
   }
 
+  // Ayarlar panelindeki "MİKROFON AÇIK/KAPALI" seceneklerinin dogrudan
+  // kontrolu - yukaridaki handleMicPress'ten FARKLI, bu KENDI mikrofonuma
+  // DOKUNMUYOR, sadece oda politikasini (room.micOpenToAll) degistiriyor.
+  // Sunucu zaten sadece lider ise izin veriyor (bkz. rooms.ts
+  // setHostMicOpen), burada da ekstra guvenlik icin ayni kontrol var.
+  function setRoomMicLock(open: boolean) {
+    if (!isHost) return;
+    socket.emit("voice:hostMicOpen", { open });
+  }
+
   // Host'un mikrofonu su an acik mi (baglanmis VE susturulmamis) - bu deger
   // degistikce sunucuya bildiriyoruz, sunucu da odanin mikrofon politikasini
   // (room.micOpenToAll) buna gore gunceller (bkz. server/src/index.ts
@@ -2641,7 +2665,18 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
                         {!votedSkipAdult && <Icon name="skipForward" size={14} color="#FFFFFF" />}
                       </TouchableOpacity>
                     ) : (
-                      <Text style={styles.adultBlurSubtext}>{t("room.adultHostCanChange")}</Text>
+                      // "Liderin Secimi" modunda oylama yok - dogrudan tek
+                      // basina atlama var, ama SADECE lider icin (bkz. skipToNext
+                      // ve yukaridaki canSkip ile ayni mantik): lider olmayanlara
+                      // buton yine de gorunur ama soluk/dokunulamaz kalir.
+                      <TouchableOpacity
+                        style={[styles.adultSkipBtn, !isHost && styles.adultSkipBtnDisabled]}
+                        onPress={skipToNext}
+                        disabled={!isHost}
+                      >
+                        <Text style={styles.adultSkipBtnText}>{t("room.skip")}</Text>
+                        <Icon name="skipForward" size={14} color="#FFFFFF" />
+                      </TouchableOpacity>
                     )}
                   </BlurView>
                 </View>
@@ -3227,9 +3262,8 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onToggleAdult={toggleAdult}
         hideAdultContent={myHideAdultContent}
         onToggleHideAdultContent={toggleMyHideAdultContent}
-        micConnected={voice.connected}
-        micMuted={voice.muted}
-        onMicPress={handleMicPress}
+        micOpenToAll={room.micOpenToAll}
+        onSetMicOpenToAll={setRoomMicLock}
         onLeaveVoice={voice.leave}
         voiceVolume={voiceVolume}
         onVoiceVolumeChange={handleVoiceVolumeChange}
