@@ -27,6 +27,10 @@ export interface Participant {
   // once bu alan hic doldurulmuyordu (sadece room:participants - oda
   // onizlemesi - ayri bir DB sorgusuyla kendi country'sini gonderiyordu).
   country?: string | null;
+  // Katilim anindaki (Konumu Gizle kapaliysa IP'den tespit edilen) il -
+  // "Yakindakiler" gizliligi artik SADECE host'un degil, odadaki HERHANGI
+  // bir katilimcinin iline/komsu iline bakiyor (bkz. visibleToViewer).
+  city?: string | null;
   // Oda haritasinda ("Haritayi Goster") gosterilecek GERCEK GPS konumu -
   // SADECE katilimci kendi Ayarlar'indaki "Konumu Gizle"yi KAPATIP
   // paylasmayi secerse dolar (bkz. index.ts "room:location"), hicbir yerde
@@ -247,6 +251,7 @@ export function createRoom(
           avatarUrl: hostAvatarUrl ?? null,
           handle: hostHandle ?? null,
           country: hostCountry ?? null,
+          city: hostCity ?? null,
           joinedAtMs: Date.now(),
         },
       ],
@@ -306,16 +311,22 @@ function visibleToViewer(room: Room, viewer: DiscoverViewer): boolean {
     case "invite":
       return false;
     case "nearby": {
-      // Konumu Gizle'yi acan taraf (host ya da viewer, farketmez) null
-      // city tasir - bu durumda eslestirme HICBIR ZAMAN olmaz, "yakindakiler"
-      // gizli konumlu kullanicilari hic yakalamaz.
-      if (!viewer.city || !room.hostCity) return false;
+      // Konumu Gizle'yi acan taraf (viewer ya da odadaki katilimci, farketmez)
+      // null city tasir - "yakindakiler" gizli konumlu kullanicilari hic
+      // yakalamaz. Sadece host'un degil, odadaki HERHANGI bir katilimcinin
+      // iline/komsu iline denk geliyorsan gorursun.
+      if (!viewer.city) return false;
       const viewerCity = normalizeProvince(viewer.city);
-      const hostCity = normalizeProvince(room.hostCity);
-      return viewerCity === hostCity || areNeighboringProvinces(viewerCity, hostCity);
+      return Array.from(room.participants.values()).some((p) => {
+        if (!p.city) return false;
+        const pCity = normalizeProvince(p.city);
+        return viewerCity === pCity || areNeighboringProvinces(viewerCity, pCity);
+      });
     }
     case "friends":
-      return Boolean(hostId && viewer.friendIds.has(hostId));
+      // Sadece host'un degil, odadaki HERHANGI bir katilimcinin arkadasiysan
+      // gorebilirsin - "arkadas cemberi" odadaki herkesin cemberi demek.
+      return Array.from(room.participants.values()).some((p) => p.userId && viewer.friendIds.has(p.userId));
     default:
       return false;
   }
@@ -358,10 +369,12 @@ export interface DiscoverSections {
  *    ustte). Kendi odan ya da zaten "friends"/"nearby" ile normalde
  *    gorebilecegin bir oda olsa bile davetliysen SADECE burada gorunur
  *    (tekrar asagida de listelenmez).
- * 2. "friends" - gizliligi "Sadece Arkadaslar" ve host'un gercek arkadasin
- *    oldugu odalar, en yeni acilan en ustte (oda acilma zamanina gore).
- * 3. "nearby" - gizliligi "Yakindakiler" ve il/komsu il eslesen odalar,
- *    yine en yeni acilan en ustte.
+ * 2. "friends" - gizliligi "Arkadas Cemberi" olan ve icinde (sadece host
+ *    degil, ODADAKI HERHANGI bir katilimci) gercek arkadasin olan odalar,
+ *    en yeni acilan en ustte (oda acilma zamanina gore).
+ * 3. "nearby" - gizliligi "Yakindakiler" ve odadaki HERHANGI bir
+ *    katilimcinin iline/komsu iline denk gelen odalar, yine en yeni
+ *    acilan en ustte.
  * 4. "open" - gizliligi "Acik" olan odalar. Once icinde en az bir
  *    ARKADASIM olan odalar (aralarinda: bir arkadasimin EN SON o odaya
  *    GIRDIGI ana gore, en yeni en ustte), sonra arkadassiz odalar
@@ -428,7 +441,8 @@ export function joinRoom(
   userId?: string | null,
   avatarUrl?: string | null,
   handle?: string | null,
-  country?: string | null
+  country?: string | null,
+  city?: string | null
 ): Room | null {
   const room = getRoom(code);
   if (!room) return null;
@@ -441,6 +455,7 @@ export function joinRoom(
     avatarUrl: avatarUrl ?? null,
     handle: handle ?? null,
     country: country ?? null,
+    city: city ?? null,
     joinedAtMs: Date.now(),
   });
   return room;
@@ -794,7 +809,14 @@ export function updateRoomSettings(
     room.privacy = updates.privacy;
     room.isPublic = updates.privacy === "open";
     if (updates.privacy === "nearby" && hostCountry !== undefined) room.hostCountry = hostCountry;
-    if (updates.privacy === "nearby" && hostCity !== undefined) room.hostCity = hostCity;
+    if (updates.privacy === "nearby" && hostCity !== undefined) {
+      room.hostCity = hostCity;
+      // Host'un kendi katilimci kaydindaki il de TAZELENSIN - artik
+      // visibleToViewer SADECE bu Map'teki city alanlarina bakiyor, ayri
+      // room.hostCity alanina degil (bkz. yukarisi).
+      const hostParticipant = room.participants.get(requesterId);
+      if (hostParticipant) hostParticipant.city = hostCity;
+    }
   }
   if (updates.playbackMode) {
     room.playbackMode = updates.playbackMode;

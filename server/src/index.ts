@@ -2407,8 +2407,13 @@ io.on("connection", (socket: Socket) => {
     const isHostIdentity = Boolean(myUserId) && myUserId === hostId;
     if (target.privacy === "friends" && !isHostIdentity) {
       if (!myUserId || !myDb) return ack?.({ ok: false, error: "Bu odaya katilmak icin giris yapmalisin." });
-      const status = await getFriendStatus(myDb, hostId || "");
-      if (status !== "friends") return ack?.({ ok: false, error: "Bu oda sadece host'un arkadaslarina acik." });
+      // Discover'daki "Arkadas Cemberi" gorunurlugu artik SADECE host'un degil
+      // odadaki HERHANGI bir katilimcinin arkadasiysa izin veriyor (bkz.
+      // rooms.ts visibleToViewer) - bu kapi da AYNI kurala uymali, yoksa
+      // "gorunuyor ama katilamiyorsun" gibi tutarsiz bir durum cikar.
+      const myFriendIds = new Set((await listFriends(myDb, myUserId)).map((f) => f.userId));
+      const hasFriendInRoom = Array.from(target.participants.values()).some((p) => p.userId && myFriendIds.has(p.userId));
+      if (!hasFriendInRoom) return ack?.({ ok: false, error: "Bu oda sadece odadakilerin arkadaslarina acik." });
     } else if (target.privacy === "nearby" && !isHostIdentity) {
       if (!myCountry || !target.hostCountry || myCountry !== target.hostCountry) {
         return ack?.({ ok: false, error: "Bu oda sadece yakinindaki kullanicilara acik." });
@@ -2417,7 +2422,7 @@ io.on("connection", (socket: Socket) => {
 
     const joinProfile = myUserId && myDb ? await getPublicProfile(myDb, myUserId) : null;
     const joinAvatarUrl = joinProfile?.avatarUrl ?? null;
-    const room = joinRoom(code, socket.id, name || myName || "Misafir", myUserId, joinAvatarUrl, joinProfile?.handle ?? null, myCountry);
+    const room = joinRoom(code, socket.id, name || myName || "Misafir", myUserId, joinAvatarUrl, joinProfile?.handle ?? null, myCountry, myCity);
     if (!room) {
       ack?.({ ok: false, error: "Oda bulunamadi. Kodu kontrol et." });
       return;
