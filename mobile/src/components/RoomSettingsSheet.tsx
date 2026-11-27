@@ -71,7 +71,7 @@ function getPrivacyDesc(t: (key: string) => string): Record<PrivacyLevel, string
 
 function getPlaybackOptions(t: (key: string) => string): { key: PlaybackMode; icon: IconName; label: string }[] {
   return [
-    { key: "leader", icon: "crownFilled", label: t("roomSettings.playbackLeader") },
+    { key: "leader", icon: "crown", label: t("roomSettings.playbackLeader") },
     { key: "playOnly", icon: "playOnlyControl", label: t("roomSettings.playbackPlayOnly") },
     { key: "autoplay", icon: "autoplayQueue", label: t("roomSettings.playbackAutoplay") },
     { key: "vote", icon: "voteBox", label: t("roomSettings.playbackVote") },
