@@ -13,6 +13,7 @@ import { badgeInfoForSource, EXTERNAL_PLATFORMS, openPlatformApp } from "../util
 import PlatformBadge from "./PlatformBadge";
 import { extractYouTubeId, fetchYouTubeMeta } from "../utils/youtube";
 import Icon from "./Icon";
+import AppBackground from "./AppBackground";
 import { showAlert } from "./CustomAlert";
 import { getPinnedEventIds, togglePinnedEvent } from "../utils/pinnedHistory";
 import { addToBlankPlaylist, clearBlankPlaylist, getBlankPlaylistUrls } from "../utils/blankPlaylist";
@@ -813,7 +814,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
   const showBackButton = !(embedded && mode === "grid");
 
   const content = (
-      <View style={[styles.screen, { paddingTop: insets.top + 16 }, embedded && { backgroundColor: "transparent" }]}>
+      <View style={[styles.screen, { paddingTop: insets.top + (embedded ? 16 : 21) }]}>
         {/* Grid (ana platform listesi) ekraninda da ayni ustbar - geri
             okuna basinca grid'den bir ALT ekrandaysak (youtube/weburl/
             history/liked) grid'e, grid'in KENDISINDEYSEK sheet'i kapatiyor
@@ -841,6 +842,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
             <View
               style={[
                 styles.gridInset,
+                !embedded && { paddingTop: 5 },
                 (musicQuickMenuOpen || seriesFilmQuickMenuOpen || blankQuickMenuOpen) && { zIndex: 20 },
               ]}
             >
@@ -1273,6 +1275,7 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
+      <AppBackground />
       {content}
     </Modal>
   );
@@ -1281,7 +1284,10 @@ export default function MediaPickerSheet({ visible, onClose, onSelect, relatedVi
 const styles = StyleSheet.create({
   // paddingTop statusBarTranslucent nedeniyle inline veriliyor (insets.top +
   // ekstra boşluk) - arama çubuğu durum çubuğunun/çentiğin altında kalmasın.
-  screen: { flex: 1, backgroundColor: "#0A0A0C", padding: 20 },
+  // Arkaplan artik duz bir renk degil, Modal'in KENDI icine konan
+  // AppBackground'in (bkz. yukarida) lacivert->siyah degradesi - bu yuzden
+  // transparent (bkz. EmojiPickerSheet.tsx'teki ayni duzen).
+  screen: { flex: 1, backgroundColor: "transparent", padding: 20 },
   // "flex-end" (alttan hizali) - geri ikonu (backButton, 38x38) ile logo
   // FARKLI yukseklikte (30) oldugu icin "center" ile ortalanirlarsa gorsel
   // olarak ayni hizada DURMUYORLARDI (bkz. topBarLogo). SABIT "height: 38"
