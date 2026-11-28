@@ -70,23 +70,26 @@ interface Props {
 }
 
 interface MicVisual {
-  name: "mic" | "micOff";
+  name: "mic" | "micOff" | "micOutline";
   color: string;
   speaking: boolean;
 }
 
-// Mikrofon ikonunun 3 durumu - KIRMIZI: lider/moderator/kendisi tarafindan
-// izni kapatildi (item.muted - zorla susturma, bkz. server/src/rooms.ts
-// setParticipantMuted). GRI: izni var ama su an sesli sohbette mikrofonu
-// ACIK DEGIL (hic baglanmamis olabilir ya da baglanip kendi susturmus
-// olabilir - ikisi de "izni var, kullanmiyor" ayni gorsel). BEYAZ: izni var
-// VE fiilen acik - bu durumda, LiveKit o an KONUSTUGUNU tespit ettiyse
-// (speakingSocketIds) ikonun arkasinda dalgalanma da gosterilir.
+// Mikrofon ikonunun durumlari - "icinin dolu olmasi" HER ZAMAN "su an ses
+// cikiyor" anlamina gelsin diye (kullanici: "Mehmet yeterince ses cikarinca
+// dolu gozukuyor, Ayse'ninki de hic ses cikarmadigi icin bos olmali")
+// sadece KONUSAN kisi dolu ikon aliyor, digerleri (acik ama sessiz DAHIL)
+// icleri bos. KIRMIZI capraz cizgili: lider/moderator tarafindan ZORLA
+// susturuldu (item.muted). GRI ICI BOS mikrofon: izni var ama kendisi
+// henuz ACMAMIS/baglanmamis. BEYAZ ICI BOS mikrofon: acik ama su an
+// KONUSMUYOR. BEYAZ dolu + dalgali dolgu (bkz. WaveFillIcon): acik VE
+// LiveKit o an KONUSTUGUNU tespit etti (speakingSocketIds).
 function micVisual(item: Participant, micOnBySocket: Record<string, boolean>, speakingSocketIds: string[]): MicVisual {
   if (item.muted) return { name: "micOff", color: theme.danger, speaking: false };
   const on = Boolean(micOnBySocket[item.socketId]);
-  if (!on) return { name: "micOff", color: theme.textMuted, speaking: false };
-  return { name: "mic", color: "#FFFFFF", speaking: speakingSocketIds.includes(item.socketId) };
+  if (!on) return { name: "micOutline", color: theme.textMuted, speaking: false };
+  const speaking = speakingSocketIds.includes(item.socketId);
+  return speaking ? { name: "mic", color: "#FFFFFF", speaking } : { name: "micOutline", color: "#FFFFFF", speaking };
 }
 
 /** Rave'deki ust bardaki "3" rozetli katilimci ikonuna basinca acilan liste -

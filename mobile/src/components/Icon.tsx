@@ -7,6 +7,7 @@ import {
   NoSymbolIcon as NoSymbolIconOutline,
   Cog6ToothIcon as Cog6ToothIconOutline,
   ExclamationTriangleIcon as ExclamationTriangleIconOutline,
+  MicrophoneIcon as MicrophoneIconOutline,
 } from "react-native-heroicons/outline";
 import {
   PlusIcon,
@@ -48,6 +49,7 @@ export type IconName =
   | "people"
   | "friendsUsers"
   | "mic"
+  | "micOutline"
   | "micOff"
   | "video"
   | "videoOff"
@@ -148,6 +150,7 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   bellOff: BellSlashIcon,
   warning: ExclamationTriangleIcon,
   warningOutline: ExclamationTriangleIconOutline,
+  micOutline: MicrophoneIconOutline,
   trash: TrashIcon,
   sparkles: SparklesIcon,
   download: ArrowDownTrayIcon,
