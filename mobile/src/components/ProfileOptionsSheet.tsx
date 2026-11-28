@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { Image, Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
+import { CircleArrowDown } from "lucide-react-native";
 import Icon from "./Icon";
 import type { IconName } from "./Icon";
 
@@ -34,6 +36,9 @@ export interface ProfileOptionsTarget {
   // setParticipantVolume) - host olup olmadigima bakmaksizin herkeste olan
   // kisisel bir tercih, odanin geneline etki etmez.
   locallyMuted?: boolean;
+  // Bu kisinin sohbet mesajlari SADECE benim ekranimda gizlenmis mi - aynen
+  // locallyMuted gibi kisisel bir tercih, odanin geneline etki etmez.
+  locallyChatMuted?: boolean;
 }
 
 interface Props {
@@ -55,6 +60,13 @@ interface Props {
   // oda kavrami olmadigindan (ve zaten o ekranlar bu handler'lari hic
   // vermedigiden) varsayilan true'nun hicbir etkisi yok.
   targetInRoom?: boolean;
+  // RoomScreen.tsx'teki kullanimda - katilimcilar kutusu ekranda o an hangi
+  // dikey aralikta duruyorsa (yarim ekranda videonun ALT KENARINDAN, tam
+  // ekranda topBarHeight'tan basliyor - bkz. ParticipantsModal.tsx), kart
+  // tum ekrana degil O ARALIGA gore dikey ORTALANSIN diye. Verilmezse
+  // (Discover/Friends'teki kullanimda oldugu gibi) eskisi gibi TUM ekrana
+  // gore ortalanir.
+  verticalCenterBand?: { top: number; bottom: number };
   onClose: () => void;
   onOpenProfile: (target: ProfileOptionsTarget) => void;
   onMakeLeader?: (target: ProfileOptionsTarget) => void;
@@ -69,6 +81,7 @@ interface Props {
   onDisableChat?: (target: ProfileOptionsTarget) => void;
   onEnableChat?: (target: ProfileOptionsTarget) => void;
   onToggleLocalMute?: (target: ProfileOptionsTarget) => void;
+  onToggleLocalChatMute?: (target: ProfileOptionsTarget) => void;
   onSendFriendRequest?: (target: ProfileOptionsTarget) => void;
   onCancelFriendRequest?: (target: ProfileOptionsTarget) => void;
   onRemoveFriend?: (target: ProfileOptionsTarget) => void;
@@ -109,6 +122,7 @@ export default function ProfileOptionsSheet({
   isHost,
   canModerateTarget,
   targetInRoom = true,
+  verticalCenterBand,
   onClose,
   onOpenProfile,
   onMakeLeader,
@@ -120,6 +134,7 @@ export default function ProfileOptionsSheet({
   onDisableChat,
   onEnableChat,
   onToggleLocalMute,
+  onToggleLocalChatMute,
   onSendFriendRequest,
   onCancelFriendRequest,
   onRemoveFriend,
@@ -128,6 +143,16 @@ export default function ProfileOptionsSheet({
   onReport,
 }: Props) {
   const { t } = useTranslation();
+  // "Sessize Al" artik (altinda baska bir seye izni varsa) bir ALT MENU
+  // acan giris noktasi - Mikrofonu Devre Disi Birak/Chati Kapat gibi oda
+  // geneline etki eden kisitlamalar ARTIK ana listede degil, bu alt menude
+  // (bkz. asagidaki showMuteOptions/restrictionRows). Kart her
+  // kapandiginda (visible false) sifirlanir, bir dahaki acilista HER ZAMAN
+  // ana listeden baslansin diye.
+  const [showMuteOptions, setShowMuteOptions] = useState(false);
+  useEffect(() => {
+    if (!visible) setShowMuteOptions(false);
+  }, [visible]);
   if (!target) return null;
 
   // Coğu aksiyon (moderatorluk/mikrofon/chat/arkadaslik/engelleme) kart
@@ -164,9 +189,9 @@ export default function ProfileOptionsSheet({
   }
   if (targetInRoom && isHost) {
     if (target.isModerator && onRemoveModerator) {
-      rows.push({ key: "removeModerator", icon: "shield", label: t("profileOptions.removeModerator"), danger: true, onPress: act(onRemoveModerator) });
+      rows.push({ key: "removeModerator", icon: "leaderAward", label: t("profileOptions.removeModerator"), danger: true, onPress: act(onRemoveModerator) });
     } else if (!target.isModerator && onMakeModerator) {
-      rows.push({ key: "moderator", icon: "shield", label: t("profileOptions.makeModerator"), onPress: act(onMakeModerator) });
+      rows.push({ key: "moderator", icon: "leaderAward", label: t("profileOptions.makeModerator"), onPress: act(onMakeModerator) });
     }
   }
   if (target.userId) {
@@ -181,27 +206,58 @@ export default function ProfileOptionsSheet({
   if (targetInRoom && canModerateTarget && onKick) {
     rows.push({ key: "kick", icon: "kicked", label: t("profileOptions.kick"), danger: true, onPress: act(onKick) });
   }
+
+  // Mikrofonu Devre Disi Birak / Chati Kapat / Sessize Al - ucu de hedefe
+  // yonelik bir "kisitlama" oldugu icin artik tek bir "Sessize Al" giris
+  // noktasinin ALTINDA toplaniyor (bkz. yukarida showMuteOptions). Oda
+  // geneline etki eden ilk ikisi gosterilecekse (canModerateTarget), tek
+  // girisli buton ALT MENU acar; degilse (sade bir uye icin) "Sessize Al"
+  // eskisi gibi DOGRUDAN kendi (kisisel) aksiyonunu yapar.
+  const restrictionRows: Row[] = [];
   if (targetInRoom && canModerateTarget) {
     if (target.micDisabled && onEnableMic) {
-      rows.push({ key: "enableMic", icon: "mic", label: t("profileOptions.enableMic"), onPress: act(onEnableMic) });
+      restrictionRows.push({ key: "enableMic", icon: "mic", label: t("profileOptions.enableMic"), onPress: act(onEnableMic) });
     } else if (!target.micDisabled && onDisableMic) {
-      rows.push({ key: "disableMic", icon: "micOff", label: t("profileOptions.disableMic"), onPress: act(onDisableMic) });
+      restrictionRows.push({ key: "disableMic", icon: "micOff", label: t("profileOptions.disableMic"), danger: true, onPress: act(onDisableMic) });
     }
-  }
-  if (targetInRoom && onToggleLocalMute) {
-    rows.push({
-      key: "localMute",
-      icon: "volumeOff",
-      label: target.locallyMuted ? t("profileOptions.unmute") : t("profileOptions.mute"),
-      onPress: act(onToggleLocalMute),
-    });
   }
   if (targetInRoom && canModerateTarget) {
     if (target.chatBanned && onEnableChat) {
-      rows.push({ key: "enableChat", icon: "chatBubble", label: t("profileOptions.enableChat"), onPress: act(onEnableChat) });
+      restrictionRows.push({ key: "enableChat", icon: "chatBubble", label: t("profileOptions.enableChat"), onPress: act(onEnableChat) });
     } else if (!target.chatBanned && onDisableChat) {
-      rows.push({ key: "disableChat", icon: "chatBubble", label: t("profileOptions.disableChat"), danger: true, onPress: act(onDisableChat) });
+      restrictionRows.push({ key: "disableChat", icon: "chatBubble", label: t("profileOptions.disableChat"), danger: true, onPress: act(onDisableChat) });
     }
+  }
+  // Chati Sustur - mikrofon/ses icin olan "Sessize Al" ile AYNI mantikta,
+  // SADECE benim ekranimda bu kisinin mesajlarini gizler (bkz. RoomScreen.tsx
+  // toggleLocalChatMute) - moderasyon yetkisi GEREKMEZ, canModerateTarget'a
+  // bakilmaksizin herkeste var.
+  if (targetInRoom && onToggleLocalChatMute) {
+    restrictionRows.push({
+      key: "localChatMute",
+      icon: target.locallyChatMuted ? "chatBubble" : "chatMuted",
+      label: target.locallyChatMuted ? t("profileOptions.unmuteChatLocal") : t("profileOptions.muteChatLocal"),
+      onPress: act(onToggleLocalChatMute),
+    });
+  }
+  const localMuteRow: Row | null =
+    targetInRoom && onToggleLocalMute
+      ? {
+          key: "localMute",
+          icon: target.locallyMuted ? "sesAcik1" : "sesKapali1",
+          label: target.locallyMuted ? t("profileOptions.unmute") : t("profileOptions.mute"),
+          onPress: act(onToggleLocalMute),
+        }
+      : null;
+  if (localMuteRow && restrictionRows.length) {
+    rows.push({ ...localMuteRow, onPress: () => setShowMuteOptions(true) });
+  } else if (localMuteRow) {
+    rows.push(localMuteRow);
+  } else if (restrictionRows.length) {
+    // Kisisel mute secenegi yoksa (onToggleLocalMute verilmemisse) ama
+    // kisitlama satirlari varsa - bunlar DOGRUDAN ana listede kalir, bos
+    // yere alt menu acilmaz.
+    rows.push(...restrictionRows);
   }
   if (target.userId) {
     if (target.friendStatus === "blocked" && onUnblock) {
@@ -211,13 +267,35 @@ export default function ProfileOptionsSheet({
     }
   }
   if (target.userId && onReport) {
-    rows.push({ key: "report", icon: "warning", label: t("profileOptions.report"), danger: true, onPress: actAndClose(onReport) });
+    rows.push({ key: "report", icon: "warningOutline", label: t("profileOptions.report"), danger: true, onPress: actAndClose(onReport) });
   }
+
+  // Alt menudeyken - geri don satiri + Sessize Al (artik DOGRUDAN kendi
+  // aksiyonunu yapar, ama burada "Sesi Kapat/Ac" olarak anilir - bir onceki
+  // (ana) ekrandaki "Sessize Al" giris noktasi etiketi DEGISMEDEN kalir) +
+  // kisitlama satirlari.
+  const muteSubRows: Row[] = showMuteOptions
+    ? [
+        { key: "back", icon: "chevronLeft", label: t("profileOptions.back"), onPress: () => setShowMuteOptions(false) },
+        ...(localMuteRow
+          ? [{ ...localMuteRow, label: target.locallyMuted ? t("profileOptions.unmuteSubmenu") : t("profileOptions.muteSubmenu") }]
+          : []),
+        ...restrictionRows,
+      ]
+    : [];
+  const visibleRows = showMuteOptions ? muteSubRows : rows;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <View style={styles.card}>
+        <View
+          style={
+            verticalCenterBand
+              ? [styles.centerWrap, { position: "absolute", top: verticalCenterBand.top, bottom: verticalCenterBand.bottom, left: 0, right: 0 }]
+              : styles.centerWrap
+          }
+        >
+        <View style={[styles.card, verticalCenterBand && { marginTop: 0 }]}>
           {/* NowPlayingBar.tsx'teki yatay "hap" cercevesinin 90 derece
               dondurulmus hali - TEK bir dikey kapsul, fotograf da butonlar da
               bunun ICINDE/ONUNDE, ayri ayri cakisan iki parca degil. */}
@@ -246,16 +324,25 @@ export default function ProfileOptionsSheet({
             )}
 
             <View style={styles.list}>
-              {rows.map((row) => (
+              {visibleRows.map((row) => (
                 <TouchableOpacity key={row.key} style={styles.pill} onPress={row.onPress}>
                   <View
                     style={[
                       styles.pillIcon,
-                      (row.icon === "block" || row.icon === "warning") && styles.pillIconNudgeLeft,
-                      row.icon === "warning" && styles.pillIconNudgeDown,
+                      (row.icon === "block" || row.icon === "warning" || row.icon === "warningOutline") && styles.pillIconNudgeLeft,
+                      (row.icon === "warning" || row.icon === "warningOutline") && styles.pillIconNudgeDown,
                     ]}
                   >
-                    <Icon name={row.icon} size={16} color={row.danger ? "#FF6B6B" : "#FFFFFF"} />
+                    {row.key === "back" ? (
+                      // "Geri Dön" - DM/GroupChatScreen'deki standart geri
+                      // dugmesi ile AYNI: CircleArrowDown'in 90 derece
+                      // dondurulmus hali (yuvarlak icinde sola bakan ok).
+                      <View style={{ transform: [{ rotate: "90deg" }] }}>
+                        <CircleArrowDown size={16} color="#FFFFFF" />
+                      </View>
+                    ) : (
+                      <Icon name={row.icon} size={16} color={row.danger ? "#FF6B6B" : "#FFFFFF"} />
+                    )}
                   </View>
                   <View style={styles.pillLabelWrap}>
                     <Text
@@ -272,6 +359,7 @@ export default function ProfileOptionsSheet({
             </TouchableOpacity>
           </LinearGradient>
         </View>
+        </View>
       </TouchableOpacity>
     </Modal>
   );
@@ -281,7 +369,13 @@ const CARD_WIDTH = 170;
 const PHOTO_WIDTH = 108;
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: "center", alignItems: "center" },
+  backdrop: { flex: 1 },
+  // Varsayilan (verticalCenterBand verilmemisse, Discover/Friends'teki
+  // kullanim) TUM ekrana gore ortalar - RoomScreen.tsx'teki kullanimda ise
+  // JSX'te inline olarak position:absolute + top/bottom (band) ile
+  // EZILEREK sadece katilimcilar kutusunun o anki dikey araligina gore
+  // ortalar (bkz. yukarida verticalCenterBand).
+  centerWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: { width: CARD_WIDTH, marginTop: 70 },
   cardBorder: { borderRadius: CARD_WIDTH / 2, padding: 2 },
   // NowPlayingBar.tsx'teki yatay "hap" cercevesinin (borderRadius = kendi

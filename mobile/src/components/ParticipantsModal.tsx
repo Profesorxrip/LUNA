@@ -1,11 +1,11 @@
-import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { FlatList, Modal, PanResponder, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { MoreVertical } from "lucide-react-native";
 import type { Participant } from "../services/socket";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
-import CrownBadge from "./CrownBadge";
-import ModeratorBadge from "./ModeratorBadge";
 import CountryFlag from "./CountryFlag";
 import WaveFillIcon from "./WaveFillIcon";
 import { theme } from "../theme";
@@ -37,13 +37,6 @@ interface Props {
   // izne tabi olabilir - bkz. RoomScreen.tsx handleMicPress - ama kapatmak
   // her zaman serbesttir, o da ayni fonksiyonun icinde yonetiliyor).
   onToggleOwnMic: () => void;
-  // Kamera ikonu - LUNA'da gercek bir kamera yayini YOK, bu yuzden bu
-  // SADECE GORSEL bir durum (bkz. server/src/rooms.ts Participant.camMuted).
-  // Mikrofondan farkli olarak KENDI satirinda da bu AYNI callback kullanilir
-  // (acmak icin izin GEREKMEZ - bkz. rooms.ts setParticipantCamMuted), bu
-  // yuzden mic'teki gibi ayri bir "myCamOpen" prop'una ihtiyac yok, item.camMuted
-  // zaten hem kendi hem baskalarinin satirinda dogru/canli degeri tasir.
-  onMuteCameraParticipant: (targetSocketId: string, camMuted: boolean) => void;
   // Her katilimcinin (socketId -> boolean) O AN gercekten sesli sohbette
   // mikrofonu ACIK mi - LiveKit'ten gelir (bkz. useVoiceChat.ts remoteMicOn),
   // sunucu bunu BILMEZ. "izni var ama acmamis" (gri) ile "izni var VE acik"
@@ -56,10 +49,20 @@ interface Props {
   // mikrofon ikonunun etrafindaki dalgalanma animasyonu icin (bkz.
   // SpeakingPulse). Sadece mikrofonu GERCEKTEN acik olanlar icin anlamli.
   speakingSocketIds: string[];
-  // Panel ust barin (X/ayarlar/logo/ara/katilimci ikonlarinin oldugu satir)
-  // UZERINE binmesin, hemen altindan baslasin diye (bkz. RoomScreen.tsx
-  // topBarHeight - gercek yukseklik cihaza gore degistigi icin olculur).
+  // Panel videonun ALT KENARINDA baslasin diye (bkz. RoomSettingsSheet.tsx
+  // ile AYNI mantik - RoomScreen.tsx topBarHeight + videoNaturalHeight) -
+  // video gizlendiginde (videoHidden) bu deger topBarHeight'a duser, panel
+  // en yukari kadar cikar.
   topOffset: number;
+  // Panelin "tam ekran" durdugu sabit deger (= topBarHeight) - video
+  // GORUNURKEN kullanici tutamaci yukari suruklerse panel bu degere kadar
+  // genisler (bkz. asagidaki manuallyExpanded/dragPanResponder - AYNI
+  // RoomSettingsSheet.tsx'teki gibi).
+  fullTopOffset: number;
+  // Kutunun O ANKI yarim/tam ekran durumu DEGISTIKCE ebeveyne (RoomScreen.tsx)
+  // bildirir - ProfileOptionsSheet'i kutunun GUNCEL yuksekligine gore dikey
+  // ortalayabilmek icin (bkz. RoomScreen.tsx participantsExpanded).
+  onExpandedChange?: (expanded: boolean) => void;
   // Discover'daki oda kartlarindaki mavi "arkadas halkasi" ile AYNI - bu
   // odada gercek arkadasimiz olan katilimcilarin avatarinda gosterilir
   // (bkz. Avatar.tsx isFriend, RoomScreen.tsx friendIds).
@@ -98,18 +101,71 @@ export default function ParticipantsModal({
   onMuteParticipant,
   onLongPressParticipant,
   onToggleOwnMic,
-  onMuteCameraParticipant,
   micOnBySocket,
   speakingSocketIds,
   topOffset,
+  fullTopOffset,
+  onExpandedChange,
   friendIds,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { height: windowHeight } = useWindowDimensions();
+
+  // Asagidaki surukleme mantigi RoomSettingsSheet.tsx ile BIREBIR AYNI -
+  // bkz. oradaki yorumlar icin ayrintili aciklama.
+  const [manuallyExpanded, setManuallyExpanded] = useState(false);
+  const effectiveTopOffset = manuallyExpanded ? fullTopOffset : topOffset;
+  useEffect(() => {
+    onExpandedChange?.(manuallyExpanded);
+  }, [manuallyExpanded, onExpandedChange]);
+  const isDraggingHandleRef = useRef(false);
+  const finishDrag = (g: { dy: number }) => {
+    if (g.dy < -24) setManuallyExpanded(true);
+    else if (g.dy > 24) setManuallyExpanded(false);
+    setTimeout(() => {
+      isDraggingHandleRef.current = false;
+    }, 50);
+  };
+  const dragPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_evt, g) => Math.abs(g.dy) > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        isDraggingHandleRef.current = true;
+      },
+      onPanResponderRelease: (_evt, g) => finishDrag(g),
+      onPanResponderTerminate: (_evt, g) => finishDrag(g),
+    })
+  ).current;
+
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose} statusBarTranslucent>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={[styles.sheet, { top: topOffset, paddingBottom: insets.bottom }]} onPress={() => {}}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
+      <TouchableOpacity
+        style={styles.backdrop}
+        activeOpacity={1}
+        onPress={() => {
+          if (!isDraggingHandleRef.current) onClose();
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[
+            styles.sheet,
+            {
+              top: effectiveTopOffset,
+              height: Math.max(0, windowHeight - effectiveTopOffset),
+              paddingBottom: 30 + insets.bottom,
+            },
+          ]}
+          onPress={() => {}}
+        >
+          {/* Hap şeklinde sürükleme tutamacı - Ayarlar kutusuyla AYNI
+              (bkz. RoomSettingsSheet.tsx dragHandle). */}
+          <View style={styles.dragHandleArea} {...dragPanResponder.panHandlers}>
+            <View style={styles.dragHandle} />
+          </View>
           <View style={styles.content}>
             <Text style={styles.title}>{t("room.participantsTitle", { count: participants.length })}</Text>
 
@@ -139,16 +195,6 @@ export default function ParticipantsModal({
                       size={40}
                       isFriend={Boolean(item.userId && friendIds.has(item.userId))}
                     />
-                    {item.isHost && (
-                      <View style={styles.hostBadge}>
-                        <CrownBadge size={20} />
-                      </View>
-                    )}
-                    {item.isModerator && (
-                      <View style={styles.moderatorBadge}>
-                        <ModeratorBadge size={13} color="#fff" />
-                      </View>
-                    )}
                   </View>
                   <View style={styles.nameWrap}>
                     <Text style={styles.name} numberOfLines={1}>
@@ -162,6 +208,15 @@ export default function ParticipantsModal({
                   </View>
                   <CountryFlag country={item.country} size={14} />
                   </TouchableOpacity>
+                  {/* Rol etiketi - Grup bilgisi ekranindaki (GroupInfoScreen.tsx)
+                      KURUCU/YONETICI/UYE yazilariyla AYNI mantik: odanin
+                      sahibi (host) burada "KURUCU", moderator ise "LIDER"
+                      olarak gosterilir. */}
+                  {item.isHost ? (
+                    <Text style={styles.roleLabel}>{t("room.participantsRoleHost")}</Text>
+                  ) : item.isModerator ? (
+                    <Text style={styles.roleLabel}>{t("room.participantsRoleModerator")}</Text>
+                  ) : null}
                   {/* Mikrofon durumu - HERKES gorur (kim susturulmus/liderin
                       mikrofonu acik mi bilsin diye). Tiklayip degistirmek:
                       KENDI satirimda rolum NE OLURSA OLSUN (lider/moderator/
@@ -171,19 +226,6 @@ export default function ParticipantsModal({
                       satirinda ise lider VEYA (hedef moderator/lider
                       degilse) moderator degistirebilir (bkz.
                       server/src/rooms.ts canModerate/setParticipantMuted). */}
-                  {/* Kamera ikonu - LUNA'da gercek bir kamera yayini olmadigi
-                      icin "acmak" herkese HER ZAMAN serbest (bkz. yukarida
-                      onMuteCameraParticipant yorumu), bu yuzden kendi
-                      satirimda da AYNI callback kullanilir - mic'teki gibi
-                      ayri bir "kendi" dalina gerek yok. */}
-                  <TouchableOpacity
-                    style={styles.micBtn}
-                    onPress={() => (isSelf || canModerateThisTarget) && onMuteCameraParticipant(item.socketId, !item.camMuted)}
-                    disabled={!isSelf && !canModerateThisTarget}
-                    hitSlop={8}
-                  >
-                    <Icon name={item.camMuted ? "videoOff" : "video"} size={20} color={item.camMuted ? theme.danger : theme.textMuted} />
-                  </TouchableOpacity>
                   {isSelf ? (
                     <TouchableOpacity style={styles.micBtn} onPress={onToggleOwnMic} hitSlop={8}>
                       <View style={styles.micIconStack}>
@@ -210,6 +252,17 @@ export default function ParticipantsModal({
                       </View>
                     </TouchableOpacity>
                   )}
+                  {/* 3 nokta menusu - Grup bilgisi ekranindaki (GroupInfoScreen.tsx)
+                      3 nokta ikonuyla AYNI mantik: odadaki mevcut Profil/
+                      Liderlik/Engelle vb. menuyu (ProfileOptionsSheet) acar -
+                      eskiden SADECE uzun basinca acilan bu menuye artik acikca
+                      dokunarak da erisilebiliyor. Kendi satirimda da gosterilir -
+                      kendi uzerimde anlamsiz satirlar (odadan at/engelle vb.)
+                      RoomScreen.tsx'teki ProfileOptionsSheet kablamasinda
+                      ayiklanir, menu sadece gercekten anlamli olanlari gosterir. */}
+                  <TouchableOpacity style={styles.micBtn} onPress={() => onLongPressParticipant(item)} hitSlop={8}>
+                    <MoreVertical size={18} color={theme.textMuted} />
+                  </TouchableOpacity>
                 </View>
               );
               }}
@@ -222,46 +275,41 @@ export default function ParticipantsModal({
 }
 
 const styles = StyleSheet.create({
-  // Katilimcilar paneli artik Rave'deki gibi sagdan acilan bir kutu -
-  // ekranin genisliginin ~%60'ini kapliyor, ust bardan baslayip ekranin
-  // altina kadar uzaniyor (top: topOffset, inline style ile verilir).
-  // Koseler SIVRI - hicbir yerde yuvarlatma yok.
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)" },
+  // Katilimcilar paneli artik Ayarlar kutusuyla (RoomSettingsSheet.tsx)
+  // AYNI mantikta: tam genislikte, videonun ALT KENARINDAN (top,
+  // effectiveTopOffset ile verilir) ekranin altina kadar uzanan bir sheet -
+  // koseler SIVRI, surukleyerek tam ekrana genisletilebilir.
+  backdrop: { flex: 1, backgroundColor: "transparent" },
   sheet: {
     position: "absolute",
-    right: 0,
-    bottom: 0,
-    width: "60%",
-    backgroundColor: theme.bg,
+    top: 0,
+    width: "100%",
+    maxWidth: 480,
+    alignSelf: "center",
+    backgroundColor: "#122238",
+    paddingTop: 18,
   },
-  content: { flex: 1, padding: 20 },
+  // Tutamacin GORSEL boyutundan daha genis bir dokunma alani - Ayarlar
+  // kutusuyla AYNI (bkz. RoomSettingsSheet.tsx).
+  dragHandleArea: { paddingVertical: 10, marginBottom: 2 },
+  dragHandle: {
+    alignSelf: "center",
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.3)",
+  },
+  content: { flex: 1, paddingHorizontal: 20 },
   list: { flex: 1 },
-  // Ilk satirin lider rozeti (negatif top ile ustte tasan) listenin kendi
-  // ust sinirinda KESILMESIN diye ufak bir bosluk birakiyoruz.
   listContent: { paddingTop: 14 },
   title: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 12 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
   identityWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   avatarWrap: { position: "relative" },
-  // Lider rozeti - ozel cizilmis, kenarlari asagi kivrilan taç (bkz.
-  // CrownBadge.tsx) profil fotografinin TAM USTUNE (negatif top ile) oturur.
-  hostBadge: {
-    position: "absolute",
-    top: -15,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-  },
-  // Moderator rozeti - lider rozeti (taç, ustte) gibi profil fotografinin
-  // USTUNE biner, SAG ALT kosesinde - arkasinda bir daire/arka plan YOK
-  // (profil fotografinda bosluk/kesinti olusturmasin diye).
-  moderatorBadge: {
-    position: "absolute",
-    bottom: -2,
-    right: -2,
-  },
   nameWrap: { flex: 1 },
   name: { color: theme.text, fontSize: 14 },
+  // GroupInfoScreen.tsx'teki rowRole ile AYNI stil.
+  roleLabel: { color: theme.textMuted, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4 },
   handle: { color: theme.textMuted, fontSize: 12, marginTop: 1 },
   micBtn: { padding: 4 },
   // Mikrofon ikonuyla AYNI boyutta - SpeakingPulse (dalgalanma) bunu tam

@@ -499,7 +499,9 @@
     "showOriginal": "Orijinalini gör",
     "signInRequiredTitle": "Giriş gerekli",
     "signInRequiredBody": "Fotoğraf göndermek için giriş yapmış olman gerekiyor.",
-    "participantsTitle": "Katılımcılar ({{count}})"
+    "participantsTitle": "Katılımcılar ({{count}})",
+    "participantsRoleHost": "KURUCU",
+    "participantsRoleModerator": "LİDER"
   },
   "backgroundInfo": {
     "title": "LUNA ARKA PLANDA DURDURULUYOR MU?",
@@ -642,22 +644,27 @@
   },
   "profileOptions": {
     "profile": "Profil",
-    "makeLeader": "Liderliği ver",
-    "removeModerator": "Moderatörlüğü al",
-    "makeModerator": "Moderatör yap",
+    "makeLeader": "Odayı devret",
+    "removeModerator": "Liderlikten al",
+    "makeModerator": "Lider yap",
     "removeFriend": "Arkadaşı sil",
     "cancelFriendRequest": "İsteği iptal et",
     "addFriend": "İstek at",
     "kick": "Odadan at",
-    "enableMic": "Mikrofonu Aktif Et",
-    "disableMic": "Mikrofonu Devre Dışı Bırak",
+    "enableMic": "Sesi Aç",
+    "disableMic": "Sesi Kapat",
     "unmute": "Sesini Aç",
     "mute": "Sessize Al",
+    "unmuteSubmenu": "Sese Devam",
+    "muteSubmenu": "Sesi Sustur",
     "enableChat": "Chati Aç",
     "disableChat": "Chati Kapat",
+    "muteChatLocal": "Chati Sustur",
+    "unmuteChatLocal": "Chate Devam",
     "unblock": "Engeli Kaldır",
     "block": "Engelle",
-    "report": "Bildir"
+    "report": "Bildir",
+    "back": "Geri Dön"
   },
   "emoji": {
     "quickReactionTitle": "HIZLI TEPKİ",

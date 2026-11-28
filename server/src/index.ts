@@ -2963,9 +2963,10 @@ io.on("connection", (socket: Socket) => {
   // ack gelmeden gonderilmiyor.
   socket.on("chat:sendImage", async ({ mediaUrl }: { mediaUrl: string }, ack) => {
     if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000)) return ack?.();
-    if (!allow("chat:send", 20, 10_000)) return ack?.();
     const code = currentRoomCode;
     const participant = getRoom(code)?.participants.get(socket.id);
+    if (participant?.chatBanned) return ack?.({ ok: false, error: "Lider/moderator sohbete yazmani kapatti." });
+    if (!allow("chat:send", 20, 10_000)) return ack?.();
     const fromName = participant?.name || "?";
     const fromAvatarUrl = participant?.avatarUrl ?? null;
     let isAdult = false;
@@ -3010,8 +3011,9 @@ io.on("connection", (socket: Socket) => {
       if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000)) return ack?.({ ok: false });
       if (durationMs !== undefined && !isFiniteNumber(durationMs, 0, 24 * 60 * 60 * 1000)) return ack?.({ ok: false });
       if (caption !== undefined && !isOptionalString(caption, 1000)) return ack?.({ ok: false });
-      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
       const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+      if (participant?.chatBanned) return ack?.({ ok: false, error: "Lider/moderator sohbete yazmani kapatti." });
+      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
       io.to(currentRoomCode).emit("room:chat", {
         id: randomUUID(),
         system: false,
@@ -3035,8 +3037,9 @@ io.on("connection", (socket: Socket) => {
       if (!currentRoomCode || !isFiniteNumber(latitude, -90, 90) || !isFiniteNumber(longitude, -180, 180)) {
         return ack?.({ ok: false });
       }
-      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
       const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+      if (participant?.chatBanned) return ack?.({ ok: false, error: "Lider/moderator sohbete yazmani kapatti." });
+      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
       io.to(currentRoomCode).emit("room:chat", {
         id: randomUUID(),
         system: false,
@@ -3063,8 +3066,9 @@ io.on("connection", (socket: Socket) => {
       if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000) || !isNonEmptyString(fileName, 255)) return ack?.({ ok: false });
       if (fileSize !== undefined && !isFiniteNumber(fileSize, 0, 500 * 1024 * 1024)) return ack?.({ ok: false });
       if (mimeType !== undefined && !isOptionalString(mimeType, 150)) return ack?.({ ok: false });
-      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
       const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+      if (participant?.chatBanned) return ack?.({ ok: false, error: "Lider/moderator sohbete yazmani kapatti." });
+      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
       io.to(currentRoomCode).emit("room:chat", {
         id: randomUUID(),
         system: false,
@@ -3093,8 +3097,9 @@ io.on("connection", (socket: Socket) => {
       if (!currentRoomCode || !isNonEmptyString(mediaUrl, 2000) || !isNonEmptyString(fileName, 255)) return ack?.({ ok: false });
       if (fileSize !== undefined && !isFiniteNumber(fileSize, 0, 500 * 1024 * 1024)) return ack?.({ ok: false });
       if (mimeType !== undefined && !isOptionalString(mimeType, 150)) return ack?.({ ok: false });
-      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
       const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+      if (participant?.chatBanned) return ack?.({ ok: false, error: "Lider/moderator sohbete yazmani kapatti." });
+      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
       io.to(currentRoomCode).emit("room:chat", {
         id: randomUUID(),
         system: false,
@@ -3119,10 +3124,11 @@ io.on("connection", (socket: Socket) => {
   socket.on("chat:sendContact", async ({ sharedUserId }: { sharedUserId: string }, ack) => {
     if (!currentRoomCode || !isNonEmptyString(sharedUserId, 200)) return ack?.({ ok: false });
     if (!myDb || !myUserId) return ack?.({ ok: false, error: "Giriş yapmalısın." });
+    const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+    if (participant?.chatBanned) return ack?.({ ok: false, error: "Lider/moderator sohbete yazmani kapatti." });
     if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
     const profile = await getPublicProfile(myDb, sharedUserId);
     if (!profile) return ack?.({ ok: false });
-    const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
     io.to(currentRoomCode).emit("room:chat", {
       id: randomUUID(),
       system: false,
@@ -3165,8 +3171,9 @@ io.on("connection", (socket: Socket) => {
       ) {
         return ack?.({ ok: false });
       }
-      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
       const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+      if (participant?.chatBanned) return ack?.({ ok: false, error: "Lider/moderator sohbete yazmani kapatti." });
+      if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
       io.to(currentRoomCode).emit("room:chat", {
         id: randomUUID(),
         system: false,
@@ -3223,8 +3230,9 @@ io.on("connection", (socket: Socket) => {
     if (stickerId !== undefined && !isOptionalString(stickerId, 100)) return ack?.({ ok: false });
     if (mediaUrl !== undefined && !isOptionalString(mediaUrl, 2000)) return ack?.({ ok: false });
     if (!stickerId && !mediaUrl) return ack?.({ ok: false });
-    if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
     const participant = getRoom(currentRoomCode)?.participants.get(socket.id);
+    if (participant?.chatBanned) return ack?.({ ok: false, error: "Lider/moderator sohbete yazmani kapatti." });
+    if (!allow("chat:send", 20, 10_000)) return ack?.({ ok: false });
     io.to(currentRoomCode).emit("room:chat", {
       id: randomUUID(),
       system: false,

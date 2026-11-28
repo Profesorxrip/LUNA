@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -678,6 +678,11 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
   }, []);
   const [participantsVisible, setParticipantsVisible] = useState(false);
+  // Katilimcilar kutusu suruklenerek tam ekrana genisletildi mi (bkz.
+  // ParticipantsModal.tsx onExpandedChange) - profil secenekleri kutusunu
+  // (ProfileOptionsSheet) kutunun O ANKI yarim/tam ekran yuksekligine gore
+  // DIKEY ORTALAMAK icin gerekiyor (bkz. asagidaki profileOptionsCenterTop).
+  const [participantsExpanded, setParticipantsExpanded] = useState(false);
   const [voiceBarVisible, setVoiceBarVisible] = useState(false);
   // Katilimcilar paneli (Modal, kendi ayri agacinda render edilir) ust barin
   // ALTINDAN baslasin diye - gercek yukseklik cihaza/masaustu-telefon
@@ -2234,12 +2239,6 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
     socket.emit("room:muteParticipant", { targetSocketId, muted }, () => {});
   }
 
-  // Kamera ikonu - SADECE GORSEL (bkz. ParticipantsModal.tsx
-  // onMuteCameraParticipant yorumu, server/src/rooms.ts Participant.camMuted).
-  function setCamMuted(targetSocketId: string, camMuted: boolean) {
-    socket.emit("room:setCamMuted", { targetSocketId, camMuted }, () => {});
-  }
-
   // Katilimci secenek paneli (bkz. ProfileOptionsSheet.tsx) - Rave'deki gibi
   // bir katilimciya BASILI TUTUNCA acilir (bkz. ParticipantsModal.tsx
   // onLongPressParticipant).
@@ -2248,6 +2247,16 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
   // useVoiceChat.ts setParticipantVolume) - oda geneline etki etmez, bu
   // yuzden sunucuya hic bildirilmiyor.
   const [locallyMutedIds, setLocallyMutedIds] = useState<Set<string>>(new Set());
+  // Sadece BENIM ekranimda sohbetten gizlenmis katilimcilarin socketId'leri -
+  // locallyMutedIds ile AYNI mantikta, oda geneline etki etmez, sunucuya hic
+  // bildirilmez (bkz. asagidaki chat FlatList filtrelemesi).
+  const [locallyChatMutedIds, setLocallyChatMutedIds] = useState<Set<string>>(new Set());
+  // Sistem mesajlari (katildi/ayrildi vb.) HER ZAMAN gorunur kalir - sadece
+  // sohbet susturulan kisinin KENDI yazdigi mesajlar gizlenir.
+  const visibleMessages = useMemo(
+    () => (locallyChatMutedIds.size ? messages.filter((m) => m.system || !m.fromSocketId || !locallyChatMutedIds.has(m.fromSocketId)) : messages),
+    [messages, locallyChatMutedIds]
+  );
 
   function openProfileOptions(p: Participant) {
     setProfileOptionsTarget({
@@ -2266,6 +2275,7 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       micDisabled: p.muted,
       chatBanned: p.chatBanned,
       locallyMuted: locallyMutedIds.has(p.socketId),
+      locallyChatMuted: locallyChatMutedIds.has(p.socketId),
     });
     if (p.userId) {
       socket.emit("friend:status", { withUserId: p.userId }, (res: any) => {
@@ -2291,6 +2301,16 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       return nextSet;
     });
     voice.setParticipantVolume(target.socketId, next ? 0 : 1);
+  }
+  function toggleLocalChatMute(target: ProfileOptionsTarget) {
+    if (!target.socketId) return;
+    const next = !locallyChatMutedIds.has(target.socketId);
+    setLocallyChatMutedIds((prev) => {
+      const nextSet = new Set(prev);
+      if (next) nextSet.add(target.socketId!);
+      else nextSet.delete(target.socketId!);
+      return nextSet;
+    });
   }
   // Oda-ici (isModerator/micDisabled/chatBanned) alanlar "room:state"
   // yayınlarıyla zaten CANLI geliyor (bkz. asagidaki liveProfileOptionsTarget),
@@ -2475,8 +2495,15 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         micDisabled: liveProfileParticipant?.muted ?? profileOptionsTarget.micDisabled,
         chatBanned: liveProfileParticipant?.chatBanned ?? profileOptionsTarget.chatBanned,
         locallyMuted: profileOptionsTarget.socketId ? locallyMutedIds.has(profileOptionsTarget.socketId) : false,
+        locallyChatMuted: profileOptionsTarget.socketId ? locallyChatMutedIds.has(profileOptionsTarget.socketId) : false,
       }
     : null;
+  // Katilimcilar kutusundaki 3 nokta artik KENDI satirimda da gosteriliyor
+  // (bkz. ParticipantsModal.tsx) - acilan menude kendim uzerinde anlamsiz/
+  // tehlikeli satirlar (odadan at, liderligi devret, arkadas ekle, engelle,
+  // bildir vb.) gorunmesin diye asagida ilgili prop'lar bu hedef kendim
+  // oldugunda ayiklanir.
+  const isProfileOptionsTargetSelf = Boolean(liveProfileOptionsTarget && liveProfileOptionsTarget.socketId === socket.id);
 
   // Deneme: "sese basınca açılan kutu" - sesteki (mikrofonu açık) kişiler.
   const voiceMicOnBySocket = socket.id ? { ...voice.remoteMicOn, [socket.id]: voice.connected && !voice.muted } : voice.remoteMicOn;
@@ -2817,13 +2844,13 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onContentSizeChange={() => chatListRef.current?.scrollToEnd({ animated: false })}
         style={styles.chatList}
         contentContainerStyle={styles.chatContent}
-        data={messages}
+        data={visibleMessages}
         keyExtractor={(_, i) => String(i)}
         renderItem={({ item, index }) => {
           // Rave'de oldugu gibi: arka arkaya gelen mesajlarda ayni
           // gondericinin avatari/ismi sadece grubun ilkinde gosteriliyor,
           // devaminda sadece metin aliniyor.
-          const prev = messages[index - 1];
+          const prev = visibleMessages[index - 1];
           const groupedWithPrev = !!prev && !prev.system && !item.system && prev.fromSocketId === item.fromSocketId;
           const sender = room.participants.find((p) => p.socketId === item.fromSocketId);
           return !item.system ? (
@@ -3226,12 +3253,13 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         isHost={isHost}
         isModerator={isModerator}
         onMuteParticipant={muteParticipant}
-        onMuteCameraParticipant={setCamMuted}
         onLongPressParticipant={openProfileOptions}
         onToggleOwnMic={handleMicPress}
         micOnBySocket={socket.id ? { ...voice.remoteMicOn, [socket.id]: voice.connected && !voice.muted } : voice.remoteMicOn}
         speakingSocketIds={voice.speakingIds}
-        topOffset={topBarHeight}
+        topOffset={topBarHeight + (videoHidden ? 0 : videoNaturalHeight ?? 0)}
+        fullTopOffset={topBarHeight}
+        onExpandedChange={setParticipantsExpanded}
         friendIds={friendIds}
       />
       {/* Davet et - Discover'daki sag ustteki arkadaslar ikonuyla ACILAN AYNI
@@ -3310,12 +3338,17 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
       <ProfileOptionsSheet
         visible={!!profileOptionsTarget}
         target={liveProfileOptionsTarget}
-        isHost={isHost}
+        isHost={isHost && !isProfileOptionsTargetSelf}
         canModerateTarget={Boolean(
           liveProfileOptionsTarget &&
+            !isProfileOptionsTargetSelf &&
             (isHost || (isModerator && !liveProfileOptionsTarget.isModerator && !liveProfileOptionsTarget.isHost))
         )}
         targetInRoom={profileOptionsTargetInRoom}
+        verticalCenterBand={{
+          top: participantsExpanded ? topBarHeight : topBarHeight + (videoHidden ? 0 : videoNaturalHeight ?? 0),
+          bottom: 0,
+        }}
         onClose={closeProfileOptions}
         onOpenProfile={openParticipantProfile}
         onMakeLeader={(t) => t.socketId && makeLeader(t.socketId)}
@@ -3326,13 +3359,14 @@ export default function RoomScreen({ initialRoom, onLeave, onOpenParticipant }: 
         onEnableMic={enableMicFromProfile}
         onDisableChat={disableChatFromProfile}
         onEnableChat={enableChatFromProfile}
-        onToggleLocalMute={toggleLocalMute}
-        onSendFriendRequest={sendFriendRequestFromProfile}
-        onCancelFriendRequest={cancelFriendRequestFromProfile}
-        onRemoveFriend={removeFriendFromProfile}
-        onBlock={blockFromProfile}
-        onUnblock={unblockFromProfile}
-        onReport={reportParticipant}
+        onToggleLocalMute={isProfileOptionsTargetSelf ? undefined : toggleLocalMute}
+        onToggleLocalChatMute={isProfileOptionsTargetSelf ? undefined : toggleLocalChatMute}
+        onSendFriendRequest={isProfileOptionsTargetSelf ? undefined : sendFriendRequestFromProfile}
+        onCancelFriendRequest={isProfileOptionsTargetSelf ? undefined : cancelFriendRequestFromProfile}
+        onRemoveFriend={isProfileOptionsTargetSelf ? undefined : removeFriendFromProfile}
+        onBlock={isProfileOptionsTargetSelf ? undefined : blockFromProfile}
+        onUnblock={isProfileOptionsTargetSelf ? undefined : unblockFromProfile}
+        onReport={isProfileOptionsTargetSelf ? undefined : reportParticipant}
       />
 
       {leaveConfirmVisible && (

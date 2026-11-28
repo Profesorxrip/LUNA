@@ -6,6 +6,7 @@ import {
   ArrowRightOnRectangleIcon as ArrowRightOnRectangleIconOutline,
   NoSymbolIcon as NoSymbolIconOutline,
   Cog6ToothIcon as Cog6ToothIconOutline,
+  ExclamationTriangleIcon as ExclamationTriangleIconOutline,
 } from "react-native-heroicons/outline";
 import {
   PlusIcon,
@@ -27,7 +28,6 @@ import {
   PauseIcon,
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
-  ChatBubbleOvalLeftIcon,
   ClipboardDocumentIcon,
   TrashIcon,
   SparklesIcon,
@@ -35,7 +35,7 @@ import {
   GlobeEuropeAfricaIcon,
   LanguageIcon,
 } from "react-native-heroicons/solid";
-import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, User, UserPlus, UserX, UserMinus, UserCheck, Users, DoorClosed } from "lucide-react-native";
+import { Hourglass, Crown, RotateCcw, RotateCw, Heart, Maximize, Minimize, Radar, CirclePlay, ListVideo, Vote, User, UserPlus, UserX, UserMinus, UserCheck, Users, DoorClosed, Award, MessageCircle, MessageCircleOff } from "lucide-react-native";
 import { PaperPlaneIcon, ParticipantsIcon, PersonBlockIcon, PersonBanIcon, MicIcon, MicOffIcon, VideoIcon, VideoOffIcon, SquarePhotoIcon, InvitePersonIcon, CompassBadgeIcon, ClockIcon, ShareBoxIcon, FilledCrownIcon, PhoneDeviceIcon, PhoneDeviceOffIcon, VolumeOnIcon, VolumeOffIcon, UndoArrowIcon } from "./CustomIcons";
 import AdultBadge from "./AdultBadge";
 import { SkipForwardIcon, SkipBackIcon } from "./SkipIcons";
@@ -74,6 +74,7 @@ export type IconName =
   | "personBlock"
   | "personBan"
   | "warning"
+  | "warningOutline"
   | "check"
   | "pin"
   | "radar"
@@ -108,6 +109,7 @@ export type IconName =
   | "sesAcik1"
   | "sesKapali1"
   | "chatBubble"
+  | "chatMuted"
   | "clipboard"
   | "person"
   | "personAdd"
@@ -116,6 +118,7 @@ export type IconName =
   | "personCheck"
   | "block"
   | "shield"
+  | "leaderAward"
   | "trash"
   | "sparkles"
   | "download";
@@ -144,6 +147,7 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   bell: BellIcon,
   bellOff: BellSlashIcon,
   warning: ExclamationTriangleIcon,
+  warningOutline: ExclamationTriangleIconOutline,
   trash: TrashIcon,
   sparkles: SparklesIcon,
   download: ArrowDownTrayIcon,
@@ -156,7 +160,6 @@ const HEROICONS: Partial<Record<IconName, React.ComponentType<{ size?: number; c
   phone: PhoneIcon,
   reply: ArrowUturnLeftIcon,
   pause: PauseIcon,
-  chatBubble: ChatBubbleOvalLeftIcon,
   clipboard: ClipboardDocumentIcon,
 };
 
@@ -176,6 +179,7 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   skipForward: SkipForwardIcon,
   skipBack: SkipBackIcon,
   shield: ModeratorBadge,
+  leaderAward: Award,
   send: PaperPlaneIcon,
   people: ParticipantsIcon,
   mic: MicIcon,
@@ -196,6 +200,8 @@ const CUSTOM: Partial<Record<IconName, React.ComponentType<{ size?: number; colo
   sesAcik1: VolumeOnIcon,
   sesKapali1: VolumeOffIcon,
   personBan: PersonBanIcon,
+  chatBubble: MessageCircle,
+  chatMuted: MessageCircleOff,
 };
 
 export default function Icon({ name, size = 24, color = "#F5F5F7" }: Props) {
